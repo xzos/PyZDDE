@@ -1,0 +1,1 @@
+PyZDDE is a python toolbox to communicate with ZEMAX using the Microsoft Windows DDE channel. This is similar to the MZDDE toolbox in Matlab.
