@@ -23,8 +23,15 @@ if pyzddedirectory not in sys.path:
 
 import pyZDDE
 
+reload(pyZDDE)  # In order to ensure that the latest changes in the pyZDDE module
+                # are updated here.
+
 # ZEMAX file directory
 zmxfp = pyzddedirectory+'\\ZMXFILES\\'
+
+# Zemax file(s) used in the test
+lensFile = ["Cooke 40 degree field.zmx"]
+lensFileName = lensFile[0]
 
 # Flag to enable printing of returned values.
 PRINT_RETURNED_VALUES = 1     # if test results are not going to be viewed by
@@ -126,7 +133,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print "\nTEST: zGetPupil()"
         # Set up the system first in the ZEMAX DDE server
         global zmxfp
-        filename = zmxfp+"Cooke 40 degree field.zmx"
+        filename = zmxfp+lensFileName
         ret = self.link0.zLoadFile(filename)
         #Get the pupil data
         pupilData = self.link0.zGetPupil()
@@ -157,7 +164,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print "\nTEST: zGetRefresh()"
         # Load & push a lens file into the LDE
         global zmxfp
-        filename = zmxfp+"Cooke 40 degree field.zmx"
+        filename = zmxfp+lensFileName
         ret = self.link0.zLoadFile(filename)
         ret = self.link0.zPushLens(1)
         # Copy the lens data from the LDE into the stored copy of the ZEMAX
@@ -207,11 +214,51 @@ class TestPyZDDEFunctions(unittest.TestCase):
         systemAperData_g = self.link0.zGetSystemAper()
         self.assertTupleEqual(systemAperData_s,systemAperData_g)
 
+    def test_zGetTextFile(self):
+        print "\nTEST: zGetTextFile()"
+        # Load a lens file into the LDE (Not required to Push lens)
+        global zmxfp
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        # create text files
+        spotDiagFileName = 'SpotDiagram.txt'          # Change appropriately
+        abberSCFileName = 'SeidelCoefficients.txt'    # Change appropriately
+        #Request to dump prescription file, without providing a valid settings file
+        #and flag = 0 ... so that the default settings will be used for the text
+        #Create filename with full path
+        preFileName = 'Prescription_unitTest_00.txt'
+        textFileName = testdirectory + '\\' + preFileName
+        ret = self.link0.zGetTextFile(textFileName,'Pre',"None",0)
+        self.assertIn(ret,(0,-1,-998)) #ensure that the ret is any valid return
+        if ret == -1:
+            print "MSG: zGetTextFile failed"
+        if ret == -998:
+            print "MSG: zGetTextFile() function timed out"
+        if TestPyZDDEFunctions.pRetVar:
+            print "zGetTextFile return value", ret
+
+        #Request zemax to dump prescription file, with a settings
+        ret = self.link0.zGetRefresh()
+        settingsFileName = "Cooke 40 degree field_PreSettings_OnlyCardinals.CFG"
+        preFileName = 'Prescription_unitTest_01.txt'
+        textFileName = testdirectory + '\\' + preFileName
+        ret = self.link0.zGetTextFile(textFileName,'Pre',settingsFileName,1)
+        self.assertIn(ret,(0,-1,-998)) #ensure that the ret is any valid return
+        if ret == -1:
+            print "MSG: zGetText failed"
+        if ret == -998:
+            print "MSG: zGetText() function timed out"
+        if TestPyZDDEFunctions.pRetVar:
+            print "zGetText return value", ret
+        #To do:
+        #unit test for (purposeful) fail cases....
+
+
     def test_zGetTrace(self):
         print "\nTEST: zGetTrace()"
         # Load a lens file into the LDE (Not required to Push lens)
         global zmxfp
-        filename = zmxfp+"Cooke 40 degree field.zmx"
+        filename = zmxfp+lensFileName
         ret = self.link0.zLoadFile(filename)
         # Set up the data
         waveNum,mode,surf,hx,hy,px,py = 3,0,5,0.0,1.0,0.0,0.0
@@ -244,6 +291,26 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertEqual(rayTraceData[11],intensity)
         if TestPyZDDEFunctions.pRetVar:
             print "Ray trace", rayTraceData
+
+
+    def test_zGetUpdate(self):
+        print "\nTEST: zGetUpdate()"
+        # Load & push a lens file into the LDE
+        global zmxfp
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        # Push the lens in the Zemax DDE server into the LDE
+        ret = self.link0.zPushLens(updateFlag=1)
+        # Update the lens to recompute
+        ret = self.link0.zGetUpdate()
+        self.assertIn(ret,(-998,-1,0))
+        if ret == -1:
+            print "MSG: ZEMAX couldn't update the lens"
+        if ret == -998:
+            print "MSG: zGetUpdate() function timed out"
+        if TestPyZDDEFunctions.pRetVar:
+            print "zGetUpdate return value", ret
+
 
     def test_zGetVersion(self):
         print "\nTEST: zGetVersion()"
@@ -313,7 +380,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         filename = zmxfp+"nonExistantFile.zmx"
         ret = self.link0.zLoadFile(filename)
         self.assertEqual(ret,-999)
-        filename = zmxfp+"Cooke 40 degree field.zmx"
+        filename = zmxfp+lensFileName
         ret = self.link0.zLoadFile(filename)
         self.assertEqual(ret,0)
         if TestPyZDDEFunctions.pRetVar:
@@ -324,7 +391,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         # Load the ZEMAX DDE server with a lens so that it has something to begin
         # with
         global zmxfp
-        filename = zmxfp+"Cooke 40 degree field.zmx"
+        filename = zmxfp+lensFileName
         ret = self.link0.zLoadFile(filename)
         # Call zNewLens to erase the current lens.
         ret = self.link0.zNewLens()
@@ -350,7 +417,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         # push a lens with valid flag.
         ret = self.link0.zPushLens()
         self.assertIn(ret,(0,-999,-998))
-        ret = self.link0.zPushLens(1)
+        ret = self.link0.zPushLens(updateFlag=1)
         self.assertIn(ret,(0,-999,-998))
         #Notify depending on return type
         # Note that the test as such should not "fail" if ZEMAX server returned
@@ -554,3 +621,6 @@ if __name__ == '__main__':
 # 1. all prints with "MSG" should be put into a single buffer and printed
 #    as a summery at the very end of the complete test. there are some facilities
 #    for doing this @ unittest framework (TestResult object??)
+# 2. zGetText() create more scenarios in the unit test of this function
+#    also, the unit test should read the "dumped" file and then verify the expected
+#    data. Then before exiting the test, the "dumped" files should be deleted.

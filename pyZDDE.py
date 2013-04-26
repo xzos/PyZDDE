@@ -292,7 +292,7 @@ class pyzdde(object):
         reply = None
         reply = self.conversation.Request('GetRefresh')
         if reply:
-            return int(reply)
+            return int(reply) #Note: Zemax returns -1 if GetRefresh fails.
         else:
             return -998
 
@@ -319,7 +319,7 @@ class pyzdde(object):
                 temp          : the current temperature
                 pressure      : the current pressure
                 globalRefSurf : the global coordinate reference surface number
-                need_save     : indicates whether the file has been modified.
+                need_save     : indicates whether the file has been modified. [Deprecated]
 
         Note: the returned data structure is exactly similar to the data structure
         returned by the zSetSystem() method.
@@ -360,6 +360,51 @@ class pyzdde(object):
         rs = reply.split(',')
         systemAperData = tuple([float(elem) for elem in rs])
         return systemAperData
+
+    def zGetTextFile(self,textFileName, analysisType, settingsFileName, flag):
+        """Request Zemax to save a text file for any analysis that supports text
+           output.
+
+           zGetText(textFilename, analysisType, settingsFilename, flag) -> retVal
+
+           args:
+            textFileName : name of the file to be created including the full path,
+                           name, and extension for the text file.
+            analysisType : 3 letter case-sensitive label that indicates the
+                           type of the analysis to be performed. They are identical
+                           to those used for the button bar in Zemax. The labels
+                           are case sensitive. If no label is provided or recognized,
+                           a standard raytrace will be generated. If a valid file
+                           name is used for the "settingsFileName", ZEMAX will use
+                           or save the settings used to compute the text file,
+                           depending upon the value of the flag parameter.
+            flag        :  0 = default settings used for the text
+                           1 = settings provided in the settings file, if valid,
+                               else default settings used
+                           2 = settings provided in the settings file, if valid,
+                               will be used and the settings box for the requested
+                               feature will be displayed. After the user makes any
+                               changes to the settings the text will then be
+                               generated using the new settings.
+                           Please see the ZEMAX manual for more details.
+           retVal:
+            0      : Success
+            -1     : Text file could not be saved.
+            -998   : Command timed out
+
+        Notes: No matter what the flag value is, if a valid file name is provided
+        for the settingsfilename, the settings used will be written to the settings
+        file, overwriting any data in the file.
+
+        See also zGetMetaFile, zOpenWindow.
+        """
+        retVal = -1
+        cmd = 'GetTextFile,"%s",%s,"%s",%i' %(textFileName,analysisType,
+                                              settingsFileName,flag)
+        reply = self.conversation.Request(cmd)
+        if reply.split()[0] == 'OK':
+            retVal = 0
+        return retVal
 
 
     def zGetTrace(self,waveNum,mode,surf,hx,hy,px,py):
@@ -417,6 +462,26 @@ class pyzdde(object):
         rayTraceData = tuple([int(elem) if (i==0 or i==1)
                                  else float(elem) for i,elem in enumerate(rs)])
         return rayTraceData
+
+    def zGetUpdate(self):
+        """Update the lens, which means Zemax recomputes
+           all pupil positions, solves, and index data.
+
+           zGetUpdate() -> status
+
+            status :   0 = Zemax successfully updated the lens
+                      -1 = No raytrace performed
+                    -998 = Command timed
+
+           To update the merit function, use the zOptimize item with the number
+           of cycles set to -1.
+           See also zGetRefresh, zOptimize, zPushLens
+        """
+        status,ret = -998, None
+        ret = self.conversation.Request("GetUpdate")
+        if ret != None:
+            status = int(ret)  #Note: Zemax returns -1 if GetUpdate fails.
+        return status
 
     def zGetVersion(self):
         """Get the current version of ZEMAX which is running.
@@ -518,7 +583,7 @@ class pyzdde(object):
             reply = self.conversation.Request('LoadFile,'+filename,append)
 
         if reply:
-            return int(reply)
+            return int(reply) #Note: Zemax returns -999 if update fails.
         else:
             return -998
 
@@ -573,7 +638,7 @@ class pyzdde(object):
             raise ValueError('Invalid value for flag')
 
         if reply:
-            return int(reply)
+            return int(reply)   #Note, Zemax itself returns -999 if the push lens failed.
         else:
             return -998   #if timeout reached
 
@@ -1443,6 +1508,11 @@ if __name__ == '__main__':
 #12. zSetAperture (done, to test)
 #13. zGetAperture (done, to test)
 
+
+# To do in near future:
+# 1. A function similar to "help zemaxbuttons" implemented in MZDDE. Useful when
+#    someone will quickly want to know the 3 letter codes for the different functions
+#    especially when using functions like zGetText( ).
 
 # To check:
 # It seems that the zGetField(0) and the return of zSetField(0) is returning only
