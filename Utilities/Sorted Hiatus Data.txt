@@ -1,0 +1,8 @@
+4 Lenses Analyzed!
+
+The sorted list is:
+
+Double Gauss 5 degree field.ZMX		4.8481994
+Doublet.ZMX		3.08658306667
+Cooke 40 degree field.zmx		2.27083416333
+Tessar lens using vignetting factors.ZMX		1.09608033333

@@ -63,6 +63,7 @@ filenames = glob.glob(zmxfp+pattern)
 hiatusData = dict()
 largestHiatusValue =   0.0     #init the variables for largest hiatus
 largestHiatusLensFile = "None"
+lensFileCount = 0
 # Loop through all the files in filenames, load the zemax files, get the data
 for lens_file in filenames:
     if fDBG_PRINT:
@@ -109,7 +110,7 @@ for lens_file in filenames:
     #number of wavelengths in the general settings of the lens design
     line_list = fileref.readlines()
     fileref.close()
-    #See note 1 for the reasons why the file was not read as an iterable object
+    #See Note 1 for the reasons why the file was not read as an iterable object
     #and instead, we create a list of all the lines in the file, which is obviously
     #very wasteful of memory
 
@@ -125,7 +126,8 @@ for lens_file in filenames:
         if "Principal Planes" in line and "Anti" not in line:
             principalPlane_objSpace += float(line.split()[3])
             principalPlane_imgSpace += float(line.split()[4])
-            count +=1
+            count +=1  #Increment (wavelength) counter for averaging
+    lensFileCount +=1  #Increment the lens files count
    #Calculate the average (for all wavelengths) of the principal plane distances
     if count > 0:
         principalPlane_objSpace = principalPlane_objSpace/count
@@ -164,13 +166,22 @@ if ORDERED_HIATUS_DATA_IN_FILE:
         hiatusData_sorted = sorted(hiatusData.items(),key=itemgetter(1),reverse=True)
     #Open a file for writing the data
     fileref_hds = open("Sorted Hiatus Data.txt",'w')
+    fileref_hds.write("%s Lenses Analyzed!\n\nThe sorted list is:\n\n"%(lensFileCount))
     for i in hiatusData_sorted:
         fileref_hds.write("%s\t\t%s\n"%(i[0],i[1]))
     fileref_hds.close()
 
 #Print the largest lens having the largest hiatus and the hiatus value
-print "Largest Hiatus: "
+print lensFileCount, " lenses analyzed. Largest Hiatus: "
 print "Lens:", largestHiatusLensFile
 print "Hiatus:", largestHiatusValue
 
 #Note 1:
+#It is very difficult (if not impossible) to read the prescirption files using bytes
+#as we want to get to a specific position based on "keywords" and not "bytes". (we
+#are not guaranteed to find the same "keyword" for a specific byte-based-position
+#everytime we read a prescription file)
+#If we the file line by line as "for line in file" (using the file iterable object)
+#it is hard to read, identify and store a specific line which doesn't have any
+#keywords. Also, because of possible dataloss, Python raises an exception, if we
+#try to do readline() or readlines() within the "for line in file" iteration.
