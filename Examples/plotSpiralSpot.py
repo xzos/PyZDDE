@@ -1,6 +1,8 @@
 #-------------------------------------------------------------------------------
 # Name:        plotSpiralSpot.py
-# Purpose:
+# Purpose:     Example of using the "spiral spot" member function of pyZDDE.
+#              Please note that this code uses matplotlib plotting library from
+#              http://matplotlib.org/ for 2D-plotting
 #
 # Author:      Indranil Sinharoy
 #
@@ -8,8 +10,7 @@
 # Copyright:   (c) 2012, 2013
 # Licence:     MIT License
 #-------------------------------------------------------------------------------
-#import win32ui
-#import dde
+
 import sys, os
 import matplotlib.pyplot as plt
 

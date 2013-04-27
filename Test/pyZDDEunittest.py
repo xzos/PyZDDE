@@ -5,7 +5,7 @@
 # Author:      Indranil Sinharoy
 #
 # Created:     19/10/2012
-# Copyright:   (c) Indranil 2012, 2013
+# Copyright:   (c) Indranil 2012 - 2013
 # Licence:     MIT License
 #-------------------------------------------------------------------------------
 

@@ -32,6 +32,7 @@ from __future__ import division
 from __future__ import print_function
 import os, glob, sys, fnmatch
 from operator import itemgetter
+import Tkinter, tkFileDialog
 
 # Put both the "Utilities" and the "PyZDDE" directory in the python search path.
 utilsDirectory = os.getcwd()
@@ -49,13 +50,15 @@ ORDERED_HIATUS_DATA_IN_FILE = True   # Sorted output in a file ? [will take long
 ORDERING   = 'large2small'           # 'large2small' or 'small2large'
 fDBG_PRINT = False                   # Turn off/on the debug prints
 
-# ZEMAX file directory to search
-#zmxfp = pyzddedirectory+'\\ZMXFILES\\'
-zmxfp =  "C:\\Users\\Indranil\\Documents\\ZEMAX\\Samples\\Sequential\\"
-#zmxfp = "C:\\PROGRAMSANDEXPERIMENTS\\ZEMAX\\Samples\\Sequential\\Objectives\\"
-#zmxfp =  "C:\\Users\\Indranil\\Documents\\ZEMAX\\Samples\\Sequential\\Objectives\\"
-#zmxfp = "C:\\Users\\Indranil\\Documents\\ZEMAX\\Samples\\Sequential\\GRINs\\"
-pattern = "*.zmx"
+# ZEMAX file DIRECTORY to search (can have sub-directories)
+zmxfp = pyzddedirectory+'\\ZMXFILES\\'
+
+#A simple Tkinter GUI prompting for directory
+root = Tkinter.Tk()
+root.withdraw()
+zmxfp = tkFileDialog.askdirectory(parent=root,initialdir=dirname,
+                            title='Please navigate to a directory')
+#end of Tikinter GUI code
 
 # Create a DDE channel object
 pyZmLnk = pyZDDE.pyzdde()
@@ -63,7 +66,7 @@ pyZmLnk = pyZDDE.pyzdde()
 stat = pyZmLnk.zDDEInit()
 
 #Get all the zemax files in the directories recursively
-#filenames = glob.glob(zmxfp+pattern)
+pattern = "*.zmx"
 filenames = [os.path.join(dirpath,f)
              for dirpath, subFolders, files in os.walk(zmxfp)
              for f in fnmatch.filter(files,pattern)]
