@@ -5,8 +5,8 @@
 # Author:      Indranil Sinharoy
 #
 # Created:     06/10/2012
-# Copyright:   (c) 2012
-# Licence:     BSD
+# Copyright:   (c) 2012, 2013
+# Licence:     MIT License
 #-------------------------------------------------------------------------------
 #import win32ui
 #import dde
