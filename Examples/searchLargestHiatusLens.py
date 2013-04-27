@@ -33,13 +33,14 @@ from __future__ import print_function
 import os, glob, sys, fnmatch
 from operator import itemgetter
 import Tkinter, tkFileDialog
+import datetime
 
-# Put both the "Utilities" and the "PyZDDE" directory in the python search path.
-utilsDirectory = os.getcwd()
-ind = utilsDirectory.find('Examples')
-pyzddedirectory = utilsDirectory[0:ind-1]
-if utilsDirectory not in sys.path:
-    sys.path.append(utilsDirectory)
+# Put both the "Examples" and the "PyZDDE" directory in the python search path.
+exampleDirectory = os.getcwd()
+ind = exampleDirectory.find('Examples')
+pyzddedirectory = exampleDirectory[0:ind-1]
+if exampleDirectory not in sys.path:
+    sys.path.append(exampleDirectory)
 if pyzddedirectory not in sys.path:
     sys.path.append(pyzddedirectory)
 
@@ -70,6 +71,7 @@ pattern = "*.zmx"
 filenames = [os.path.join(dirpath,f)
              for dirpath, subFolders, files in os.walk(zmxfp)
              for f in fnmatch.filter(files,pattern)]
+parentFolder = str(os.path.split(zmxfp)[1])
 
 ###To just use one file FOR DEBUGGING PURPOSE -- comment out this section
 ##oneFile = []
@@ -77,6 +79,7 @@ filenames = [os.path.join(dirpath,f)
 ##filenames = oneFile
 ###end of "just use one file to test"
 
+now = datetime.datetime.now()
 #Create a dictionary to store the filenames and hiatus
 hiatusData = dict()
 largestHiatusValue =   0.0     #init the variables for largest hiatus
@@ -89,7 +92,7 @@ for lens_file in filenames:
     #Load the lens in to the Zemax DDE server
     ret = pyZmLnk.zLoadFile(lens_file)
     if ret != 0:
-        print (ret, lens_file, " Couldn't open!")
+        print(ret, lens_file, " Couldn't open!")
         continue
     #assert ret == 0
     #In order to maintain the units, set the units to mm for all lenses. Also
@@ -109,7 +112,7 @@ for lens_file in filenames:
     recSystemData_s = pyZmLnk.zSetSystem(0,stopSurf,rayAimingType,0,temp,pressure,1)
 
     #Push the lens in the Zemax DDE server into the LDE
-    ret = pyZmLnk.zPushLens(updateFlag=1) #Not entirely sure if pushLens is required
+    #ret = pyZmLnk.zPushLens(updateFlag=1) #Not entirely sure if pushLens is required
     #Update the lens
     ret = pyZmLnk.zGetUpdate()
     assert ret == 0
@@ -117,10 +120,10 @@ for lens_file in filenames:
     # I don't think it is required, as, the principal planes doesn't change with focusing.
     #Should I do Refresh() [ie copy the lens data from the LDE into the stored
     #copy of the Zemax server]
-    ret = pyZmLnk.zGetRefresh()
-    assert ret == 0
+    #ret = pyZmLnk.zGetRefresh()
+    #assert ret == 0
     #Dump the Prescription file
-    textFileName = utilsDirectory + '\\' + "searchSpecAttr_Prescription.txt"
+    textFileName = exampleDirectory + '\\' + "searchSpecAttr_Prescription.txt"
     ret = pyZmLnk.zGetTextFile(textFileName,'Pre',"None",0)
     assert ret == 0
     #Open the text file in read mode to read
@@ -186,14 +189,19 @@ if ORDERED_HIATUS_DATA_IN_FILE:
     else:
         hiatusData_sorted = sorted(hiatusData.items(),key=itemgetter(1),reverse=True)
     #Open a file for writing the data
-    fileref_hds = open("Sorted Hiatus Data.txt",'w')
-    fileref_hds.write("%s Lenses Analyzed!\n\nThe sorted list is:\n\n"%(lensFileCount))
+    dtStamp = "_%d_%d_%d_%dh_%dm_%ds" %(now.year,now.month,now.day,now.hour,now.minute,now.second)
+    fileref_hds = open("searchLargestHiatusLens_"+parentFolder+dtStamp+".txt",'w')
+    fileref_hds.write("Lens hiatus measurement:\n\n")
+    fileref_hds.write("Date and time: " + now.strftime("%Y-%m-%d %H:%M"))
+    fileref_hds.write("\nUnits: mm")
+    fileref_hds.write("\nDirectory: "+ zmxfp)
+    fileref_hds.write("\n%s Lenses Analyzed!\n\nThe sorted list is:\n\n"%(lensFileCount))
     for i in hiatusData_sorted:
         fileref_hds.write("%s\t\t%s\n"%(i[0],i[1]))
     fileref_hds.close()
 
 #Print the largest lens having the largest hiatus and the hiatus value
-print(lensFileCount, " lenses analyzed. Largest Hiatus: ")
+print(lensFileCount, " lenses analyzed for largest hiatus (in mm): ")
 print("Lens:", largestHiatusLensFile)
 print("Hiatus:", largestHiatusValue)
 
