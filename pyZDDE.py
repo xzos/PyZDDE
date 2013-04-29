@@ -1122,10 +1122,15 @@ class pyzdde(object):
 
     def spiralSpot(self,hy,hx,waveNum,spirals,rays,mode=0):
         """Convenience function to produce a series of x,y values of rays traced in
-        a spiral over the entrance pupil. This function imitates it namesake from
+        a spiral over the entrance pupil to the image surface. i.e. the final destination
+        of the rays is the image surface. This function imitates its namesake from
         MZDDE toolbox.
 
-        spiralSpot(hy,hx,waveNum,spirals,rays[,mode])->[x,y]
+        spiralSpot(hy,hx,waveNum,spirals,rays[,mode])->[x,y,z,intensity]
+
+        Note: Since the spiralSpot function performs a GetRefresh() to load lens
+        data from the LDE to the DDE server, perform PushLens() before calling
+        spiralSpot.
         """
         # Numpy arrays not used intentionally so that a user is not forced to
         # install numpy libraries if he/she doesn't desire to,
@@ -1138,18 +1143,22 @@ class pyzdde(object):
             r = [i/finishAngle for i in theta]
             px = [r[i]*cos(theta[i]) for i in range(len(theta))]
             py = [r[i]*sin(theta[i]) for i in range(len(theta))]
-            x = []
-            y = []
+            x = [] # x-coordinate of the image surface
+            y = [] # y-coordinate of the image surface
+            z = [] # z-coordinate of the image surface
+            intensity = [] # the relative transmitted intensity of the ray
             for i in range(len(px)):
                 rayTraceData = self.zGetTrace(waveNum,mode,-1,hx,hy,px[i],py[i])
                 if rayTraceData[0] == 0:
                     x.append(rayTraceData[2])
                     y.append(rayTraceData[3])
+                    z.append(rayTraceData[4])
+                    intensity.append(rayTraceData[11])
                 else:
                     print "Raytrace Error"
                     exit()
                     #FIXME raise an error here
-            return [x,y]
+            return [x,y,z,intensity]
         else:
             print "Couldn't copy lens data from LDE to server, no tracing can be performed"
             return [None,None]

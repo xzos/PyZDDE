@@ -41,12 +41,21 @@ if ~status:
         if status:
             ret = link0.zPushLens(updateFlag=1)
             if ~ret:
-                [x,y] = link0.spiralSpot(0.4,0,1,10,10000)
-                plt.plot(x,y)
-                #plt.ion()
-                plt.title('Spiral Spot')
+                hx = 0.4
+                hy = 0.0
+                spirals = 100
+                rays = 6000
+                [xb,yb,zb,intensityb] = link0.spiralSpot(hx,hy,1,spirals,rays)
+                [xg,yg,zg,intensityg] = link0.spiralSpot(hx,hy,2,spirals,rays)
+                [xr,yr,zr,intensityr] = link0.spiralSpot(hx,hy,3,spirals,rays)
+                fig,ax = plt.subplots(1,1)
+                ax.set_aspect('equal')
+                ax.scatter(xr,yr,s=8,c='red',linewidth=0.5,zorder=20)
+                ax.scatter(xg,yg,s=8,c='lime',linewidth=0.5,zorder=21)
+                ax.scatter(xb,yb,s=8,c='blue',linewidth=0.5,zorder=22)
+                ax.set_xlabel('x');ax.set_ylabel('y')
+                fig.suptitle('Spiral Spot')
                 plt.show()
-
             else:
                 print "Failed to push lens"
         else:

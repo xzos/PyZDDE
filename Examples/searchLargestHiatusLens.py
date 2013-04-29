@@ -12,7 +12,8 @@
 #
 #              Assumptions:
 #              1. The last surface is the image surface
-#              2.
+#              2. Search only sequential zemax files. The prescription file output
+#                 for Non-sequential Zemax analysis is different from sequential.
 #
 #              Note:
 #              1. If Zemax is unable to open a .zmx certain file, it pops-up an
@@ -32,7 +33,7 @@ from __future__ import division
 from __future__ import print_function
 import os, glob, sys, fnmatch
 from operator import itemgetter
-import Tkinter, tkFileDialog
+import Tkinter, tkFileDialog, Tkconstants
 import datetime
 
 # Put both the "Examples" and the "PyZDDE" directory in the python search path.
@@ -49,16 +50,71 @@ import pyZDDE
 #Program control parameters
 ORDERED_HIATUS_DATA_IN_FILE = True   # Sorted output in a file ? [will take longer time]
 ORDERING   = 'large2small'           # 'large2small' or 'small2large'
+HIATUS_UPPER_LIMIT = 2000.00         # Ignore lenses for which hiatus is greater than some value
 fDBG_PRINT = False                   # Turn off/on the debug prints
 
 # ZEMAX file DIRECTORY to search (can have sub-directories)
-zmxfp = pyzddedirectory+'\\ZMXFILES\\'
-
+zmxfp = pyzddedirectory+"\\ZMXFILES"
 #A simple Tkinter GUI prompting for directory
 root = Tkinter.Tk()
-root.withdraw()
-zmxfp = tkFileDialog.askdirectory(parent=root,initialdir=dirname,
+class TkFileDialog(Tkinter.Frame):
+    def __init__(self, root):
+        Tkinter.Frame.__init__(self, root, borderwidth=20,height=32,width=42)
+
+        #Top-level label
+        self.label1 = Tkinter.Label(self,text = "Find eXtreme Hiatus",
+                           font=("Helvetica",16),fg='blue',justify=Tkinter.LEFT)
+        self.label1.pack()
+
+        # options for buttons
+        button_opt = {'fill': Tkconstants.BOTH, 'padx': 5, 'pady': 5}
+
+        # define first button
+        self.b1 = Tkinter.Button(self, text='Select Directory', command=self.askdirectory)
+        self.b1.pack(**button_opt)
+
+        #Add another level
+        self.label2 = Tkinter.Label(self,text = "Ignore values above:", justify=Tkinter.LEFT)
+        self.label2.pack()
+
+        #Add an Entry Widget to enter text
+        self.entryVar = Tkinter.StringVar()
+        self.entry = Tkinter.Entry(self,text="test",textvariable=self.entryVar)
+        self.entry.pack()
+        self.entry.insert(0,str(HIATUS_UPPER_LIMIT))
+
+        # checkbox button
+        self.var = Tkinter.IntVar(value=0)
+        c = Tkinter.Checkbutton(self,text="Save to a TXT file?",
+                                 variable=self.var,command=self.cb,onvalue=1)
+        c.pack(**button_opt)
+        c.select()   #The check-box is checked initially
+
+        #Add a "Find" button
+        b2 = Tkinter.Button(self,text='Find',command=self.find)
+        b2.pack(**button_opt)
+
+    def askdirectory(self):
+        """Returns a selected directoryname."""
+        global zmxfp
+        zmxfp = tkFileDialog.askdirectory(parent=root,initialdir=zmxfp,
                             title='Please navigate to a directory')
+        return
+
+    def cb(self):
+        global ORDERED_HIATUS_DATA_IN_FILE
+        ORDERED_HIATUS_DATA_IN_FILE = bool(self.var.get())
+        return
+
+    def find(self):
+        global HIATUS_UPPER_LIMIT
+        self.entry.focus_set()
+        HIATUS_UPPER_LIMIT = float(self.entry.get())
+        root.quit()
+        root.destroy()
+
+TkFileDialog(root).pack()
+root.mainloop()
 #end of Tikinter GUI code
 
 # Create a DDE channel object
@@ -80,11 +136,18 @@ parentFolder = str(os.path.split(zmxfp)[1])
 ###end of "just use one file to test"
 
 now = datetime.datetime.now()
+
+# ###################
+# MAIN CODE LOGIC
+# ###################
 #Create a dictionary to store the filenames and hiatus
 hiatusData = dict()
 largestHiatusValue =   0.0     #init the variables for largest hiatus
 largestHiatusLensFile = "None"
 lensFileCount = 0
+totalNumLensFiles = len(filenames)
+totalFilesNotLoaded = 0 #File count of files that couldn't be loaded by Zemax
+filesNotLoaded = []   #List of files that couldn't be loaded by Zemax
 # Loop through all the files in filenames, load the zemax files, get the data
 for lens_file in filenames:
     if fDBG_PRINT:
@@ -93,6 +156,8 @@ for lens_file in filenames:
     ret = pyZmLnk.zLoadFile(lens_file)
     if ret != 0:
         print(ret, lens_file, " Couldn't open!")
+        filesNotLoaded.append(lens_file)
+        totalFilesNotLoaded +=1
         continue
     #assert ret == 0
     #In order to maintain the units, set the units to mm for all lenses. Also
@@ -111,17 +176,9 @@ for lens_file in filenames:
     #Set the system parameters
     recSystemData_s = pyZmLnk.zSetSystem(0,stopSurf,rayAimingType,0,temp,pressure,1)
 
-    #Push the lens in the Zemax DDE server into the LDE
-    #ret = pyZmLnk.zPushLens(updateFlag=1) #Not entirely sure if pushLens is required
     #Update the lens
     ret = pyZmLnk.zGetUpdate()
     assert ret == 0
-    #Qucik focus/optimize?
-    # I don't think it is required, as, the principal planes doesn't change with focusing.
-    #Should I do Refresh() [ie copy the lens data from the LDE into the stored
-    #copy of the Zemax server]
-    #ret = pyZmLnk.zGetRefresh()
-    #assert ret == 0
     #Dump the Prescription file
     textFileName = exampleDirectory + '\\' + "searchSpecAttr_Prescription.txt"
     ret = pyZmLnk.zGetTextFile(textFileName,'Pre',"None",0)
@@ -151,7 +208,7 @@ for lens_file in filenames:
             principalPlane_objSpace += float(line.split()[3])
             principalPlane_imgSpace += float(line.split()[4])
             count +=1  #Increment (wavelength) counter for averaging
-    lensFileCount +=1  #Increment the lens files count
+
    #Calculate the average (for all wavelengths) of the principal plane distances
     if count > 0:
         principalPlane_objSpace = principalPlane_objSpace/count
@@ -164,6 +221,9 @@ for lens_file in filenames:
         print("Image space Principal Plane: ", principalPlane_imgSpace)
         print("Hiatus: ", hiatus)
 
+    if hiatus > HIATUS_UPPER_LIMIT:
+        continue
+    lensFileCount +=1  #Increment the lens files count
     if hiatus > largestHiatusValue:
         largestHiatusValue = hiatus
         largestHiatusLensFile = os.path.basename(lens_file)
@@ -191,13 +251,20 @@ if ORDERED_HIATUS_DATA_IN_FILE:
     #Open a file for writing the data
     dtStamp = "_%d_%d_%d_%dh_%dm_%ds" %(now.year,now.month,now.day,now.hour,now.minute,now.second)
     fileref_hds = open("searchLargestHiatusLens_"+parentFolder+dtStamp+".txt",'w')
-    fileref_hds.write("Lens hiatus measurement:\n\n")
+    fileref_hds.write("LENS HIATUS MEASUREMENT:\n\n")
     fileref_hds.write("Date and time: " + now.strftime("%Y-%m-%d %H:%M"))
     fileref_hds.write("\nUnits: mm")
     fileref_hds.write("\nDirectory: "+ zmxfp)
-    fileref_hds.write("\n%s Lenses Analyzed!\n\nThe sorted list is:\n\n"%(lensFileCount))
+    fileref_hds.write("\n%s Lenses out of %s Analyzed!"%(lensFileCount,
+                                                        totalNumLensFiles))
+    fileref_hds.write("\nLens files not loaded by Zemax: %s (See list below)"%(totalFilesNotLoaded))
+    fileref_hds.write("\nLenses with hiatus above %s have been ignored.\n\n"%(HIATUS_UPPER_LIMIT))
+    fileref_hds.write("\nThe sorted list is:\n\n")
     for i in hiatusData_sorted:
         fileref_hds.write("%s\t\t%s\n"%(i[0],i[1]))
+    fileref_hds.write("\n\nLens files that Zemax couldn't open for analysis:\n\n")
+    for fl in filesNotLoaded:
+        fileref_hds.write("%s\n"%fl)
     fileref_hds.close()
 
 #Print the largest lens having the largest hiatus and the hiatus value
