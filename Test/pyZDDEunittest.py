@@ -7,6 +7,9 @@
 # Created:     19/10/2012
 # Copyright:   (c) Indranil 2012 - 2013
 # Licence:     MIT License
+#              This file is subject to the terms and conditions of the MIT License.
+#              For further details, please refer to LICENSE.txt
+# Revision: 0.2
 #-------------------------------------------------------------------------------
 
 import os, sys, unittest
@@ -129,9 +132,36 @@ class TestPyZDDEFunctions(unittest.TestCase):
             self.assertEqual(oFieldDataTuple_g[i][:len(iFieldDataTuple[i])],
                                                            iFieldDataTuple[i])
 
+    def test_zGetFile(self):
+        print "\nTEST: zGetFile()"
+        global zmxfp
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        assert ret == 0   # This is not a unit-test assert.
+        reply = self.link0.zGetFile()
+        self.assertEqual(reply,filename)
+        if TestPyZDDEFunctions.pRetVar:
+            print "zGetFile return value:", reply
+
+    def test_zGetFirst(self):
+        print "\nTEST: zGetFirst()"
+        global zmxfp
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        assert ret == 0   # This is not a unit-test assert.
+        (focal,pwfn,rwfn,pima,pmag) = self.link0.zGetFirst()
+        #Just going to check the validity of the returned data type
+        self.assertIsInstance(focal,float)
+        self.assertIsInstance(pwfn,float)
+        self.assertIsInstance(rwfn,float)
+        self.assertIsInstance(pima,float)
+        if TestPyZDDEFunctions.pRetVar:
+            print "zGetFirst return value: ", focal,pwfn, rwfn,pima, pmag
+
+
     def test_zGetPupil(self):
         print "\nTEST: zGetPupil()"
-        # Set up the system first in the ZEMAX DDE server
+        # Load a lens to the ZEMAX DDE server
         global zmxfp
         filename = zmxfp+lensFileName
         ret = self.link0.zLoadFile(filename)
@@ -185,6 +215,42 @@ class TestPyZDDEFunctions(unittest.TestCase):
         if TestPyZDDEFunctions.pRetVar:
             print "SERIAL:", ser
 
+#    @unittest.skip("To implement")
+    def test_zGetSurfaceData(self):
+        print "\nTEST: zGetSurfaceData()"
+        #Load a lens file
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        assert ret == 0
+        surfName = self.link0.zGetSurfaceData(1,0)   # Surface name
+        self.assertEqual(surfName,'STANDARD')
+        radius = 1.0/self.link0.zGetSurfaceData(1,2) # curvature
+        self.assertAlmostEqual(radius,22.01359,places=3)
+        thick = self.link0.zGetSurfaceData(1,3)     # thickness
+        self.assertAlmostEqual(thick,3.25895583,places=3)
+        if TestPyZDDEFunctions.pRetVar:
+            print "surfName :", surfName
+            print "radius :", radius
+            print "thickness: ", thick
+
+    @unittest.skip("To implement")
+    def test_zGetSurfaceDLL(self):
+        print "\nTEST: zGetSurfaceDLL()"
+        #Load a lens file
+
+    @unittest.skip("To implement")
+    def test_zGetSurfaceParameter(self):
+        print "\nTEST: zGetSurfaceParameter()"
+        #Load a lens file
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        assert ret == 0
+        surfParam1 = self.link0.zGetSurfaceParameter(1,1)
+        print "Surface name: ", surfParam1
+        surfParam3 = self.link0.zGetSurfaceParameter(1,3)
+        print "Radius: ", surfParam3
+
+
     def test_zGetSystem(self):
         print "\nTEST: zGetSystem()"
         #Setup the arguments to set a specific system first
@@ -216,17 +282,25 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def test_zGetTextFile(self):
         print "\nTEST: zGetTextFile()"
-        # Load a lens file into the LDE (Not required to Push lens)
+        # Load a lens file into the DDE Server (Not required to Push lens)
         global zmxfp
         filename = zmxfp+lensFileName
         ret = self.link0.zLoadFile(filename)
         # create text files
         spotDiagFileName = 'SpotDiagram.txt'          # Change appropriately
         abberSCFileName = 'SeidelCoefficients.txt'    # Change appropriately
+        #Request to dump prescription file, without giving fullpath name. It
+        #should return -1
+        preFileName = 'Prescription_unitTest_00.txt'
+        ret = self.link0.zGetTextFile(preFileName,'Pre',"None",0)
+        self.assertEqual(ret,-1)
+        #filename path is absolute, however, doesn't have extension
+        textFileName = testdirectory + '\\' + os.path.splitext(preFileName)[0]
+        ret = self.link0.zGetTextFile(textFileName,'Pre',"None",0)
+        self.assertEqual(ret,-1)
         #Request to dump prescription file, without providing a valid settings file
         #and flag = 0 ... so that the default settings will be used for the text
         #Create filename with full path
-        preFileName = 'Prescription_unitTest_00.txt'
         textFileName = testdirectory + '\\' + preFileName
         ret = self.link0.zGetTextFile(textFileName,'Pre',"None",0)
         self.assertIn(ret,(0,-1,-998)) #ensure that the ret is any valid return
@@ -377,9 +451,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zLoadFile(self):
         print "\nTEST: zLoadFile()"
         global zmxfp
+        #Try to load a non existant file
         filename = zmxfp+"nonExistantFile.zmx"
         ret = self.link0.zLoadFile(filename)
         self.assertEqual(ret,-999)
+        #Now, try to load a real file
         filename = zmxfp+lensFileName
         ret = self.link0.zLoadFile(filename)
         self.assertEqual(ret,0)
@@ -534,11 +610,21 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertEqual(primaryWaveNumber,oWaveData[0])
         self.assertEqual(len(wavelengths),oWaveData[1])
 
+    @unittest.skip("To implement")
     def test_zSetSurfaceData(self):
         print "\nTEST: zSetSurfaceData()"
         #Insert some surfaces
 
-
+    @unittest.skip("To implement")
+    def test_zSetSurfaceParameter(self):
+        print "\nTEST: zSetSurfaceParameter()"
+##        filename = zmxfp+lensFileName
+##        ret = self.link0.zLoadFile(filename)
+##        assert ret == 0
+##        surfParam1 = self.link0.zGetSurfaceParameter(1,1)
+##        print "Surface name: ", surfParam1
+##        surfParam3 = self.link0.zGetSurfaceParameter(1,3)
+##        print "Radius: ", surfParam3
 
     def test_zSetSystem(self):
         print "\nTEST: zSetSystem()"
@@ -624,3 +710,44 @@ if __name__ == '__main__':
 # 2. zGetText() create more scenarios in the unit test of this function
 #    also, the unit test should read the "dumped" file and then verify the expected
 #    data. Then before exiting the test, the "dumped" files should be deleted.
+
+
+# To do next:
+# 1. zSetField (done)
+# 2. zGetField (done)
+# 5. zGetSolve
+# 6. zSetSolve
+# 7. zQuickFocus (done, to test)
+# 8. zSetSurfaceParameter
+# 9. zGetSurfaceParameter
+#10. zSetFieldMatrix (MZDDE functions) --> zSetFieldTuple (done)
+#11. zGetFieldMatrix (MZDDE functions) --> zGetFieldTuple (done)
+#12. zSetAperture (done, to test)
+#13. zGetAperture (done, to test)
+
+
+# To do in near future:
+# 1. A function similar to "help zemaxbuttons" implemented in MZDDE. Useful when
+#    someone will quickly want to know the 3 letter codes for the different functions
+#    especially when using functions like zGetText( ).
+# 2. The test_pyZDDE() is not functional at this point in time in the latest version
+#    of Zemax. It used to be functional in older version of Zemax (and it still does).
+#    Need to fix it.
+# 3. Add one more case to test_zPushLens() .... load a lens into the DDE server and
+#    then push it to the LDE
+
+# To check:
+# It seems that the zGetField(0) and the return of zSetField(0) is returning only
+# 2 arguments (type,numberoffields) when it is expected to return 5
+# (type,numberoffields,x_field_max,y_field_max, normalization) ... why is this
+# behavior? is it because I am testing it in an older version of ZEMAX? if that
+# turns out to be the case, then can you use "version number" to do conditional
+# tests?
+
+# when the ZEMAX DDE server returns multiple values within a string, it can
+# contain the characters '\r\n' such as '5.000000000E-001\r\n' or ['0', '3\r\n']
+# Usually, it is not a problem as the "\r\n" parts are automatically stripped
+# when a type converstion from string to int or float is done; so an extra
+# regex is not necessary. If the returned "string" contains "\r\n' in the end,
+# then just use reply.rstrip() in the main function (not in the unit-test function)
+#to get rid of it.
