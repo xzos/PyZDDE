@@ -7,11 +7,14 @@
 # Created:     08/10/2012
 # Copyright:   (c)  2012 - 2013
 # Licence:     MIT License
+#              This file is subject to the terms and conditions of the MIT License.
+#              For further details, please refer to LICENSE.txt
 # Revision:    0.2
 #-------------------------------------------------------------------------------
 
 import win32ui
 import dde
+from os import path
 from sys import exc_info
 from math import pi,cos,sin
 import warnings
@@ -219,7 +222,7 @@ class pyzdde(object):
         return fieldData
 
     def zGetFieldTuple(self):
-        """Get all field data ina single N-D tuple.
+        """Get all field data in a single N-D tuple.
 
         zGetFieldTuple()->fieldDataTuple
 
@@ -238,6 +241,37 @@ class pyzdde(object):
             fieldData = tuple([float(elem) for elem in rs])
             fieldDataTuple.append(fieldData)
         return tuple(fieldDataTuple)
+
+    def zGetFile(self):
+        """This method extracts and returns the full name of the lens, including
+           the drive and path.
+
+           zGetFile()-> file_name
+
+            ret:
+                file_name: filename of the Zemax file that is currently present
+                in the Zemax DDE server.
+
+           Note:
+           1. Extreme caution should be used if the file is to be tampered with;
+              since at any time ZEMAX may read or write from/to this file.
+        """
+        reply = self.conversation.Request('GetFile')
+        return reply.rstrip()
+
+    def zGetFirst(self):
+        """Returns the first order data about the lens.
+
+            zGetFirst()->(focal, pwfn, rwfn, pima, pmag)
+
+            ret:
+                The function returns a 5-tuple containing the EFL, paraxial working F/#,
+                real working F/#, paraxial image height, and paraxial magnification.
+        """
+        reply = self.conversation.Request('GetFirst')
+        rs = reply.split(',')
+        return tuple([float(elem) for elem in rs])
+
 
     def zGetPupil(self):
         """Get pupil data from ZEMAX.
@@ -301,6 +335,124 @@ class pyzdde(object):
         """
         reply = self.conversation.Request('GetSerial')
         return int(reply)
+
+    def zGetSurfaceData(self,surfaceNumber,code,arg2=None):
+        """Gets surface data on a sequential lens surface.
+
+        zGetSurfaceData(surfaceNum,code,[, arg2])-> surfaceDatum
+
+        args:
+            surfaceNum : the surface number
+            code       : integer number (see below)
+            arg2       : (Optional) for item codes above 70.
+
+        Gets surface datum at surfaceNumber depending on the code according to
+        the following table.
+        The code is as shown in the following table.
+        arg2 is required for some item codes. [Codes above 70]
+
+
+        Code      - Data returned by zGetSurfaceData()
+        0         - Surface type name. (string)
+        1         - Comment. (string)
+        2         - Curvature (numeric). [Note: It is not radius!!]
+        3         - Thickness. (numeric)
+        4         - Glass. (string)
+        5         - Semi-Diameter. (numeric)
+        6         - Conic. (numeric)
+        7         - Coating. (string)
+        8         - Thermal Coefficient of Expansion (TCE).
+        9         - User-defined .dll (string)
+        20        - Ignore surface flag, 0 for not ignored, 1 for ignored.
+        51        - Tilt, Decenter order before surface; 0 for Decenter then
+                    Tilt, 1 for Tilt then Decenter.
+        52        - Decenter x
+        53        - Decenter y
+        54        - Tilt x before surface
+        55        - Tilt y before surface
+        56        - Tilt z before surface
+        60        - Status of Tilt/Decenter after surface. 0 for explicit, 1
+                    for pickup current surface,2 for reverse current surface,
+                    3 for pickup previous surface, 4 for reverse previous
+                    surface,etc.
+        61        - Tilt, Decenter order after surface; 0 for Decenter then
+                    Tile, 1 for Tilt then Decenter.
+        62        - Decenter x after surface
+        63        - Decenter y after surface
+        64        - Tilt x after surface
+        65        - Tilt y after surface
+        66        - Tilt z after surface
+        70        - Use Layer Multipliers and Index Offsets. Use 1 for true,
+                    0 for false.
+        71        - Layer Multiplier value. The coating layer number is defined
+                    by arg2.
+        72        - Layer Multiplier status. Use 0 for fixed, 1 for variable,
+                    or n+1 for pickup from layer n. The coating layer number
+                    is defined by arg2.
+        73        - Layer Index Offset value. The coating layer number is
+                    defined by arg2.
+        74        - Layer Index Offset status. Use 0 for fixed, 1 for variable,
+                    or n+1 for pickup from layer n.The coating layer number is
+                    defined by arg2.
+        75        - Layer Extinction Offset value. The coating layer number is
+                    defined by arg2.
+        76        - Layer Extinction Offset status. Use 0 for fixed, 1 for
+                    variable, or n+1 for pickup from layer n. The coating layer
+                    number is defined by arg2.
+        Other     - Reserved for future expansion of this feature.
+
+        See also zSetSurfaceData, zGetSurfaceParameter and ZemaxSurfTypes
+        """
+        if arg2== None:
+            cmd = ('GetSurfaceData,%i,%i')%(surfaceNumber,code)
+        else:
+            cmd = ('GetSurfaceData,%i,%i,%i')%(surfaceNumber,code,arg2)
+        reply = self.conversation.Request(cmd)
+        if code in (0,1,4,7,9):
+            surfaceDatum = reply.split()[0]
+        else:
+            surfaceDatum = float(reply)
+        return surfaceDatum
+
+    def zGetSurfaceDLL(self,surfaceNumber):
+        """Return the name of the DLL if the surface is a user defined type.
+
+        zGetSurfaceDLL(surfaceNumber)->(dllName,surfaceName)
+
+        args:
+            surfaceNumber: (integer) surface number of the user defined surface
+        ret:
+            Returns a tuble with the following elements
+            dllName      : (string) The name of the defining DLL
+            surfaceName  : (string) surface name displayed by the DLL in the surface
+                           type column of the LDE.
+
+        """
+        cmd = ('GetSurfaceDLL,%i')%(surfaceNumber)
+        reply = self.conversation.Request(cmd)
+        rs = reply.split(',')
+        return (rs[0],rs[1])
+
+    def zGetSurfaceParameter(self,surfaceNumber,parameter):
+        """Return the surface parameter data for the surface associated with the
+        given surfaceNumber
+
+        zGetSurfaceParameter(surfaceNumber,parameter)->parameterData
+
+        args:
+            surfaceNumber  : (integer) surface number of the surface
+            parameter      : (integer) parameter (Par in LDE) number being queried
+        ret:
+            parameterData  : (float) the parameter value
+
+        Note: To get thickness, radius, glass, semi-diameter, conic, etc, use
+        zGetSurfaceData()
+        See also zGetSurfaceData, ZSetSurfaceParameter.
+        """
+        cmd = ('GetSurfaceParameter,%i,%i')%(surfaceNumber,parameter)
+        reply = self.conversation.Request(cmd)
+        return float(reply)
+
 
     def zGetSystem(self):
         """Gets a number of general lens system data (General Lens Data)
@@ -389,7 +541,8 @@ class pyzdde(object):
                            Please see the ZEMAX manual for more details.
            retVal:
             0      : Success
-            -1     : Text file could not be saved.
+            -1     : Text file could not be saved (Zemax may not have received
+                     a full path name or extention).
             -998   : Command timed out
 
         Notes: No matter what the flag value is, if a valid file name is provided
@@ -399,11 +552,13 @@ class pyzdde(object):
         See also zGetMetaFile, zOpenWindow.
         """
         retVal = -1
-        cmd = 'GetTextFile,"%s",%s,"%s",%i' %(textFileName,analysisType,
-                                              settingsFileName,flag)
-        reply = self.conversation.Request(cmd)
-        if reply.split()[0] == 'OK':
-            retVal = 0
+        #Check if the file path is valid and has extension
+        if path.isabs(textFileName) and path.splitext(textFileName)[1]!='':
+            cmd = 'GetTextFile,"%s",%s,"%s",%i' %(textFileName,analysisType,
+                                                  settingsFileName,flag)
+            reply = self.conversation.Request(cmd)
+            if reply.split()[0] == 'OK':
+                retVal = 0
         return retVal
 
 
@@ -957,6 +1112,22 @@ class pyzdde(object):
             surfaceDatum = float(reply)
         return surfaceDatum
 
+    def zSetSurfaceParameter(self,surfaceNumber,parameter,value):
+        """Set surface parameter data.
+        zSetSurfaceParameter(surfaceNumber, parameter, value)-> parameterData
+
+        args:
+            surfaceNumber  : (integer) surface number of the surface
+            parameter      : (integer) parameter (Par in LDE) number being set
+        ret:
+            parameterData  : (float) the parameter value
+
+        See also zSetSurfaceData, zGetSurfaceParameter
+        """
+        cmd = ('SetSurfaceParameter,%i,%i,%1.20g')%(surfaceNumber,parameter,value)
+        reply = self.conversation.Request(cmd)
+        return float(reply)
+
 
     def zSetSystem(self,unitCode,stopSurf,rayAimingType,useEnvData,
                                               temp,pressure,globalRefSurf):
@@ -1502,37 +1673,3 @@ def test_PyZDDE():
 if __name__ == '__main__':
     import os, time
     test_PyZDDE()
-
-
-# To do next:
-# 1. zSetField (done)
-# 2. zGetField (done)
-# 5. zGetSolve
-# 6. zSetSolve
-# 7. zQuickFocus (done, to test)
-# 8. zSetSurfaceParameter
-# 9. zGetSurfaceParameter
-#10. zSetFieldMatrix (MZDDE functions) --> zSetFieldTuple (done)
-#11. zGetFieldMatrix (MZDDE functions) --> zGetFieldTuple (done)
-#12. zSetAperture (done, to test)
-#13. zGetAperture (done, to test)
-
-
-# To do in near future:
-# 1. A function similar to "help zemaxbuttons" implemented in MZDDE. Useful when
-#    someone will quickly want to know the 3 letter codes for the different functions
-#    especially when using functions like zGetText( ).
-
-# To check:
-# It seems that the zGetField(0) and the return of zSetField(0) is returning only
-# 2 arguments (type,numberoffields) when it is expected to return 5
-# (type,numberoffields,x_field_max,y_field_max, normalization) ... why is this
-# behavior? is it because I am testing it in an older version of ZEMAX? if that
-# turns out to be the case, then can you use "version number" to do conditional
-# tests?
-
-# when the ZEMAX DDE server returns multiple values within a string, it can
-# contain the characters '\r\n' such as '5.000000000E-001\r\n' or ['0', '3\r\n']
-# Usually, it is not a problem as the "\r\n" parts are automatically stripped
-# when a type converstion from string to int or float is done; so an extra
-# regex is not necessary
