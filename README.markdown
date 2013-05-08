@@ -1,4 +1,4 @@
-PyZDDE is a python toolbox to communicate with ZEMAX using the Microsoft Windows DDE channel. This toolbox, implemented in Python, is similar to the MZDDE toolbox, in Matlab, developed by Derek Griffith at CSIR (http://kb-en.radiantzemax.com/KnowledgebaseArticle50204.aspx).
+PyZDDE is a python toolbox (extension) for communicating with ZEMAX using the Microsoft Windows DDE channel. This toolbox, which makes use of Zemax's API interface, is implemented in Python. It is similar to the MZDDE toolbox, in Matlab, developed by Derek Griffith at CSIR (http://kb-en.radiantzemax.com/KnowledgebaseArticle50204.aspx).
 
 
 

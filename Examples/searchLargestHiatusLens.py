@@ -2,8 +2,8 @@
 # Name:        searchLargestHiatusLens.py
 # Purpose:     Search for a specific attribute through ZMX files. In this program
 #              we are interested in finding the lens (design) that has the largest
-#              (or smallest) hiatus or nodal space or interstitium (i.e. the
-#              distance between the two principal planes)
+#              (or smallest) hiatus also called nodal space, Null space, or the
+#              interstitium (i.e. the distance between the two principal planes)
 #
 #              Note [from Zemax Manual]:
 #              Object space positions are measured with respect to surface 1.
@@ -14,6 +14,7 @@
 #              1. The last surface is the image surface
 #              2. Search only sequential zemax files. The prescription file output
 #                 for Non-sequential Zemax analysis is different from sequential.
+#              3. File-names within the search directory are unique.
 #
 #              Note:
 #              1. If Zemax is unable to open a .zmx certain file, it pops-up an
@@ -48,9 +49,11 @@ if pyzddedirectory not in sys.path:
 import pyZDDE
 
 #Program control parameters
-ORDERED_HIATUS_DATA_IN_FILE = True   # Sorted output in a file ? [will take longer time]
+ORDERED_HIATUS_DATA_IN_FILE = True   # Sorted output in a file ? [May take a little longer time]
+SCALE_LENSES = True                  # Scale lenses/Normalize all lenses to
+NORMALIZATION_EFL = 500.00           # Focal length to use for Normalization
 ORDERING   = 'large2small'           # 'large2small' or 'small2large'
-HIATUS_UPPER_LIMIT = 2000.00         # Ignore lenses for which hiatus is greater than some value
+HIATUS_UPPER_LIMIT = 20000.00        # Ignore lenses for which hiatus is greater than some value
 fDBG_PRINT = False                   # Turn off/on the debug prints
 
 # ZEMAX file DIRECTORY to search (can have sub-directories)
@@ -62,37 +65,55 @@ class TkFileDialog(Tkinter.Frame):
         Tkinter.Frame.__init__(self, root, borderwidth=20,height=32,width=42)
 
         #Top-level label
-        self.label1 = Tkinter.Label(self,text = "Find eXtreme Hiatus",
+        self.label0 = Tkinter.Label(self,text = "Find eXtreme Hiatus",
                            font=("Helvetica",16),fg='blue',justify=Tkinter.LEFT)
-        self.label1.pack()
+        self.label0.pack()
 
         # options for buttons
         button_opt = {'fill': Tkconstants.BOTH, 'padx': 5, 'pady': 5}
+        checkBox_opt = {'fill': Tkconstants.BOTH, 'padx': 5, 'pady': 5}
 
         # define first button
         self.b1 = Tkinter.Button(self, text='Select Directory', command=self.askdirectory)
         self.b1.pack(**button_opt)
 
-        #Add another level
+        #Add a checkbox button (for lens scaling option)
+        self.lensScaleOptVar = Tkinter.IntVar(value=0)
+        self.c1 = Tkinter.Checkbutton(self,text="Enable Lens scaling ?",
+                 variable=self.lensScaleOptVar,command=self.cb1,onvalue=1)
+        self.c1.pack(**checkBox_opt)
+        self.c1.select()  #The check-box is checked initially
+
+        #Add a label to indicate/enter normalization EFL
+        self.label1 = Tkinter.Label(self,text = "Normalization EFL", justify=Tkinter.LEFT)
+        self.label1.pack()
+
+        #Add Entry Widget to enter default normalization EFL
+        self.normEFLVar = Tkinter.StringVar()
+        self.normEFLentry = Tkinter.Entry(self,text="test",textvariable=self.normEFLVar)
+        self.normEFLentry.pack()
+        self.normEFLentry.insert(0,str(NORMALIZATION_EFL))
+
+        #Add another label
         self.label2 = Tkinter.Label(self,text = "Ignore values above:", justify=Tkinter.LEFT)
         self.label2.pack()
 
-        #Add an Entry Widget to enter text
-        self.entryVar = Tkinter.StringVar()
-        self.entry = Tkinter.Entry(self,text="test",textvariable=self.entryVar)
-        self.entry.pack()
-        self.entry.insert(0,str(HIATUS_UPPER_LIMIT))
+        #Add an Entry Widget to enter value for upper level hiatus (string)
+        self.maxHiatusVar = Tkinter.StringVar()
+        self.maxHiatusEntry = Tkinter.Entry(self,text="test",textvariable=self.maxHiatusVar)
+        self.maxHiatusEntry.pack()
+        self.maxHiatusEntry.insert(0,str(HIATUS_UPPER_LIMIT))
 
-        # checkbox button
-        self.var = Tkinter.IntVar(value=0)
-        c = Tkinter.Checkbutton(self,text="Save to a TXT file?",
-                                 variable=self.var,command=self.cb,onvalue=1)
-        c.pack(**button_opt)
-        c.select()   #The check-box is checked initially
+        # checkbox button 2 (For text dump option)
+        self.txtFileDumpVar = Tkinter.IntVar(value=0)
+        self.c2 = Tkinter.Checkbutton(self,text="Save to a TXT file?",
+                                 variable=self.txtFileDumpVar,command=self.cb2,onvalue=1)
+        self.c2.pack(**checkBox_opt)
+        self.c2.select()   #The check-box is checked initially
 
         #Add a "Find" button
-        b2 = Tkinter.Button(self,text='Find',command=self.find)
-        b2.pack(**button_opt)
+        self.b2 = Tkinter.Button(self,text='Find',fg="red",command=self.find)
+        self.b2.pack(**button_opt)
 
     def askdirectory(self):
         """Returns a selected directoryname."""
@@ -101,15 +122,26 @@ class TkFileDialog(Tkinter.Frame):
                             title='Please navigate to a directory')
         return
 
-    def cb(self):
+    def cb1(self):
+        global SCALE_LENSES
+        SCALE_LENSES = bool(self.lensScaleOptVar.get())
+        if ~SCALE_LENSES:
+            #self.normEFLentry.
+            pass
+        return
+
+    def cb2(self):
         global ORDERED_HIATUS_DATA_IN_FILE
-        ORDERED_HIATUS_DATA_IN_FILE = bool(self.var.get())
+        ORDERED_HIATUS_DATA_IN_FILE = bool(self.txtFileDumpVar.get())
         return
 
     def find(self):
         global HIATUS_UPPER_LIMIT
-        self.entry.focus_set()
-        HIATUS_UPPER_LIMIT = float(self.entry.get())
+        global NORMALIZATION_EFL
+        self.normEFLentry.focus_set()
+        NORMALIZATION_EFL = float(self.normEFLentry.get())
+        self.maxHiatusEntry.focus_set()
+        HIATUS_UPPER_LIMIT = float(self.maxHiatusEntry.get())
         root.quit()
         root.destroy()
 
@@ -135,6 +167,10 @@ parentFolder = str(os.path.split(zmxfp)[1])
 ##filenames = oneFile
 ###end of "just use one file to test"
 
+print("SCALE_LENSES: ", SCALE_LENSES)
+print("NORMALIZATION_EFL: ", NORMALIZATION_EFL)
+
+
 now = datetime.datetime.now()
 
 # ###################
@@ -142,6 +178,7 @@ now = datetime.datetime.now()
 # ###################
 #Create a dictionary to store the filenames and hiatus
 hiatusData = dict()
+scaleFactorData = dict()
 largestHiatusValue =   0.0     #init the variables for largest hiatus
 largestHiatusLensFile = "None"
 lensFileCount = 0
@@ -176,50 +213,30 @@ for lens_file in filenames:
     #Set the system parameters
     recSystemData_s = pyZmLnk.zSetSystem(0,stopSurf,rayAimingType,0,temp,pressure,1)
 
+    #Scale lens to a normalized EFFL
+    scaleFactor = 1.00
+    if SCALE_LENSES:
+        #Get first order EFL
+        efl = pyZmLnk.zGetFirst()[0]
+        #Determine scale factor
+        scaleFactor = abs(NORMALIZATION_EFL/efl)
+        if fDBG_PRINT:
+            print("EFFL: ",efl," Scale Factor: ", scaleFactor)
+        #Scale Lens
+        ret_ls = pyZmLnk.lensScale(scaleFactor)
+
+    if ret_ls == -1:  # Lens scale failure, don't bother to calculate hiatus
+        print("Lens scaling failed for: ",lens_file)
+        continue
+
     #Update the lens
-    ret = pyZmLnk.zGetUpdate()
-    assert ret == 0
-    #Dump the Prescription file
+    #ret = pyZmLnk.zGetUpdate() ... I don't think the designs should be updated...
+    #as we don't need to re-optimize, etc.
+    #assert ret == 0
     textFileName = exampleDirectory + '\\' + "searchSpecAttr_Prescription.txt"
-    ret = pyZmLnk.zGetTextFile(textFileName,'Pre',"None",0)
-    assert ret == 0
-    #Open the text file in read mode to read
-    fileref = open(textFileName,"r")
-    principalPlane_objSpace = 0.0; principalPlane_imgSpace = 0.0; hiatus = 0.0
-    count = 0
-    #The number of expected Principal planes in each Pre file is equal to the
-    #number of wavelengths in the general settings of the lens design
-    line_list = fileref.readlines()
-    fileref.close()
-    #See Endnote 1 for the reasons why the file was not read as an iterable object
-    #and instead, we create a list of all the lines in the file, which is obviously
-    #very wasteful of memory
 
-    for line_num,line in enumerate(line_list):
-        #Extract the image surface distance from the global ref sur (surface 1)
-        sectionString = "GLOBAL VERTEX COORDINATES, ORIENTATIONS, AND ROTATION/OFFSET MATRICES:"
-        if line.rstrip()== sectionString:
-            ima_3 = line_list[line_num + numSurf*4 + 6]
-            ima_z = float(ima_3.split()[3])
-            if fDBG_PRINT:
-                print("Image surface:", ima_z)
-        #Extract the Principal plane distances.
-        if "Principal Planes" in line and "Anti" not in line:
-            principalPlane_objSpace += float(line.split()[3])
-            principalPlane_imgSpace += float(line.split()[4])
-            count +=1  #Increment (wavelength) counter for averaging
-
-   #Calculate the average (for all wavelengths) of the principal plane distances
-    if count > 0:
-        principalPlane_objSpace = principalPlane_objSpace/count
-        principalPlane_imgSpace = principalPlane_imgSpace/count
-        #Calculate the hiatus (only if count > 0) as
-        #hiatus = (img_surf_dist + img_surf_2_imgSpacePP_dist) - objSpacePP_dist
-        hiatus = abs(ima_z + principalPlane_imgSpace - principalPlane_objSpace)
-    if fDBG_PRINT:
-        print("Object space Principal Plane: ", principalPlane_objSpace)
-        print("Image space Principal Plane: ", principalPlane_imgSpace)
-        print("Hiatus: ", hiatus)
+    #Get the Hiatus for the lens design
+    hiatus = pyZmLnk.calculateHiatus(textFileName,keepFile=False)
 
     if hiatus > HIATUS_UPPER_LIMIT:
         continue
@@ -231,12 +248,10 @@ for lens_file in filenames:
 
     #Add to the dictionary
     hiatusData[os.path.basename(lens_file)] = hiatus
+    scaleFactorData[os.path.basename(lens_file)] = scaleFactor
 
 #Close the DDE channel before processing the dictionary.
 pyZmLnk.zDDEClose()
-
-#Delete the prescription file (the directory remains clean)
-os.remove(textFileName)
 
 if fDBG_PRINT:
     print("Hiatus data dictionary:\n", hiatusData)
@@ -254,30 +269,24 @@ if ORDERED_HIATUS_DATA_IN_FILE:
     fileref_hds.write("LENS HIATUS MEASUREMENT:\n\n")
     fileref_hds.write("Date and time: " + now.strftime("%Y-%m-%d %H:%M"))
     fileref_hds.write("\nUnits: mm")
+    if SCALE_LENSES:
+        fileref_hds.write("\nLens Scaling for normalization: ON. Normalization EFL = %1.2f"%(NORMALIZATION_EFL))
+    else:
+        fileref_hds.write("\nLens Scaling for normalization: OFF")
     fileref_hds.write("\nDirectory: "+ zmxfp)
-    fileref_hds.write("\n%s Lenses out of %s Analyzed!"%(lensFileCount,
+    fileref_hds.write("\n%s Lenses analyzed out of %s lenses!"%(lensFileCount,
                                                         totalNumLensFiles))
     fileref_hds.write("\nLens files not loaded by Zemax: %s (See list below)"%(totalFilesNotLoaded))
     fileref_hds.write("\nLenses with hiatus above %s have been ignored.\n\n"%(HIATUS_UPPER_LIMIT))
     fileref_hds.write("\nThe sorted list is:\n\n")
     for i in hiatusData_sorted:
-        fileref_hds.write("%s\t\t%s\n"%(i[0],i[1]))
+        fileref_hds.write("%s\t\t%1.2f\t(scale factor = %1.2f)\n"%(i[0],i[1],scaleFactorData[i[0]]))
     fileref_hds.write("\n\nLens files that Zemax couldn't open for analysis:\n\n")
     for fl in filesNotLoaded:
         fileref_hds.write("%s\n"%fl)
     fileref_hds.close()
 
 #Print the largest lens having the largest hiatus and the hiatus value
-print(lensFileCount, " lenses analyzed for largest hiatus (in mm): ")
-print("Lens:", largestHiatusLensFile)
+print(lensFileCount, "lenses analyzed for largest hiatus (in mm) out of", totalNumLensFiles, "lenses.")
+print("Largest Hiatus Lens:", largestHiatusLensFile)
 print("Hiatus:", largestHiatusValue)
-
-#Endnote 1:
-#It is very difficult (if not impossible) to read the prescirption files using bytes
-#as we want to get to a specific position based on "keywords" and not "bytes". (we
-#are not guaranteed to find the same "keyword" for a specific byte-based-position
-#everytime we read a prescription file)
-#If we the file line by line as "for line in file" (using the file iterable object)
-#it is hard to read, identify and store a specific line which doesn't have any
-#keywords. Also, because of possible dataloss, Python raises an exception, if we
-#try to do readline() or readlines() within the "for line in file" iteration.

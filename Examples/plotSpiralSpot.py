@@ -28,7 +28,7 @@ zmxfp = cd+'\\ZMXFILES\\'
 zmxfile = 'Cooke 40 degree field.zmx'
 filename = zmxfp+zmxfile
 
-# Create a pyzdde object
+# Create a pyZDDE object
 link0 = pyzdde()
 
 # Initiate the DDE link
