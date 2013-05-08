@@ -14,6 +14,7 @@
 
 import win32ui
 import dde
+import os
 from os import path
 from sys import exc_info
 from math import pi,cos,sin
@@ -177,6 +178,23 @@ class pyzdde(object):
         """
         return self.conversation.Request('GetDate')
 
+    def zGetExtra(self,surfaceNumber,columnNumber):
+        """Returns extra surface data from the Extra Data Editor
+
+        zGetExtra(surfaceNumber,columnNumber)->value
+
+        arg:
+            surfaceNumber : (integer) surface number
+            columnNumber  : (integer) column number
+        ret:
+            value         : (float) numeric data value
+
+        See also zSetExtra
+        """
+        cmd = ('GetExtra,%i,%i')%(surfaceNumber,columnNumber)
+        reply = self.conversation.Request(cmd)
+        return float(reply)
+
     def zGetField(self,n):
         """Extract field data from ZEMAX DDE server
 
@@ -265,8 +283,12 @@ class pyzdde(object):
             zGetFirst()->(focal, pwfn, rwfn, pima, pmag)
 
             ret:
-                The function returns a 5-tuple containing the EFL, paraxial working F/#,
-                real working F/#, paraxial image height, and paraxial magnification.
+                The function returns a 5-tuple containing the following:
+                focal   : the Effective Focal Length (EFL) in lens units,
+                pwfn    : the paraxial working F/#,
+                rwfn    : real working F/#,
+                pima    : paraxial image height, and
+                pmag    : paraxial magnification.
         """
         reply = self.conversation.Request('GetFirst')
         rs = reply.split(',')
@@ -894,6 +916,25 @@ class pyzdde(object):
         apertureInfo = tuple([float(elem) for elem in rs])
         return apertureInfo
 
+    def zSetExtra(self,surfaceNumber,columnNumber,value):
+        """Sets extra surface data (value) in the Extra Data Editor for the surface
+        indicatd by surfaceNumber.
+
+        zSetExtra(surfaceNumber,columnNumber,value)->retValue
+
+        arg:
+            surfaceNumber : (integer) surface number
+            columnNumber  : (integer) column number
+            value         : (float) value
+        ret:
+            retValue      : (float) numeric data value
+
+        See also zGetExtra
+        """
+        cmd = ('SetExtra,%i,%i,%1.20g')%(surfaceNumber,columnNumber,value)
+        reply = self.conversation.Request(cmd)
+        return float(reply)
+
     def zSetField(self,n,arg1,arg2,arg3=1.0,vdx=0.0,vdy=0.0,vcx=0.0,vcy=0.0,van=0.0):
         """Sets the field data for a particular field point.
 
@@ -1288,8 +1329,13 @@ class pyzdde(object):
 
 
 
-    # Convenience functions (FIXME: What should be the proper method of implementing):
-    #----------------------- them?? Should they be class methods?
+    # CONVENIENCE FUNCTIONS
+    #
+    #(FIXME: What should be the proper method of implementing them??):
+    #Should they be class methods? ... for now, keeping them as instance method
+    #(current implementation) is a good idea as, I think, this will enable
+    #multiple DDE channel links to co-exist ... and have their own
+    #instances of convenience functions.
 
     def spiralSpot(self,hy,hx,waveNum,spirals,rays,mode=0):
         """Convenience function to produce a series of x,y values of rays traced in
@@ -1334,7 +1380,321 @@ class pyzdde(object):
             print "Couldn't copy lens data from LDE to server, no tracing can be performed"
             return [None,None]
 
+    def lensScale(self,factor=2.0,ignoreSurfaces=None):
+        """Scale the lens design by factor specified.
 
+        lensScale([factor,ignoreSurfaces])->ret
+
+        args:
+            factor         : the scale factor. If no factor are passed, the design
+                             will be scaled by a factor of 2.0
+            ignoreSurfaces : (tuple) of surfaces that are not to be scaled. Such as
+                             (0,2,3) to ignore surfaces 0 (object surface), 2 and
+                             3. Or (OBJ,2, STO,IMG) to ignore object surface, surface
+                             number 2, stop surface and image surface.
+        ret:
+            0 : success
+            1 : success with warning
+            -1: failure
+
+        Notes:
+            1. WARNING: this function implementation is not yet complete.
+                * Note all surfaces have been implemented
+                * ignoreSurface option has not been implemented yet.
+
+        Limitations:
+            1. Cannot scale pupil shift x,y, and z in the General settings as Zemax hasn't
+               provided any command to do so using the DDE. The pupil shift values are also
+               scaled, when a lens design is scaled, when the ray-aiming is on. However, this
+               is not a serious limitation for most cases.
+        """
+        ret = 0 # assuming successful return
+        lensFile = self.zGetFile()
+        if factor == 1:
+            return ret
+        #Scale the "system aperture" appropriately (see endnote 1)
+        sysAperData = self.zGetSystemAper()
+        if sysAperData[0] == 0:   # System aperture if EPD
+            stopSurf = sysAperData[1]
+            aptVal = sysAperData[2]
+            self.zSetSystemAper(0,stopSurf,factor*aptVal)
+        elif sysAperData[0] in (1,2,4): # Image Space F/#, Object Space NA, Working Para F/#
+            ##print "Warning: Scaling of aperture may be incorrect"
+            pass
+        elif sysAperData[0] == 3: # System aperture if float by stop
+            pass
+        elif sysAperData[0] == 5: # Object Cone Angle
+            print "Warning: Scaling for Object Cone Angle aperture type may be incorrect for %s" %(lensFile)
+            ret = 1
+        #Get the number of surfaces
+        numSurf = 0
+        recSystemData_g = self.zGetSystem() #Get the current system parameters
+        numSurf = recSystemData_g[0]
+        #print "Number of surfaces in the lens: ", numSurf
+
+        if recSystemData_g[4] > 0:
+            print "Warning: Ray aiming is ON in %s. But cannot scale Pupil Shift values." %(lensFile)
+
+        #Scale individual surface properties in the LDE
+        for surfNum in range(0,numSurf+1): #Start from the object surface ... to scale thickness if not infinity
+            #Scale the basic data common to all surface types such as radius, thickness
+            #and semi-diameter
+            surfName = self.zGetSurfaceData(surfNum,0)
+            curv = self.zGetSurfaceData(surfNum,2)
+            thickness = self.zGetSurfaceData(surfNum,3)
+            semiDiam = self.zGetSurfaceData(surfNum,5)
+            ##print "Surf#:",surfNum,"Name:",surfName,"Curvature:",curv,"Thickness:",thickness,"Semi-Diameter:", semiDiam
+            #scale the basic data
+            scaledCurv = self.zSetSurfaceData(surfNum,2,curv/factor)
+            if thickness < 1.0E+10: #Scale the thickness if it not Infinity (-1.0E+10 in Zemax)
+                scaledThickness = self.zSetSurfaceData(surfNum,3,factor*thickness)
+            scaledSemiDiam = self.zSetSurfaceData(surfNum,5,factor*semiDiam)
+            ##print "scaled", surfNum,surfName,scaledCurv,scaledThickness,scaledSemiDiam
+
+            #scaling parameters of surface individually
+            if surfName == 'STANDARD': #Std surface - plane, spherical, or conic aspheric
+                pass #Nothing to do
+            elif surfName in ('BINARY_1','BINARY_2'):
+                binSurMaxNum = {'BINARY_1':233,'BINARY_2':243}
+                for pNum in range(1,9): # from Par 1 to Par 8
+                    par = self.zGetSurfaceParameter(surfNum,pNum)
+                    par_ret = self.zSetSurfaceParameter(surfNum,pNum,
+                                                         factor**(1-2.0*pNum)*par)
+                #Scale norm radius in the extra data editor
+                epar2 = self.zGetExtra(surfNum,2) #Norm radius
+                epar2_ret = self.zSetExtra(surfNum,2,factor*epar2)
+                #scale the coefficients of the Zernike Fringe polynomial terms in the EDE
+                numBTerms = int(self.zGetExtra(surfNum,1))
+                if numBTerms > 0:
+                    for i in range(3,binSurMaxNum[surfName]): #scaling of terms 3 to 232, p^480 for Binary1 and Binary 2 respectively
+                        if i > numBTerms + 2: #(+2 because the terms starts from par 3)
+                            break
+                        else:
+                            epar = self.zGetExtra(surfNum,i)
+                            epar_ret = self.zSetExtra(surfNum,i,factor*epar)
+            elif surfName == 'BINARY_3':
+                #Scaling of parameters in the LDE
+                par1 = self.zGetSurfaceParameter(surfNum,1) # R2
+                par1_ret = self.zSetSurfaceParameter(surfNum,1,factor*par1)
+                par4 = self.zGetSurfaceParameter(surfNum,4) # A2, need to scale A2 before A1, because A2>A1>0.0 always
+                par4_ret = self.zSetSurfaceParameter(surfNum,4,factor*par4)
+                par3 = self.zGetSurfaceParameter(surfNum,3) # A1
+                par3_ret = self.zSetSurfaceParameter(surfNum,3,factor*par3)
+                numBTerms = int(self.zGetExtra(surfNum,1))    #Max possible is 60
+                for i in range(2,243,4):  #242
+                    if i > 4*numBTerms + 1: #(+1 because the terms starts from par 2)
+                        break
+                    else:
+                        par_r1 = self.zGetExtra(surfNum,i)
+                        par_r1_ret = self.zSetExtra(surfNum,i,par_r1/factor**(i/2))
+                        par_p1 = self.zGetExtra(surfNum,i+1)
+                        par_p1_ret = self.zSetExtra(surfNum,i+1,factor*par_p1)
+                        par_r2 = self.zGetExtra(surfNum,i+2)
+                        par_r1_ret = self.zSetExtra(surfNum,i+2,par_r2/factor**(i/2))
+                        par_p2 = self.zGetExtra(surfNum,i+3)
+                        par_p2_ret = self.zSetExtra(surfNum,i+3,factor*par_p2)
+
+            elif surfName == 'COORDBRK': #Coordinate break,
+                par = self.zGetSurfaceParameter(surfNum,1) # decenter X
+                par_ret = self.zSetSurfaceParameter(surfNum,1,factor*par)
+                par = self.zGetSurfaceParameter(surfNum,2) # decenter Y
+                par_ret = self.zSetSurfaceParameter(surfNum,2,factor*par)
+            elif surfName == 'EVENASPH': #Even Asphere,
+                for pNum in range(1,9): # from Par 1 to Par 8
+                    par = self.zGetSurfaceParameter(surfNum,pNum)
+                    par_ret = self.zSetSurfaceParameter(surfNum,pNum,
+                                                         factor**(1-2.0*pNum)*par)
+            elif surfName == 'GRINSUR1': #Gradient1
+                par1 = self.zGetSurfaceParameter(surfNum,1) #Delta T
+                par_ret = self.zSetSurfaceParameter(surfNum,1,factor*par1)
+                par3 = self.zGetSurfaceParameter(surfNum,3) #coeff of radial quadratic index
+                par_ret = self.zSetSurfaceParameter(surfNum,3,par3/(factor**2))
+                par4 = self.zGetSurfaceParameter(surfNum,4) #index of radial linear index
+                par_ret = self.zSetSurfaceParameter(surfNum,4,par4/factor)
+            elif surfName == 'GRINSUR9': #Gradient9
+                par = self.zGetSurfaceParameter(surfNum,1) #Delta T
+                par_ret = self.zSetSurfaceParameter(surfNum,1,factor*par)
+            elif surfName == 'GRINSU11': #Grid Gradient surface with 1 parameter
+                par = self.zGetSurfaceParameter(surfNum,1) #Delta T
+                par_ret = self.zSetSurfaceParameter(surfNum,1,factor*par)
+            elif surfName == 'PARAXIAL': #Paraxial
+                par = self.zGetSurfaceParameter(surfNum,1) #Focal length
+                par_ret = self.zSetSurfaceParameter(surfNum,1,factor*par)
+            elif surfName == 'PARAX_XY': #Paraxial XY
+                par = self.zGetSurfaceParameter(surfNum,1) # X power
+                par_ret = self.zSetSurfaceParameter(surfNum,1,par/factor)
+                par = self.zGetSurfaceParameter(surfNum,2) # Y power
+                par_ret = self.zSetSurfaceParameter(surfNum,2,par/factor)
+            elif surfName == 'PERIODIC':
+                par = self.zGetSurfaceParameter(surfNum,1) #Amplitude/ peak to valley height
+                par_ret = self.zSetSurfaceParameter(surfNum,1,factor*par)
+                par = self.zGetSurfaceParameter(surfNum,2) #spatial frequency of oscillation in x
+                par_ret = self.zSetSurfaceParameter(surfNum,2,par/factor)
+                par = self.zGetSurfaceParameter(surfNum,3) #spatial frequency of oscillation in y
+                par_ret = self.zSetSurfaceParameter(surfNum,3,par/factor)
+            elif surfName == 'POLYNOMI':
+                for pNum in range(1,5): # from Par 1 to Par 4 for x then Par 5 to Par 8 for y
+                    parx = self.zGetSurfaceParameter(surfNum,pNum)
+                    pary = self.zGetSurfaceParameter(surfNum,pNum+4)
+                    parx_ret = self.zSetSurfaceParameter(surfNum,pNum,
+                                                      factor**(1-2.0*pNum)*parx)
+                    pary_ret = self.zSetSurfaceParameter(surfNum,pNum+4,
+                                                         factor**(1-2.0*pNum)*pary)
+            elif surfName == 'TILTSURF': #Tilted surface
+                pass           #No parameters to scale
+            elif surfName == 'TOROIDAL':
+                par = self.zGetSurfaceParameter(surfNum,1) #Radius of rotation
+                par_ret = self.zSetSurfaceParameter(surfNum,1,factor*par)
+                for pNum in range(2,9): # from Par 1 to Par 8
+                    par = self.zGetSurfaceParameter(surfNum,pNum)
+                    par_ret = self.zSetSurfaceParameter(surfNum,pNum,
+                                                         factor**(1-2.0*(pNum-1))*par)
+                #scale parameters from the extra data editor
+                epar = self.zGetExtra(surfNum,2)
+                epar_ret = self.zSetExtra(surfNum,2,factor*epar)
+            elif surfName == 'FZERNSAG': # Zernike fringe sag
+                for pNum in range(1,9): # from Par 1 to Par 8
+                    par = self.zGetSurfaceParameter(surfNum,pNum)
+                    par_ret = self.zSetSurfaceParameter(surfNum,pNum,
+                                                         factor**(1-2.0*pNum)*par)
+                par9      = self.zGetSurfaceParameter(surfNum,9) # decenter X
+                par9_ret  = self.zSetSurfaceParameter(surfNum,9,factor*par9)
+                par10     = self.zGetSurfaceParameter(surfNum,10) # decenter Y
+                par10_ret = self.zSetSurfaceParameter(surfNum,10,factor*par10)
+                #Scale norm radius in the extra data editor
+                epar2 = self.zGetExtra(surfNum,2) #Norm radius
+                epar2_ret = self.zSetExtra(surfNum,2,factor*epar2)
+                #scale the coefficients of the Zernike Fringe polynomial terms in the EDE
+                numZerTerms = int(self.zGetExtra(surfNum,1))
+                if numZerTerms > 0:
+                    epar3 = self.zGetExtra(surfNum,3) #Zernike Term 1
+                    epar3_ret = self.zSetExtra(surfNum,3,factor*epar3)
+                    #Zernike terms 2,3,4,5 and 6 are not scaled.
+                    for i in range(9,40): #scaling of Zernike terms 7 to 37
+                        if i > numZerTerms + 2: #(+2 because the Zernike terms starts from par 3)
+                            break
+                        else:
+                            epar = self.zGetExtra(surfNum,i)
+                            epar_ret = self.zSetExtra(surfNum,i,factor*epar)
+            else:
+                print "Warning: Scaling for surface type %s in file %s not implemented!!" %(surfName,lensFile)
+                ret = -1
+                pass
+
+        #Scale appropriate parameters in the Multi-configuration editor, such as THIC, APER ...
+        #maybe, use GetConfig(), SetConfig() and GetMulticon
+
+        #Scale appropriate parameters in the Tolerance Data Editor
+
+        #Scale the parameters in the Field data Editor if the field positions are
+        #NOT of angle type.
+        (fType,fNum,fxMax,fyMax,fNorm) = self.zGetField(0)
+        if fType != 0:
+            fieldDataTuple = self.zGetFieldTuple()
+            fieldDataTupleScaled = []
+            for i in range(fNum):
+                tField = list(fieldDataTuple[i])   #have to convert into a list as a tuple is immutable.
+                tField[0],tField[1] = factor*tField[0],factor*tField[1]
+                fieldDataTupleScaled.append(tuple(tField))
+            fieldDataTupleScaled = self.zSetFieldTuple(fType,fNorm,
+                                                 tuple(fieldDataTupleScaled))
+        return ret
+
+
+    def calculateHiatus(self,txtFileName2Use=None,keepFile=False):
+        """Function to calculate the Hiatus, also known as the Null space, or nodal
+           space, or the interstitium (i.e. the distance between the two principal
+           planes.
+
+        calculateHiatus([txtFileName2Use,keepFile])-> hiatus
+
+        args:
+            txtFileName2Use : (optional, string) If passed, the prescription file
+                              will be named such. Pass a specific txtFileName if
+                              you want to dump the file into a separate directory.
+            keepFile        : (optional, bool) If false (default), the prescription
+                              file will be deleted after use. If true, the file
+                              will persist.
+        ret:
+            hiatus          : the value of the hiatus
+
+        Note:
+            1. Decision to use Prescription file:
+               The cardinal points information is retrieved from the prescription
+               file. One could also request Zemax to write just the "Cardinal Points"
+               data to a text file. In fact, such a file is much smaller and it
+               also provides information about the number of surfaces. In most
+               situations, especially if only cardinal points'/planes' information
+               is required, one may just use "zGetTextFile(textFileName,'Car',"None",0)".
+               Zemax then calculates the cardianl points/planes only for the primary
+               wavelength. However, the file obtained in the latter method doesn't
+               retrieve information about the distances of the first surface and
+               the image surface required for calculating the hiatus.
+            2. Decision to read all lines from the files into a list:
+               It is very difficult (if not impossible) to read the prescirption
+               files using bytes as we want to get to a specific position based
+               on "keywords" and not "bytes". (we are not guaranteed to find the
+               same "keyword" for a specific byte-based-position everytime we read
+               a prescription file). If we read the file line-by-line such as
+               "for line in file" (using the file iterable object) it becomes hard to
+               read, identify and store a specific line which doesn't have any identifiable
+               keywords. Also, because of possible data loss, Python raises an exception,
+               if we try to use readline() or readlines() within the "for line in file"
+               iteration.
+        """
+        if txtFileName2Use != None:
+            textFileName = txtFileName2Use
+        else:
+            cd = os.getcwd()
+            textFileName = cd +"\\"+"prescriptionFile.txt"
+        ret = self.zGetTextFile(textFileName,'Pre',"None",0)
+        assert ret == 0
+        recSystemData_g = self.zGetSystem() #Get the current system parameters
+        numSurf       = recSystemData_g[0]
+        #Open the text file in read mode to read
+        fileref = open(textFileName,"r")
+        principalPlane_objSpace = 0.0; principalPlane_imgSpace = 0.0; hiatus = 0.0
+        count = 0
+        #The number of expected Principal planes in each Pre file is equal to the
+        #number of wavelengths in the general settings of the lens design
+        #See Note 2 for the reasons why the file was not read as an iterable object
+        #and instead, we create a list of all the lines in the file, which is obviously
+        #very wasteful of memory
+        line_list = fileref.readlines()
+        fileref.close()
+
+        for line_num,line in enumerate(line_list):
+            #Extract the image surface distance from the global ref sur (surface 1)
+            sectionString = "GLOBAL VERTEX COORDINATES, ORIENTATIONS, AND ROTATION/OFFSET MATRICES:"
+            if line.rstrip()== sectionString:
+                ima_3 = line_list[line_num + numSurf*4 + 6]
+                ima_z = float(ima_3.split()[3])
+
+            #Extract the Principal plane distances.
+            if "Principal Planes" in line and "Anti" not in line:
+                principalPlane_objSpace += float(line.split()[3])
+                principalPlane_imgSpace += float(line.split()[4])
+                count +=1  #Increment (wavelength) counter for averaging
+
+        #Calculate the average (for all wavelengths) of the principal plane distances
+        if count > 0:
+            principalPlane_objSpace = principalPlane_objSpace/count
+            principalPlane_imgSpace = principalPlane_imgSpace/count
+            #Calculate the hiatus (only if count > 0) as
+            #hiatus = (img_surf_dist + img_surf_2_imgSpacePP_dist) - objSpacePP_dist
+            hiatus = abs(ima_z + principalPlane_imgSpace - principalPlane_objSpace)
+
+        if not keepFile:
+            #Delete the prescription file (the directory remains clean)
+            os.remove(textFileName)
+        return hiatus
+
+
+
+
+
+
+# ############################################################################
 # TEST THE FUNCTIONS (the following part of the code will not be invoked if
 # the module is imported!
 
@@ -1673,3 +2033,11 @@ def test_PyZDDE():
 if __name__ == '__main__':
     import os, time
     test_PyZDDE()
+
+
+
+
+#END-NOTES:
+# Endnote 1:
+    #I think that if the system aperture is of type 1 (Image space F/#),
+    #or 4 (paraxial Working F/#), then the it doesn't need to be scaled individually

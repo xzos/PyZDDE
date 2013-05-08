@@ -94,6 +94,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
         if TestPyZDDEFunctions.pRetVar:
             print "DATE: ", date
 
+    @unittest.skip("To implement")
+    def test_zGetExtra(self):
+        print "\nTEST: zGetExtra()"
+
+
     def test_zGetField(self):
         print "\nTEST: zGetField()"
         # First set some valid field parameters in the ZEMAX DDE server
@@ -552,6 +557,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zSetAperture(self):
         print "\nTEST: zSetAperture()"
         pass
+
+    @unittest.skip("To implement")
+    def test_zSetExtra(self):
+        print "\nTEST: zSetExtra()"
+
 
     def test_zSetField(self):
         print "\nTEST: zSetField()"
