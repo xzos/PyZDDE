@@ -83,8 +83,18 @@ class TestPyZDDEFunctions(unittest.TestCase):
         stat = self.link0.zDDEClose()
 
     @unittest.skip("To implement")
+    def test_zDeleteConfig(self):
+        print "\nTEST: zDeleteConfig()"
+        pass
+
+    @unittest.skip("To implement")
     def test_zGetAperture(self):
         print "\nTEST: zGetAperture()"
+        pass
+
+    @unittest.skip("To implement")
+    def test_zGetConfig(self):
+        print "\nTEST: zGetConfig()"
         pass
 
     def test_zGetDate(self):
@@ -440,6 +450,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
             print "Output wave data tuple",oWaveDataTuple_g
         #verify
         self.assertTupleEqual(iWaveDataTuple,oWaveDataTuple_g)
+
+    @unittest.skip("To implement")
+    def test_zInsertConfig(self):
+        print "\nTEST: zInsertConfig()"
+        pass
 
     def test_zInsertSurface(self):
         print "\nTEST: zInsertSurface()"

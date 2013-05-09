@@ -126,10 +126,27 @@ class pyzdde(object):
 
     # ZEMAX control/query methods
     #----------------------------
+    def zDeleteConfig(self,number):
+        """Deletes an existing configuration in the multi-configuration editor.
+
+        zDeleteConfig(config)->configNumber
+
+        args:
+            number : (integer) configuration number to delete
+        ret:
+            retVal : (integer) configuration number deleted.
+
+        Note: After deleting the configuration, all succeeding configurations are
+        re-numbered.
+
+        See also zInsertConfig.
+        """
+        return int(self.conversation.Request("DeleteConfig,"+str(number)))
+
     def zGetAperture(self,surfNum):
         """Get the surface aperture data.
 
-        zGetAperture(surfNum) ->
+        zGetAperture(surfNum) -> apertureInfo
 
         args:
             surfNum : surface number
@@ -160,13 +177,39 @@ class pyzdde(object):
                            apertures and obscurations" in ZEMAX manual for more details.
 
         """
-        reply = self.conversation.Request('GetAperture'+str(surfNum))
+        reply = self.conversation.Request("GetAperture,"+str(surfNum))
+        print reply
         rs = reply.split(',')
-        apertureInfo = tuple([str(rs[i]) if i==5 else float(rs[i])
-                                             for i in range(len(rs))])
-        apertureInfo[0] = int(apertureInfo[0])  # aType is integer
-        return apertureInfo
+        print rs[-1]
+        apertureInfo = [int(rs[i]) if i==5 else float(rs[i])
+                                             for i in range(len(rs[:-1]))]
+        apertureInfo.append(rs[-1].rstrip()) #append the test file (string)
+        return tuple(apertureInfo)
 
+    def zGetConfig(self):
+        """Returns the current configuration number, the number of configurations,
+        and the number of multiple configuration operands.
+
+        zGetConfig()->(currentConfig, numberOfConfigs, numberOfMutiConfigOper)
+
+        args:
+            none
+        ret:
+            3-tuple containing currentConfig, numberOfConfigs, numberOfMutiConfigOper
+
+        Note:
+            The function returns (1,1,1) even if the multi-configuration editor
+            is empty. This is because, by default, the current lens in the LDE
+            is, by default, set to the current configuration. The initial number
+            of configurations is therefore 1, and the number of operators in the
+            multi-configuration editor is also 1 (generally, MOFF).
+
+        See also zSetConfig. Use zInsertConfig to insert new configuration in the
+        multi-configuration editor.
+        """
+        reply = self.conversation.Request('GetConfig')
+        rs = reply.split(',')
+        return tuple([int(elem) for elem in rs])
 
     def zGetDate(self):
         """Request current date from the ZEMAX DDE server.
@@ -720,6 +763,26 @@ class pyzdde(object):
             waveDataTuple[0].append(float(rs[0])) # store the wavelength
             waveDataTuple[1].append(float(rs[1])) # store the weight
         return (tuple(waveDataTuple[0]),tuple(waveDataTuple[1]))
+
+    def zInsertConfig(self,number):
+        """Insert a new configuration in the multi-configuration editor. The new
+        configuration will be placed at the location indicated by the parameter
+        `config`.
+
+        zInsertConfig(number)->configNumber
+
+        args:
+            number       : (integer) the number of the configuration to insert.
+        ret:
+            configNumber : (integer) the number of the configuration that is inserted.
+
+        Note: the configNumber returned could be different from the number in the
+        input. This happens, for example, if the "number" is > 1 + number of configurations
+        currently in the MCE.
+
+        See also zDeleteConfig.
+        """
+        return int(self.conversation.Request("InsertConfig,"+str(number)))
 
     def zInsertSurface(self,surfNum):
         """Insert a lens surface in the ZEMAX DDE server. The new surface will be
