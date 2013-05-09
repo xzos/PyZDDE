@@ -88,6 +88,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
         pass
 
     @unittest.skip("To implement")
+    def test_zDeleteMCO(self):
+        print "\nTEST: zDeleteMCO()"
+        pass
+
+    @unittest.skip("To implement")
     def test_zGetAperture(self):
         print "\nTEST: zGetAperture()"
         pass
@@ -173,6 +178,10 @@ class TestPyZDDEFunctions(unittest.TestCase):
         if TestPyZDDEFunctions.pRetVar:
             print "zGetFirst return value: ", focal,pwfn, rwfn,pima, pmag
 
+    @unittest.skip("To implement")
+    def test_zGetMulticon(self):
+        print "\nTEST: zGetMulticon()"
+        pass
 
     def test_zGetPupil(self):
         print "\nTEST: zGetPupil()"
@@ -456,6 +465,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print "\nTEST: zInsertConfig()"
         pass
 
+    @unittest.skip("To implement")
+    def test_zInsertMCO(self):
+        print "\nTEST: zInsertMCO()"
+        pass
+
     def test_zInsertSurface(self):
         print "\nTEST: zInsertSurface()"
         # Find the current number of surfaces
@@ -723,56 +737,6 @@ class TestPyZDDEFunctions(unittest.TestCase):
         ret = self.link0.zSetTimeout(3)
 
 
-
 if __name__ == '__main__':
     unittest.main()
 
-
-#ToDo:
-# 1. all prints with "MSG" should be put into a single buffer and printed
-#    as a summery at the very end of the complete test. there are some facilities
-#    for doing this @ unittest framework (TestResult object??)
-# 2. zGetText() create more scenarios in the unit test of this function
-#    also, the unit test should read the "dumped" file and then verify the expected
-#    data. Then before exiting the test, the "dumped" files should be deleted.
-
-
-# To do next:
-# 1. zSetField (done)
-# 2. zGetField (done)
-# 5. zGetSolve
-# 6. zSetSolve
-# 7. zQuickFocus (done, to test)
-# 8. zSetSurfaceParameter
-# 9. zGetSurfaceParameter
-#10. zSetFieldMatrix (MZDDE functions) --> zSetFieldTuple (done)
-#11. zGetFieldMatrix (MZDDE functions) --> zGetFieldTuple (done)
-#12. zSetAperture (done, to test)
-#13. zGetAperture (done, to test)
-
-
-# To do in near future:
-# 1. A function similar to "help zemaxbuttons" implemented in MZDDE. Useful when
-#    someone will quickly want to know the 3 letter codes for the different functions
-#    especially when using functions like zGetText( ).
-# 2. The test_pyZDDE() is not functional at this point in time in the latest version
-#    of Zemax. It used to be functional in older version of Zemax (and it still does).
-#    Need to fix it.
-# 3. Add one more case to test_zPushLens() .... load a lens into the DDE server and
-#    then push it to the LDE
-
-# To check:
-# It seems that the zGetField(0) and the return of zSetField(0) is returning only
-# 2 arguments (type,numberoffields) when it is expected to return 5
-# (type,numberoffields,x_field_max,y_field_max, normalization) ... why is this
-# behavior? is it because I am testing it in an older version of ZEMAX? if that
-# turns out to be the case, then can you use "version number" to do conditional
-# tests?
-
-# when the ZEMAX DDE server returns multiple values within a string, it can
-# contain the characters '\r\n' such as '5.000000000E-001\r\n' or ['0', '3\r\n']
-# Usually, it is not a problem as the "\r\n" parts are automatically stripped
-# when a type converstion from string to int or float is done; so an extra
-# regex is not necessary. If the returned "string" contains "\r\n' in the end,
-# then just use reply.rstrip() in the main function (not in the unit-test function)
-#to get rid of it.

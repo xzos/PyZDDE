@@ -127,7 +127,8 @@ class pyzdde(object):
     # ZEMAX control/query methods
     #----------------------------
     def zDeleteConfig(self,number):
-        """Deletes an existing configuration in the multi-configuration editor.
+        """Deletes an existing configuration (column) in the multi-configuration
+        editor.
 
         zDeleteConfig(config)->configNumber
 
@@ -142,6 +143,23 @@ class pyzdde(object):
         See also zInsertConfig.
         """
         return int(self.conversation.Request("DeleteConfig,"+str(number)))
+
+    def zDeleteMCO(self,operandNumber):
+        """Deletes an existing operand (row) in the multi-configuration editor.
+
+        zDeleteMCO(operandNumber)->retVal
+
+        args:
+            operandNumber : (integer) operand number (row in the MCE) to delete.
+        ret:
+            retVal        : (integer) new number of operands.
+
+        Note: After deleting the row, all succeeding rows (operands) are
+        re-numbered.
+
+        See also zInsertMCO.
+        """
+        return int(self.conversation.Request("DeleteMCO,"+str(operandNumber)))
 
     def zGetAperture(self,surfNum):
         """Get the surface aperture data.
@@ -178,9 +196,7 @@ class pyzdde(object):
 
         """
         reply = self.conversation.Request("GetAperture,"+str(surfNum))
-        print reply
         rs = reply.split(',')
-        print rs[-1]
         apertureInfo = [int(rs[i]) if i==5 else float(rs[i])
                                              for i in range(len(rs[:-1]))]
         apertureInfo.append(rs[-1].rstrip()) #append the test file (string)
@@ -336,6 +352,27 @@ class pyzdde(object):
         reply = self.conversation.Request('GetFirst')
         rs = reply.split(',')
         return tuple([float(elem) for elem in rs])
+
+    def zGetMulticon(self,config,row):
+        """Extract data from the multi-configuration editor.
+
+        zGetMulticon(config,row)->multiConData
+
+        args:
+            config : (integer)
+            row    :
+        """
+        reply = self.conversation.Request('GetMulticon,%i,%i'%(config,row))
+        if config: # if config > 0
+            rs = reply.split(",")
+            print rs
+            multiConData = [float(rs[i]) if (i == 0 or i == 6 or i== 7) else float(rs[i])
+                                                 for i in range(len(rs))]
+        else: # if config == 0
+            rs = reply.split(",")
+            multiConData = [int(elem) for elem in rs[1:]]
+            multiConData.insert(0,rs[0])
+        return tuple(multiConData)
 
 
     def zGetPupil(self):
@@ -776,13 +813,31 @@ class pyzdde(object):
         ret:
             configNumber : (integer) the number of the configuration that is inserted.
 
-        Note: the configNumber returned could be different from the number in the
-        input. This happens, for example, if the "number" is > 1 + number of configurations
-        currently in the MCE.
+        Note:
+            1. The configNumber returned could be different from the number in the
+               input. This happens, for example, if the "number" is > 1 + number of
+               configurations currently in the MCE.
+            2. Use zInsertMCO to insert a new multi-configuration operand in the
+               multi-configuration editor.
 
         See also zDeleteConfig.
         """
         return int(self.conversation.Request("InsertConfig,"+str(number)))
+
+    def zInsertMCO(self,operandNumber):
+        """Insert a new multi-configuration operand in the multi-configuration editor.
+
+        zInsertMCO(operandNumber)-> retValue
+
+        args:
+            operandNumber : (integer) between 1 and the current number of operands
+                            plus 1, inclusive.
+        ret:
+            retValue      : new number of operands.
+
+        See also zDeleteMCO
+        """
+        return int(self.conversation.Request("InsertMCO,"+str(operandNumber)))
 
     def zInsertSurface(self,surfNum):
         """Insert a lens surface in the ZEMAX DDE server. The new surface will be
@@ -871,10 +926,6 @@ class pyzdde(object):
         elif updateFlag == 0 or updateFlag == None:
             reply = self.conversation.Request('PushLens')
         else:
-            #self.server.Shutdown()   #FIXME: Is this right thing to do?
-                                      # The server shouldn't be shut down,
-                                      # instead allowing user program to handle
-                                      # error and shutdown server if required.
             raise ValueError('Invalid value for flag')
 
         if reply:
@@ -1391,20 +1442,14 @@ class pyzdde(object):
         return (tuple(oWaveDataTuple[0]),tuple(oWaveDataTuple[1]))
 
 
-
-    # CONVENIENCE FUNCTIONS
-    #
-    #(FIXME: What should be the proper method of implementing them??):
-    #Should they be class methods? ... for now, keeping them as instance method
-    #(current implementation) is a good idea as, I think, this will enable
-    #multiple DDE channel links to co-exist ... and have their own
-    #instances of convenience functions.
-
+# ****************************************************************
+#                      CONVENIENCE FUNCTIONS
+# ****************************************************************
     def spiralSpot(self,hy,hx,waveNum,spirals,rays,mode=0):
-        """Convenience function to produce a series of x,y values of rays traced in
-        a spiral over the entrance pupil to the image surface. i.e. the final destination
-        of the rays is the image surface. This function imitates its namesake from
-        MZDDE toolbox.
+        """Convenience function to produce a series of x,y values of rays traced
+        in a spiral over the entrance pupil to the image surface. i.e. the final
+        destination of the rays is the image surface. This function imitates its
+        namesake from MZDDE toolbox.
 
         spiralSpot(hy,hx,waveNum,spirals,rays[,mode])->[x,y,z,intensity]
 
@@ -1412,9 +1457,6 @@ class pyzdde(object):
         data from the LDE to the DDE server, perform PushLens() before calling
         spiralSpot.
         """
-        # Numpy arrays not used intentionally so that a user is not forced to
-        # install numpy libraries if he/she doesn't desire to,
-        # instead use list comprehensions and the standard math library !!!
         status = self.zGetRefresh()
         if ~status:
             finishAngle = spirals*2*pi
@@ -1466,16 +1508,16 @@ class pyzdde(object):
                 * ignoreSurface option has not been implemented yet.
 
         Limitations:
-            1. Cannot scale pupil shift x,y, and z in the General settings as Zemax hasn't
-               provided any command to do so using the DDE. The pupil shift values are also
-               scaled, when a lens design is scaled, when the ray-aiming is on. However, this
-               is not a serious limitation for most cases.
+            1. Cannot scale pupil shift x,y, and z in the General settings as Zemax
+               hasn't provided any command to do so using the DDE. The pupil shift
+               values are also scaled, when a lens design is scaled, when the ray-
+               aiming is on. However, this is not a serious limitation for most cases.
         """
         ret = 0 # assuming successful return
         lensFile = self.zGetFile()
         if factor == 1:
             return ret
-        #Scale the "system aperture" appropriately (see endnote 1)
+        #Scale the "system aperture" appropriately
         sysAperData = self.zGetSystemAper()
         if sysAperData[0] == 0:   # System aperture if EPD
             stopSurf = sysAperData[1]
@@ -1757,9 +1799,14 @@ class pyzdde(object):
 
 
 
-# ############################################################################
-# TEST THE FUNCTIONS (the following part of the code will not be invoked if
-# the module is imported!
+# ***************************************************************************
+#                      TEST THE FUNCTIONS
+# ***************************************************************************
+# Initial code testing used to be done using the following lines of code.
+# Currently all functionality are being tested using the unit test module.
+# The following lines are left for quick test. The code will not be invoked if
+# the module is imported! In order to execute the test_PyZDDE() function, "run"
+# this (pyZDDE.py) file. It may prove to be useful to quickly test your system.
 
 def test_PyZDDE():
     "Test the pyZDDE module functions"
@@ -1774,12 +1821,22 @@ def test_PyZDDE():
     status = link0.zDDEInit()
     print "Status for link 0:", status
     assert status == 0
+    print "App Name for Link 0:", link0.appName
+    print "Connection status for Link 0:", link0.connection
+    print "\n"
     time.sleep(0.25)   # Not required, but just for observation
 
     #link1 = pyzdde()
     status = link1.zDDEInit()
     print "Status for link 1:",status
-    #assert status == 0   #FIXME: Unable to create second communication link.
+    #assert status == 0   # In older versions of Zemax, unable to create second
+                          # communication link.
+    if status != 0:
+        warnings.warn("Couldn't create second channel.\n")
+    else:
+        print "App Name for Link 1:", link1.appName
+        print "Connection status for Link 1:", link1.connection
+        print "\n"
     time.sleep(0.25)   # Not required, but just for observation
 
     print "\nTEST: zGetDate()"
@@ -1815,10 +1872,17 @@ def test_PyZDDE():
     assert ret == 0
     print "zLoadFile test successful"
 
+    if link1.connection:
+        print "\nTEST: zLoadFile() @ link 1 (second channel)"
+        print "-------------------"
+        filename = zmxfp+"Double Gauss 5 degree field.zmx"
+        assert ret == 0
+        print "zLoadFile test @ link 1 successful"
+
     print "\nTEST: zPushLensPermission()"
     print "---------------------------"
     status = link0.zPushLensPermission()
-    if status:   # Carry-on other tests if client has permission to push lens
+    if status:
         print "Extensions are allowed to push lens."
 
         print "\nTEST: zPushLens()"
@@ -1829,15 +1893,8 @@ def test_PyZDDE():
         except:
             info = exc_info()
             print "Exception error:", info[0]
-            #print info
             #assert info[0] == 'exceptions.ValueError'
-            #FIXME use the appropriate assertion to check the returned error
-            link0.zDDEClose()
-            #Try to re-initiate the link and re-load a file
-            status = link0.zDDEInit()
-            assert status == 0
-            ret = link0.zLoadFile(filename)
-            assert ret == 0
+            assert cmp(str(info[0]),"<type 'exceptions.ValueError'>") == 0
 
         # TEST ALL FUNCTIONS THAT REQUIRE PUSHLENS() ... HERE!
         #Push lens without any parameters
@@ -1853,78 +1910,73 @@ def test_PyZDDE():
         else:
             print "Lens update with flag=1 FAILED. ret value = ", ret
 
-        print "\nTEST: zGetTrace()"
-        print "------------------"
-        rayTraceData = link0.zGetTrace(3,0,5,0.0,1.0,0.0,0.0)
-        (errorCode,vigCode,x,y,z,l,m,n,l2,m2,n2,intensity) = link0.zGetTrace(3,0,5,
-                                                                   0.0,1.0,0.0,0.0)
-        assert rayTraceData[0]  == errorCode
-        assert rayTraceData[1]  == vigCode
-        assert rayTraceData[2]  == x
-        assert rayTraceData[3]  == y
-        assert rayTraceData[4]  == z
-        assert rayTraceData[5]  == l
-        assert rayTraceData[6]  == m
-        assert rayTraceData[7]  == n
-        assert rayTraceData[8]  == l2
-        assert rayTraceData[9]  == m2
-        assert rayTraceData[10] == n2
-        assert rayTraceData[11] == intensity
-        print "zGetTrace test successful"
+    else: # client do not have permission to push lens
+        print "Extensions are not allowed to push lens. Please enable it."
 
-        print "\nTEST: zGetRefresh()"
-        print "------------------"
-        status = link0.zGetRefresh()
-        if status == 0:
-            print "Refresh successful"
-        else:
-            print "Refresh FAILED"
+    #Continue with other tests
+    print "\nTEST: zGetTrace()"
+    print "------------------"
+    rayTraceData = link0.zGetTrace(3,0,5,0.0,1.0,0.0,0.0)
+    (errorCode,vigCode,x,y,z,l,m,n,l2,m2,n2,intensity) = link0.zGetTrace(3,0,5,
+                                                               0.0,1.0,0.0,0.0)
+    assert rayTraceData[0]  == errorCode
+    assert rayTraceData[1]  == vigCode
+    assert rayTraceData[2]  == x
+    assert rayTraceData[3]  == y
+    assert rayTraceData[4]  == z
+    assert rayTraceData[5]  == l
+    assert rayTraceData[6]  == m
+    assert rayTraceData[7]  == n
+    assert rayTraceData[8]  == l2
+    assert rayTraceData[9]  == m2
+    assert rayTraceData[10] == n2
+    assert rayTraceData[11] == intensity
+    print "zGetTrace test successful"
 
-        print "\nTEST: zSetSystem()"
-        print "-----------------"
-        unitCode,stopSurf,rayAimingType = 0,4,0  # mm, 4th,off
-        useEnvData,temp,pressure,globalRefSurf = 0,20,1,1 # off, 20C,1ATM,ref=1st surf
-        systemData_s = link0.zSetSystem(unitCode,stopSurf,rayAimingType,useEnvData,
-                                                  temp,pressure,globalRefSurf)
-        print systemData_s
+    print "\nTEST: zGetRefresh()"
+    print "------------------"
+    status = link0.zGetRefresh()
+    if status == 0:
+        print "Refresh successful"
+    else:
+        print "Refresh FAILED"
 
-        print "\nTEST: zGetSystem()"
-        print "-----------------"
-        systemData_g = link0.zGetSystem()
-        print systemData_g
+    print "\nTEST: zSetSystem()"
+    print "-----------------"
+    unitCode,stopSurf,rayAimingType = 0,4,0  # mm, 4th,off
+    useEnvData,temp,pressure,globalRefSurf = 0,20,1,1 # off, 20C,1ATM,ref=1st surf
+    systemData_s = link0.zSetSystem(unitCode,stopSurf,rayAimingType,useEnvData,
+                                              temp,pressure,globalRefSurf)
+    print systemData_s
 
-        assert systemData_s == systemData_g
-        print "zSetSystem() and zGetSystem() test successful"
+    print "\nTEST: zGetSystem()"
+    print "-----------------"
+    systemData_g = link0.zGetSystem()
+    print systemData_g
 
-        print "\nTEST: zGetPupil()"
-        print "------------------"
-        pupil_data = dict(zip((0,1,2,3,4,5,6,7),('type','value','ENPD','ENPP',
-                       'EXPD','EXPP','apodization_type','apodization_factor')))
-        pupil_type = dict(zip((0,1,2,3,4,5),
-                ('entrance pupil diameter','image space F/#','object space NA',
-                  'float by stop','paraxial working F/#','object cone angle')))
-        pupil_value_type = dict(zip((0,1),("stop surface semi-diameter",
-                                             "system aperture")))
-        apodization_type = dict(zip((0,1,2),('none','Gaussian','Tangential')))
-        # Get the pupil data
-        pupilData = link0.zGetPupil()
-        print "Pupil data:"
-        print pupil_data[0],":",pupil_type[pupilData[0]]
-        print pupil_data[1],":",pupilData[1],(pupil_value_type[0]
-                                 if pupilData[0]==3 else pupil_value_type[1])
-        for i in range(2,6):
-            print pupil_data[i],":",pupilData[i]
-        print pupil_data[6],":",apodization_type[pupilData[6]]
-        print pupil_data[7],":",pupilData[7]
+    assert systemData_s == systemData_g
+    print "zSetSystem() and zGetSystem() test successful"
 
-
-    else: # Exit tests if client do not have permission to push lens
-        print "Extensions are not allowed to push lens. Enable it."
-        #link0.zDDEClose()
-        #link1.zDDEClose()
-        #exit()  # FIXEM: May be I don't need to exit the test if pushlens is not allowed???
-                 # One can still carry out other functions. However, Put all the functions
-                 # that require one to pushLens into the above if...else block
+    print "\nTEST: zGetPupil()"
+    print "------------------"
+    pupil_data = dict(zip((0,1,2,3,4,5,6,7),('type','value','ENPD','ENPP',
+                   'EXPD','EXPP','apodization_type','apodization_factor')))
+    pupil_type = dict(zip((0,1,2,3,4,5),
+            ('entrance pupil diameter','image space F/#','object space NA',
+              'float by stop','paraxial working F/#','object cone angle')))
+    pupil_value_type = dict(zip((0,1),("stop surface semi-diameter",
+                                         "system aperture")))
+    apodization_type = dict(zip((0,1,2),('none','Gaussian','Tangential')))
+    # Get the pupil data
+    pupilData = link0.zGetPupil()
+    print "Pupil data:"
+    print pupil_data[0],":",pupil_type[pupilData[0]]
+    print pupil_data[1],":",pupilData[1],(pupil_value_type[0]
+                             if pupilData[0]==3 else pupil_value_type[1])
+    for i in range(2,6):
+        print pupil_data[i],":",pupilData[i]
+    print pupil_data[6],":",apodization_type[pupilData[6]]
+    print pupil_data[7],":",pupilData[7]
 
     # Start a basic design with a new lens
     print "\nTEST: zNewLens()"
@@ -2096,11 +2148,3 @@ def test_PyZDDE():
 if __name__ == '__main__':
     import os, time
     test_PyZDDE()
-
-
-
-
-#END-NOTES:
-# Endnote 1:
-    #I think that if the system aperture is of type 1 (Image space F/#),
-    #or 4 (paraxial Working F/#), then the it doesn't need to be scaled individually
