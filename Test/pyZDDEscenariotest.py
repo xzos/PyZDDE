@@ -7,14 +7,13 @@
 # Author:      Indranil Sinharoy
 #
 # Created:     19/10/2012
-# Copyright:   (c) XPMUser 2012
-# Licence:     <your licence>
+# Copyright:   (c) Indranil Sinharoy, 2012 - 2013
+# Licence:     MIT License
 #-------------------------------------------------------------------------------
 
 import os, sys, time
 
-# Put both the "Test" and the "PyZDDE" directory in the python
-# search path.
+# Put both the "Test" and the "PyZDDE" directory in the python search path.
 testdirectory = os.getcwd()
 ind = testdirectory.find('Test')
 pyzddedirectory = testdirectory[0:ind-1]
@@ -25,6 +24,9 @@ if pyzddedirectory not in sys.path:
 
 # Import the pyZDDE module
 import pyZDDE
+
+# ZEMAX file directory
+zmxfp = pyzddedirectory+'\\ZMXFILES\\'
 
 def testSetup():
     # Setup up the basic environment for the scenerio test
@@ -42,26 +44,41 @@ def test_scenario_multipleChannel():
     ch0_status = link0.zDDEInit()
     print "Status for link 0:", ch0_status
     assert ch0_status==0
-    time.sleep(0.25) # Not required, but just for observation
+    print "App Name for Link 0:", link0.appName
+    print "Connection status for Link 0:", link0.connection
+    time.sleep(0.1) # Not required, but just for observation
 
     ch1_status = link1.zDDEInit()
     print "Status for link 1:",ch1_status
-    #assert ch1_status == 0   #FIXME: Unable to create second communication link.
-    time.sleep(0.25)   # Not required, but just for observation
+    assert ch1_status == 0
+    print "App Name for Link 1:", link1.appName
+    print "Connection status for Link 1:", link1.connection
+    time.sleep(0.1)   # Not required, but just for observation
 
-    # Call somefunctions to do something
-    if not ch0_status:
-        #if channel 0 successfully created
-        link0.zNewLens()
-        sysPara = link0.zGetSystem()
-        sysParaNew = link0.zSetSystem(0,sysPara[2],0,0,20,1,-1)
-        link0.zInsertSurface(1)
+    # Create a new lens in the first ZEMAX DDE server
+    link0.zNewLens()
+    sysPara = link0.zGetSystem()
+    sysParaNew = link0.zSetSystem(0,sysPara[2],0,0,20,1,-1)
+    link0.zInsertSurface(1)
 
     # Delete one of the objects
     del link2
 
+    # Load a lens into the second ZEMAX DDE server
+    filename = zmxfp+"Cooke 40 degree field.zmx"
+    ret = link1.zLoadFile(filename)
+    assert ret == 0
+    print "zLoadFile test successful"
 
 
+    #Get system from both the channels
+    recSys0Data = link0.zGetSystem()
+    recSys1Data = link1.zGetSystem()
+
+    print "System data from 1st system:"
+    print recSys0Data
+    print "System data from 2nd system:"
+    print recSys1Data
 
 
     # Close the channels

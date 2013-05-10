@@ -5,11 +5,11 @@
 # Author:      Indranil Sinharoy
 #
 # Created:     19/10/2012
-# Copyright:   (c) Indranil 2012 - 2013
+# Copyright:   (c) Indranil Sinharoy, 2012 - 2013
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision: 0.2
+# Revision:    0.2
 #-------------------------------------------------------------------------------
 
 import os, sys, unittest
