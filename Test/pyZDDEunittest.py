@@ -550,7 +550,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         if TestPyZDDEFunctions.pRetVar:
             print "zPushLens return status:", status
 
-    @unittest.skip("Issues")
+    #@unittest.skip("Issues")
     def test_zQuickFocus(self):
         print "\nTEST: zQuickFocus()"
         # Setup the system, wavelength, field points

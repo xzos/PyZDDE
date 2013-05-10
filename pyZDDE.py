@@ -907,7 +907,7 @@ class pyzdde(object):
 
         retVal:
                 0: lens successfully pushed into the LDE.
-             -999: the lens could not be pushed into the LDE. (check PushLensPermission)
+             -999: the lens could not be pushed into the LDE. (check zPushLensPermission)
              -998: the command timed out
             other: the update failed.
 
@@ -950,28 +950,31 @@ class pyzdde(object):
         status = self.conversation.Request('PushLensPermission')
         return int(status)
 
-    def zQuickFocus(self,mode,centroid):
+    def zQuickFocus(self,mode=0,centroid=0):
         """Performs a quick best focus adjustment for the optical system. The
         "best" focus is chosen as a wavelength weighted average over all fields.
 
-        zQuickFocus(mode,centroid) -> retVal
+        zQuickFocus([mode,centroid]) -> retVal
 
         arg:
             mode:
-                0: RMS spot size
+                0: RMS spot size (default)
                 1: spot x
                 2: spot y
                 3: wavefront OPD
             centroid: to specify RMS reference
-                0: RMS referenced to the chief ray
+                0: RMS referenced to the chief ray (default)
                 1: RMS referenced to image centroid
 
         ret:
             retVal: 0 for success.
         """
+        retVal = -1
         cmd = ('QuickFocus,%i,%i'%(mode,centroid))
         reply = self.conversation.Request(cmd)
-        return reply
+        if reply.split()[0] == 'OK':
+            retVal = 0
+        return retVal
 
 
 
@@ -985,16 +988,16 @@ class pyzdde(object):
         args:
             surfNum      : surface number (integer)
             aType        : integer code to specify aperture type
-                            0 = no aperture (na)
-                            1 = circular aperture (ca)
-                            2 = circular obscuration (co)
-                            3 = spider (s)
-                            4 = rectangular aperture (ra)
-                            5 = rectangular obscuration (ro)
-                            6 = elliptical aperture (ea)
-                            7 = elliptical obscuration (eo)
-                            8 = user defined aperture (uda)
-                            9 = user defined obscuration (udo)
+                             0 = no aperture (na)
+                             1 = circular aperture (ca)
+                             2 = circular obscuration (co)
+                             3 = spider (s)
+                             4 = rectangular aperture (ra)
+                             5 = rectangular obscuration (ro)
+                             6 = elliptical aperture (ea)
+                             7 = elliptical obscuration (eo)
+                             8 = user defined aperture (uda)
+                             9 = user defined obscuration (udo)
                             10 = floating aperture (fa)
             aMin         : min radius(ca), min radius(co),width of arm(s),
                            X-half width(ra),X-half width(ro),X-half width(ea),
@@ -1824,7 +1827,7 @@ def test_PyZDDE():
     print "App Name for Link 0:", link0.appName
     print "Connection status for Link 0:", link0.connection
     print "\n"
-    time.sleep(0.25)   # Not required, but just for observation
+    time.sleep(0.1)   # Not required, but just for observation
 
     #link1 = pyzdde()
     status = link1.zDDEInit()
@@ -1837,7 +1840,7 @@ def test_PyZDDE():
         print "App Name for Link 1:", link1.appName
         print "Connection status for Link 1:", link1.connection
         print "\n"
-    time.sleep(0.25)   # Not required, but just for observation
+    time.sleep(0.1)   # Not required, but just for observation
 
     print "\nTEST: zGetDate()"
     print "----------------"
@@ -2131,9 +2134,10 @@ def test_PyZDDE():
 
     print "\nTEST: zQuickFocus()"
     print "---------------------"
-    #aptInfo = link0.zQuickFocus()
-    pass
-    #ToDo
+    retVal = link0.zQuickFocus()
+    print "zQuickFocus() test retVal = ", retVal
+    assert retVal == 0
+    print "zQuickFocus() test successful"
 
     # Finished all tests. Perform the last test and done!
     print "\nTEST: zDDEClose()"
