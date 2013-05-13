@@ -1,7 +1,8 @@
 #-------------------------------------------------------------------------------
 # Name:        plotSpiralSpot.py
 # Purpose:     Example of using the "spiral spot" member function of pyZDDE.
-#              Please note that this code uses matplotlib plotting library from
+#
+# NOTE:        Please note that this code uses matplotlib plotting library from
 #              http://matplotlib.org/ for 2D-plotting
 #
 # Author:      Indranil Sinharoy
@@ -10,17 +11,18 @@
 # Copyright:   (c) 2012, 2013
 # Licence:     MIT License
 #-------------------------------------------------------------------------------
-
+from __future__ import print_function
 import sys, os
 import matplotlib.pyplot as plt
 
+# ****************** BOILER PLATE CODE ***********************************
 cd = os.getcwd()
 ind = cd.find('Examples')
 cd = cd[0:ind-1]
 
 if cd not in sys.path:
     sys.path.append(cd)
-
+# ****************** BOILER PLATE CODE ***********************************
 from pyZDDE import *
 
 # The ZEMAX file path
@@ -57,15 +59,15 @@ if ~status:
                 fig.suptitle('Spiral Spot')
                 plt.show()
             else:
-                print "Failed to push lens"
+                print("Failed to push lens")
         else:
-            print "Extension not allowed to push lens. Enable push permission."
+            print("Extension not allowed to push lens. Enable push permission.")
     else:
-        print "Could not load lens file"
+        print("Could not load lens file")
     # close the DDE channel
     link0.zDDEClose()
 
 else:
-    print "DDE link could not be established"
+    print("DDE link could not be established")
 
 

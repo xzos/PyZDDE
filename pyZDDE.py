@@ -11,7 +11,8 @@
 #              For further details, please refer to LICENSE.txt
 # Revision:    0.2
 #-------------------------------------------------------------------------------
-
+from __future__ import division
+from __future__ import print_function
 import win32ui
 import dde
 import os
@@ -33,7 +34,7 @@ def debugPrint(level,msg):
     """
     global DEBUG_PRINT_LEVEL
     if level <= DEBUG_PRINT_LEVEL:
-        print "DEBUG PRINT (Level" + str(level)+ ":)" + msg
+        print("DEBUG PRINT (Level" + str(level)+ ": )" + msg)
     return
 
 class pyzdde(object):
@@ -74,8 +75,7 @@ class pyzdde(object):
             self.conversation.ConnectTo(self.appName," ")
         except:
             info = exc_info()
-            print "Error:", info[1],
-            print ": ZEMAX may not have been started"
+            print("Error:" + info[1] + ": ZEMAX may not have been started!")
             return -1
         else:
             debugPrint(1,"Zemax instance successfully connected")
@@ -140,24 +140,25 @@ class pyzdde(object):
         Note: After deleting the configuration, all succeeding configurations are
         re-numbered.
 
-        See also zInsertConfig.
+        See also zInsertConfig. Use zDeleteMCO() to delete a row/operand
         """
-        return int(self.conversation.Request("DeleteConfig,"+str(number)))
+        return int(self.conversation.Request("DeleteConfig,{:.0f}".format(number)))
 
     def zDeleteMCO(self,operandNumber):
         """Deletes an existing operand (row) in the multi-configuration editor.
 
-        zDeleteMCO(operandNumber)->retVal
+        zDeleteMCO(operandNumber)->newNumberOfOperands
 
         args:
-            operandNumber : (integer) operand number (row in the MCE) to delete.
+            operandNumber        : (integer) operand number (row in the MCE) to
+                                   delete.
         ret:
-            retVal        : (integer) new number of operands.
+            newNumberOfOperands  : (integer) new number of operands.
 
         Note: After deleting the row, all succeeding rows (operands) are
         re-numbered.
 
-        See also zInsertMCO.
+        See also zInsertMCO. Use zDeleteConfig() to delete a column/configuration.
         """
         return int(self.conversation.Request("DeleteMCO,"+str(operandNumber)))
 
@@ -188,12 +189,11 @@ class pyzdde(object):
             aMax         : max radius(ca), max radius(co),number of arm(s),
                            X-half width(ra),X-half width(ro),X-half width(ea),
                            X-half width(eo)
-                           see "Aperture type and other aperture controls" for more details.
+                           see "Aperture type & other aperture controls" for more details.
             xDecenter    : amount of decenter from current optical axis (lens units)
             yDecenter    : amount of decenter from current optical axis (lens units)
             apertureFile : a text file with .UDA extention. see "User defined
                            apertures and obscurations" in ZEMAX manual for more details.
-
         """
         reply = self.conversation.Request("GetAperture,"+str(surfNum))
         rs = reply.split(',')
@@ -203,15 +203,19 @@ class pyzdde(object):
         return tuple(apertureInfo)
 
     def zGetConfig(self):
-        """Returns the current configuration number, the number of configurations,
-        and the number of multiple configuration operands.
+        """Returns the current configuration number (selected column in the MCE),
+        the number of configurations (number of columns), and the number of
+        multiple configuration operands (number of rows).
 
         zGetConfig()->(currentConfig, numberOfConfigs, numberOfMutiConfigOper)
 
         args:
             none
         ret:
-            3-tuple containing currentConfig, numberOfConfigs, numberOfMutiConfigOper
+            3-tuple containing the following elements:
+             currentConfig          : current configuration (column) number in MCE
+             numberOfConfigs        : number of configs (columns)
+             numberOfMutiConfigOper : number of multi config operands (rows)
 
         Note:
             The function returns (1,1,1) even if the multi-configuration editor
@@ -250,7 +254,7 @@ class pyzdde(object):
 
         See also zSetExtra
         """
-        cmd = ('GetExtra,%i,%i')%(surfaceNumber,columnNumber)
+        cmd="GetExtra,{sn:.0f},{cn:.0f}".format(sn=surfaceNumber,cn=columnNumber)
         reply = self.conversation.Request(cmd)
         return float(reply)
 
@@ -359,21 +363,37 @@ class pyzdde(object):
         zGetMulticon(config,row)->multiConData
 
         args:
-            config : (integer)
-            row    :
+            config : (integer) configuration number (column)
+            row    : (integer) operand
+        ret:
+            multiConData is a tuple whose elements are dependent on the value of
+            `config`
+
+            If `config` > 0, then the elements of multiConData are:
+                (value,num_config,num_row,status,pickuprow,pickupconfig,scale,offset)
+
+              The status integer is 0 for fixed, 1 for variable, 2 for pickup, and 3
+              for thermal pickup. If status is 2 or 3, the pickuprow and pickupconfig
+              values indicate the source data for the pickup solve.
+
+            If `config` = 0, then the elements of multiConData are:
+                (operand_type,number1,number2,number3)
+
+        See also zSetMulticon.
         """
-        reply = self.conversation.Request('GetMulticon,%i,%i'%(config,row))
+        cmd = "GetMulticon,{config:.0f},{row:.0f}".format(config=config,row=row)
+        reply = self.conversation.Request(cmd)
         if config: # if config > 0
             rs = reply.split(",")
-            print rs
-            multiConData = [float(rs[i]) if (i == 0 or i == 6 or i== 7) else float(rs[i])
+            if '' in rs: # if the MCE is "empty"
+                rs[rs.index('')] = '0'
+            multiConData = [float(rs[i]) if (i == 0 or i == 6 or i== 7) else int(rs[i])
                                                  for i in range(len(rs))]
         else: # if config == 0
             rs = reply.split(",")
             multiConData = [int(elem) for elem in rs[1:]]
             multiConData.insert(0,rs[0])
         return tuple(multiConData)
-
 
     def zGetPupil(self):
         """Get pupil data from ZEMAX.
@@ -441,7 +461,7 @@ class pyzdde(object):
     def zGetSurfaceData(self,surfaceNumber,code,arg2=None):
         """Gets surface data on a sequential lens surface.
 
-        zGetSurfaceData(surfaceNum,code,[, arg2])-> surfaceDatum
+        zGetSurfaceData(surfaceNum,code [, arg2])-> surfaceDatum
 
         args:
             surfaceNum : the surface number
@@ -506,9 +526,10 @@ class pyzdde(object):
         See also zSetSurfaceData, zGetSurfaceParameter and ZemaxSurfTypes
         """
         if arg2== None:
-            cmd = ('GetSurfaceData,%i,%i')%(surfaceNumber,code)
+            cmd = "GetSurfaceData,{sN:.0f},{c:.0f}".format(sN=surfaceNumber,c=code)
         else:
-            cmd = ('GetSurfaceData,%i,%i,%i')%(surfaceNumber,code,arg2)
+            cmd = "GetSurfaceData,{sN:.0f},{c:.0f},{a:.0f}".format(sN=surfaceNumber,
+                                                                 c=code,a=arg2)
         reply = self.conversation.Request(cmd)
         if code in (0,1,4,7,9):
             surfaceDatum = reply.split()[0]
@@ -530,7 +551,7 @@ class pyzdde(object):
                            type column of the LDE.
 
         """
-        cmd = ('GetSurfaceDLL,%i')%(surfaceNumber)
+        cmd = "GetSurfaceDLL,{sN:.0f}".format(surfaceNumber)
         reply = self.conversation.Request(cmd)
         rs = reply.split(',')
         return (rs[0],rs[1])
@@ -551,7 +572,7 @@ class pyzdde(object):
         zGetSurfaceData()
         See also zGetSurfaceData, ZSetSurfaceParameter.
         """
-        cmd = ('GetSurfaceParameter,%i,%i')%(surfaceNumber,parameter)
+        cmd = "GetSurfaceParameter,{sN:.0f},{p:.0f}".format(sN=surfaceNumber,p=parameter)
         reply = self.conversation.Request(cmd)
         return float(reply)
 
@@ -594,12 +615,12 @@ class pyzdde(object):
         ret:
             systemAperData: systemAperData is a tuple containing the following
                 aType              : integer indicating the system aperture
-                                     0 = entrance pupil diameter
-                                     1 = image space F/#
-                                     2 = object space NA
-                                     3 = float by stop
-                                     4 = paraxial working F/#
-                                     5 = object cone angle
+                                     0 = entrance pupil diameter (EPD)
+                                     1 = image space F/#         (IF/#)
+                                     2 = object space NA         (ONA)
+                                     3 = float by stop           (FBS)
+                                     4 = paraxial working F/#    (PWF/#)
+                                     5 = object cone angle       (OCA)
                 stopSurf           : stop surface
                 value              : if aperture type == float by stop
                                          value is stop surface semi-diameter
@@ -614,6 +635,108 @@ class pyzdde(object):
         rs = reply.split(',')
         systemAperData = tuple([float(elem) for elem in rs])
         return systemAperData
+
+    def zGetSystemProperty(self,code):
+        """Returns properties of the system, such as system aperture, field,
+        wavelength, and other data, based on the integer `code` passed.
+
+        zGetSystemProperty(code)-> sysPropData
+        args:
+            code        : (integer) value that defines the specific system property
+                          requested (see below).
+        ret:
+            sysPropData : Returned system property data. Either a string or numeric
+                          data.
+
+        This function mimics the ZPL function SYPR.
+
+        Code    Property (the values in the bracket are the expected returns)
+          4   - Adjust Index Data To Environment. (0:off, 1:on.)
+         10   - Aperture Type code. (0:EPD, 1:IF/#, 2:ONA, 3:FBS, 4:PWF/#, 5:OCA)
+         11   - Aperture Value. (stop surface semi-diameter if aperture type is FBS,
+                else system aperture)
+         12   - Apodization Type code. (0:uniform, 1:Gaussian, 2:cosine cubed)
+         13   - Apodization Factor.
+         14   - Telecentric Object Space. (0:off, 1:on)
+         15   - Iterate Solves When Updating. (0:off, 1:on)
+         16   - Lens Title.
+         17   - Lens Notes.
+         18   - Afocal Image Space. (0:off or "focal mode", 1:on or "afocal mode")
+         21   - Global coordinate reference surface.
+         23   - Glass catalog list. (Use a string or string variable with the glass
+                catalog name, such as "SCHOTT". To specify multiple catalogs use
+                a single string or string variable containing names separated by
+                spaces, such as "SCHOTT HOYA OHARA".)
+         24   - System Temperature in degrees Celsius.
+         25   - System Pressure in atmospheres.
+         26   - Reference OPD method. (0:absolute, 1:infinity, 2:exit pupil, 3:absolute 2.)
+         30   - Lens Units code. (0:mm, 1:cm, 2:inches, 3:Meters)
+         31   - Source Units Prefix. (0:Femto, 1:Pico, 2:Nano, 3:Micro, 4:Milli,
+                5:None,6:Kilo, 7:Mega, 8:Giga, 9:Tera)
+         32   - Source Units. (0:Watts, 1:Lumens, 2:Joules)
+         33   - Analysis Units Prefix. (0:Femto, 1:Pico, 2:Nano, 3:Micro, 4:Milli,
+                5:None,6:Kilo, 7:Mega, 8:Giga, 9:Tera)
+         34   - Analysis Units "per" Area. (0:mm^2, 1:cm^2, 2:inches^2, 3:Meters^2, 4:feet^2)
+         35   - MTF Units code. (0:cycles per millimeter, 1:cycles per milliradian.
+         40   - Coating File name.
+         41   - Scatter Profile name.
+         42   - ABg Data File name.
+         43   - GRADIUM Profile name.
+         50   - NSC Maximum Intersections Per Ray.
+         51   - NSC Maximum Segments Per Ray.
+         52   - NSC Maximum Nested/Touching Objects.
+         53   - NSC Minimum Relative Ray Intensity.
+         54   - NSC Minimum Absolute Ray Intensity.
+         55   - NSC Glue Distance In Lens Units.
+         56   - NSC Missed Ray Draw Distance In Lens Units.
+         57   - NSC Retrace Source Rays Upon File Open. (0:no, 1:yes)
+         58   - NSC Maximum Source File Rays In Memory.
+         59   - Simple Ray Splitting. (0:no, 1:yes)
+         60   - Polarization Jx.
+         61   - Polarization Jy.
+         62   - Polarization X-Phase.
+         63   - Polarization Y-Phase.
+         64   - Convert thin film phase to ray equivalent. (0:no, 1:yes)
+         65   - Unpolarized. (0:no, 1:yes)
+         66   - Method. (0:X-axis, 1:Y-axis, 2:Z-axis)
+         70   - Ray Aiming. (0:off, 1:on, 2:aberrated)
+         71   - Ray aiming pupil shift x.
+         72   - Ray aiming pupil shift y.
+         73   - Ray aiming pupil shift z.
+         74   - Use Ray Aiming Cache. (0:no, 1:yes)
+         75   - Robust Ray Aiming. (0:no, 1:yes)
+         76   - Scale Pupil Shift Factors By Field. (0:no, 1:yes)
+         77   - Ray aiming pupil compress x.
+         78   - Ray aiming pupil compress y.
+         100  - Field type code. (0=angl,1=obj ht,2=parx img ht,3=rel img ht)
+         101  - Number of fields.
+         102,103 - The field number is value1, value2 is the field x, y coordinate
+         104  - The field number is value1, value2 is the field weight
+         105,106 - The field number is value1, value2 is the field vignetting
+                   decenter x, decenter y
+         107,108 - The field number is value1, value2 is the field vignetting
+                   compression x, compression y
+         109  - The field number is value1, value2 is the field vignetting angle
+         110  - The field normalization method, value 1 is 0 for radial and 1 for
+                rectangular
+         200  - Primary wavelength number.
+         201  - Number of wavelengths
+         202  - The wavelength number is value1, value 2 is the wavelength in
+                micrometers.
+         203  - The wavelength number is value1, value 2 is the wavelength weight
+         901  - The number of CPU's to use in multi-threaded computations, such as
+                optimization. (0=default). See the manual for details.
+
+        NOTE: Currently Zemax returns just "0" for the codes: 102,103, 104,105,
+              106,107,108,109, and 110. This is unexpected! So, pyZDDE will return
+              the reply (string) as is for the user to handle.
+
+        See also zSetSystemProperty
+        """
+        cmd = "GetSystemProperty,{c}".format(c=code)
+        reply = self.conversation.Request(cmd)
+        sysPropData = process_get_set_SystemProperty(code,reply)
+        return sysPropData
 
     def zGetTextFile(self,textFileName, analysisType, settingsFileName, flag):
         """Request Zemax to save a text file for any analysis that supports text
@@ -656,8 +779,8 @@ class pyzdde(object):
         retVal = -1
         #Check if the file path is valid and has extension
         if path.isabs(textFileName) and path.splitext(textFileName)[1]!='':
-            cmd = 'GetTextFile,"%s",%s,"%s",%i' %(textFileName,analysisType,
-                                                  settingsFileName,flag)
+            cmd = 'GetTextFile,"{tF}",{aT},"{sF}",{fl:.0f}'.format(tF=textFileName,
+                                    aT=analysisType,sF=settingsFileName,fl=flag)
             reply = self.conversation.Request(cmd)
             if reply.split()[0] == 'OK':
                 retVal = 0
@@ -712,8 +835,8 @@ class pyzdde(object):
 
         See also zGetTraceDirect, zGetPolTrace, zGetPolTraceDirect
         """
-        cmd = 'GetTrace,%i,%i,%i,%1.4f,%1.4f,%1.4f,%1.4f' %(waveNum,mode,surf,
-                                                                   hx,hy,px,py)
+        cmd = "GetTrace,{wN:.0f},{m:.0f},{s:.0f},{hx:1.4f},{hy:1.4f},{px:1.4f},{py:1.4f}".format(
+                                                    wN=waveNum,m=mode,s=surf,hx=hx,hy=hy,px=px,py=py)
         reply = self.conversation.Request(cmd)
         rs = reply.split(',')
         rayTraceData = tuple([int(elem) if (i==0 or i==1)
@@ -721,18 +844,18 @@ class pyzdde(object):
         return rayTraceData
 
     def zGetUpdate(self):
-        """Update the lens, which means Zemax recomputes
-           all pupil positions, solves, and index data.
+        """Update the lens, which means Zemax recomputes all pupil positions,
+        solves, and index data.
 
-           zGetUpdate() -> status
+        zGetUpdate() -> status
 
-            status :   0 = Zemax successfully updated the lens
-                      -1 = No raytrace performed
-                    -998 = Command timed
+        status :   0 = Zemax successfully updated the lens
+                  -1 = No raytrace performed
+                -998 = Command timed
 
-           To update the merit function, use the zOptimize item with the number
-           of cycles set to -1.
-           See also zGetRefresh, zOptimize, zPushLens
+        To update the merit function, use the zOptimize item with the number
+        of cycles set to -1.
+        See also zGetRefresh, zOptimize, zPushLens
         """
         status,ret = -998, None
         ret = self.conversation.Request("GetUpdate")
@@ -794,38 +917,40 @@ class pyzdde(object):
         waveCount = self.zGetWave(0)[1]
         waveDataTuple = [[],[]]
         for i in range(waveCount):
-            cmd = ('GetWave,%i')%(i+1)
+            cmd = "GetWave,{wC:.0f}".format(wC=i+1)
             reply = self.conversation.Request(cmd)
             rs = reply.split(',')
             waveDataTuple[0].append(float(rs[0])) # store the wavelength
             waveDataTuple[1].append(float(rs[1])) # store the weight
         return (tuple(waveDataTuple[0]),tuple(waveDataTuple[1]))
 
-    def zInsertConfig(self,number):
-        """Insert a new configuration in the multi-configuration editor. The new
-        configuration will be placed at the location indicated by the parameter
-        `config`.
+    def zInsertConfig(self,configNumber):
+        """Insert a new configuration (column) in the multi-configuration editor.
+        The new configuration will be placed at the location (column) indicated
+        by the parameter `configNumber`.
 
-        zInsertConfig(number)->configNumber
+        zInsertConfig(configNumber)->configNumberRet
 
         args:
-            number       : (integer) the number of the configuration to insert.
+            configNumber    : (integer) the configuration (column) number to insert.
         ret:
-            configNumber : (integer) the number of the configuration that is inserted.
+            configNumberRet : (integer) the column number of the configuration that
+                              is inserted at configNumber.
 
         Note:
-            1. The configNumber returned could be different from the number in the
-               input. This happens, for example, if the "number" is > 1 + number of
-               configurations currently in the MCE.
-            2. Use zInsertMCO to insert a new multi-configuration operand in the
+            1. The configNumber returned (configNumberRet) is generally different
+               from the number in the input configNumber.
+            2. Use zInsertMCO() to insert a new multi-configuration operand in the
                multi-configuration editor.
+            3. Use zSetConfig() to switch the current configuration number
 
         See also zDeleteConfig.
         """
-        return int(self.conversation.Request("InsertConfig,"+str(number)))
+        return int(self.conversation.Request("InsertConfig,{:.0f}".format(configNumber)))
 
     def zInsertMCO(self,operandNumber):
-        """Insert a new multi-configuration operand in the multi-configuration editor.
+        """Insert a new multi-configuration operand (row) in the multi-configuration
+        editor.
 
         zInsertMCO(operandNumber)-> retValue
 
@@ -833,11 +958,11 @@ class pyzdde(object):
             operandNumber : (integer) between 1 and the current number of operands
                             plus 1, inclusive.
         ret:
-            retValue      : new number of operands.
+            retValue      : new number of operands (rows).
 
-        See also zDeleteMCO
+        See also zDeleteMCO. Use zInsertConfig(), to insert a new configuration (row).
         """
-        return int(self.conversation.Request("InsertMCO,"+str(operandNumber)))
+        return int(self.conversation.Request("InsertMCO,{:.0f}".format(operandNumber)))
 
     def zInsertSurface(self,surfNum):
         """Insert a lens surface in the ZEMAX DDE server. The new surface will be
@@ -970,12 +1095,11 @@ class pyzdde(object):
             retVal: 0 for success.
         """
         retVal = -1
-        cmd = ('QuickFocus,%i,%i'%(mode,centroid))
+        cmd = "QuickFocus,{mode:.0f},{cent:.0f}".format(mode=mode,cent=centroid)
         reply = self.conversation.Request(cmd)
         if reply.split()[0] == 'OK':
             retVal = 0
         return retVal
-
 
 
     def zSetAperture(self,surfNum,aType,aMin,aMax,xDecenter=0,yDecenter=0,
@@ -1026,12 +1150,35 @@ class pyzdde(object):
 
         See also zGetAperture()
         """
-        cmd = ('SetAperture,%i,%i,%1.20,%1.20g,%1.20g,%1.20g,%s'
-               %(surfNum,aType,aMin,aMax,xDecenter,yDecenter,apertureFile))
+        cmd  = ("SetAperture,{sN:.0f},{aT:.0f},{aMn:1.20g},{aMx:1.20g},{xD:1.20g},{yD:1.20g},{aF}"
+        .format(sN=surfNum,aT=aType,aMn=aMin,aMx=aMax,xD=xDecenter,yD=yDecenter,aF=apertureFile))
         reply = self.conversation.Request(cmd)
         rs = reply.split(',')
         apertureInfo = tuple([float(elem) for elem in rs])
         return apertureInfo
+
+    def zSetConfig(self,configNumber):
+        """Switches the current configuration number (selected column in the MCE),
+        and updates the system.
+
+        zSetConfig(configNumber)->(currentConfig, numberOfConfigs, error)
+
+        args:
+            configNumber : The configuration (column) number to set current
+        ret:
+            3-tuple containing the following elements:
+             currentConfig    : current configuration (column) number in MCE
+                                1 <= currentConfig <= numberOfConfigs
+             numberOfConfigs  : number of configs (columns).
+             error            : 0  = successful; new current config is traceable
+                                -1 = failure
+
+        See also zGetConfig. Use zInsertConfig to insert new configuration in the
+        multi-configuration editor.
+        """
+        reply = self.conversation.Request("SetConfig,{:.0f}".format(configNumber))
+        rs = reply.split(',')
+        return tuple([int(elem) for elem in rs])
 
     def zSetExtra(self,surfaceNumber,columnNumber,value):
         """Sets extra surface data (value) in the Extra Data Editor for the surface
@@ -1048,7 +1195,8 @@ class pyzdde(object):
 
         See also zGetExtra
         """
-        cmd = ('SetExtra,%i,%i,%1.20g')%(surfaceNumber,columnNumber,value)
+        cmd = ("SetExtra,{:.0f},{:.0f},{:1.20g}"
+               .format(surfaceNumber,columnNumber,value))
         reply = self.conversation.Request(cmd)
         return float(reply)
 
@@ -1099,10 +1247,10 @@ class pyzdde(object):
         See also zGetField()
         """
         if n:
-            cmd = ('SetField,%i,%1.20g,%1.20g,%1.20g,%1.20g,%1.20g,%1.20g,%1.20g,%1.20g'
-                         %(n,arg1,arg2,arg3,vdx,vdy,vcx,vcy,van))
+            cmd = ("SetField,{:.0f},{:1.20g},{:1.20g},{:1.20g},{:1.20g},{:1.20g},{:1.20g},{:1.20g},{:1.20g}"
+                   .format(n,arg1,arg2,arg3,vdx,vdy,vcx,vcy,van))
         else:
-            cmd = ('SetField,%i,%i,%i,%i'%(0,arg1,arg2,arg3))
+            cmd = ("SetField,{:.0f},{:.0f},{:.0f},{:.0f}".format(0,arg1,arg2,arg3))
 
         reply = self.conversation.Request(cmd)
         rs = reply.split(',')
@@ -1141,13 +1289,95 @@ class pyzdde(object):
         fieldCount = len(iFieldDataTuple)
         if not 0 < fieldCount <= 12:
             raise ValueError('Invalid number of fields')
-        cmd = ('SetField,%i,%i,%i,%i'%(0,fieldType,fieldCount,fNormalization))
+        cmd = ("SetField,{:.0f},{:.0f},{:.0f},{:.0f}"
+              .format(0,fieldType,fieldCount,fNormalization))
         reply = self.conversation.Request(cmd)
         oFieldDataTuple = [ ]
         for i in range(fieldCount):
             fieldData = self.zSetField(i+1,*iFieldDataTuple[i])
             oFieldDataTuple.append(fieldData)
         return tuple(oFieldDataTuple)
+
+    def zSetMulticon(self,config,*multicon_args):
+        """Set data or operand type in the multi-configuration editior. Note that
+        there are 2 ways of using this function.
+
+        1. If `config` is non-zero, then the function is used to set data in the
+           MCE using the following syntax:
+
+        zSetMulticon(config,row,value,status,pickuprow,
+                     pickupconfig,scale,offset) -> multiConData
+
+        Example: multiConData = zSetMulticon(1,5,5.6,0,0,0,1.0,0.0)
+
+        args:
+            config        : (int) configuration number (column)
+            row           : (int) row or operand number
+            value         : (float) value to set
+            status        : (int) see below
+            pickuprow     : (int) see below
+            pickupconfig  : (int) see below
+            scale         : (float)
+            offset        : (float)
+
+        ret:
+            multiConData is a 8-tuple whose elements are:
+            (value,num_config,num_row,status,pickuprow,pickupconfig,scale,offset)
+
+            The status integer is 0 for fixed, 1 for variable, 2 for pickup, and 3
+            for thermal pickup. If status is 2 or 3, the pickuprow and pickupconfig
+            values indicate the source data for the pickup solve.
+
+        2. If the `config` = 0 , zSetMulticon may be used to set the operand type
+           and number data using the following syntax:
+
+        zSetMulticon(0,row,operand_type,number1,number2,number3)-> multiConData
+
+        Example: multiConData = zSetMulticon(0,5,'THIC',15,0,0)
+
+        args:
+            config       : 0
+            row          : (int) row or operand number in the MCE
+            operand_type : (string) operand type, such as 'THIC', 'WLWT', etc.
+            number1      : (int)
+            number2      : (int)
+            number3      : (int)
+                           Please refer to "SUMMARY OF MULTI-CONFIGURATION OPERANDS"
+                           in the Zemax manual.
+        ret:
+            multiConData is a 4-tuple whose elements are:
+            (operand_type,number1,number2,number3)
+
+        NOTE:
+        1. If there are current operands in the MCE, it is recommended to first
+           use zInsertMCO to insert a row and then use zSetMulticon(0,...). For
+           example use zInsertMCO(5) and then use zSetMulticon(0,5,'THIC',15,0,0).
+           If not, then existing rows may be overwritten.
+        2. The functions raises an exception if it determines the arguments
+           to be invalid.
+
+        See also zGetMulticon()
+        """
+        if config > 0 and len(multicon_args) == 7:
+            (row,value,status,pickuprow,pickupconfig,scale,offset) = multicon_args
+            cmd=("SetMulticon,{:.0f},{:.0f},{:1.20g},{:.0f},{:.0f},{:.0f},{:1.20g},{:1.20g}"
+            .format(config,row,value,status,pickuprow,pickupconfig,scale,offset))
+        elif config == 0 and len(multicon_args) == 5:
+            (row,operand_type,number1,number2,number3) = multicon_args
+            cmd=("SetMulticon,{:.0f},{:.0f},{},{:.0f},{:.0f},{:.0f}"
+            .format(config,row,operand_type,number1,number2,number3))
+        else:
+            raise ValueError('Invalid input, expecting proper argument')
+        reply = self.conversation.Request(cmd)
+        if config: # if config > 0
+            rs = reply.split(",")
+            multiConData = [float(rs[i]) if (i == 0 or i == 6 or i== 7) else int(rs[i])
+                                                 for i in range(len(rs))]
+        else: # if config == 0
+            rs = reply.split(",")
+            multiConData = [int(elem) for elem in rs[1:]]
+            multiConData.insert(0,rs[0])
+        return tuple(multiConData)
 
     def zSetPrimaryWave(self,primaryWaveNumber):
         """Sets the wavelength data in the ZEMAX DDE server. This function emulates
@@ -1168,7 +1398,7 @@ class pyzdde(object):
         See also zSetWave(), zSetWave(), zSetWaveTuple(), zGetWaveTuple().
         """
         waveData = self.zGetWave(0)
-        cmd = ('SetWave,%i,%i,%i')%(0,primaryWaveNumber,waveData[1])
+        cmd = "SetWave,{:.0f},{:.0f},{:.0f}".format(0,primaryWaveNumber,waveData[1])
         reply = self.conversation.Request(cmd)
         rs = reply.split(',')
         waveData = tuple([int(elem) for elem in rs])
@@ -1247,7 +1477,7 @@ class pyzdde(object):
 
         See also zGetSurfaceData and ZemaxSurfTypes
         """
-        cmd = ('SetSurfaceData,%i,%i')%(surfaceNumber,code)
+        cmd = "SetSurfaceData,{:.0f},{:.0f}".format(surfaceNumber,code)
         if code in (0,1,4,7,9):
             if isinstance(value,str):
                 cmd = cmd+','+value
@@ -1282,7 +1512,8 @@ class pyzdde(object):
 
         See also zSetSurfaceData, zGetSurfaceParameter
         """
-        cmd = ('SetSurfaceParameter,%i,%i,%1.20g')%(surfaceNumber,parameter,value)
+        cmd = ("SetSurfaceParameter,{:.0f},{:.0f},{:1.20g}"
+               .format(surfaceNumber,parameter,value))
         reply = self.conversation.Request(cmd)
         return float(reply)
 
@@ -1325,8 +1556,8 @@ class pyzdde(object):
 
         See also zGetSystem, zGetSystemAper, zSetSystemAper, zGetAperture, zSetAperture
         """
-        cmd = ('SetSystem,%i,%i,%i,%i,%1.20g,%1.20g,%i'
-               %(unitCode,stopSurf,rayAimingType,useEnvData,temp,pressure,
+        cmd = ("SetSystem,{:.0f},{:.0f},{:.0f},{:.0f},{:1.20g},{:1.20g},{:.0f}"
+              .format(unitCode,stopSurf,rayAimingType,useEnvData,temp,pressure,
                globalRefSurf))
         reply = self.conversation.Request(cmd)
         rs = reply.split(',')
@@ -1363,11 +1594,117 @@ class pyzdde(object):
 
         See also, zGetSystem(), zGetSystemAper()
         """
-        cmd = ('SetSystemAper,%i,%i,%1.20g' %(aType,stopSurf,apertureValue))
+        cmd = ("SetSystemAper,{:.0f},{:.0f},{:1.20g}"
+               .format(aType,stopSurf,apertureValue))
         reply = self.conversation.Request(cmd)
         rs = reply.split(',')
         systemAperData = tuple([float(elem) for elem in rs])
         return systemAperData
+
+    def zSetSystemProperty(self, code, value1, value2=0):
+        """Sets system properties of the system, such as system aperture, field,
+        wavelength, and other data, based on the integer `code` passed.
+
+        zSetSystemProperty(code)-> sysPropData
+        args:
+            code        : (integer) value that defines the specific system property
+                          to be set (see below).
+            value1      : (integer/float/string) depending on `code`
+            value2      : (integer/float), ignored if not used
+        ret:
+            sysPropData : Returned system property data. Either a string or numeric
+                          data.
+
+        This function mimics the ZPL function SYPR.
+
+        Code    Property (the values in the bracket are the expected returns)
+          4   - Adjust Index Data To Environment. (0:off, 1:on.)
+         10   - Aperture Type code. (0:EPD, 1:IF/#, 2:ONA, 3:FBS, 4:PWF/#, 5:OCA)
+         11   - Aperture Value. (stop surface semi-diameter if aperture type is FBS,
+                else system aperture)
+         12   - Apodization Type code. (0:uniform, 1:Gaussian, 2:cosine cubed)
+         13   - Apodization Factor.
+         14   - Telecentric Object Space. (0:off, 1:on)
+         15   - Iterate Solves When Updating. (0:off, 1:on)
+         16   - Lens Title.
+         17   - Lens Notes.
+         18   - Afocal Image Space. (0:off or "focal mode", 1:on or "afocal mode")
+         21   - Global coordinate reference surface.
+         23   - Glass catalog list. (Use a string or string variable with the glass
+                catalog name, such as "SCHOTT". To specify multiple catalogs use
+                a single string or string variable containing names separated by
+                spaces, such as "SCHOTT HOYA OHARA".)
+         24   - System Temperature in degrees Celsius.
+         25   - System Pressure in atmospheres.
+         26   - Reference OPD method. (0:absolute, 1:infinity, 2:exit pupil, 3:absolute 2.)
+         30   - Lens Units code. (0:mm, 1:cm, 2:inches, 3:Meters)
+         31   - Source Units Prefix. (0:Femto, 1:Pico, 2:Nano, 3:Micro, 4:Milli,
+                5:None,6:Kilo, 7:Mega, 8:Giga, 9:Tera)
+         32   - Source Units. (0:Watts, 1:Lumens, 2:Joules)
+         33   - Analysis Units Prefix. (0:Femto, 1:Pico, 2:Nano, 3:Micro, 4:Milli,
+                5:None,6:Kilo, 7:Mega, 8:Giga, 9:Tera)
+         34   - Analysis Units "per" Area. (0:mm^2, 1:cm^2, 2:inches^2, 3:Meters^2, 4:feet^2)
+         35   - MTF Units code. (0:cycles per millimeter, 1:cycles per milliradian.
+         40   - Coating File name.
+         41   - Scatter Profile name.
+         42   - ABg Data File name.
+         43   - GRADIUM Profile name.
+         50   - NSC Maximum Intersections Per Ray.
+         51   - NSC Maximum Segments Per Ray.
+         52   - NSC Maximum Nested/Touching Objects.
+         53   - NSC Minimum Relative Ray Intensity.
+         54   - NSC Minimum Absolute Ray Intensity.
+         55   - NSC Glue Distance In Lens Units.
+         56   - NSC Missed Ray Draw Distance In Lens Units.
+         57   - NSC Retrace Source Rays Upon File Open. (0:no, 1:yes)
+         58   - NSC Maximum Source File Rays In Memory.
+         59   - Simple Ray Splitting. (0:no, 1:yes)
+         60   - Polarization Jx.
+         61   - Polarization Jy.
+         62   - Polarization X-Phase.
+         63   - Polarization Y-Phase.
+         64   - Convert thin film phase to ray equivalent. (0:no, 1:yes)
+         65   - Unpolarized. (0:no, 1:yes)
+         66   - Method. (0:X-axis, 1:Y-axis, 2:Z-axis)
+         70   - Ray Aiming. (0:off, 1:on, 2:aberrated)
+         71   - Ray aiming pupil shift x.
+         72   - Ray aiming pupil shift y.
+         73   - Ray aiming pupil shift z.
+         74   - Use Ray Aiming Cache. (0:no, 1:yes)
+         75   - Robust Ray Aiming. (0:no, 1:yes)
+         76   - Scale Pupil Shift Factors By Field. (0:no, 1:yes)
+         77   - Ray aiming pupil compress x.
+         78   - Ray aiming pupil compress y.
+         100  - Field type code. (0=angl,1=obj ht,2=parx img ht,3=rel img ht)
+         101  - Number of fields.
+         102  - The field number is value1, value2 is the field x coordinate
+         103  - The field number is value1, value2 is the field y coordinate
+         104  - The field number is value1, value2 is the field weight
+         105  - The field number is value1, value2 is the field vignetting decenter x
+         106  - The field number is value1, value2 is the field vignetting decenter y
+         107  - The field number is value1, value2 is the field vignetting compression x
+         108  - The field number is value1, value2 is the field vignetting compression y
+         109  - The field number is value1, value2 is the field vignetting angle
+         110  - The field normalization method, value 1 is 0 for radial and 1 for rectangular
+         200  - Primary wavelength number.
+         200  - Primary wavelength number.
+         201  - Number of wavelengths
+         202  - The wavelength number is value1, value 2 is the wavelength in micrometers.
+         203  - The wavelength number is value1, value 2 is the wavelength weight
+         901  - The number of CPU's to use in multi-threaded computations, such as
+                optimization. (0=default). See the manual for details.
+
+        NOTE: Currently Zemax returns just "0" for the codes: 102,103, 104,105,
+              106,107,108,109, and 110. This is unexpected! So, pyZDDE will return
+              the reply (string) as is for the user to handle. The zSetSystemProperty
+              functions as expected nevertheless.
+
+        See also zGetSystemProperty.
+        """
+        cmd = "SetSystemProperty,{c:.0f},{v1},{v2}".format(c=code,v1=value1,v2=value2)
+        reply = self.conversation.Request(cmd)
+        sysPropData = process_get_set_SystemProperty(code,reply)
+        return sysPropData
 
     def zSetWave(self,n,arg1,arg2):
         """Sets the wavelength data in the ZEMAX DDE server.
@@ -1401,9 +1738,10 @@ class pyzdde(object):
         See also zGetWave(), zSetPrimaryWave(), zSetWaveTuple(), zGetWaveTuple().
         """
         if n:
-            cmd = ('SetWave,%i,%1.20g,%1.20g')%(n,arg1,arg2)
+            cmd = "SetWave,{:.0f},{:1.20g},{:1.20g}".format(n,arg1,arg2)
         else:
-            cmd = ('SetWave,%i,%i,%i')%(0,arg1,arg2)
+            cmd = "SetWave,{:.0f},{:.0f},{:.0f}".format(0,arg1,arg2)
+
         reply = self.conversation.Request(cmd)
         rs = reply.split(',')
         if n:
@@ -1436,8 +1774,8 @@ class pyzdde(object):
         oWaveDataTuple = [[],[]]
         self.zSetWave(0,1,waveCount) # Set no. of wavelen & the wavelen to 1
         for i in range(waveCount):
-            cmd = ('SetWave,%i,%1.20g,%1.20g')%(i+1,iWaveDataTuple[0][i],
-                                                        iWaveDataTuple[1][i])
+            cmd = ("SetWave,{:.0f},{:1.20g},{:1.20g}"
+                   .format(i+1,iWaveDataTuple[0][i],iWaveDataTuple[1][i]))
             reply = self.conversation.Request(cmd)
             rs = reply.split(',')
             oWaveDataTuple[0].append(float(rs[0])) # store the wavelength
@@ -1480,12 +1818,12 @@ class pyzdde(object):
                     z.append(rayTraceData[4])
                     intensity.append(rayTraceData[11])
                 else:
-                    print "Raytrace Error"
+                    print("Raytrace Error")
                     exit()
                     #FIXME raise an error here
             return [x,y,z,intensity]
         else:
-            print "Couldn't copy lens data from LDE to server, no tracing can be performed"
+            print("Couldn't copy lens data from LDE to server, no tracing can be performed")
             return [None,None]
 
     def lensScale(self,factor=2.0,ignoreSurfaces=None):
@@ -1527,12 +1865,13 @@ class pyzdde(object):
             aptVal = sysAperData[2]
             self.zSetSystemAper(0,stopSurf,factor*aptVal)
         elif sysAperData[0] in (1,2,4): # Image Space F/#, Object Space NA, Working Para F/#
-            ##print "Warning: Scaling of aperture may be incorrect"
+            ##print(Warning: Scaling of aperture may be incorrect)
             pass
         elif sysAperData[0] == 3: # System aperture if float by stop
             pass
         elif sysAperData[0] == 5: # Object Cone Angle
-            print "Warning: Scaling for Object Cone Angle aperture type may be incorrect for %s" %(lensFile)
+            print(("WARNING: Scaling OCA aperture type may be incorrect for {lF}"
+                   .format(lF=lensFile)))
             ret = 1
         #Get the number of surfaces
         numSurf = 0
@@ -1541,7 +1880,7 @@ class pyzdde(object):
         #print "Number of surfaces in the lens: ", numSurf
 
         if recSystemData_g[4] > 0:
-            print "Warning: Ray aiming is ON in %s. But cannot scale Pupil Shift values." %(lensFile)
+            print("Warning: Ray aiming is ON in {lF}. But cannot scale Pupil Shift values.".format(lF=lensFile))
 
         #Scale individual surface properties in the LDE
         for surfNum in range(0,numSurf+1): #Start from the object surface ... to scale thickness if not infinity
@@ -1551,13 +1890,13 @@ class pyzdde(object):
             curv = self.zGetSurfaceData(surfNum,2)
             thickness = self.zGetSurfaceData(surfNum,3)
             semiDiam = self.zGetSurfaceData(surfNum,5)
-            ##print "Surf#:",surfNum,"Name:",surfName,"Curvature:",curv,"Thickness:",thickness,"Semi-Diameter:", semiDiam
+            ##print("Surf#:",surfNum,"Name:",surfName,"Curvature:",curv,"Thickness:",thickness,"Semi-Diameter:", semiDiam)
             #scale the basic data
             scaledCurv = self.zSetSurfaceData(surfNum,2,curv/factor)
             if thickness < 1.0E+10: #Scale the thickness if it not Infinity (-1.0E+10 in Zemax)
                 scaledThickness = self.zSetSurfaceData(surfNum,3,factor*thickness)
             scaledSemiDiam = self.zSetSurfaceData(surfNum,5,factor*semiDiam)
-            ##print "scaled", surfNum,surfName,scaledCurv,scaledThickness,scaledSemiDiam
+            ##print("scaled", surfNum,surfName,scaledCurv,scaledThickness,scaledSemiDiam)
 
             #scaling parameters of surface individually
             if surfName == 'STANDARD': #Std surface - plane, spherical, or conic aspheric
@@ -1685,7 +2024,8 @@ class pyzdde(object):
                             epar = self.zGetExtra(surfNum,i)
                             epar_ret = self.zSetExtra(surfNum,i,factor*epar)
             else:
-                print "Warning: Scaling for surface type %s in file %s not implemented!!" %(surfName,lensFile)
+                print(("WARNING: Scaling for surf type {sN} in file {lF} not implemented!!"
+                      .format(sN=surfName,lF=lensFile)))
                 ret = -1
                 pass
 
@@ -1701,7 +2041,7 @@ class pyzdde(object):
             fieldDataTuple = self.zGetFieldTuple()
             fieldDataTupleScaled = []
             for i in range(fNum):
-                tField = list(fieldDataTuple[i])   #have to convert into a list as a tuple is immutable.
+                tField = list(fieldDataTuple[i])
                 tField[0],tField[1] = factor*tField[0],factor*tField[1]
                 fieldDataTupleScaled.append(tuple(tField))
             fieldDataTupleScaled = self.zSetFieldTuple(fType,fNorm,
@@ -1797,8 +2137,24 @@ class pyzdde(object):
             os.remove(textFileName)
         return hiatus
 
+# ***************************************************************************
+# Helper functions to process data from ZEMAX DDE server. This is especially
+# convenient for processing replies from Zemax for those function calls that
+# outputs exactly same reply structure.
+# ***************************************************************************
 
-
+def process_get_set_SystemProperty(code,reply):
+    """Process reply for functions zGetSystemProperty and zSetSystemProperty"""
+    #Convert reply to proper type
+    if code in  (102,103, 104,105,106,107,108,109,110): # unexpected cases
+        sysPropData = reply
+    elif code in (16,17,23,40,41,42,43): # string
+        sysPropData = str(reply)
+    elif code in (11,13,24,53,54,55,56,60,61,62,63,71,72,73,77,78): # floats
+        sysPropData = float(reply)
+    else:
+        sysPropData = int(float(reply))      # integer
+    return sysPropData
 
 
 
@@ -1812,90 +2168,88 @@ class pyzdde(object):
 # this (pyZDDE.py) file. It may prove to be useful to quickly test your system.
 
 def test_PyZDDE():
-    "Test the pyZDDE module functions"
+    """Test the pyZDDE module functions"""
     zmxfp = os.getcwd()+'\\ZMXFILES\\'
     # Create PyZDDE object(s)
     link0 = pyzdde()
     link1 = pyzdde()
     link2 = pyzdde()  # this object shall be deleted randomly
 
-    print "\nTEST: zDDEInit()"
-    print "---------------"
+    print("\nTEST: zDDEInit()")
+    print("---------------")
     status = link0.zDDEInit()
-    print "Status for link 0:", status
+    print("Status for link 0:", status)
     assert status == 0
-    print "App Name for Link 0:", link0.appName
-    print "Connection status for Link 0:", link0.connection
-    print "\n"
+    print("App Name for Link 0:", link0.appName)
+    print("Connection status for Link 0:", link0.connection)
     time.sleep(0.1)   # Not required, but just for observation
 
     #link1 = pyzdde()
     status = link1.zDDEInit()
-    print "Status for link 1:",status
+    print("Status for link 1:",status)
     #assert status == 0   # In older versions of Zemax, unable to create second
                           # communication link.
     if status != 0:
         warnings.warn("Couldn't create second channel.\n")
     else:
-        print "App Name for Link 1:", link1.appName
-        print "Connection status for Link 1:", link1.connection
-        print "\n"
+        print("App Name for Link 1:", link1.appName)
+        print("Connection status for Link 1:", link1.connection)
     time.sleep(0.1)   # Not required, but just for observation
 
-    print "\nTEST: zGetDate()"
-    print "----------------"
-    print "Date: ", link0.zGetDate().rstrip()  # strip off the newline char
+    print("\nTEST: zGetDate()")
+    print("----------------")
+    print("Date: ", link0.zGetDate().rstrip())  # strip off the newline char
 
-    print "\nTEST: zGetSerial()"
-    print "------------------"
+    print("\nTEST: zGetSerial()")
+    print("------------------")
     ser = link0.zGetSerial()
-    print "Serial #:", ser
+    print("Serial #:", ser)
 
-    print "\nTEST: zGetVersion()"
-    print "----------------"
-    print "version number: ", link0.zGetVersion()
+    print("\nTEST: zGetVersion()")
+    print("----------------")
+    print("version number: ", link0.zGetVersion())
 
-    print "\nTEST: zSetTimeout()"
-    print "------------------"
+    print("\nTEST: zSetTimeout()")
+    print("------------------")
     link0.zSetTimeout(3)
 
     #Delete link2 randomly
-    print "\nTEST: Random deletion of object"
-    print "--------------------------------"
-    print "Deleting object link2"
+    print("\nTEST: Random deletion of object")
+    print("--------------------------------")
+    print("Deleting object link2")
     del link2
 
-    print "\nTEST: zLoadFile()"
-    print "-------------------"
+    print("\nTEST: zLoadFile()")
+    print("-------------------")
     filename = zmxfp+"nonExistantFile.zmx"
     ret = link0.zLoadFile(filename)
     assert ret == -999
     filename = zmxfp+"Cooke 40 degree field.zmx"
     ret = link0.zLoadFile(filename)
     assert ret == 0
-    print "zLoadFile test successful"
+    print("zLoadFile test successful")
 
     if link1.connection:
-        print "\nTEST: zLoadFile() @ link 1 (second channel)"
-        print "-------------------"
+        print("\nTEST: zLoadFile() @ link 1 (second channel)")
+        print("-------------------")
         filename = zmxfp+"Double Gauss 5 degree field.zmx"
         assert ret == 0
-        print "zLoadFile test @ link 1 successful"
+        print("zLoadFile test @ link 1 successful")
 
-    print "\nTEST: zPushLensPermission()"
-    print "---------------------------"
+    print("\nTEST: zPushLensPermission()")
+    print("---------------------------")
     status = link0.zPushLensPermission()
     if status:
-        print "Extensions are allowed to push lens."
+        print("Extensions are allowed to push lens.")
 
-        print "\nTEST: zPushLens()"
-        print "-----------------"
+        print("\nTEST: zPushLens()")
+        print("-----------------")
         # First try to push a lens with invalid flag argument
         try:
             ret = link0.zPushLens(updateFlag=10)
         except:
             info = exc_info()
-            print "Exception error:", info[0]
+            print("Exception error:", info[0])
             #assert info[0] == 'exceptions.ValueError'
             assert cmp(str(info[0]),"<type 'exceptions.ValueError'>") == 0
 
@@ -1903,22 +2257,22 @@ def test_PyZDDE():
         #Push lens without any parameters
         ret = link0.zPushLens()
         if ret ==0:
-            print "Lens update without any arguments suceeded. ret value = ", ret
+            print("Lens update without any arguments suceeded. ret value = ", ret)
         else:
-            print "Lens update without any arguments FAILED. ret value = ", ret
+            print("Lens update without any arguments FAILED. ret value = ", ret)
         #Push lens with some valid parameters
         ret = link0.zPushLens(updateFlag=1)
         if ret == 0:
-            print "Lens update with flag=1 suceeded. ret value = ", ret
+            print("Lens update with flag=1 suceeded. ret value = ", ret)
         else:
-            print "Lens update with flag=1 FAILED. ret value = ", ret
+            print("Lens update with flag=1 FAILED. ret value = ", ret)
 
     else: # client do not have permission to push lens
-        print "Extensions are not allowed to push lens. Please enable it."
+        print("Extensions are not allowed to push lens. Please enable it.")
 
     #Continue with other tests
-    print "\nTEST: zGetTrace()"
-    print "------------------"
+    print("\nTEST: zGetTrace()")
+    print("------------------")
     rayTraceData = link0.zGetTrace(3,0,5,0.0,1.0,0.0,0.0)
     (errorCode,vigCode,x,y,z,l,m,n,l2,m2,n2,intensity) = link0.zGetTrace(3,0,5,
                                                                0.0,1.0,0.0,0.0)
@@ -1934,34 +2288,34 @@ def test_PyZDDE():
     assert rayTraceData[9]  == m2
     assert rayTraceData[10] == n2
     assert rayTraceData[11] == intensity
-    print "zGetTrace test successful"
+    print("zGetTrace test successful")
 
-    print "\nTEST: zGetRefresh()"
-    print "------------------"
+    print("\nTEST: zGetRefresh()")
+    print("------------------")
     status = link0.zGetRefresh()
     if status == 0:
-        print "Refresh successful"
+        print("Refresh successful")
     else:
-        print "Refresh FAILED"
+        print("Refresh FAILED")
 
-    print "\nTEST: zSetSystem()"
-    print "-----------------"
+    print("\nTEST: zSetSystem()")
+    print("-----------------")
     unitCode,stopSurf,rayAimingType = 0,4,0  # mm, 4th,off
     useEnvData,temp,pressure,globalRefSurf = 0,20,1,1 # off, 20C,1ATM,ref=1st surf
     systemData_s = link0.zSetSystem(unitCode,stopSurf,rayAimingType,useEnvData,
                                               temp,pressure,globalRefSurf)
-    print systemData_s
+    print(systemData_s)
 
-    print "\nTEST: zGetSystem()"
-    print "-----------------"
+    print("\nTEST: zGetSystem()")
+    print("-----------------")
     systemData_g = link0.zGetSystem()
-    print systemData_g
+    print(systemData_g)
 
     assert systemData_s == systemData_g
-    print "zSetSystem() and zGetSystem() test successful"
+    print("zSetSystem() and zGetSystem() test successful")
 
-    print "\nTEST: zGetPupil()"
-    print "------------------"
+    print("\nTEST: zGetPupil()")
+    print("------------------")
     pupil_data = dict(zip((0,1,2,3,4,5,6,7),('type','value','ENPD','ENPP',
                    'EXPD','EXPP','apodization_type','apodization_factor')))
     pupil_type = dict(zip((0,1,2,3,4,5),
@@ -1972,21 +2326,23 @@ def test_PyZDDE():
     apodization_type = dict(zip((0,1,2),('none','Gaussian','Tangential')))
     # Get the pupil data
     pupilData = link0.zGetPupil()
-    print "Pupil data:"
-    print pupil_data[0],":",pupil_type[pupilData[0]]
-    print pupil_data[1],":",pupilData[1],(pupil_value_type[0]
-                             if pupilData[0]==3 else pupil_value_type[1])
+    print("Pupil data:")
+    print("{pT} : {pD}".format(pT=pupil_data[0],pD=pupil_type[pupilData[0]]))
+    print("{pT} : {pD} {pV}".format(pT = pupil_data[1], pD=pupilData[1],
+                                    pV = (pupil_value_type[0]
+                                    if pupilData[0]==3 else
+                                    pupil_value_type[1])))
     for i in range(2,6):
-        print pupil_data[i],":",pupilData[i]
-    print pupil_data[6],":",apodization_type[pupilData[6]]
-    print pupil_data[7],":",pupilData[7]
+        print("{pd} : {pD:2.4f}".format(pd=pupil_data[i],pD=pupilData[i]))
+    print("{pd} : {pD}".format(pd=pupil_data[6],pD=apodization_type[pupilData[6]]))
+    print("{pd} : {pD:2.4f}".format(pd=pupil_data[7],pD=pupilData[7]))
 
     # Start a basic design with a new lens
-    print "\nTEST: zNewLens()"
-    print "----------------"
+    print("\nTEST: zNewLens()")
+    print("----------------")
     retVal = link0.zNewLens()
     assert retVal == 0
-    print "zNewLens() test successful"
+    print("zNewLens() test successful")
 
     #Set (new) system parameters:
     #Get the current stop position (it should be 1, as it is a new lens)
@@ -1994,159 +2350,158 @@ def test_PyZDDE():
     # set unitCode (mm), stop-surface, ray-aiming, ... , global surface reference
     sysParaNew = link0.zSetSystem(0,sysPara[2],0,0,20,1,-1) # Set the image plane as Global ref surface
 
-    print "\nTEST: zSetSystemAper():"
-    print "-------------------"
+    print("\nTEST: zSetSystemAper():")
+    print("-------------------")
     systemAperData_s = link0.zSetSystemAper(0,sysPara[2],25) # sysAper = 25 mm, EPD
     assert systemAperData_s[0] == 0  # Confirm aperType = EPD
     assert systemAperData_s[1] == sysPara[2]  # confirm stop surface number
     assert systemAperData_s[2] == 25  # confirm EPD value is 25 mm
-    print "zSetSystemAper() test successful"
+    print("zSetSystemAper() test successful")
 
-    print "\nTEST: zGetSystemAper():"
-    print "-----------------------"
+    print("\nTEST: zGetSystemAper():")
+    print("-----------------------")
     systemAperData_g = link0.zGetSystemAper()
     assert systemAperData_s == systemAperData_g
-    print "zGetSystemAper() test successful"
+    print("zGetSystemAper() test successful")
 
-    print "\nTEST: zInsertSurface()"
-    print "--------------------"
+    print("\nTEST: zInsertSurface()")
+    print("--------------------")
     retVal = link0.zInsertSurface(1)
     assert retVal == 0
-    print "zInsertSurface() successful"
+    print("zInsertSurface() successful")
 
-    print "\nTEST: zSetAperture()"
-    print "---------------------"
+    print("\nTEST: zSetAperture()")
+    print("---------------------")
     #aptInfo = link0.zSetAperture()
     pass
     #ToDo
 
-    print "\nTEST: zGetAperture()"
-    print "---------------------"
+    print("\nTEST: zGetAperture()")
+    print("---------------------")
     #aptInfo = link0.zGetAperture()
     pass
     #ToDo
 
-    print "\nTEST: zSetField()"
-    print "---------------------"
+    print("\nTEST: zSetField()")
+    print("---------------------")
     fieldData = link0.zSetField(0,0,2) # type = angle; 2 fields; rect normalization (default)
-    print "fieldData: ",fieldData
+    print("fieldData: ",fieldData)
     assert fieldData[0]==0; assert fieldData[1]==2;
     #assert fieldData[4]== 1; (normalization)
     fieldData = link0.zSetField(0,0,3,1)
-    print "fieldData: ",fieldData
+    print("fieldData: ",fieldData)
     assert fieldData[0]==0; assert fieldData[1]==3;
     #assert fieldData[4]== 1; (normalization)
     fieldData = link0.zSetField(1,0,0) # 1st field, on-axis x, on-axis y, weight = 1 (default)
-    print "fieldData: ",fieldData
+    print("fieldData: ",fieldData)
     assert fieldData==(0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     fieldData = link0.zSetField(2,0,5,2.0,0.5,0.5,0.5,0.5,0.5)
-    print "fieldData: ",fieldData
+    print("fieldData: ",fieldData)
     assert fieldData==(0.0, 5.0, 2.0, 0.5, 0.5, 0.5, 0.5, 0.5)
     fieldData = link0.zSetField(3,0,10,1.0,0.0,0.0,0.0)
-    print "fieldData: ",fieldData
+    print("fieldData: ",fieldData)
     assert fieldData==(0.0, 10.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-    print "zSetField() test successful"
+    print("zSetField() test successful")
 
-    print "\nTEST: zGetField()"
-    print "---------------------"
+    print("\nTEST: zGetField()")
+    print("---------------------")
     fieldData = link0.zGetField(0)
-    print "fieldData: ",fieldData
+    print("fieldData: ",fieldData)
     assert fieldData[0]==0; assert fieldData[1]==3;
     #assert fieldData[4]== 1; (normalization)
     fieldData = link0.zGetField(2)
-    print "fieldData: ",fieldData
+    print("fieldData: ",fieldData)
     assert fieldData==(0.0, 5.0, 2.0, 0.5, 0.5, 0.5, 0.5, 0.5)
-    print "zGetField() successful"
+    print("zGetField() successful")
 
-    print "\nTEST: zSetFieldTuple()"
-    print "---------------------"
+    print("\nTEST: zSetFieldTuple()")
+    print("---------------------")
     iFieldDataTuple = ((0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0), # field1: xf=0.0,yf=0.0,wgt=1.0,
                                                           # vdx=vdy=vcx=vcy=van=0.0
                        (0.0,5.0,1.0),                     # field2: xf=0.0,yf=5.0,wgt=1.0
                        (0.0,10.0))                        # field3: xf=0.0,yf=10.0
     oFieldDataTuple = link0.zSetFieldTuple(0,1,iFieldDataTuple)
     for i in range(len(iFieldDataTuple)):
-        print "oFieldDataTuple, field",i,":",oFieldDataTuple[i]
+        print("oFieldDataTuple, field {} : {}".format(i,oFieldDataTuple[i]))
         assert oFieldDataTuple[i][:len(iFieldDataTuple[i])]==iFieldDataTuple[i]
-    print "zSetFieldTuple() test successful"
+    print("zSetFieldTuple() test successful")
 
-    print "\nTEST: zGetFieldTuple()"
-    print "----------------------"
+    print("\nTEST: zGetFieldTuple()")
+    print("----------------------")
     fieldDataTuple = link0.zGetFieldTuple()
     assert fieldDataTuple==oFieldDataTuple
-    print "zGetFieldTuple() test successful"
+    print("zGetFieldTuple() test successful")
 
-    print "\nTEST: zSetWave()"
-    print "-----------------"
+    print("\nTEST: zSetWave()")
+    print("-----------------")
     wavelength1 = 0.48613270
     wavelength2 = 0.58756180
     waveData = link0.zSetWave(0,1,2)
-    print "Primary wavelength number = ", waveData[0]
-    print "Total number of wavelengths set = ",waveData[1]
+    print("Primary wavelength number = ", waveData[0])
+    print("Total number of wavelengths set = ",waveData[1])
     assert waveData[0]==1; assert waveData[1]==2
     waveData = link0.zSetWave(1,wavelength1,0.5)
-    print "Wavelengths: ",waveData[0],
+    print("Wavelength 1: ",waveData[0])
     assert waveData[0]==wavelength1;assert waveData[1]==0.5
     waveData = link0.zSetWave(2,wavelength2,0.5)
-    print waveData[0]
+    print("Wavelength 2: ",waveData[0])
     assert waveData[0]==wavelength2;assert waveData[1]==0.5
-    print "zSetWave test successful"
+    print("zSetWave test successful")
 
-    print "\nTEST: zGetWave()"
-    print "-----------------"
+    print("\nTEST: zGetWave()")
+    print("-----------------")
     waveData = link0.zGetWave(0)
     assert waveData[0]==1;assert waveData[1]==2
-    print waveData
+    print(waveData)
     waveData = link0.zGetWave(1)
     assert waveData[0]==wavelength1;assert waveData[1]==0.5
-    print waveData
+    print(waveData)
     waveData = link0.zGetWave(2)
     assert waveData[0]==wavelength2;assert waveData[1]==0.5
-    print waveData
-    print "zGetWave test successful"
+    print(waveData)
+    print("zGetWave test successful")
 
-    print "\nTEST:zSetWaveTuple()"
-    print "-------------------------"
+    print("\nTEST:zSetWaveTuple()")
+    print("-------------------------")
     wavelengths = (0.48613270,0.58756180,0.65627250)
     weights = (1.0,1.0,1.0)
     iWaveDataTuple = (wavelengths,weights)
     oWaveDataTuple = link0.zSetWaveTuple(iWaveDataTuple)
-    print "Output wave data tuple",oWaveDataTuple
+    print("Output wave data tuple",oWaveDataTuple)
     assert oWaveDataTuple==iWaveDataTuple
-    print "zSetWaveTuple() test successful"
+    print("zSetWaveTuple() test successful")
 
-    print "\nTEST:zGetWaveTuple()"
-    print "-------------------------"
+    print("\nTEST:zGetWaveTuple()")
+    print("-------------------------")
     waveData = link0.zGetWaveTuple()
-    print "Wave data tuple =",waveData
+    print("Wave data tuple =",waveData)
     assert oWaveDataTuple==waveData
-    print "zGetWaveTuple() test successful"
+    print("zGetWaveTuple() test successful")
 
-    print "\nTEST: zSetPrimaryWave()"
-    print "-----------------------"
+    print("\nTEST: zSetPrimaryWave()")
+    print("-----------------------")
     primaryWaveNumber = 2
     waveData = link0.zSetPrimaryWave(primaryWaveNumber)
-    print "Primary wavelength number =", waveData[0]
-    print "Total number of wavelengths =", waveData[1]
+    print("Primary wavelength number =", waveData[0])
+    print("Total number of wavelengths =", waveData[1])
     assert waveData[0]==primaryWaveNumber
     assert waveData[1]==len(wavelengths)
-    print "zSetPrimaryWave() test successful"
+    print("zSetPrimaryWave() test successful")
 
-    print "\nTEST: zQuickFocus()"
-    print "---------------------"
+    print("\nTEST: zQuickFocus()")
+    print("---------------------")
     retVal = link0.zQuickFocus()
-    print "zQuickFocus() test retVal = ", retVal
+    print("zQuickFocus() test retVal = ", retVal)
     assert retVal == 0
-    print "zQuickFocus() test successful"
+    print("zQuickFocus() test successful")
 
     # Finished all tests. Perform the last test and done!
-    print "\nTEST: zDDEClose()"
-    print "----------------"
+    print("\nTEST: zDDEClose()")
+    print("----------------")
     status = link0.zDDEClose()
-    print "Communication link 0 with ZEMAX terminated"
+    print("Communication link 0 with ZEMAX terminated")
     status = link1.zDDEClose()
-    print "Communication link 1 with ZEMAX terminated"
-
+    print("Communication link 1 with ZEMAX terminated")
 
 
 if __name__ == '__main__':

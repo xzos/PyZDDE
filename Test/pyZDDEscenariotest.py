@@ -10,8 +10,10 @@
 # Copyright:   (c) Indranil Sinharoy, 2012 - 2013
 # Licence:     MIT License
 #-------------------------------------------------------------------------------
-
-import os, sys, time
+from __future__ import print_function
+import os
+import sys
+import time
 
 # Put both the "Test" and the "PyZDDE" directory in the python search path.
 testdirectory = os.getcwd()
@@ -42,17 +44,17 @@ def test_scenario_multipleChannel():
 
     # Initialize
     ch0_status = link0.zDDEInit()
-    print "Status for link 0:", ch0_status
+    print("Status for link 0:", ch0_status)
     assert ch0_status==0
-    print "App Name for Link 0:", link0.appName
-    print "Connection status for Link 0:", link0.connection
+    print("App Name for Link 0:", link0.appName)
+    print("Connection status for Link 0:", link0.connection)
     time.sleep(0.1) # Not required, but just for observation
 
     ch1_status = link1.zDDEInit()
-    print "Status for link 1:",ch1_status
+    print("Status for link 1:",ch1_status)
     assert ch1_status == 0
-    print "App Name for Link 1:", link1.appName
-    print "Connection status for Link 1:", link1.connection
+    print("App Name for Link 1:", link1.appName)
+    print("Connection status for Link 1:", link1.connection)
     time.sleep(0.1)   # Not required, but just for observation
 
     # Create a new lens in the first ZEMAX DDE server
@@ -68,17 +70,15 @@ def test_scenario_multipleChannel():
     filename = zmxfp+"Cooke 40 degree field.zmx"
     ret = link1.zLoadFile(filename)
     assert ret == 0
-    print "zLoadFile test successful"
+    print("zLoadFile test successful")
 
 
     #Get system from both the channels
     recSys0Data = link0.zGetSystem()
     recSys1Data = link1.zGetSystem()
 
-    print "System data from 1st system:"
-    print recSys0Data
-    print "System data from 2nd system:"
-    print recSys1Data
+    print("System data from 1st system:\n",recSys0Data)
+    print("System data from 2nd system:\n",recSys1Data)
 
 
     # Close the channels
