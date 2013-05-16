@@ -84,6 +84,21 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zDDEClose()")
         stat = self.link0.zDDEClose()
 
+    @unittest.skip("To implement test")
+    def test_zCloseUDOData(self):
+        print("\nTEST: zCloseUDOData()")
+        pass
+
+    @unittest.skip("To implement test")
+    def test_zDeleteMFO(self):
+        print("\nTEST: zDeleteMFO()")
+        pass
+
+    @unittest.skip("To implement test")
+    def test_zDeleteObject(self):
+        print("\nTEST: zDeleteObject()")
+        pass
+
     def test_zDeleteConfig(self):
         print("\nTEST: zDeleteConfig()")
         # Load a lens file into the DDE server
@@ -124,6 +139,20 @@ class TestPyZDDEFunctions(unittest.TestCase):
         newOperNumber = self.link0.zDeleteMCO(2)
         self.assertEqual(newOperNumber,1)
 
+    @unittest.skip("To implement test")
+    def test_zDeleteSurface(self):
+        print("\nTEST: zDeleteSurface()")
+        pass
+
+    @unittest.skip("To implement test")
+    def test_zExportCAD(self):
+        print("\nTEST: zExportCAD()")
+        pass
+
+    @unittest.skip("To implement test")
+    def test_zExportCheck(self):
+        print("\nTEST: zExportCheck()")
+        pass
 
     @unittest.skip("To implement")
     def test_zGetAperture(self):
@@ -227,6 +256,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
             print(("zGetFirst ret: {:.4f},{:.4f},{:.4f},{:.4f},{:.4f}"
                    .format(focal,pwfn,rwfn,pima,pmag)))
 
+    @unittest.skip("To implement test")
+    def test_zMode(self):
+        print("\nTEST: zMode()")
+        pass
+
     def test_zGetMulticon(self):
         print("\nTEST: zGetMulticon()")
         #Test zGetMulticon return when the MCE is "empty" (it shouldn't error out)
@@ -254,6 +288,21 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertTupleEqual(multiConData,(4.7504, 2, 2, 0, 1, 1, 1.0, 0.0))
         multiConData = self.link0.zGetMulticon(2,2) # row 2, config 2
         self.assertTupleEqual(multiConData,(5.0, 2, 2, 0, 1, 1, 1.0, 0.0))
+
+    @unittest.skip("To implement test")
+    def test_zNSCData(self):
+        print("\nTEST: zNSCData()")
+        pass
+
+    @unittest.skip("To implement test")
+    def test_zNSCMatrix(self):
+        print("\nTEST: zNSCMatrix()")
+        pass
+
+    @unittest.skip("To implement test")
+    def test_zNSCObjectData(self):
+        print("\nTEST: zNSCObjectData()")
+        pass
 
     def test_zGetPupil(self):
         print("\nTEST: zGetPupil()")

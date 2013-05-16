@@ -75,13 +75,14 @@ class pyzdde(object):
             self.conversation.ConnectTo(self.appName," ")
         except:
             info = exc_info()
-            print("Error:" + info[1] + ": ZEMAX may not have been started!")
+            print("Error:", info[1], ": ZEMAX may not have been started!")
             return -1
         else:
             debugPrint(1,"Zemax instance successfully connected")
             pyzdde.__liveCh += 1 # increment the number of live channels
             self.connection = True
-            #DDE_TIMEOUT = 3000 #The default timeout(FIXME: Not yet implemented).
+            #DDE_TIMEOUT = 3000 #The default timeout
+            # !!! FIX: Not yet implemented.
             return 0
 
     def zDDEClose(self):
@@ -126,6 +127,62 @@ class pyzdde(object):
 
     # ZEMAX control/query methods
     #----------------------------
+    def zCloseUDOData(self,bufferCode):
+        """Close the User Defined Operand (UDO) buffer, which allows the ZEMAX
+        optimizer to proceed.
+
+        zCloseUDOData(bufferCode)->retVal
+
+        args:
+            bufferCode  : (integer) passed to the UDO
+        ret:
+            retVal       :
+
+        See also zGetUDOSystem and zSetUDOItem
+        """
+        return int(self.conversation.Request("CloseUDOData,{:.0f}".format(bufferCode)))
+
+    def zDeleteMFO(self,operand):
+        """Deletes an optimization operand in the merit function editor
+
+        zDeleteMFO(operand)->newNumOfOperands
+
+        args:
+            operand  : (integer) 1 <= operand <= number_of_operands
+        ret:
+            newNumOfOperands : (integer) the new number of operands
+
+        See also zInsertMFO
+        """
+        return int(self.conversation.Request("DeleteMFO,{:.0f}".format(operand)))
+
+    def zDeleteObject(self,surfaceNumber,objectNumber):
+        """Deletes the NSC object associated with the given `objectNumber`at the
+        surface associated with the `surfaceNumber`.
+
+        zDeleteObject(sufaceNumber, objectNumber)->retVal
+
+        args:
+            surfaceNumber : (integer) surface number of Non-Sequential Component
+                            surface
+            objectNumber  : (integer) object number in the NSC editor.
+
+        ret:
+            retVal        : 0 if successful, -1 if it failed.
+
+        Note: (from MZDDE) The `surfaceNumber` is 1 if the lens is fully NSC mode.
+        If the command is issued when there is no more objects in, it simply
+        returns 0.
+        See also zInsertObject()
+        """
+        cmd = "DeleteObject,{:.0f},{:.0f}".format(surfaceNumber,objectNumber)
+        reply = self.conversation.Request(cmd)
+        rs = reply.rstrip()
+        if rs == 'BAD COMMAND':
+            return -1
+        else:
+            return int(float(rs))
+
     def zDeleteConfig(self,number):
         """Deletes an existing configuration (column) in the multi-configuration
         editor.
@@ -161,6 +218,125 @@ class pyzdde(object):
         See also zInsertMCO. Use zDeleteConfig() to delete a column/configuration.
         """
         return int(self.conversation.Request("DeleteMCO,"+str(operandNumber)))
+
+    def zDeleteSurface(self,surfaceNumber):
+        """Deletes an existing surface.
+
+        zDeleteSurface(surfaceNumber)->retVal
+
+        args:
+            surfaceNumber : (integer) the surface number of the surface to be deleted
+        ret:
+            retVal        : 0 if successful
+
+        Note that you cannot delete the OBJ surface (but the function still
+        returns 0)
+        Also see, zInsertSurface.
+        """
+        cmd = "DeleteSurface,{:.0f}".format(surfaceNumber)
+        reply = self.conversation.Request(cmd)
+        return int(float(reply))
+
+    def zExportCAD(self, fileName, fileType = 1, numSpline = 32, firstSurf = 1,
+                   lastSurf = -1, raysLayer = 1, lensLayer = 0, exportDummy = 0,
+                   useSolids = 1, rayPattern = 0, numRays = 0, wave = 0, field = 0,
+                   delVignett = 1, dummyThick = 1.00, split = 0, scatter = 0,
+                   usePol = 0, config = 0):
+        """Export lens data in IGES/STEP/SAT format for import into CAD programs.
+
+        zExportCAD(exportCADdata)->status
+
+        args:
+            fileName  : (string) filename including extension (Although not necessary,
+                        including full path is recommended)
+            fileType  : (0, 1, 2 or 3) 0 = IGES, 1 = STEP [default], 2 = SAT, 3 = STL
+            numSpline : (integer) Number of spline segments to use [default = 32]
+            firstSurf : (integer) The first surface to export. In NSC mode, this
+                        is the first object to export
+            lastSurf  : (integer) The last surface to export. In NSC mode, this
+                        is the first object to export [default = -1 i.e. image surface]
+            raysLayer : (integer) Layer to place ray data on [default = 1]
+            lensLayer : (integer) Layer to place lens data on [default = 0]
+            exportDummy : (0 or 1) Export dummy surface. 1 = Export [default = 0]
+            useSolids   : (0 or 1) Export surfaces as solids. 1 = solid surfaces [default = 1]
+            rayPattern  : (0 <= rayPattern <= 7) 0 = XY fan [default], 1 = X fan, 2 = Y fan
+                          3 = ring, 4 = list, 5 = none, 5 = grid, 7 = solid beams.
+            numRays     : (integer) The number of rays to render [Default = 1]
+            wave        : (integer) Wavelength number. 0 indicates all [Default]
+            field       : (integer) The field number. 0 indicates all [Default]
+            delVignett  : (0 or 1) Delete vignetted rays. 1 = delete vig. rays [Default]
+            dummyThick  : (Float) Dummy surface thickness in lens units. [Default = 1.00]
+            split   : (0 or 1) Split rays from NSC sources. 1 = Split sources [Default = 0]
+            scatter : (0 or 1) Scatter rays from NSC sources. 1 = Scatter [Deafult = 0]
+            usePol  : (0 or 1) Use polarization when tracing NSC rays. Note that
+                      polarization is automatically selected if splitting is specified.
+                      [Default (when splitting = 0) is 0]
+            config  : (0 <= config <= n+3, where n is the total number of configurations)
+                      0 = current config [Default], 1 - n for a specific configuration,
+                      n+1 to export "All By File", n+2 to export "All by Layer", and
+                      n+3 for "All at Once".
+                      For a more detailed explanation of the configuration setting,
+                      see "Export IGES/SAT.STEP Solid" in the manual.
+        rets:
+            status : (string) the string "Exporting filename" or "BUSY!" (see
+                     description below)
+
+        There is a complexity in using this feature via DDE. The export of lens
+        data may take a long time relative to the timeout interval of the DDE
+        communication. Therefore, calling this data item will cause ZEMAX to launch
+        an independent thread to process the request. Once the thread is launched,
+        the return value is the string "Exporting filename". However, the actual
+        file may take many seconds or minutes to be ready to use. To verify that
+        the export is complete and the file is ready, use the zExportCheck() function.
+        zExportCheck() will return 1 if the export is still running, or 0 if it
+        has completed. Generally, the zExportCheck() function call will need to
+        be placed in a loop which executes until zExportCheck() returns 0.
+
+        A typical loop test in Python code might look like this (assuming `ddelink`
+        is an instance of pyZDDE):
+
+        # check if the export is done
+        still_working = True
+        while(still_working):
+            # Delay for 200 milliseconds
+            time.sleep(.2)
+            status = ddelink.zExportCheck()
+            if status == 1:  # still running
+                pass
+            elif status == 0: # Done exporting
+                still_working = False
+
+        Note: Zemax cannot export some NSC objects such as slide. In such cases
+        the unexportable objects are ignored.
+        """
+        #Determine last surface/object depending upon zemax mode
+        if lastSurf == -1:
+            zmxMode = self.zGetMode()
+            if zmxMode[0] != 1:
+                lastSurf = self.zGetSystem()[0]
+            else:
+                lastSurf = self.zGetNSCData(1,0)
+        args = [str(arg) for arg in ("ExportCAD", fileName, fileType, numSpline,
+                                     firstSurf, lastSurf, raysLayer, lensLayer,
+                                     exportDummy, useSolids, rayPattern, numRays,
+                                     wave, field, delVignett, dummyThick, split,
+                                     scatter, usePol, config)]
+        cmd = ",".join(args)
+        reply = self.conversation.Request(cmd)
+        return str(reply)
+
+    def zExportCheck(self):
+        """Used to indicate the status of the last executed zExportCAD() command.
+
+        zExportCheck()->status
+
+        args:
+            None
+        ret:
+            status : (integer) 0 = last CAD export completed
+                               1 = last CAD export in progress
+        """
+        return int(self.conversation.Request('ExportCheck'))
 
     def zGetAperture(self,surfNum):
         """Get the surface aperture data.
@@ -229,6 +405,8 @@ class pyzdde(object):
         """
         reply = self.conversation.Request('GetConfig')
         rs = reply.split(',')
+        # !!! FIX: Should this function return "0" when the MCE is empty, just
+        # like what is done for the zGetNSCData() function?
         return tuple([int(elem) for elem in rs])
 
     def zGetDate(self):
@@ -357,6 +535,41 @@ class pyzdde(object):
         rs = reply.split(',')
         return tuple([float(elem) for elem in rs])
 
+    def zGetMode(self):
+        """Returns the mode (Sequential, Non-sequential or Mixed) of the current
+        lens in the DDE server. For the purpose of this function, "Sequential"
+        implies that there are no non-sequential surfaces in the LDE.
+
+        zGetMode()->zmxModeInformation
+
+        args:
+            None
+        ret:
+            zmxModeInformation is a 2-tuple, with the second element, `nscSurfNums`
+            also a tuple. I.e. zmxModeInformation = (mode,nscSurfNums)
+            mode : (integer) 0 = Sequential, 1 = Non-sequential, 2 = Mixed mode
+            nscSurfNums : (tuple of integers) the surfaces (in mixed mode) that
+                          are non-sequential. In Non-sequential mode and in purely
+                          sequential mode, this tuple is empty (of length 0).
+
+        Note: This function is not specified in the Zemax manual
+        """
+        nscSurfNums = []
+        nscData = self.zGetNSCData(1,0)
+        if nscData > 0: # Non-sequential mode
+            mode = 1
+        else:          # Not Non-sequential mode
+            numSurf = self.zGetSystem()[0]
+            for i in range(1,numSurf+1):
+                surfType = self.zGetSurfaceData(i,0)
+                if surfType == 'NONSEQCO':
+                    nscSurfNums.append(i)
+            if len(nscSurfNums) > 0:
+                mode = 3
+            else:
+                mode = 2
+        return (mode,tuple(nscSurfNums))
+
     def zGetMulticon(self,config,row):
         """Extract data from the multi-configuration editor.
 
@@ -394,6 +607,122 @@ class pyzdde(object):
             multiConData = [int(elem) for elem in rs[1:]]
             multiConData.insert(0,rs[0])
         return tuple(multiConData)
+
+    def zGetNSCData(self,surfaceNumber,code):
+        """Returns the data for NSC groups.
+
+        zGetNSCData(surface,code)->nscData
+
+        args:
+            surfaceNumber  : (integer) surface number of the NSC group. Use 1 if
+                             the program mode is Non-Sequential.
+            code           : Currently only code = 0 is supported, in which case
+                             the returned data is the number of objects in the
+                             NSC group
+        rets:
+            nscData  : the number of objects in the NSC group if the command
+                       was successful (valid).
+                       -1 if it was a bad commnad (generally if the `surface` is
+                       not a non-sequential surface)
+        Note: the function returns 1 even if the only object in the NSC editor
+        is a "Null Object"
+        """
+        cmd = "GetNSCData,{:.0f},{:.0f}".format(surfaceNumber,code)
+        reply = self.conversation.Request(cmd)
+        rs = reply.rstrip()
+        if rs == 'BAD COMMAND':
+            nscData = -1
+        else:
+            nscData = int(float(rs))
+            if nscData == 1:
+                nscObjType = self.zGetNSCObjectData(surfaceNumber,1,0)
+                if nscObjType == 'NSC_NULL': # the NSC editor is actually empty
+                    nscData = 0
+        return nscData
+
+    def zGetNSCMatrix(self,surfaceNumber,objectNumber):
+        """Returns a tuple containing the rotation and position matrices relative
+        to the NSC surface origin.
+
+        zGetNSCMatrix(surfaceNumber,objectNumber)->nscMatrix
+
+        args:
+            surfaceNumber : (integer) surface number of the NSC group. Use 1 if
+                            the program mode is Non-Sequential.
+            objectNumber  : (integer) the NSC ojbect number
+        ret:
+            nscMatrix     : is a 9-tuple, if successful  = (R11,R12,R13,
+                                                            R21,R22,R23,
+                                                            R31,R32,R33,
+                                                            Xo, Yo , Zo)
+                            is a 1-tuple, with element -1, if bad command.
+        """
+        cmd = "GetNSCMatrix,{:.0f},{:.0f}".format(surfaceNumber,objectNumber)
+        reply = self.conversation.Request(cmd)
+        rs = reply.rstrip()
+        if rs == 'BAD COMMAND':
+            nscMatrix = (-1,)
+        else:
+            nscMatrix = tuple([float(elem) for elem in rs.split(',')])
+        return nscMatrix
+
+    def zGetNSCObjectData(self,surfaceNumber,objectNumber,code):
+        """Returns the various data for NSC objects.
+
+        zGetNSCOjbect(surfaceNumber,objectNumber,code)->nscObjectData
+
+        args:
+            surfaceNumber : (integer) surface number of the NSC group. Use 1 if
+                            the program mode is Non-Sequential.
+            objectNumber  : (integer) the NSC ojbect number
+            code          : (integer) see the nscObjectData returned table
+        rets:
+            nscObjectData : nscObjectData as per the table below, if successful
+                            else -1
+
+        Code - Data returned by GetNSCObjectData
+          0  - Object type name. (string)
+          1  - Comment, which also defines the file name if the object is defined
+               by a file. (string)
+          2  - Color. (integer)
+          5  - Reference object number. (integer)
+          6  - Inside of object number. (integer)
+        The following codes set values on the Type tab of the Object Properties dialog.
+          3  - 1 if object uses a user defined aperture file, 0 otherwise. (integer)
+          4  - User defined aperture file name, if any. (string)
+         29  - Gets the "Use Pixel Interpolation" checkbox. (1 = checked, 0 = unchecked)
+        The following codes set values on the Sources tab of the Object Properties dialog.
+        101  - Gets the source object random polarization. (1 = checked, 0 = unchecked)
+        102  - Gets the source object reverse rays option. (1 = checked, 0 for unchecked)
+        103  - Gets the source object Jones X value.
+        104  - Gets the source object Jones Y value.
+        105  - Gets the source object Phase X value.
+        106  - Gets the source object Phase Y value.
+        107  - Gets the source object initial phase in degrees value.
+        108  - Gets the source object coherence length value.
+        109  - Gets the source object pre-propagation value.
+        110  - Gets the source object sampling method; (0 = random, 1 = Sobol sampling)
+        111  - Gets the source object bulk scatter method; (0 = many, 1 = once, 2 = never)
+        The following codes set values on the Bulk Scatter tab of the Object
+        Properties dialog.
+        202  - Gets the Mean Path value.
+        203  - Gets the Angle value.
+        211-226 - Gets the DLL parameter 1-16, respectively.
+        """
+        cmd = ("GetNSCObjectData,{:.0f},{:.0f},{:.0f}"
+              .format(surfaceNumber,objectNumber,code))
+        reply = self.conversation.Request(cmd)
+        rs = reply.rstrip()
+        if rs == 'BAD COMMAND':
+            nscObjectData = -1
+        else:
+            if code in (0,1,4):
+                nscObjectData = str(rs)
+            elif code in (2,3,5,6,29,101,102,110,111):
+                nscObjectData = int(float(rs))
+            else:
+                nscObjectData = float(rs)
+        return nscObjectData
 
     def zGetPupil(self):
         """Get pupil data from ZEMAX.
@@ -788,7 +1117,7 @@ class pyzdde(object):
 
 
     def zGetTrace(self,waveNum,mode,surf,hx,hy,px,py):
-        """Trace a ray through the current lens in the ZEMAX DDE server.
+        """Trace a (single) ray through the current lens in the ZEMAX DDE server.
 
         zGetTrace(waveNum,mode,surf,hx,hy,px,py) -> rayTraceData
 
@@ -820,7 +1149,7 @@ class pyzdde(object):
                 intensity : the relative transmitted intensity of the ray, including
                             any pupil or surface apodization defined.
 
-        Example: To trace the real chief ray to surface 5 at wavelength 3, use
+        Example: To trace the real chief ray to surface 5 for wavelength 3, use
             rayTraceData = zGetTrace(3,0,5,0.0,1.0,0.0,0.0)
 
             OR
@@ -828,10 +1157,17 @@ class pyzdde(object):
             (errorCode,vigCode,x,y,z,l,m,n,l2,m2,n2,intensity) = \
                                               zGetTrace(3,0,5,0.0,1.0,0.0,0.0)
 
-        Note: Use of zGetTrace() has significant overhead as only one ray per DDE call
-        is traced. Please refer to the ZEMAX manual for more details. Also, if a large
-        number of rays are to be traced, see the section "Tracing large number of rays"
-        in the ZEMAX manual.
+        Note:
+            1. The integer error will be zero if the ray traced successfully, otherwise
+               it will be a positive or negative number. If positive, then the ray
+               missed the surface number indicated by error. If negative, then the
+               ray total internal reflected (TIR) at the surface given by the absolute
+               value of the error number. Always check to verify the ray data is valid
+               before using the rest of the string!
+            2. Use of zGetTrace() has significant overhead as only one ray per DDE call
+               is traced. Please refer to the ZEMAX manual for more details. Also, if a
+               large number of rays are to be traced, see the section "Tracing large
+               number of rays" in the ZEMAX manual.
 
         See also zGetTraceDirect, zGetPolTrace, zGetPolTraceDirect
         """
@@ -1076,8 +1412,10 @@ class pyzdde(object):
         return int(status)
 
     def zQuickFocus(self,mode=0,centroid=0):
-        """Performs a quick best focus adjustment for the optical system. The
-        "best" focus is chosen as a wavelength weighted average over all fields.
+        """Performs a quick best focus adjustment for the optical system by adjusting
+        the back focal distance for best focus. The "best" focus is chosen as a wave-
+        length weighted average over all fields. It adjusts the thickness of the
+        surface prior to the image surface.
 
         zQuickFocus([mode,centroid]) -> retVal
 
@@ -1100,7 +1438,6 @@ class pyzdde(object):
         if reply.split()[0] == 'OK':
             retVal = 0
         return retVal
-
 
     def zSetAperture(self,surfNum,aType,aMin,aMax,xDecenter=0,yDecenter=0,
                                                             apertureFile =' '):
@@ -1820,7 +2157,7 @@ class pyzdde(object):
                 else:
                     print("Raytrace Error")
                     exit()
-                    #FIXME raise an error here
+                    # !!! FIX raise an error here
             return [x,y,z,intensity]
         else:
             print("Couldn't copy lens data from LDE to server, no tracing can be performed")
