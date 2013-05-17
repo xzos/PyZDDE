@@ -612,9 +612,9 @@ class pyzdde(object):
                 if surfType == 'NONSEQCO':
                     nscSurfNums.append(i)
             if len(nscSurfNums) > 0:
-                mode = 3
+                mode = 2  # mixed mode
             else:
-                mode = 2
+                mode = 0  # sequential
         return (mode,tuple(nscSurfNums))
 
     def zGetMulticon(self,config,row):
