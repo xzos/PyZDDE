@@ -1,15 +1,15 @@
 #-------------------------------------------------------------------------------
-# Name:        plotSpiralSpot.py
-# Purpose:     Example of using the "spiral spot" member function of pyZDDE.
+# Name:      plotSpiralSpot.py
+# Purpose:   Example of using the "spiral spot" covenience function of pyZDDE.
 #
-# NOTE:        Please note that this code uses matplotlib plotting library from
-#              http://matplotlib.org/ for 2D-plotting
+# NOTE:      Please note that this code uses matplotlib plotting library from
+#            http://matplotlib.org/ for 2D-plotting
 #
-# Author:      Indranil Sinharoy
+# Author:    Indranil Sinharoy
 #
-# Created:     06/10/2012
-# Copyright:   (c) 2012, 2013
-# Licence:     MIT License
+# Created:   06/10/2012
+# Copyright: (c) 2012, 2013
+# Licence:   MIT License
 #-------------------------------------------------------------------------------
 from __future__ import print_function
 import sys, os

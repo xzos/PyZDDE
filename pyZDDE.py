@@ -608,6 +608,19 @@ class pyzdde(object):
             multiConData.insert(0,rs[0])
         return tuple(multiConData)
 
+    def zGetName(self):
+        """Returns the name of the lens.
+
+        zGetName()->lensName
+
+        args:
+            None
+        ret:
+            lensName  : (string) name of the current lens (as entered on the
+                        General data dialog box) in the DDE server
+        """
+        return str(self.conversation.Request('GetName'))
+
     def zGetNSCData(self,surfaceNumber,code):
         """Returns the data for NSC groups.
 

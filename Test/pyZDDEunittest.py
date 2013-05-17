@@ -257,6 +257,15 @@ class TestPyZDDEFunctions(unittest.TestCase):
                    .format(focal,pwfn,rwfn,pima,pmag)))
 
     @unittest.skip("To implement test")
+    def test_zGetName(self):
+        print("\nTEST: zGetName()")
+        global zmxfp
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        reply = self.lin0.zGetName()
+        self.assertEqual(reply,"A SIMPLE COOKE TRIPLET.")
+
+    @unittest.skip("To implement test")
     def test_zMode(self):
         print("\nTEST: zMode()")
         pass
