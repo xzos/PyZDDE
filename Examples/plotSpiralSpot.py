@@ -47,9 +47,9 @@ if ~status:
                 hy = 0.0
                 spirals = 100
                 rays = 6000
-                [xb,yb,zb,intensityb] = link0.spiralSpot(hx,hy,1,spirals,rays)
-                [xg,yg,zg,intensityg] = link0.spiralSpot(hx,hy,2,spirals,rays)
-                [xr,yr,zr,intensityr] = link0.spiralSpot(hx,hy,3,spirals,rays)
+                (xb,yb,zb,intensityb) = link0.spiralSpot(hx,hy,1,spirals,rays)
+                (xg,yg,zg,intensityg) = link0.spiralSpot(hx,hy,2,spirals,rays)
+                (xr,yr,zr,intensityr) = link0.spiralSpot(hx,hy,3,spirals,rays)
                 fig,ax = plt.subplots(1,1)
                 ax.set_aspect('equal')
                 ax.scatter(xr,yr,s=8,c='red',linewidth=0.5,zorder=20)

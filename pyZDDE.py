@@ -2142,7 +2142,7 @@ class pyzdde(object):
         destination of the rays is the image surface. This function imitates its
         namesake from MZDDE toolbox.
 
-        spiralSpot(hy,hx,waveNum,spirals,rays[,mode])->[x,y,z,intensity]
+        spiralSpot(hy,hx,waveNum,spirals,rays[,mode])->(x,y,z,intensity)
 
         Note: Since the spiralSpot function performs a GetRefresh() to load lens
         data from the LDE to the DDE server, perform PushLens() before calling
@@ -2171,10 +2171,10 @@ class pyzdde(object):
                     print("Raytrace Error")
                     exit()
                     # !!! FIX raise an error here
-            return [x,y,z,intensity]
+            return (x,y,z,intensity)
         else:
             print("Couldn't copy lens data from LDE to server, no tracing can be performed")
-            return [None,None]
+            return (None,None,None,None)
 
     def lensScale(self,factor=2.0,ignoreSurfaces=None):
         """Scale the lens design by factor specified.
