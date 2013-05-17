@@ -155,8 +155,23 @@ class TestPyZDDEFunctions(unittest.TestCase):
         pass
 
     @unittest.skip("To implement")
+    def test_zFindLabel(self):
+        print("\nTEST: zFindLabel()")
+        pass
+
+    @unittest.skip("To implement")
+    def test_zGetAddress(self):
+        print("\nTEST: zGetAddress()")
+        pass
+
+    @unittest.skip("To implement")
     def test_zGetAperture(self):
         print("\nTEST: zGetAperture()")
+        pass
+
+    @unittest.skip("To implement")
+    def test_zGetApodization(self):
+        print("\nTEST: zGetApodization()")
         pass
 
     def test_zGetConfig(self):

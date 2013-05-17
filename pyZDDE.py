@@ -338,6 +338,38 @@ class pyzdde(object):
         """
         return int(self.conversation.Request('ExportCheck'))
 
+    def zFindLabel(self,label):
+        """Returns the surface that has the integer label associated with the
+        specified surface.
+
+        zFindLabel(label)->surfaceNumber
+
+        args:
+            label   :  (integer) label
+        ret:
+            surfaceNumber : (integer) surface number of surface associated with
+                            the `label`. It returns -1 if no surface has the
+                            specified label.
+
+        See also zSetLabel, zGetLabel()
+        """
+        reply = self.conversation.Request("FindLabel,{:.0f}".format(label))
+        return int(float(reply))
+
+    def zGetAddress(self,addressLineNumber):
+        """Extract the address line number indicated by `addressLineNumber`
+
+        zGetAddress(addressLineNumber)->addressLine
+
+        args:
+            addressLineNumber  : (integer) line number of address to get
+        ret:
+            addressLine        : (string) address line
+        """
+        reply = self.conversation.Request("GetAddress,{:.0f}"
+                                          .format(addressLineNumber))
+        return str(reply)
+
     def zGetAperture(self,surfNum):
         """Get the surface aperture data.
 
@@ -377,6 +409,21 @@ class pyzdde(object):
                                              for i in range(len(rs[:-1]))]
         apertureInfo.append(rs[-1].rstrip()) #append the test file (string)
         return tuple(apertureInfo)
+
+    def zGetApodization(self,px,py):
+        """Computes the intensity apodization of a ray from the apodization
+        type and value.
+
+        zGetApodication(px,py)->intensityApodization
+
+        args:
+            px,py  : (float) normalized pupil coordinates.
+        ret:
+            intensityApodization : (float) intensity apodization
+        """
+        reply = self.conversation.Request("GetApodization,{:1.20g},{:1.20g}"
+                                          .format(px,py))
+        return float(reply)
 
     def zGetConfig(self):
         """Returns the current configuration number (selected column in the MCE),
