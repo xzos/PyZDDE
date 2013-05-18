@@ -1,4 +1,4 @@
-PyZDDE is a python toolbox (extension) for communicating with ZEMAX using the Microsoft Windows DDE channel. This toolbox, which makes use of Zemax's API interface, is implemented in Python. It is similar to the MZDDE toolbox, in Matlab, developed by Derek Griffith at CSIR (http://kb-en.radiantzemax.com/KnowledgebaseArticle50204.aspx).
+PyZDDE is a Python toolbox for communicating with ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging protocol. It is similar to the MZDDE toolbox, in Matlab, developed by Derek Griffith at CSIR (http://kb-en.radiantzemax.com/KnowledgebaseArticle50204.aspx).
 
 
 
@@ -8,7 +8,7 @@ PyZDDE is a python toolbox (extension) for communicating with ZEMAX using the Mi
 
 2.   PyWin32, build 214 (or earlier), 32 bit version (required) [See bullet 2 of the "CURRENT ISSUES" section for issues] 
 
-3.   Matplotlib (optional)
+3.   Matplotlib (optional, used in some of the example programs)
 
 
 ##CURENT ISSUES:

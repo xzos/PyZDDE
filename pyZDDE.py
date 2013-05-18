@@ -582,6 +582,47 @@ class pyzdde(object):
         rs = reply.split(',')
         return tuple([float(elem) for elem in rs])
 
+    def zGetGlass(self,surfaceNumber):
+        """Returns some data about the glass on any surface.
+
+        zGetGlass(surfaceNumber)->glassInfo
+
+        args:
+            surfaceNumber : (integer) surface number
+        ret:
+            glassInfo   : 3-tuple containing the name, nd,vd, dpgf if there is a
+                          valid glass associated with the surface, else `None`
+
+        Note: If the specified surface is not valid, is not made of glass, or is
+        gradient index, the returned string is empty. This data may be meaningless
+        for glasses defined only outside of the FdC band.
+        """
+        reply = self.conversation.Request("GetGlass,{:.0f}".format(surfaceNumber))
+        rs = reply.split(',')
+        if len(rs) > 1:
+            glassInfo = tuple([str(rs[i]) if i == 0 else float(rs[i])
+                                                      for i in range(len(rs))])
+        else:
+            glassInfo = None
+        return glassInfo
+
+    def zGetLabel(self,surfaceNumber):
+        """This command retrieves the integer label assicuated with the specified
+        surface. Labels are be retained by ZEMAX as surfaces are inserted or deleted
+        around the target surface.
+
+        zGetLabel(surfaceNumber)->label
+
+        args:
+            surfaceNumber : (integer) the surface number
+        rets:
+            label         : (integer) the integer label
+
+        See also zSetLabel, zFindLabel
+        """
+        reply = self.conversation.Request("GetLabel,{:.0f}".format(surfaceNumber))
+        return int(float(reply.rstrip()))
+
     def zGetMode(self):
         """Returns the mode (Sequential, Non-sequential or Mixed) of the current
         lens in the DDE server. For the purpose of this function, "Sequential"
@@ -715,13 +756,13 @@ class pyzdde(object):
                                                             R21,R22,R23,
                                                             R31,R32,R33,
                                                             Xo, Yo , Zo)
-                            is a 1-tuple, with element -1, if bad command.
+                            it returns -1, if bad command.
         """
         cmd = "GetNSCMatrix,{:.0f},{:.0f}".format(surfaceNumber,objectNumber)
         reply = self.conversation.Request(cmd)
         rs = reply.rstrip()
         if rs == 'BAD COMMAND':
-            nscMatrix = (-1,)
+            nscMatrix = -1
         else:
             nscMatrix = tuple([float(elem) for elem in rs.split(',')])
         return nscMatrix
@@ -737,7 +778,7 @@ class pyzdde(object):
             objectNumber  : (integer) the NSC ojbect number
             code          : (integer) see the nscObjectData returned table
         rets:
-            nscObjectData : nscObjectData as per the table below, if successful
+            nscObjectData : nscObjectData as per the table below if successful
                             else -1
 
         Code - Data returned by GetNSCObjectData
@@ -783,6 +824,118 @@ class pyzdde(object):
             else:
                 nscObjectData = float(rs)
         return nscObjectData
+
+    def zGetNSCObjectFaceData(self,surfNumber,objNumber,faceNumber,code):
+        """Returns the various data for NSC object faces.
+
+        zGetNSCObjectFaceData(surfNumber,objNumber,faceNumber,code)->nscObjFaceData
+
+        args:
+            surfNumber   : (integer) surface number. Use 1 if
+                           the program mode is Non-Sequential.
+            objNumber    : (integer) object number
+            faceNumber   : (integer) face number
+            code         : (integer) code (see below)
+        ret:
+            nscObjFaceData  : data for NSC object faces (see the table for the
+                              particular type of data) if successful, else -1
+
+        Code     Data returned by GetNSCObjectFaceData
+         10   -  Coating name. (string)
+         20   -  Scatter code. (0 = None, 1 = Lambertian, 2 = Gaussian,
+                 3 = ABg, and 4 = user defined.) (integer)
+         21   -  Scatter fraction. (double)
+         22   -  Number of rays to scatter. (integer)
+         23   -  Gaussian scatter sigma. (double)
+         24   -  Face is setting;(0 = object default, 1 = reflective,
+                 2 = absorbing.) (integer)
+         30   -  ABg scatter profile name for reflection. (string)
+         31   -  ABg scatter profile name for transmission. (string)
+         40   -  User Defined Scatter DLL name. (string)
+         41-46 - User Defined Scatter Parameter 1 - 6. (double)
+         60   -  User Defined Scatter data file name. (string)
+
+        See also zSetNSCObjectFaceData
+        """
+        cmd = ("GetNSCObjectFaceData,{:.0f},{:.0f},{:.0f},{:.0f}"
+              .format(surfNumber,objNumber,faceNumber,code))
+        reply = self.conversation.Request(cmd)
+        rs = reply.rstrip()
+        if rs == 'BAD COMMAND':
+            nscObjFaceData = -1
+        else:
+            if code in (10,30,31,40,60):
+                nscObjFaceData = str(rs)
+            elif code in (20,22,24):
+                nscObjFaceData = int(float(rs))
+            else:
+                nscObjFaceData = float(rs)
+        return nscObjFaceData
+
+    def zGetNSCParameter(self,surfNumber,objNumber,parameterNumber):
+        """Returns the parameter data for NSC objects.
+
+        zGetNSCParameter(surfNumber,objNumber,parameterNumber)->nscParaVal
+
+        args:
+            surfNumber      : (integer) surface number. Use 1 if
+                              the program mode is Non-Sequential.
+            objNumber       : (integer) object number
+            parameterNumber : (integer) parameter number
+        ret:
+            nscParaVal     : (float) parameter value
+
+        See also zSetNSCParameter
+        """
+        cmd = ("GetNSCParameter,{:.0f},{:.0f},{:.0f}"
+              .format(surfNumber,objNumber,parameterNumber))
+        reply = self.conversation.Request(cmd)
+        rs = reply.rstrip()
+        if rs == 'BAD COMMAND':
+            nscParaVal = -1
+        else:
+            nscParaVal = float(rs)
+        return nscParaVal
+
+    def zGetNSCPosition(self,surfNumber,objectNumber):
+        """Returns the position data for NSC objects.
+
+        zGetNSCPosition(surfNumber,objectNumber)->nscPosData
+
+        arg:
+            surfNumber   : (integer) surface number. Use 1 if
+                           the program mode is Non-Sequential.
+            objectNumber:  (integer) object number
+        ret:
+            nscPosData is a 7-tuple containing x,y,z,tilt-x,tilt-y,tilt-z,material
+
+        See also zSetNSCPosition
+        """
+        cmd = ("GetNSCPosition,{:.0f},{:.0f}".format(surfNumber,objectNumber))
+        reply = self.conversation.Request(cmd)
+        rs = reply.split(',')
+        if rs[0].rstrip() == 'BAD COMMAND':
+            nscPosData = -1
+        else:
+            nscPosData = tuple([str(rs[i].rstrip()) if i==6 else float(rs[i])
+                                                    for i in range(len(rs))])
+        return nscPosData
+
+    def zGetPath(self):
+        """Returns the full path name to the <data> folder, and the path name to
+        the default folder for lenses.
+
+        zGetPath()->(pathToDataFolder,pathToDefaultLensFolder)
+        args:
+            None
+        ret:
+            pathToDataFolder : (string) full path to the <data> folder
+            pathToDefaultLensFolder : (string) full path to the default folder for
+                                      lenses.
+        """
+        reply = str(self.conversation.Request('GetPath'))
+        rs = str(reply.rsplit()[0])
+        return tuple(rs.split(','))
 
     def zGetPupil(self):
         """Get pupil data from ZEMAX.
@@ -1694,6 +1847,42 @@ class pyzdde(object):
             fieldData = self.zSetField(i+1,*iFieldDataTuple[i])
             oFieldDataTuple.append(fieldData)
         return tuple(oFieldDataTuple)
+
+    def zSetFloat(self):
+        """Sets all surfaces without surface apertures to have floating apertures.
+        Floating apertures will vignette rays which trace beyond the semi-diameter.
+
+        zSetFloat()->status
+
+        args:
+            None
+        ret:
+            status : 0 = success, -1 = fail
+        """
+        retVal = -1
+        reply = self.conversation.Request('SetFloat')
+        if reply.split()[0] == 'OK':
+            retVal = 0
+        return retVal
+
+    def zSetLabel(self,surfaceNumber,label):
+        """This command associates an integer label with the specified surface.
+        The label will be retained by ZEMAX as surfaces are inserted or deleted
+        around the target surface.
+
+        zSetLabel(surfaceNumber, label)->assignedLabel
+
+        args:
+            surfaceNumber : (integer) the surface number
+            label         : (integer) the integer label
+        rets:
+            assignedLabel : (integer) should be equal to label
+
+        See also zGetLabel, zFindLabel
+        """
+        reply = self.conversation.Request("SetLabel,{:.0f},{:.0f}"
+                                          .format(surfaceNumber,label))
+        return int(float(reply.rstrip()))
 
     def zSetMulticon(self,config,*multicon_args):
         """Set data or operand type in the multi-configuration editior. Note that

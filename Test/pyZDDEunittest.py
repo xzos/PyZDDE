@@ -271,18 +271,19 @@ class TestPyZDDEFunctions(unittest.TestCase):
             print(("zGetFirst ret: {:.4f},{:.4f},{:.4f},{:.4f},{:.4f}"
                    .format(focal,pwfn,rwfn,pima,pmag)))
 
-    @unittest.skip("To implement test")
-    def test_zGetName(self):
-        print("\nTEST: zGetName()")
-        global zmxfp
-        filename = zmxfp+lensFileName
-        ret = self.link0.zLoadFile(filename)
-        reply = self.lin0.zGetName()
-        self.assertEqual(reply,"A SIMPLE COOKE TRIPLET.")
+    @unittest.skip("To implement")
+    def test_zGetGlass(self):
+        print("\nTEST: zGetGlass()")
+        pass
+
+    @unittest.skip("To implement")
+    def test_zGetLabel(self):
+        print("\nTEST: zGetLabel()")
+        pass
 
     @unittest.skip("To implement test")
-    def test_zMode(self):
-        print("\nTEST: zMode()")
+    def test_zGetMode(self):
+        print("\nTEST: zGetMode()")
         pass
 
     def test_zGetMulticon(self):
@@ -314,19 +315,49 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertTupleEqual(multiConData,(5.0, 2, 2, 0, 1, 1, 1.0, 0.0))
 
     @unittest.skip("To implement test")
-    def test_zNSCData(self):
-        print("\nTEST: zNSCData()")
+    def test_zGetGetName(self):
+        print("\nTEST: zGetName()")
+        global zmxfp
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        reply = self.lin0.zGetName()
+        self.assertEqual(reply,"A SIMPLE COOKE TRIPLET.")
+
+    @unittest.skip("To implement test")
+    def test_zGetNSCData(self):
+        print("\nTEST: zGetNSCData()")
         pass
 
     @unittest.skip("To implement test")
-    def test_zNSCMatrix(self):
-        print("\nTEST: zNSCMatrix()")
+    def test_zGetNSCMatrix(self):
+        print("\nTEST: zGetNSCMatrix()")
         pass
 
     @unittest.skip("To implement test")
-    def test_zNSCObjectData(self):
-        print("\nTEST: zNSCObjectData()")
+    def test_zGetNSCObjectData(self):
+        print("\nTEST: zGetNSCObjectData()")
         pass
+
+    @unittest.skip("To implement test")
+    def test_zGetNSCObjectFaceData(self):
+        print("\nTEST: zGetNSCObjectFaceData()")
+        pass
+
+    @unittest.skip("To implement test")
+    def test_zGetNSCParameter(self):
+        print("\nTEST: zGetNSCParameter()")
+        pass
+
+    @unittest.skip("To implement test")
+    def test_zGetNSCPosition(self):
+        print("\nTEST: zGetNSCPosition()")
+        pass
+
+    def test_zGetPath(self):
+        print("\nTEST: zGetPath()")
+        (p2DataFol,p2DefaultFol) = self.link0.zGetPath()
+        self.assertTrue(os.path.isabs(p2DataFol))
+        self.assertTrue(os.path.isabs(p2DefaultFol))
 
     def test_zGetPupil(self):
         print("\nTEST: zGetPupil()")
@@ -831,6 +862,16 @@ class TestPyZDDEFunctions(unittest.TestCase):
         for i in range(len(iFieldDataTuple)):
             self.assertEqual(oFieldDataTuple[i][:len(iFieldDataTuple[i])],
                                                          iFieldDataTuple[i])
+
+    @unittest.skip("To implement")
+    def test_zSetFloat(self):
+        print("\nTEST: zSetFloat()")
+        pass
+
+    @unittest.skip("To implement")
+    def test_zSetLabel(self):
+        print("\nTEST: zSetLabel()")
+        pass
 
     def test_zSetMulticon(self):
         print("\nTEST: zSetMulticon()")
