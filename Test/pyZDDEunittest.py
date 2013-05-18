@@ -174,6 +174,21 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zGetApodization()")
         pass
 
+    @unittest.skip("To implement")
+    def test_zGetAspect(self):
+        print("\nTEST: zGetAspect()")
+        pass
+
+    @unittest.skip("To implement")
+    def test_zGetBuffer(self):
+        print("\nTEST: zGetBuffer()")
+        pass
+
+    @unittest.skip("Not important")
+    def test_zGetComment(self):
+        print("\nTEST: zGetComment()")
+        pass
+
     def test_zGetConfig(self):
         print("\nTEST: zGetConfig()")
         # Load a lens file into the DDE server
@@ -277,8 +292,23 @@ class TestPyZDDEFunctions(unittest.TestCase):
         pass
 
     @unittest.skip("To implement")
+    def test_zGlobalMatrix(self):
+        print("\nTEST: zGetGlobalMatrix()")
+        pass
+
+    @unittest.skip("To implement")
+    def test_zGetIndex(self):
+        print("\nTEST: zGetIndex()")
+        pass
+
+    @unittest.skip("To implement")
     def test_zGetLabel(self):
         print("\nTEST: zGetLabel()")
+        pass
+
+    @unittest.skip("To implement")
+    def test_zGetMetaFile(self):
+        print("\nTEST: zGetMetaFile()")
         pass
 
     @unittest.skip("To implement test")
@@ -527,7 +557,6 @@ class TestPyZDDEFunctions(unittest.TestCase):
             print("MSG: zGetTextFile() function timed out")
         if TestPyZDDEFunctions.pRetVar:
             print("zGetTextFile return value", ret)
-
         #Request zemax to dump prescription file, with a settings
         ret = self.link0.zGetRefresh()
         settingsFileName = "Cooke 40 degree field_PreSettings_OnlyCardinals.CFG"

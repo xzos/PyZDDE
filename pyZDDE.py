@@ -425,6 +425,67 @@ class pyzdde(object):
                                           .format(px,py))
         return float(reply)
 
+    def zGetAspect(self,filename=None):
+        """Returns the graphic display aspect ratio and the width or height of the
+        printed page in current lens units.
+
+        zGetAspect([filename])->(aspect,side)
+
+        args:
+            filename : name of the temporary file associated with the window
+                       being created or updated. If the temporary file is left
+                       off, then the default aspect ratio and width (or height)
+                       is returned.
+        rets:
+            aspect : aspect ratio (height/width)
+            side   : width if aspect <= 1; height if aspect > 1. (in lens units)
+        """
+        if filename == None:
+            cmd = "GetAspect"
+        else:
+            cmd = "GetAspect,{}".format(filename)
+        reply = self.conversation.Request(cmd)
+        rs = reply.split(",")
+        aspectSide = tuple([float(rs[i]) for i in range(len(rs))])
+        return aspectSide
+
+    def zGetBuffer(self,n,tempFileName):
+        """Retrueve client specific data from a window being updated.
+
+        zGetBuffer(n,tempFileName)->data
+
+        args:
+            n            : (integer, 0<=n<=15) the buffer number
+            tempFileName : name of the temporary file associated with the window
+                           being updated. The tempfile name is passed to the client
+                           when ZEMAX calls the client; see the discussion
+                           "How ZEMAX calls the client" in the Zemax manual for
+                           details.
+
+        Note each window may have it's own buffer data, and ZEMAX uses the
+        filename to identify the window for which the buffer contents are required.
+
+        See also zSetBuffer.
+        """
+        cmd = "GetBuffer,{:.0f},{}".format(n,tempFileName)
+        reply = self.conversation.Request(cmd)
+        return str(reply.rstrip())
+        # !!!FIX what is the proper return for this command?
+
+    def zGetComment(self,surfaceNumber):
+        """Returns the surface comment, if any, associated with the surface
+
+        zGetComment(surfaceNumber)->comment
+
+        args:
+            surfaceNumber: (integer) the surface number
+        ret:
+            comment      : (string) the comment, if any, associated with the surface
+
+        """
+        reply = self.conversation.Request("GetComment,{:.0f}".format(surfaceNumber))
+        return str(reply.rstrip())
+
     def zGetConfig(self):
         """Returns the current configuration number (selected column in the MCE),
         the number of configurations (number of columns), and the number of
@@ -606,6 +667,48 @@ class pyzdde(object):
             glassInfo = None
         return glassInfo
 
+    def zGetGlobalMatrix(self,surfaceNumber):
+        """Returns the the matrix required to convert any local coordinates (such
+        as from a ray trace) into global coordinates.
+
+        zGetGlobalMatrix(surfaceNumber)->globalMatrix
+
+        args:
+            surfaceNumber : (integer) surface number
+        ret:
+            globalMatrix  : is a 9-tuple, if successful  = (R11,R12,R13,
+                                                            R21,R22,R23,
+                                                            R31,R32,R33,
+                                                            Xo, Yo , Zo)
+                            it returns -1, if bad command.
+
+        For details on the global coordinate matrix, see "Global Coordinate Reference
+        Surface" in the Zemax manual.
+        """
+        cmd = "GetGlobalMatrix,{:.0f}".format(surfaceNumber)
+        reply = self.conversation.Request(cmd)
+        rs = reply.rstrip()
+        globalMatrix = tuple([float(elem) for elem in rs.split(',')])
+        return globalMatrix
+
+    def zGetIndex(self,surfaceNumber):
+        """Returns the index of refraction data for any surface.
+
+        zGetIndex(surfaceNumber)->indexTuple
+
+        args:
+            surfaceNumber : (integer) surface number
+        ret:
+            indexTuple    : tuple of (real) index of refraction values,
+                            defined for each wavelength. (n1,n2,n3,...)
+                            If surface number is not valid,
+        """
+        reply = self.conversation.Request("GetIndex,{:.0f}".format(surfaceNumber))
+        rs = reply.split(",")
+        indexTuple = [float(rs[i]) for i in range(len(rs))]
+        return tuple(indexTuple)
+
+
     def zGetLabel(self,surfaceNumber):
         """This command retrieves the integer label assicuated with the specified
         surface. Labels are be retained by ZEMAX as surfaces are inserted or deleted
@@ -622,6 +725,56 @@ class pyzdde(object):
         """
         reply = self.conversation.Request("GetLabel,{:.0f}".format(surfaceNumber))
         return int(float(reply.rstrip()))
+
+    def zGetMetaFile(self,metaFileName,analysisType,settingsFileName,flag):
+        """Creates a windows Metafile of any ZEMAX graphical analysis plot.
+
+           zMetaFile(metaFilename, analysisType, settingsFileName, flag)->retVal
+
+           args:
+            metaFileName : name of the file to be created including the full path,
+                           name, and extension for the metafile.
+            analysisType : 3 letter case-sensitive label that indicates the
+                           type of the analysis to be performed. They are identical
+                           to those used for the button bar in Zemax. The labels
+                           are case sensitive. If no label is provided or recognized,
+                           a 3D Layout plot will be generated.
+            settingsFileName : If a valid file name is used for the "settingsFileName",
+                               ZEMAX will use or save the settings used to compute
+                               the metafile graphic, depending upon the value of
+                               the flag parameter.
+            flag        :  0 = default settings used for the graphic
+                           1 = settings provided in the settings file, if valid,
+                               else default settings used
+                           2 = settings provided in the settings file, if valid,
+                               will be used and the settings box for the requested
+                               feature will be displayed. After the user makes any
+                               changes to the settings the graphic will then be
+                               generated using the new settings.
+                           Please see the ZEMAX manual for more details.
+           retVal:
+            0      : Success
+            -1     : Metafile could not be saved (Zemax may not have received
+                     a full path name or extention).
+            -998   : Command timed out
+
+        Notes: No matter what the flag value is, if a valid file name is provided
+        for the settingsfilename, the settings used will be written to the settings
+        file, overwriting any data in the file.
+
+        Example: zGetMetaFile("C:\myGraphicfile.EMF",'Lay',"None",0)
+
+        See also zGetTextFile, zOpenWindow.
+        """
+        retVal = -1
+        #Check if the file path is valid and has extension
+        if path.isabs(metaFileName) and path.splitext(metaFileName)[1]!='':
+            cmd = 'GetMetaFile,"{tF}",{aT},"{sF}",{fl:.0f}'.format(tF=metaFileName,
+                                    aT=analysisType,sF=settingsFileName,fl=flag)
+            reply = self.conversation.Request(cmd)
+            if reply.split()[0] == 'OK':
+                retVal = 0
+        return retVal
 
     def zGetMode(self):
         """Returns the mode (Sequential, Non-sequential or Mixed) of the current
@@ -1284,7 +1437,7 @@ class pyzdde(object):
         """Request Zemax to save a text file for any analysis that supports text
            output.
 
-           zGetText(textFilename, analysisType, settingsFilename, flag) -> retVal
+           zGetText(textFilename, analysisType, settingsFileName, flag) -> retVal
 
            args:
             textFileName : name of the file to be created including the full path,
@@ -1293,10 +1446,10 @@ class pyzdde(object):
                            type of the analysis to be performed. They are identical
                            to those used for the button bar in Zemax. The labels
                            are case sensitive. If no label is provided or recognized,
-                           a standard raytrace will be generated. If a valid file
-                           name is used for the "settingsFileName", ZEMAX will use
-                           or save the settings used to compute the text file,
-                           depending upon the value of the flag parameter.
+                           a standard raytrace will be generated.
+            settingsFileName : If a valid file name is used for the "settingsFileName",
+                               ZEMAX will use or save the settings used to compute the
+                               text file, depending upon the value of the flag parameter.
             flag        :  0 = default settings used for the text
                            1 = settings provided in the settings file, if valid,
                                else default settings used
@@ -1327,7 +1480,6 @@ class pyzdde(object):
             if reply.split()[0] == 'OK':
                 retVal = 0
         return retVal
-
 
     def zGetTrace(self,waveNum,mode,surf,hx,hy,px,py):
         """Trace a (single) ray through the current lens in the ZEMAX DDE server.
