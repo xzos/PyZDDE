@@ -383,6 +383,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zGetNSCPosition()")
         pass
 
+    @unittest.skip("To implement test")
+    def test_zGetNSCProperty(self):
+        print("\nTEST: zGetNSCProperty()")
+        pass
+
     def test_zGetPath(self):
         print("\nTEST: zGetPath()")
         (p2DataFol,p2DefaultFol) = self.link0.zGetPath()
@@ -923,6 +928,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertTupleEqual(multiConData,(7.0, 2, 2, 0, 1, 1, 1.0, 0.0))
         multiConData = self.link0.zSetMulticon(2,2,5.0000,0,1,1,1.0,0.0)
         self.assertTupleEqual(multiConData,(5.0, 2, 2, 0, 1, 1, 1.0, 0.0))
+
+    @unittest.skip("To implement test")
+    def test_zSetNSCProperty(self):
+        print("\nTEST: zSetNSCProperty()")
+        pass
 
     def test_zSetPrimary(self):
         print("\nTEST: zSetPrimary()")
