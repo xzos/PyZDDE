@@ -18,7 +18,7 @@ import sys
 import unittest
 
 # Put both the "Test" and the "PyZDDE" directory in the python search path.
-testdirectory = os.getcwd()
+testdirectory = os.path.dirname(os.path.realpath(__file__))
 ind = testdirectory.find('Test')
 pyzddedirectory = testdirectory[0:ind-1]
 if testdirectory not in sys.path:
@@ -388,6 +388,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zGetNSCProperty()")
         pass
 
+    @unittest.skip("To implement test")
+    def test_zGetNSCSetting(self):
+        print("\nTEST: zGetNSCSetting()")
+        pass
+
     def test_zGetPath(self):
         print("\nTEST: zGetPath()")
         (p2DataFol,p2DefaultFol) = self.link0.zGetPath()
@@ -672,7 +677,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def test_zGetWaveTuple(self):
         print("\nTEST: zGetWaveTuple()")
-        # First, se the wave fields in the ZEMAX DDE server
+        # First, set the wave fields in the ZEMAX DDE server
         # Create the wavelength and weight tuples
         wavelengths = (0.48613270,0.58756180,0.65627250)
         weights = (1.0,1.0,1.0)
@@ -682,8 +687,18 @@ class TestPyZDDEFunctions(unittest.TestCase):
         oWaveDataTuple_g = self.link0.zGetWaveTuple()
         if TestPyZDDEFunctions.pRetVar:
             print("Output wave data tuple",oWaveDataTuple_g)
-        #verify
-        self.assertTupleEqual(iWaveDataTuple,oWaveDataTuple_g)
+        #verify that the returned wavelengths are same
+        oWavelengths = oWaveDataTuple_g[0]
+        for i,d in enumerate(oWavelengths):
+            self.assertAlmostEqual(wavelengths[i],d,places=4)
+
+    @unittest.skip("To implement")
+    def test_zHammer(self):
+        print("\nTEST: zHammer()")
+
+    @unittest.skip("To implement")
+    def test_zImportExtraData(self):
+        print("\nTEST: zImportExtraData()")
 
     def test_zInsertConfig(self):
         print("\nTEST: zInsertConfig()")
@@ -715,6 +730,10 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertEqual(newOperNumber,2)
         newConfig = self.link0.zGetConfig()
         self.assertTupleEqual(newConfig,(currConfig[0],currConfig[1],currConfig[2]+1))
+
+    @unittest.skip("To implement")
+    def test_zInsertObject(self):
+        print("\nTEST: zInsertObject()")
 
     def test_zInsertSurface(self):
         print("\nTEST: zInsertSurface()")
@@ -934,6 +953,10 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zSetNSCProperty()")
         pass
 
+    def test_zSetNSCSetting(self):
+        print("\nTEST: zSetNSCSetting()")
+        pass
+
     def test_zSetPrimary(self):
         print("\nTEST: zSetPrimary()")
         # first set 3 wavelength fields using zSetWaveTuple()
@@ -1043,8 +1066,10 @@ class TestPyZDDEFunctions(unittest.TestCase):
         oWaveDataTuple = self.link0.zSetWaveTuple(iWaveDataTuple)
         if TestPyZDDEFunctions.pRetVar:
             print("Output wave data tuple",oWaveDataTuple)
-        #verify
-        self.assertTupleEqual(oWaveDataTuple,iWaveDataTuple)
+        #verify that the returned wavelengths are same
+        oWavelengths = oWaveDataTuple[0]
+        for i,d in enumerate(oWavelengths):
+            self.assertAlmostEqual(wavelengths[i],d,places=4)
 
     @unittest.skip("Function not yet implemented")
     def test_zSetTimeout(self):

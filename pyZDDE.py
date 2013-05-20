@@ -1091,7 +1091,7 @@ class pyzdde(object):
         ret:
           nscPropData  :  string or numeric (see below)
 
-        CODE-              PROPERTY
+        CODE -             PROPERTY
         -----------------------------------------------------------------------
         The following codes get values from the NSC Editor.
           1 - Gets the object comment. (string)
@@ -1233,6 +1233,34 @@ class pyzdde(object):
         reply = self.conversation.Request(cmd)
         nscPropData = process_get_set_NSCProperty(code,reply)
         return nscPropData
+
+    def zGetNSCSettings(self):
+        """Returns the maximum number of intersections, segments, nesting level,
+        minimum absolute intensity, minimum relative intensity, glue distance,
+        miss ray distance, and ignore errors flag used for NSC ray tracing.
+
+        zGetNSCSettings()->nscSettingsData
+
+        args:
+          None
+        rets:
+          nscSettingsData is an 8-tuple with the following elements
+          maxInt     : (integer) maximum number of intersections
+          maxSeg     : (integer) maximum number of segments
+          maxNest    : (integer) maximum nesting level
+          minAbsI    : (float) minimum absolute intensity
+          minRelI    : (float) minimum relative intensity
+          glueDist   : (float) glue distance
+          missRayLen : (float) miss ray distance
+          ignoreErr  : (integer) 1 if true, 0 if false
+
+        See also zSetNSCSettings
+        """
+        reply = str(self.conversation.Request('GetNSCSettings'))
+        rs = reply.rsplit(",")
+        nscSettingsData = [float(rs[i]) if i in (3,4,5,6) else int(float(rs[i]))
+                                                        for i in range(len(rs))]
+        return tuple(nscSettingsData)
 
     def zGetPath(self):
         """Returns the full path name to the <data> folder, and the path name to
@@ -1785,6 +1813,50 @@ class pyzdde(object):
             waveDataTuple[1].append(float(rs[1])) # store the weight
         return (tuple(waveDataTuple[0]),tuple(waveDataTuple[1]))
 
+    def zHammer(self,numOfCycles,algorithm):
+        """Calls the Hammer optimizer. Note that the number of cycles should be
+        kept small enough to allow the algorithm to complete and return before
+        the DDE communication times out, or an error will occur.
+
+        zHammer(numOfCycles,algorithm)->finalMeritFn
+
+        args:
+          numOfCycles  : (integer) the number of cycles to run
+                         if numOfCycles < 1, Hammer updates all operands in the
+                         merit function and returns the current merit function,
+                         and no optimization is performed.
+          algorithm    :  0 = Damped Least Squares, 1 = Orthogonal descent
+        ret:
+          finalMeritFn : (float) the final merit function.
+
+        Note:  If the merit function value returned is 9.0E+009, the optimization
+        failed, usually because the lens or merit function could not be evaluated.
+        """
+        cmd = "Hammer,{:1.2g},{:.0f}".format(numOfCycles,algorithm)
+        reply = self.conversation.Request(cmd)
+        return float(reply.rstrip())
+
+    def zImportExtraData(self,surfaceNumber,fileName):
+        """Imports extra data and grid surface data values into an existing sur-
+        face.
+
+        zImportExtraData(surfaceNumber,fileName)->
+
+        args:
+          surfaceNumber : (integer) surface number
+          fileName      : (string) file name (of an ASCII file)
+        ret:
+
+        Note:
+            The ASCII file is a single column of free-format numbers, with a
+            .DAT extension.
+        """
+        cmd = "ImportExtraData,{:.0f},{}".format(surfaceNumber,fileName)
+        reply = self.conversation.Request(cmd)
+        return reply.rstrip()
+        # !!! FIX determine what is the currect return
+
+
     def zInsertConfig(self,configNumber):
         """Insert a new configuration (column) in the multi-configuration editor.
         The new configuration will be placed at the location (column) indicated
@@ -1824,6 +1896,45 @@ class pyzdde(object):
         See also zDeleteMCO. Use zInsertConfig(), to insert a new configuration (row).
         """
         return int(self.conversation.Request("InsertMCO,{:.0f}".format(operandNumber)))
+
+    def zInsertMFO(self,operandNumber):
+        """Insert a new optimization operand (row) in the merit function editor.
+
+        zInsertMFO(operandNumber)->retValue
+
+        args:
+            operandNumber : (integer) between 1 and the current number of operands
+                            plus 1, inclusive.
+        ret:
+            retValue      : new number of operands (rows).
+
+        See also zDeleteMFO.
+        """
+        return int(self.conversation.Request("InsertMFO,{:.0f}".format(operandNumber)))
+
+    def zInsertObject(self,surfaceNumber,objectNumber):
+        """
+        Insert a new NSC object at the location indicated by the parameters
+        `surfaceNumber` and `objectNumber`.
+
+        zInsertObject(surfaceNumber,objectNumber)->status
+
+        args:
+          surfaceNumber : (integer) surface number of the NSC group. Use 1 if
+                          the program mode is Non-Sequential.
+          objectNumber  : object number
+        ret:
+          status        : 0 if successful, -1 if failed.
+
+        See also zSetNSCObjectData to define data for the new surface and the
+        zDeleteObject function.
+        """
+        cmd = "InsertObject,{:.0f},{:.0f}".format(surfaceNumber,objectNumber)
+        reply = self.conversation.Request(cmd)
+        if reply.rstrip() == 'BAD COMMAND':
+            return -1
+        else:
+            return int(reply.rstrip())
 
     def zInsertSurface(self,surfNum):
         """Insert a lens surface in the ZEMAX DDE server. The new surface will be
@@ -2440,6 +2551,43 @@ class pyzdde(object):
         reply = self.conversation.Request(cmd)
         nscPropData = process_get_set_NSCProperty(code,reply)
         return nscPropData
+
+    def zSetNSCSettings(self,nscSettingsData):
+        """Sets the maximum number of intersections, segments, nesting level,
+        minimum absolute intensity, minimum relative intensity, glue distance,
+        miss ray distance, and ignore errors flag used for NSC ray tracing.
+
+        zSetNSCSettings(nscSettingsData)->nscSettingsDataRet
+
+        args:
+          nscSettingsData is an 8-tuple with the following elements
+          maxInt     : (integer) maximum number of intersections
+          maxSeg     : (integer) maximum number of segments
+          maxNest    : (integer) maximum nesting level
+          minAbsI    : (float) minimum absolute intensity
+          minRelI    : (float) minimum relative intensity
+          glueDist   : (float) glue distance
+          missRayLen : (float) miss ray distance
+          ignoreErr  : (integer) 1 if true, 0 if false
+        rets:
+          nscSettingsDataRet is also an 8-tuple with the same elements as
+          nscSettingsData.
+
+        NOTE:
+             Since the `maxSeg` value may require large amounts of RAM, verify
+             that the new value was accepted by checking the returned tuple.
+
+        See also zGetNSCSettings
+        """
+        (maxInt,maxSeg,maxNest,minAbsI,minRelI,glueDist,missRayLen,
+                                                 ignoreErr) = nscSettingsData
+        cmd = ("SetNSCSettings,{:.0f},{:.0f},{:.0f},{:1.20g},{:1.20g},{:1.20g},{:1.20g},{:.0f}"
+        .format(maxInt,maxSeg,maxNest,minAbsI,minRelI,glueDist,missRayLen,ignoreErr))
+        reply = str(self.conversation.Request(cmd))
+        rs = reply.rsplit(",")
+        nscSettingsData = [float(rs[i]) if i in (3,4,5,6) else int(float(rs[i]))
+                                                        for i in range(len(rs))]
+        return tuple(nscSettingsData)
 
     def zSetPrimaryWave(self,primaryWaveNumber):
         """Sets the wavelength data in the ZEMAX DDE server. This function emulates
@@ -3155,7 +3303,8 @@ class pyzdde(object):
         if txtFileName2Use != None:
             textFileName = txtFileName2Use
         else:
-            cd = os.getcwd()
+            #cd = os.getcwd()
+            cd = os.path.dirname(os.path.realpath(__file__))
             textFileName = cd +"\\"+"prescriptionFile.txt"
         ret = self.zGetTextFile(textFileName,'Pre',"None",0)
         assert ret == 0
@@ -3246,7 +3395,7 @@ def process_get_set_NSCProperty(code,reply):
 
 def test_PyZDDE():
     """Test the pyZDDE module functions"""
-    zmxfp = os.getcwd()+'\\ZMXFILES\\'
+    zmxfp = os.path.dirname(os.path.realpath(__file__))+'\\ZMXFILES\\'
     # Create PyZDDE object(s)
     link0 = pyzdde()
     link1 = pyzdde()

@@ -38,7 +38,7 @@ import Tkinter, tkFileDialog, Tkconstants
 import datetime
 
 # Put both the "Examples" and the "PyZDDE" directory in the python search path.
-exampleDirectory = os.getcwd()
+exampleDirectory = os.path.dirname(os.path.realpath(__file__))
 ind = exampleDirectory.find('Examples')
 pyzddedirectory = exampleDirectory[0:ind-1]
 if exampleDirectory not in sys.path:

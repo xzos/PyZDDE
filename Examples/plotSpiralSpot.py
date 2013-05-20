@@ -15,15 +15,15 @@ from __future__ import print_function
 import sys, os
 import matplotlib.pyplot as plt
 
-# ****************** BOILER PLATE CODE ***********************************
-cd = os.getcwd()
+# *********** Add PyZDDE to the python search path ***********************
+cd = os.path.dirname(os.path.realpath(__file__))
 ind = cd.find('Examples')
 cd = cd[0:ind-1]
 
 if cd not in sys.path:
     sys.path.append(cd)
-# ****************** BOILER PLATE CODE ***********************************
-from pyZDDE import *
+# ************************************************************************
+import pyZDDE
 
 # The ZEMAX file path
 zmxfp = cd+'\\ZMXFILES\\'
@@ -31,7 +31,7 @@ zmxfile = 'Cooke 40 degree field.zmx'
 filename = zmxfp+zmxfile
 
 # Create a pyZDDE object
-link0 = pyzdde()
+link0 = pyZDDE.pyzdde()
 
 # Initiate the DDE link
 status = link0.zDDEInit()
