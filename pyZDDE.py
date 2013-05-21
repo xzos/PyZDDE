@@ -30,7 +30,7 @@ def debugPrint(level,msg):
     args:
         level = 0, message will definitely be printed
                 1 or 2, message will be printed if level >= DEBUG_PRINT_LEVEL
-        msg = string message to pint
+        msg = string message to print
     """
     global DEBUG_PRINT_LEVEL
     if level <= DEBUG_PRINT_LEVEL:
@@ -1334,6 +1334,41 @@ class pyzdde(object):
             return int(reply) #Note: Zemax returns -1 if GetRefresh fails.
         else:
             return -998
+
+    def zGetSag(self,surfaceNumber,x,y):
+        """Returns the sag of the surface with the number `surfaceNumber`, at
+        `x` and `y` coordinates on the surface. The returned `sag` and the
+        coordinates `x` and `y` are in lens units.
+
+        zGetSag(surfaceNumber,x,y)->sagTuple
+
+        args:
+          surfaceNumber : (integer) surface number
+          x             : (float) x coordinate in lens units
+          y             : (float) y coordinate in lens units
+        ret: sagTuple is a 2-tuple containing the following elements
+          sag           : (float) sag of the surface at (x,y) in lens units
+          alternateSag  : (float) altenate sag
+        """
+        cmd = "GetSag,{:.0f},{:1.20g},{:1.20g}".format(surfaceNumber,x,y)
+        reply = self.conversation.Request(cmd)
+        sagData = reply.rsplit(",")
+        return (float(sagData[0]),float(sagData[1]))
+
+    def zGetSequence(self):
+        """Returns the sequence number of the lens in the Server's memory, and
+        the sequence number of the lens in the LDE in a 2-tuple.
+
+        zGetSequence()->sequenceNumbers
+
+        args:
+          None
+        ret:
+          sequenceNumbers : 2-tuple containing the sequence numbers
+        """
+        reply = self.conversation.Request("GetSequence")
+        seqNum = reply.rsplit(",")
+        return (float(seqNum[0]),float(seqNum[1]))
 
     def zGetSerial(self):
         """Get the serial number

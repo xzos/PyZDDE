@@ -449,6 +449,16 @@ class TestPyZDDEFunctions(unittest.TestCase):
         if TestPyZDDEFunctions.pRetVar:
             print("zGetRefresh return value", ret)
 
+    @unittest.skip("To implement")
+    def test_zGetSag(self):
+        print("\nTEST: zGetSag()")
+        #Load a lens file
+
+    @unittest.skip("To implement")
+    def test_zGetSequence(self):
+        print("\nTEST: zGetSequence()")
+        #Load a lens file
+
     def test_zGetSerial(self):
         print("\nTEST: zGetSerial()")
         ser = self.link0.zGetSerial()

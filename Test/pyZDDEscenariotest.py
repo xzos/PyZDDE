@@ -16,7 +16,7 @@ import sys
 import time
 
 # Put both the "Test" and the "PyZDDE" directory in the python search path.
-testdirectory = os.getcwd()
+testdirectory = os.path.dirname(os.path.realpath(__file__))
 ind = testdirectory.find('Test')
 pyzddedirectory = testdirectory[0:ind-1]
 if testdirectory not in sys.path:
