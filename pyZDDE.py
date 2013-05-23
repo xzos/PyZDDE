@@ -1262,6 +1262,41 @@ class pyzdde(object):
                                                         for i in range(len(rs))]
         return tuple(nscSettingsData)
 
+    def zGetOperand(self,row,column):
+        """Returns the operand data from the Merit Function Editor.
+
+        zGetOperand(row,column)->
+
+        args:
+          row   : (int) row
+          column : (int) column
+        ret:
+          operandData : integer, float or string depending upon column.
+                        Column        Returned operand type
+                         1               (operand) string
+                         2               (int1) integer
+                         3               (int2) integer
+                         4-7             (data1-data4) float
+                         8               (target) float
+                         9               (weight) float
+                         10              (contribution) float
+                         12-13           (data5-data6) float
+
+        Note: To update the merit function prior to calling zGetOperand function,
+              use the zOptimize() function with the number of cycles set to -1.
+
+        See also zSetOperand and zOptimize.
+        """
+        cmd = "GetOperand,{:.0f},{:.0f}".format(row,column)
+        reply = self.conversation.Request(cmd)
+        rs = reply.rstrip()
+        if column == 1:
+            return str(rs)
+        elif column in (2,3):
+            return int(float(rs))
+        else:
+            return float(rs)
+
     def zGetPath(self):
         """Returns the full path name to the <data> folder, and the path name to
         the default folder for lenses.
@@ -1277,6 +1312,108 @@ class pyzdde(object):
         reply = str(self.conversation.Request('GetPath'))
         rs = str(reply.rsplit()[0])
         return tuple(rs.split(','))
+
+    def zGetPolState(self):
+        """Returns the default polarization state set by the user.
+
+        zGetPolState()->polStateData
+
+        args:
+          None
+        ret:
+          polStateData is 5-tuple containing the following elements
+          nlsPolarized : (integer) if nlsPolarized > 0, then default polarization
+                         state is unpolarized.
+          Ex           : (float) normalized electric field magnitude in x direction
+          Ey           : (float) normalized electric field magnitude in y direction
+          Phax         : (float) relative phase in x direction in degrees
+          Phay         : (float) relative phase in y direction in degrees
+
+        Note: The quantity Ex*Ex + Ey*Ey should have a value of 1.0 although any
+              values are accepted.
+
+        See also zSetPolState.
+        """
+        reply = self.conversation.Request("GetPolState")
+        rs = reply.rsplit(",")
+        polStateData = [int(float(elem)) if i==0 else float(elem)
+                                       for i,elem in enumerate(rs[:-1])]
+        return tuple(polStateData)
+
+    def zGetPolTrace(self,waveNum,mode,surf,hx,hy,px,py,Ex,Ey,Phax,Phay):
+        """Trace a single polarized ray through the current lens in the ZEMAX
+        DDE server. If Ex, Ey, Phax, Phay are all zero, Zemax will trace two
+        orthogonal rays and the resulting transmitted intensity will be averaged.
+
+        zGetPolTrace(waveNum,mode,surf,hx,hy,px,py,Ex,Ey,Phax,Phay)->rayPolTraceData
+
+        args:
+          waveNum : wavelength number as in the wavelength data editor
+          mode    : 0 = real, 1 = paraxial
+          surf    : surface to trace the ray to. Usually, the ray data is only
+                    needed at the image surface; setting the surface number to
+                    -1 will yield data at the image surface.
+          hx      : normalized field height along x axis
+          hy      : normalized field height along y axis
+          px      : normalized height in pupil coordinate along x axis
+          py      : normalized height in pupil coordinate along y axis
+          Ex      : normalized electric field magnitude in x direction
+          Ey      : normalized electric field magnitude in y direction
+          Phax    : relative phase in x direction in degrees
+          Phay    : relative phase in y direction in degrees
+
+        ret:
+          rayPolTraceData : rayPolTraceData is a 8-tuple or 2-tuple (depending
+          on polarized or unpolarized rays) containing the following elements:
+
+          For polarized rays --
+              error       : 0, if the ray traced successfully
+                            +ve number indicates that the ray missed the surface
+                            -ve number indicates that the ray total internal
+                            reflected (TIR) at the surface given by the absolute
+                            value of the errorCode number.
+              intensity   : the transmitted intensity of the ray. It is always
+                            normalized to an input electric field intensity of
+                            unity. The transmitted intensity accounts for surface,
+                            thin film, and bulk absorption effects, but does not
+                            consider whether or not the ray was vignetted.
+              Exr,Eyr,Ezr : real parts of the electric field components
+              Exi,Eyi,Ezi : imaginary parts of the electric field components
+
+          For unpolarized rays --
+              error       : (see above)
+              intensity   : (see above)
+
+        Example: To trace the real unpolarized marginal ray to the image surface
+                 at wavelength 2, the function would be:
+                 zGetPolTrace(2,0,-1,0.0,0.0,0.0,1.0,0,0,0,0)
+
+        Note:
+        1. The quantity Ex*Ex + Ey*Ey should have a value of 1.0 although any
+           values are accepted.
+        2. There is an important exception to the above rule -- If Ex, Ey, Phax,
+           Phay are all zero, Zemax will trace two orthogonal rays and the resul-
+           ting transmitted intensity will be averaged.
+        3. Always check to verify the ray data is valid (check the error) before
+           using the rest of the data in the tuple.
+        4. Use of zGetPolTrace() has significant overhead as only one ray per DDE
+           call is traced. Please refer to the ZEMAX manual for more details.
+           Also, if a large number of rays are to be traced, see the section
+           "Tracing large number of rays" in the ZEMAX manual.
+
+        See also zGetPolTraceDirect, zGetTrace, zGetTraceDirect
+        """
+        args1 = "{wN:.0f},{m:.0f},{s:.0f},".format(wN=waveNum,m=mode,s=surf)
+        args2 = "{hx:1.4f},{hy:1.4f},".format(hx=hx,hy=hy)
+        args3 = "{px:1.4f},{py:1.4f}".format(px=px,py=py)
+        args4 = "{Ex:1.4f},{Ey:1.4f}".format(Ex=Ex,Ey=Ey)
+        args5 = "{Phax:1.4f},{Phay:1.4f}".format(Phax=Phax,Phay=Phay)
+        cmd = "GetPolTrace," + args1 + args2 + args3 + args4 + args5
+        reply = self.conversation.Request(cmd)
+        rs = reply.split(',')
+        rayPolTraceData = tuple([int(elem) if i==0 else float(elem)
+                                   for i,elem in enumerate(rs)])
+        return rayPolTraceData
 
     def zGetPupil(self):
         """Get pupil data from ZEMAX.
@@ -1375,6 +1512,30 @@ class pyzdde(object):
         """
         reply = self.conversation.Request('GetSerial')
         return int(reply)
+
+    def zGetSettingsData(self,tempFile,number):
+        """Returns the settings data used by a window. The data must have been
+        previously stored by a call to zSetSettingsData() or the data may have
+        been stored by a previous execution of the client program.
+
+        zGetSettingsData(tempFile,number)->settingsData
+
+        args:
+          tempfile  : the name of the output file passed by ZEMAX to the client.
+                      ZEMAX uses this name to identify for which window the
+                      zGetSettingsData() request is for.
+          number    : the data number used by the previous zSetSettingsData call.
+                      Currently, only number = 0 is supported.
+        ret:
+          settingsData : (string)  the string that was saved by a previous
+                         zSetSettingsData() function for the window & number.
+
+        See also zSetSettingsData
+        """
+        cmd = "GetSettingsData,{},{:.0f}".format(tempFile,number)
+        reply = self.conversation.Request(cmd)
+        return str(reply.rstrip())
+
 
     def zGetSurfaceData(self,surfaceNumber,code,arg2=None):
         """Gets surface data on a sequential lens surface.
@@ -1710,32 +1871,32 @@ class pyzdde(object):
         zGetTrace(waveNum,mode,surf,hx,hy,px,py) -> rayTraceData
 
         args:
-            waveNum : wavelength number as in the wavelength data editor
-            mode    : 0 = real, 1 = paraxial
-            surf    : surface to trace the ray to. Usually, the ray data is only
-                      needed at the image surface; setting the surface number to
-                      -1 will yield data at the image surface.
-            hx      : normalized field height along x axis
-            hy      : normalized field height along y axis
-            px      : normalized height in pupil coordinate along x axis
-            py      : normalized height in pupil coordinate along y axis
+          waveNum : wavelength number as in the wavelength data editor
+          mode    : 0 = real, 1 = paraxial
+          surf    : surface to trace the ray to. Usually, the ray data is only
+                    needed at the image surface; setting the surface number to
+                    -1 will yield data at the image surface.
+          hx      : normalized field height along x axis
+          hy      : normalized field height along y axis
+          px      : normalized height in pupil coordinate along x axis
+          py      : normalized height in pupil coordinate along y axis
         ret:
-            rayTraceData : rayTraceData is a tuple containing the following elements:
-                errorCode : 0, if the ray traced successfully
-                            +ve number indicates that the ray missed the surface
-                            -ve number indicates that the ray total internal reflected
-                            (TIR) at the surface given by the absolute value of the
-                            errorCode number.
-                vigCode   : the first surface where the ray was vignetted. Unless an
-                            error occurs at that surface or subsequent to that surface,
-                            the ray will continue to trace to the requested surface.
-                x,y,z     : coordinates of the ray on the requested surface
-                l,m,n     : the direction cosines after refraction into the media
-                            following the requested surface.
-                l2,m2,n2  : the surface intercept direction normals at the requested
-                            surface.
-                intensity : the relative transmitted intensity of the ray, including
-                            any pupil or surface apodization defined.
+          rayTraceData : rayTraceData is a tuple containing the following elements:
+              errorCode : 0, if the ray traced successfully
+                          +ve number indicates that the ray missed the surface
+                          -ve number indicates that the ray total internal reflected
+                          (TIR) at the surface given by the absolute value of the
+                          errorCode number.
+              vigCode   : the first surface where the ray was vignetted. Unless an
+                          error occurs at that surface or subsequent to that surface,
+                          the ray will continue to trace to the requested surface.
+              x,y,z     : coordinates of the ray on the requested surface
+              l,m,n     : the direction cosines after refraction into the media
+                          following the requested surface.
+              l2,m2,n2  : the surface intercept direction normals at the requested
+                          surface.
+              intensity : the relative transmitted intensity of the ray, including
+                          any pupil or surface apodization defined.
 
         Example: To trace the real chief ray to surface 5 for wavelength 3, use
             rayTraceData = zGetTrace(3,0,5,0.0,1.0,0.0,0.0)
@@ -1746,12 +1907,8 @@ class pyzdde(object):
                                               zGetTrace(3,0,5,0.0,1.0,0.0,0.0)
 
         Note:
-            1. The integer error will be zero if the ray traced successfully, otherwise
-               it will be a positive or negative number. If positive, then the ray
-               missed the surface number indicated by error. If negative, then the
-               ray total internal reflected (TIR) at the surface given by the absolute
-               value of the error number. Always check to verify the ray data is valid
-               before using the rest of the string!
+            1. Always check to verify the ray data is valid before using the
+               rest of the string!
             2. Use of zGetTrace() has significant overhead as only one ray per DDE call
                is traced. Please refer to the ZEMAX manual for more details. Also, if a
                large number of rays are to be traced, see the section "Tracing large
@@ -1759,8 +1916,10 @@ class pyzdde(object):
 
         See also zGetTraceDirect, zGetPolTrace, zGetPolTraceDirect
         """
-        cmd = "GetTrace,{wN:.0f},{m:.0f},{s:.0f},{hx:1.4f},{hy:1.4f},{px:1.4f},{py:1.4f}".format(
-                                                    wN=waveNum,m=mode,s=surf,hx=hx,hy=hy,px=px,py=py)
+        args1 = "{wN:.0f},{m:.0f},{s:.0f},".format(wN=waveNum,m=mode,s=surf)
+        args2 = "{hx:1.4f},{hy:1.4f},".format(hx=hx,hy=hy)
+        args3 = "{px:1.4f},{py:1.4f}".format(px=px,py=py)
+        cmd = "GetTrace," + args1 + args2 + args3
         reply = self.conversation.Request(cmd)
         rs = reply.split(',')
         rayTraceData = tuple([int(elem) if (i==0 or i==1)
@@ -2276,13 +2435,13 @@ class pyzdde(object):
         zSetFieldTuple(fieldType,fNormalization, iFieldDataTuple)->oFieldDataTuple
 
         args:
-            fieldType: the field type (0=angle, 1=object height, 2=paraxial image
-                       height, and 3 = real image height
-            fNormalization: field normalization (0=radial, 1=rectangular)
-            iFieldDataTuple = the input field data tuple is an N-D tuple (0<N<=12)
-            with every dimension representing a single field location. It can be
-            constructed as shown here with an example:
-
+            fieldType       : the field type (0=angle, 1=object height,
+                              2=paraxial image height, and 3 = real image height
+            fNormalization  : field normalization (0=radial, 1=rectangular)
+            iFieldDataTuple : the input field data tuple is an N-D tuple (0<N<=12)
+                              with every dimension representing a single field
+                              location. It can be constructed as shown here with
+                              an example:
             iFieldDataTuple =
             ((0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0), # xf=0.0,yf=0.0,wgt=1.0,vdx=vdy=vcx=vcy=van=0.0
              (0.0,5.0,1.0),                     # xf=0.0,yf=5.0,wgt=1.0
@@ -2648,6 +2807,36 @@ class pyzdde(object):
         rs = reply.split(',')
         waveData = tuple([int(elem) for elem in rs])
         return waveData
+
+    def zSetPolState(self,nlsPolarized,Ex,Ey,Phx,Phy):
+        """Sets the default polarization state. These parameters correspond to
+        the Polarization tab under the General settings.
+
+        zSetPolState()->polStateData
+
+        args:
+          nlsPolarized : (integer) if nlsPolarized > 0, then default polarization
+                         state is unpolarized.
+          Ex           : (float) normalized electric field magnitude in x direction
+          Ey           : (float) normalized electric field magnitude in y direction
+          Phax         : (float) relative phase in x direction in degrees
+          Phay         : (float) relative phase in y direction in degrees
+
+        ret:
+          polStateData is 5-tuple containing nlsPolarized, Ex, Ey, Phax, and Phay
+
+        Note: The quantity Ex*Ex + Ey*Ey should have a value of 1.0 although any
+              values are accepted.
+
+        See also zGetPolState.
+        """
+        cmd = ("SetPolState,{:.0f},{:1.20g},{:1.20g},{:1.20g},{:1.20g}"
+                .format(nlsPolarized,Ex,Ey,Phx,Phy))
+        reply = self.conversation.Request(cmd)
+        rs = reply.rsplit(",")
+        polStateData = [int(float(elem)) if i==0 else float(elem)
+                                       for i,elem in enumerate(rs[:-1])]
+        return tuple(polStateData)
 
     def zSetSurfaceData(self,surfaceNumber,code,value,arg2=None):
         """Sets surface data on a sequential lens surface.

@@ -37,6 +37,7 @@ local.properties
 ## Spyder
 #################
 .spyderworkspace
+.spyderproject
 
 #################
 ## Visual Studio

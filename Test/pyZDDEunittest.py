@@ -345,7 +345,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertTupleEqual(multiConData,(5.0, 2, 2, 0, 1, 1, 1.0, 0.0))
 
     @unittest.skip("To implement test")
-    def test_zGetGetName(self):
+    def test_zGetName(self):
         print("\nTEST: zGetName()")
         global zmxfp
         filename = zmxfp+lensFileName
@@ -393,11 +393,40 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zGetNSCSetting()")
         pass
 
+    @unittest.skip("To implement test")
+    def test_zGetOperand(self):
+        print("\nTEST: zGetOperand()")
+        pass
+
     def test_zGetPath(self):
         print("\nTEST: zGetPath()")
         (p2DataFol,p2DefaultFol) = self.link0.zGetPath()
         self.assertTrue(os.path.isabs(p2DataFol))
         self.assertTrue(os.path.isabs(p2DefaultFol))
+
+    def test_zGetPolState(self):
+        print("\nTEST: zGetPolState()")
+        #Set polarization of the "new" lens
+        self.link0.zSetPolState(0,0.5,0.5,10.0,10.0)
+        polStateData = self.link0.zGetPolState()
+        self.assertTupleEqual(polStateData,(0,0.5,0.5,10.0,10.0))
+
+    def test_zGetPolTrace(self):
+        print("\nTEST: zGetPolTrace()")
+       # Load a lens file into the LDE
+        global zmxfp
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        # Set up the data
+        (waveNum,mode,surf,hx,hy,px,py,Ex,Ey,Phax,Phay) = (1,0,-1,0.0,.5,0.0,1.0,
+                                                        0.7071067,0.7071067,0,0)
+        rayTraceArg = (waveNum,mode,surf,hx,hy,px,py,Ex,Ey,Phax,Phay)
+        expRayTraceData = (0, 0.9403035211373325, -0.3816204067506139, 0.0, -0.0,
+                           0.89144230676406, 0.0, 0.0)
+        # test returned tuple
+        rayTraceData = self.link0.zGetPolTrace(*rayTraceArg)
+        for i,d in enumerate(expRayTraceData):
+            self.assertAlmostEqual(rayTraceData[i],d,places=4)
 
     def test_zGetPupil(self):
         print("\nTEST: zGetPupil()")
@@ -465,6 +494,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertIsInstance(ser,int)
         if TestPyZDDEFunctions.pRetVar:
             print("SERIAL:", ser)
+
+    @unittest.skip("To implement")
+    def test_zGetSettingsData(self):
+        print("\nTEST: zGetSettingsData()")
+        #Load a lens file
 
     def test_zGetSurfaceData(self):
         print("\nTEST: zGetSurfaceData()")
@@ -967,8 +1001,14 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zSetNSCSetting()")
         pass
 
-    def test_zSetPrimary(self):
-        print("\nTEST: zSetPrimary()")
+    def test_zSetPolState(self):
+        print("\nTEST: zSetPolState()")
+        #Set polarization of the "new" lens
+        polStateData = self.link0.zSetPolState(0,0.5,0.5,10.0,10.0)
+        self.assertTupleEqual(polStateData,(0,0.5,0.5,10.0,10.0))
+
+    def test_zSetPrimaryWave(self):
+        print("\nTEST: zSetPrimaryWave()")
         # first set 3 wavelength fields using zSetWaveTuple()
         wavelengths = (0.48613270,0.58756180,0.65627250)
         weights = (1.0,1.0,1.0)
