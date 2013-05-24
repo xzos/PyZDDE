@@ -1536,6 +1536,42 @@ class pyzdde(object):
         reply = self.conversation.Request(cmd)
         return str(reply.rstrip())
 
+    def zGetSolve(self,surfaceNumber,code):
+        """Returns data about any solve on the surface with number `surfaceNumber`.
+
+        zGetSolve(surfaceNumber,code)->solveData
+
+        args:
+          surfaceNumber : (integer) surface number
+          code          : (integer) indicating which surface parameter the solve
+                           is for (see the table below)
+        ret:
+          solveData     :
+
+        GetSolve Code           -  Returned data format
+        0 (curvature)           -  solvetype, parameter1, parameter2, pickupcolumn
+        1 (thickness)           -  solvetype, parameter1, parameter2, parameter3, pickupcolumn
+        2 (glass)               -  solvetype (for solvetype = 0)
+                                   solvetype, Index, Abbe, Dpgf (for solvetype = 1, model glass)
+                                   solvetype, pickupsurf (for solvetype = 2, pickup)
+                                   solvetype, index_offset, abbe_offset (for solvetype = 4, offset)
+                                   solvetype (for solvetype = all other values)
+        3 (semi-diameter)        - solvetype, pickupsurf, pickupcolumn
+        4 (conic)                - solvetype, pickupsurf, pickupcolumn
+        5-16 (parameters 1-12)   - solvetype, pickupsurf, offset,  scalefactor, pickupcolumn
+        17 (parameter 0)          - solvetype, pickupsurf, offset,  scalefactor, pickupcolumn
+        1001+ (extra data values 1+) - solvetype, pickupsurf, scalefactor, offset, pickupcolumn
+
+        Note: The `solvetype` is an integer code, & the parameters have meanings
+        that depend upon the solve type; see the chapter "SOLVES" in the Zemax
+        manual for details.
+
+        See also zSetSolve, zGetNSCSolve, zSetNSCSolve.
+        """
+        cmd = "GetSolve,{:.0f},{:.0f}".format(surfaceNumber,code)
+        reply = self.conversation.Request(cmd)
+        solveData = process_get_set_Solve(reply)
+        return solveData
 
     def zGetSurfaceData(self,surfaceNumber,code,arg2=None):
         """Gets surface data on a sequential lens surface.
@@ -3257,7 +3293,7 @@ class pyzdde(object):
                     # !!! FIX raise an error here
             return (x,y,z,intensity)
         else:
-            print("Couldn't copy lens data from LDE to server, no tracing can be performed")
+            print("Couldn't copy lens from LDE to server, tracing can't be performed")
             return (None,None,None,None)
 
     def lensScale(self,factor=2.0,ignoreSurfaces=None):
@@ -3577,6 +3613,29 @@ class pyzdde(object):
 # convenient for processing replies from Zemax for those function calls that
 # outputs exactly same reply structure.
 # ***************************************************************************
+
+def regressLiteralType(x):
+    """The function returns the literal with its proper type, such as int, float,
+    or string from the input string x.
+    Example:
+        regressLiteralType("1")->1
+        regressLiteralType("1.0")->1.0
+        regressLiteralType("1e-3")->0.001
+        regressLiteralType("YUV")->'YUV'
+        regressLiteralType("YO8")->'YO8'
+    """
+    try:
+        float(x)  # Test for numeric or string
+        lit = float(x) if len(set(['.','e','E']).intersection(x)) > 0 else int(x)
+    except ValueError:
+        lit = str(x)
+    return lit
+
+def process_get_set_Solve(reply):
+    """Process reply for functions zGetSolve and zSetSolve"""
+    reply = reply.rstrip()
+    rs = reply.split(",")
+    return tuple([regressLiteralType(x) for x in rs])
 
 def process_get_set_SystemProperty(code,reply):
     """Process reply for functions zGetSystemProperty and zSetSystemProperty"""

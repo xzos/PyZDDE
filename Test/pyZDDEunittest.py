@@ -498,7 +498,10 @@ class TestPyZDDEFunctions(unittest.TestCase):
     @unittest.skip("To implement")
     def test_zGetSettingsData(self):
         print("\nTEST: zGetSettingsData()")
-        #Load a lens file
+
+    @unittest.skip("To implement")
+    def test_zGetSolve(self):
+        print("\nTEST: zGetSolve()")
 
     def test_zGetSurfaceData(self):
         print("\nTEST: zGetSurfaceData()")
