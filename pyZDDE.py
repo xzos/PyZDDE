@@ -15,11 +15,23 @@ from __future__ import division
 from __future__ import print_function
 import win32ui
 import dde
+import sys
 import os
 from os import path
-from sys import exc_info
 from math import pi,cos,sin
 import warnings
+
+#Import zemaxOperands
+#Generally most python installations will add the current directory or the
+#directory of the __main__ module to the path, it is not guaranteed. To ensure
+#that the required paths are available during python search path, we add it
+#explicitly. The following method of adding the path-to-the-file to python search
+#path and importing the modules should be removed once something like distutils
+#is used to install the module's package into the python site-packages directory.
+currDir = os.path.dirname(os.path.realpath(__file__))
+if currDir not in sys.path:
+    sys.path.append(currDir)
+import zemaxOperands as zo
 
 DEBUG_PRINT_LEVEL = 0 # 0=No debug prints, but allow all essential prints
                       # 1 to 2 levels of debug print, 2 = print all
@@ -38,6 +50,7 @@ def debugPrint(level,msg):
     return
 
 class pyzdde(object):
+    """Create an instance of PyZDDE class"""
     __chNum = -1          # channel Number
     __liveCh = 0          # number of live channels.
     __server = 0
@@ -74,7 +87,7 @@ class pyzdde(object):
         try:
             self.conversation.ConnectTo(self.appName," ")
         except:
-            info = exc_info()
+            info = sys.exc_info()
             print("Error:", info[1], ": ZEMAX may not have been started!")
             return -1
         else:
@@ -860,7 +873,8 @@ class pyzdde(object):
             lensName  : (string) name of the current lens (as entered on the
                         General data dialog box) in the DDE server
         """
-        return str(self.conversation.Request('GetName'))
+        reply = self.conversation.Request('GetName')
+        return str(reply.rstrip())
 
     def zGetNSCData(self,surfaceNumber,code):
         """Returns the data for NSC groups.
@@ -878,8 +892,9 @@ class pyzdde(object):
                        was successful (valid).
                        -1 if it was a bad commnad (generally if the `surface` is
                        not a non-sequential surface)
-        Note: the function returns 1 even if the only object in the NSC editor
-        is a "Null Object"
+
+        Note: this function returns 1 if the only object in the NSC editor is a
+        "Null Object".
         """
         cmd = "GetNSCData,{:.0f},{:.0f}".format(surfaceNumber,code)
         reply = self.conversation.Request(cmd)
@@ -1511,7 +1526,7 @@ class pyzdde(object):
         """Get the serial number
         """
         reply = self.conversation.Request('GetSerial')
-        return int(reply)
+        return int(reply.rstrip())
 
     def zGetSettingsData(self,tempFile,number):
         """Returns the settings data used by a window. The data must have been
@@ -1550,17 +1565,23 @@ class pyzdde(object):
 
         GetSolve Code           -  Returned data format
         0 (curvature)           -  solvetype, parameter1, parameter2, pickupcolumn
-        1 (thickness)           -  solvetype, parameter1, parameter2, parameter3, pickupcolumn
+        1 (thickness)           -  solvetype, parameter1, parameter2, parameter3,
+                                   pickupcolumn
         2 (glass)               -  solvetype (for solvetype = 0)
-                                   solvetype, Index, Abbe, Dpgf (for solvetype = 1, model glass)
+                                   solvetype, Index, Abbe, Dpgf (for solvetype = 1,
+                                   model glass)
                                    solvetype, pickupsurf (for solvetype = 2, pickup)
-                                   solvetype, index_offset, abbe_offset (for solvetype = 4, offset)
+                                   solvetype, index_offset, abbe_offset (for
+                                   solvetype = 4, offset)
                                    solvetype (for solvetype = all other values)
         3 (semi-diameter)        - solvetype, pickupsurf, pickupcolumn
         4 (conic)                - solvetype, pickupsurf, pickupcolumn
-        5-16 (parameters 1-12)   - solvetype, pickupsurf, offset,  scalefactor, pickupcolumn
-        17 (parameter 0)          - solvetype, pickupsurf, offset,  scalefactor, pickupcolumn
-        1001+ (extra data values 1+) - solvetype, pickupsurf, scalefactor, offset, pickupcolumn
+        5-16 (parameters 1-12)   - solvetype, pickupsurf, offset,  scalefactor,
+                                   pickupcolumn
+        17 (parameter 0)         - solvetype, pickupsurf, offset,  scalefactor,
+                                   pickupcolumn
+        1001+ (extra data values 1+) - solvetype, pickupsurf, scalefactor, offset,
+                                       pickupcolumn
 
         Note: The `solvetype` is an integer code, & the parameters have meanings
         that depend upon the solve type; see the chapter "SOLVES" in the Zemax
@@ -1900,6 +1921,35 @@ class pyzdde(object):
             if reply.split()[0] == 'OK':
                 retVal = 0
         return retVal
+
+    def zGetTol(self,operandNumber):
+        """Returns the tolerance data.
+
+        zGetTol(operandNumber)->toleranceData
+
+        args:
+          operandNumber : 0 or the tolerance operand number (row number in the
+                          tolerance editor, when greater than 0)
+        ret:
+          toleranceData. It is a number or a 6-tuple, depending upon `operandNumber`
+          as follows:
+            if operandNumber == 0, toleranceData = number where `number` is the
+            number of tolerance operands defined.
+            if operandNumber > 0, toleranceData = (tolType, int1, int2, min, max, int3)
+
+        See also zSetTol, zSetTolRow
+        """
+        reply = self.conversation.Request("GetTol,{:.0f}".format(operandNumber))
+        if operandNumber == 0:
+            toleranceData = int(float(reply.rstrip()))
+            if toleranceData == 1:
+                reply = self.conversation.Request("GetTol,1")
+                tolType = reply.rsplit(",")[0]
+                if tolType == 'TOFF': # the tol editor is actually empty
+                    toleranceData = 0
+        else:
+            toleranceData = process_get_set_Tol(operandNumber,reply)
+        return toleranceData
 
     def zGetTrace(self,waveNum,mode,surf,hx,hy,px,py):
         """Trace a (single) ray through the current lens in the ZEMAX DDE server.
@@ -2601,12 +2651,15 @@ class pyzdde(object):
             (row,value,status,pickuprow,pickupconfig,scale,offset) = multicon_args
             cmd=("SetMulticon,{:.0f},{:.0f},{:1.20g},{:.0f},{:.0f},{:.0f},{:1.20g},{:1.20g}"
             .format(config,row,value,status,pickuprow,pickupconfig,scale,offset))
-        elif config == 0 and len(multicon_args) == 5:
+        elif ((config == 0) and (len(multicon_args) == 5) and
+                                           (zo.isZOperand(multicon_args[1],3))):
             (row,operand_type,number1,number2,number3) = multicon_args
             cmd=("SetMulticon,{:.0f},{:.0f},{},{:.0f},{:.0f},{:.0f}"
             .format(config,row,operand_type,number1,number2,number3))
         else:
             raise ValueError('Invalid input, expecting proper argument')
+        # FIX !!! Should it just return -1, instead of raising a value error?
+        # If the raise is removed, change code accordingly in the unittest.
         reply = self.conversation.Request(cmd)
         if config: # if config > 0
             rs = reply.split(",")
@@ -3176,6 +3229,78 @@ class pyzdde(object):
         sysPropData = process_get_set_SystemProperty(code,reply)
         return sysPropData
 
+    def zSetTol(self,operandNumber,col,value):
+        """Sets the tolerance operand data.
+
+        zSetTol(operandNumber,col,value)-> toleranceData
+
+        args:
+          operandNumber : (integer) tolerance operand number (row number in the
+                          tolerance editor, when greater than 0)
+          col           : (integer) 1 for tolerance Type
+                          (integer) 2-4 for int1-int3
+                          (integer) 5 for min
+                          (integer) 6 for max
+          value         : 4-character string (tolerancing operand code) if col==1,
+                          else float value to set
+        ret:
+          toleranceData. It is a number or a 6-tuple, depending upon `operandNumber`
+          as follows:
+            if operandNumber == 0, toleranceData = number where `number` is the number of
+            tolerance operands defined.
+            if operandNumber > 0, toleranceData = (tolType, int1, int2, min, max, int3)
+
+          it returns -1 if an error occurs.
+
+        See also zSetTolRow, zGetTol,
+        """
+        if col == 1: # value is string code for the operand
+            if zo.isZOperand(str(value),2):
+                cmd = "SetTol,{:.0f},{:.0f},{}".format(operandNumber,col,value)
+            else:
+                return -1
+        else:
+            cmd = "SetTol,{:.0f},{:.0f},{:1.20g}".format(operandNumber,col,value)
+        reply = self.conversation.Request(cmd)
+        if operandNumber == 0: # returns just the number of operands
+            return int(float(reply.rstrip()))
+        else:
+            return process_get_set_Tol(operandNumber,reply)
+        # FIX !!! currently, I am not able to set more than 1 row in the tolerance
+        # editor, through this command. I don't find anything like zInsertTol ...
+        # A similar function exist for Multi-Configuration editor (zInsertMCO) and
+        # for Multi-function editor (zInsertMFO). May need to contact Zemax Support.
+
+    def zSetTolRow(self,operandNumber,tolType,int1,int2,int3,minT,maxT):
+        """Helper function to set all the elements of a row (given by operandNumber)
+        in the tolerance editor.
+
+        zSetTolRow(operandNumber,tolType,int1,int2,int3,minT,maxT)->tolData
+
+        args:
+          operandNumber  : (integer greater than 0) tolerance operand number (row
+                           number in the tolerance editor)
+          tolType        : 4-character string (tolerancing operand code)
+          int1           : (integer) int1 parameter
+          int2           : (integer) int2 parameter
+          int3           : (integer) int3 parameter
+          minT           : (float) minimum value
+          maxT           : (float) maximum value
+        ret:
+          tolData        : tolerance data for the row indicated by the operandNumber
+                           if successful, else -1
+        """
+        tolData = self.zSetTol(operandNumber,1,tolType)
+        if tolData != -1:
+            self.zSetTol(operandNumber,2,int1)
+            self.zSetTol(operandNumber,3,int2)
+            self.zSetTol(operandNumber,4,int3)
+            self.zSetTol(operandNumber,5,minT)
+            self.zSetTol(operandNumber,6,maxT)
+            return self.zGetTol(operandNumber)
+        else:
+            return -1
+
     def zSetWave(self,n,arg1,arg2):
         """Sets the wavelength data in the ZEMAX DDE server.
 
@@ -3631,6 +3756,21 @@ def regressLiteralType(x):
         lit = str(x)
     return lit
 
+def process_get_set_NSCProperty(code,reply):
+    """Process reply for functions zGetNSCProperty and zSETNSCProperty"""
+    rs = reply.rstrip()
+    if rs == 'BAD COMMAND':
+        nscPropData = -1
+    else:
+        if code in (0,1,4,5,6,11,12,14,18,19,27,28,84,86,92,117,123):
+            nscPropData = str(rs)
+        elif code in (2,3,7,9,13,15,16,17,20,29,81,91,101,102,110,111,113,
+                      121,141,142,151,152,153161,162,171,172,173):
+            nscPropData = int(float(rs))
+        else:
+            nscPropData = float(rs)
+    return nscPropData
+
 def process_get_set_Solve(reply):
     """Process reply for functions zGetSolve and zSetSolve"""
     reply = reply.rstrip()
@@ -3650,20 +3790,14 @@ def process_get_set_SystemProperty(code,reply):
         sysPropData = int(float(reply))      # integer
     return sysPropData
 
-def process_get_set_NSCProperty(code,reply):
-    """Process reply for functions zGetNSCProperty and zSETNSCProperty"""
-    rs = reply.rstrip()
-    if rs == 'BAD COMMAND':
-        nscPropData = -1
-    else:
-        if code in (0,1,4,5,6,11,12,14,18,19,27,28,84,86,92,117,123):
-            nscPropData = str(rs)
-        elif code in (2,3,7,9,13,15,16,17,20,29,81,91,101,102,110,111,113,
-                      121,141,142,151,152,153161,162,171,172,173):
-            nscPropData = int(float(rs))
-        else:
-            nscPropData = float(rs)
-    return nscPropData
+def process_get_set_Tol(operandNumber,reply):
+    """Process reply for functions zGetTol and zSetTol"""
+    rs = reply.rsplit(",")
+    tolType = [rs[0]]
+    tolParam = [float(e) if i in (2,3) else int(float(e))
+                                 for i,e in enumerate(rs[1:])]
+    toleranceData = tuple(tolType + tolParam)
+    return toleranceData
 
 
 # ***************************************************************************
@@ -3757,7 +3891,7 @@ def test_PyZDDE():
         try:
             ret = link0.zPushLens(updateFlag=10)
         except:
-            info = exc_info()
+            info = sys.exc_info()
             print("Exception error:", info[0])
             #assert info[0] == 'exceptions.ValueError'
             assert cmp(str(info[0]),"<type 'exceptions.ValueError'>") == 0

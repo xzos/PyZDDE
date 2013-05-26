@@ -631,6 +631,19 @@ class TestPyZDDEFunctions(unittest.TestCase):
         #unit test for (purposeful) fail cases....
         #clean-up the dumped text files.
 
+    def test_zGetTol(self):
+        print("\nTEST: zGetTol()")
+        # Load a lens file into the DDE server
+        global zmxfp
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        #Try to set a valid tolerance operand
+        self.link0.zSetTol(1,1,'TCON') # set tol operand of 1st row
+        self.link0.zSetTol(1,2,1)      # set int1 =1
+        self.link0.zSetTol(1,5,0.25)   # set min = 0.25
+        self.link0.zSetTol(1,6,0.75)   # set max = 0.75
+        tolData = self.link0.zGetTol(1)
+        self.assertTupleEqual(tolData,('TCON', 1, 0, 0.25, 0.75, 0))
 
     def test_zGetTrace(self):
         print("\nTEST: zGetTrace()")
@@ -979,6 +992,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.link0.zInsertConfig(1)
         #insert an additional operand (row)
         self.link0.zInsertMCO(2)
+        #Try to set invalid row operand at surface 2
+        try:
+            multiConData = self.link0.zSetMulticon(0,1,'INVALIDOPERAND',2,0,0)
+        except ValueError:
+            print("Expected Value Error raised")
         #Set the row operands (both to thickness, of surfaces 2, and 4 respectively)
         multiConData = self.link0.zSetMulticon(0,1,'THIC',2,0,0)
         self.assertTupleEqual(multiConData,('THIC',2,0,0))
@@ -1084,6 +1102,31 @@ class TestPyZDDEFunctions(unittest.TestCase):
         sysPropData = self.link0.zSetSystemProperty(23,"SCHOTT HOYA OHARA")
         self.assertEqual(sysPropData,"SCHOTT HOYA OHARA")
 
+    def test_zSetTol(self):
+        print("\nTEST: zSetTol()")
+        # Load a lens file into the DDE server
+        global zmxfp
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        #Try to set a wrong tolerance operand
+        tolData = self.link0.zSetTol(1,1,'INVALIDOPERAND') # set tol operand of 1st row
+        self.assertEqual(tolData,-1)
+        #Try to set a valid tolerance operand
+        tolData = self.link0.zSetTol(1,1,'TCON') # set tol operand of 1st row
+        self.assertTupleEqual(tolData,('TCON', 0, 0, 0.0, 0.0, 0))
+
+    def test_zSetTolRow(self):
+        print("\nTEST: zSetTolRow()")
+        # Load a lens file into the DDE server
+        global zmxfp
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        #Try to set a wrong tolerance operand
+        tolData = self.link0.zSetTolRow(1,'INVALIDOPERAND',1,0,0,0.25,0.75)
+        self.assertEqual(tolData,-1)
+        #Try to set a valid tolerance row data
+        tolData = self.link0.zSetTolRow(1,'TRAD',1,0,0,0.25,0.75)
+        self.assertTupleEqual(tolData,('TRAD', 1, 0, 0.25, 0.75, 0))
 
     def test_zSetWave(self):
         print("\nTEST: zSetWave()")
@@ -1128,6 +1171,8 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zSetTimeout(self):
         print("\nTEST: zSetTimeout()")
         ret = self.link0.zSetTimeout(3)
+
+
 
 if __name__ == '__main__':
     unittest.main()
