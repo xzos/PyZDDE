@@ -645,9 +645,9 @@ def isZOperand(operand, operandType=0):
         return False
 
 def showZOperandDescription(operand):
-    """Get a short description about the operand.
+    """Get a short description about an operand.
 
-    getZOperandDescription(operand)->description
+    showZOperandDescription(operand)->description
 
     args:
       operand  : a valid ZEMAX operand

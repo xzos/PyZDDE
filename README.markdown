@@ -26,6 +26,10 @@ PyZDDE/LICENSE      : License file (MIT License)
 
 PyZDDE/pyZDDE.py   : Main file containing the pyZDDE code
 
+zemaxoperands.py     : File containing the ZEMAX operands class and associated functions
+
+zemaxbuttons.py       : File containing the ZEMAX buttons class and associated functions.
+
 PyZDDE/Test             : Folder containing the unit-test code for pyZDDE 
 
 pyZDDE/Examples     : Folder containing example codes that uses pyZDDE

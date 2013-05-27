@@ -32,6 +32,7 @@ currDir = os.path.dirname(os.path.realpath(__file__))
 if currDir not in sys.path:
     sys.path.append(currDir)
 import zemaxoperands as zo
+import zemaxbuttons  as zb
 
 DEBUG_PRINT_LEVEL = 0 # 0=No debug prints, but allow all essential prints
                       # 1 to 2 levels of debug print, 2 = print all
