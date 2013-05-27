@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Name:        pyZDDE.py
+# Name:        pyzdde.py
 # Purpose:     Python based DDE link with ZEMAX server, similar to Matlab based
 #              MZDDE toolbox.
 # Author:      Indranil Sinharoy
@@ -50,7 +50,7 @@ def debugPrint(level,msg):
         print("DEBUG PRINT (Level" + str(level)+ ": )" + msg)
     return
 
-class pyzdde(object):
+class PyZDDE(object):
     """Create an instance of PyZDDE class"""
     __chNum = -1          # channel Number
     __liveCh = 0          # number of live channels.
@@ -58,8 +58,8 @@ class pyzdde(object):
     DDE_TIMEOUT = 3000    # Not implemented (for future), timeout (pywin32 DDE = 1 min)
 
     def __init__(self):
-        pyzdde.__chNum +=1   # increment ch. count when DDE ch. is instantiated.
-        self.appName = "ZEMAX"+str(pyzdde.__chNum) if pyzdde.__chNum > 0 else "ZEMAX"
+        PyZDDE.__chNum +=1   # increment ch. count when DDE ch. is instantiated.
+        self.appName = "ZEMAX"+str(PyZDDE.__chNum) if PyZDDE.__chNum > 0 else "ZEMAX"
         self.connection = False  # 1/0 depending on successful connection or not
 
     # ZEMAX <--> PyZDDE client connection methods
@@ -79,12 +79,12 @@ class pyzdde(object):
         See also zDDEClose, zDDEStart, zSetTimeout
         """
         debugPrint(1,"appName = " + self.appName)
-        debugPrint(1,"liveCh = " + str(pyzdde.__liveCh))
-        if self.appName=="ZEMAX" or pyzdde.__liveCh==0: # do this only one time or when there is no channel
-            pyzdde.server = dde.CreateServer()
-            pyzdde.server.Create("ZCLIENT")           # Name of the client
+        debugPrint(1,"liveCh = " + str(PyZDDE.__liveCh))
+        if self.appName=="ZEMAX" or PyZDDE.__liveCh==0: # do this only one time or when there is no channel
+            PyZDDE.server = dde.CreateServer()
+            PyZDDE.server.Create("ZCLIENT")           # Name of the client
         # Try to create individual conversations for each ZEMAX application.
-        self.conversation = dde.CreateConversation(pyzdde.server)
+        self.conversation = dde.CreateConversation(PyZDDE.server)
         try:
             self.conversation.ConnectTo(self.appName," ")
         except:
@@ -93,7 +93,7 @@ class pyzdde(object):
             return -1
         else:
             debugPrint(1,"Zemax instance successfully connected")
-            pyzdde.__liveCh += 1 # increment the number of live channels
+            PyZDDE.__liveCh += 1 # increment the number of live channels
             self.connection = True
             #DDE_TIMEOUT = 3000 #The default timeout
             # !!! FIX: Not yet implemented.
@@ -107,15 +107,15 @@ class pyzdde(object):
         Status = 0 on success.
         """
         # Close the server only if a channel was truely established and it is the last one.
-        if self.connection and pyzdde.__liveCh <=1:
+        if self.connection and PyZDDE.__liveCh <=1:
             self.server.Shutdown()
             self.connection = False
-            pyzdde.__liveCh -=1  # This will become zero now. (reset)
-            pyzdde.__chNum = -1  # Reset the chNum ...
+            PyZDDE.__liveCh -=1  # This will become zero now. (reset)
+            PyZDDE.__chNum = -1  # Reset the chNum ...
             debugPrint(2,"server shutdown")
         elif self.connection:  # if additional channels were successfully created.
             self.connection = False
-            pyzdde.__liveCh -=1
+            PyZDDE.__liveCh -=1
             debugPrint(2,"liveCh decremented without shutting down DDE channel")
         else:   # if zDDEClose is called by an object which didn't have a channel anyways
             debugPrint(3,"Nothing to do")
@@ -132,7 +132,7 @@ class pyzdde(object):
         See also zDDEInit, zDDEStart
         """
         warnings.warn("Not implemented. Default timeout = 1 min")
-        pyzdde.DDE_TIMEOUT = round(time*1000) # set time in milliseconds
+        PyZDDE.DDE_TIMEOUT = round(time*1000) # set time in milliseconds
 
     def __del__(self):
         """Destructor"""
@@ -309,7 +309,7 @@ class pyzdde(object):
         be placed in a loop which executes until zExportCheck() returns 0.
 
         A typical loop test in Python code might look like this (assuming `ddelink`
-        is an instance of pyZDDE):
+        is an instance of PyZDDE):
 
         # check if the export is done
         still_working = True
@@ -1574,7 +1574,7 @@ class pyzdde(object):
                            semi-diameter, etc. (see the table below)
         ret:
           solveData     : a tuple, depending on the code value according to the
-                          following table.
+                          following table if successful, else -1.
         ------------------------------------------------------------------------
         GetSolve Code           -  Returned data format
         ------------------------------------------------------------------------
@@ -1879,7 +1879,7 @@ class pyzdde(object):
                 optimization. (0=default). See the manual for details.
 
         NOTE: Currently Zemax returns just "0" for the codes: 102,103, 104,105,
-              106,107,108,109, and 110. This is unexpected! So, pyZDDE will return
+              106,107,108,109, and 110. This is unexpected! So, PyZDDE will return
               the reply (string) as is for the user to handle.
         ------------------------------------------------------------------------
         See also zSetSystemProperty
@@ -3012,7 +3012,8 @@ class pyzdde(object):
                                        pickupcolumn
         ret:
           solveData     : a tuple, depending on the code value according to the
-                          above table (same return as zGetSolve).
+                          above table (same return as zGetSolve), if successful,
+                          -1 if the command is a 'BAD COMMAND'
 
         Note: The `solvetype` is an integer code, & the parameters have meanings
         that depend upon the solve type; see the chapter "SOLVES" in the Zemax
@@ -3448,7 +3449,7 @@ class pyzdde(object):
                 optimization. (0=default). See the manual for details.
         ------------------------------------------------------------------------
         NOTE: Currently Zemax returns just "0" for the codes: 102,103, 104,105,
-              106,107,108,109, and 110. This is unexpected! So, pyZDDE will return
+              106,107,108,109, and 110. This is unexpected! So, PyZDDE will return
               the reply (string) as is for the user to handle. The zSetSystemProperty
               functions as expected nevertheless.
 
@@ -4109,7 +4110,10 @@ def process_get_set_Solve(reply):
     """Process reply for functions zGetSolve and zSetSolve"""
     reply = reply.rstrip()
     rs = reply.split(",")
-    return tuple([regressLiteralType(x) for x in rs])
+    if 'BAD COMMAND' in rs:
+        return -1
+    else:
+        return tuple([regressLiteralType(x) for x in rs])
 
 def process_get_set_SystemProperty(code,reply):
     """Process reply for functions zGetSystemProperty and zSetSystemProperty"""
@@ -4141,16 +4145,16 @@ def process_get_set_Tol(operandNumber,reply):
 # Currently all functionality are being tested using the unit test module.
 # The test_PyZDDE() function are left for quick test. The test_PyZDDE() function
 # will not be executed if the module is imported! In order to execute the
-# test_PyZDDE() function, execute this (pyZDDE.py) module. It may prove to be
+# test_PyZDDE() function, execute this (pyzdde.py) module. It may prove to be
 #useful to quickly test your system.
 
 def test_PyZDDE():
-    """Test the pyZDDE module functions"""
+    """Test the pyzdde module functions"""
     zmxfp = os.path.dirname(os.path.realpath(__file__))+'\\ZMXFILES\\'
     # Create PyZDDE object(s)
-    link0 = pyzdde()
-    link1 = pyzdde()
-    link2 = pyzdde()  # this object shall be deleted randomly
+    link0 = PyZDDE()
+    link1 = PyZDDE()
+    link2 = PyZDDE()  # this object shall be deleted randomly
 
     print("\nTEST: zDDEInit()")
     print("---------------")
@@ -4161,7 +4165,7 @@ def test_PyZDDE():
     print("Connection status for Link 0:", link0.connection)
     time.sleep(0.1)   # Not required, but just for observation
 
-    #link1 = pyzdde()
+    #link1 = PyZDDE()
     status = link1.zDDEInit()
     print("Status for link 1:",status)
     #assert status == 0   # In older versions of Zemax, unable to create second
