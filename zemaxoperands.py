@@ -576,7 +576,7 @@ def showZOperandList(operandType = 0):
         totOperands = (len(Operands.opt_operands) +
                        len(Operands.tol_operands) +
                        len(Operands.mco_operands))
-        print("\nTotal number of operands = {:.0f}".format(totOperands))
+        print("\nTotal number of operands = {:d}".format(totOperands))
     else:
         if operandType == 1:
             print("Listing Optimization operands:")
@@ -589,7 +589,7 @@ def showZOperandList(operandType = 0):
             toList = sorted(Operands.mco_operands.items())
         for elem in toList:
             print("[",elem[0],"]",elem[1])
-        print("\nTotal number of operands = {:.0f}".format(len(toList)))
+        print("\nTotal number of operands = {:d}".format(len(toList)))
 
 def getZOperandCount(operandType = 0):
     """Returns the total number of operands for the specified operand type
