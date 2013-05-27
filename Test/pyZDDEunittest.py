@@ -682,6 +682,10 @@ class TestPyZDDEFunctions(unittest.TestCase):
         if TestPyZDDEFunctions.pRetVar:
             print("Ray trace", rayTraceData)
 
+    @unittest.skip("To implement")
+    def test_zGetUDOSystem(self):
+        print("\nTEST: zGetUDOSystem()")
+
     def test_zGetUpdate(self):
         print("\nTEST: zGetUpdate()")
         # Load & then push a lens file into the LDE
@@ -1048,6 +1052,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertEqual(primaryWaveNumber,oWaveData[0])
         self.assertEqual(len(wavelengths),oWaveData[1])
 
+    @unittest.skip("To implement test")
+    def test_zSetSolve(self):
+        print("\nTEST: zSetSolve()")
+        pass
+
     @unittest.skip("To implement")
     def test_zSetSurfaceData(self):
         print("\nTEST: zSetSurfaceData()")
@@ -1128,6 +1137,10 @@ class TestPyZDDEFunctions(unittest.TestCase):
         tolData = self.link0.zSetTolRow(1,'TRAD',1,0,0,0.25,0.75)
         self.assertTupleEqual(tolData,('TRAD', 1, 0, 0.25, 0.75, 0))
 
+    @unittest.skip("To implement")
+    def test_zSetUDOItem(self):
+        print("\nTEST: zSetUDOItem()")
+
     def test_zSetWave(self):
         print("\nTEST: zSetWave()")
         wavelength1 = 0.48613270
@@ -1153,6 +1166,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertEqual(waveData2[0],wavelength2)
         self.assertEqual(waveData2[1],0.5)
 
+    def test_zSetVig(self):
+        print("\TEST: zSetVig()")
+        retVal = self.link0.zSetVig()
+        self.assertEqual(retVal,0)
+
     def test_zSetWaveTuple(self):
         print("\nTEST: zSetWaveTuple()")
         # Create the wavelength and weight tuples
@@ -1167,12 +1185,22 @@ class TestPyZDDEFunctions(unittest.TestCase):
         for i,d in enumerate(oWavelengths):
             self.assertAlmostEqual(wavelengths[i],d,places=4)
 
+    @unittest.skip("Not necessary!")
+    def test_zWindowMaximize(self):
+        pass
+
+    @unittest.skip("Not necessary!")
+    def test_zWindowMinimize(self):
+        pass
+
+    @unittest.skip("Not necessary!")
+    def test_zWindowRestore(self):
+        pass
+
     @unittest.skip("Function not yet implemented")
     def test_zSetTimeout(self):
         print("\nTEST: zSetTimeout()")
         ret = self.link0.zSetTimeout(3)
-
-
 
 if __name__ == '__main__':
     unittest.main()

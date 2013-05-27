@@ -1,11 +1,11 @@
 #-------------------------------------------------------------------------------
-# Name:        zemaxOperands.py
+# Name:        zemaxoperands.py
 # Purpose:     Class of ZEMAX operands
 #
 # Author:      Indranil Sinharoy
 #
 # Created:     24/05/2013
-# Copyright:   (c) Indranil 2013
+# Copyright:   (c) Indranil Sinharoy, 2012 - 2013
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
@@ -25,40 +25,63 @@ class Operands(object):
     The list of operands were compiled from ZEMAX Version 13.0404, 2013.
     """
     opt_operands = {  # key is operand type, value is a short description
-    "ABCD":"The ABCD values used by the grid distortion feature to compute generalized distortion.",
+    "ABCD":("The ABCD values used by the grid distortion feature to compute "
+            "generalized distortion. See also DISA."),
     "ABGT":"Absolute value of operand greater than.",
     "ABLT":"Absolute value of operand less than.",
     "ABSO":"Absolute value of the operand defined by Op#.",
     "ACOS":"Arccosine of the value of the operand defined by Op#.",
     "AMAG":"Angular magnification.",
-    "ANAC":"Angular aberration radial direction measured in image space with respect to the centroid at the wavelength defined by Wave.",
-    "ANAR":"Angular aberration radius measured in image space at the wavelength defined by Wave with respect to the primary wavelength chief ray.",
-    "ANAX":"Angular aberration x direction measured in image space at the wavelength defined by Wave with respect to the primary wavelength chief ray.",
-    "ANAY":"Angular aberration y direction measured in image space at the wavelength defined by Wave with respect to the primary wavelength chief ray.",
-    "ANCX":"Angular aberration x direction measured in image space at the wavelength defined by Wave with respect to the centroid.",
-    "ANCY":"Angular aberration y direction measured in image space at the wavelength defined by Wave with respect to the centroid.",
+    "ANAC":("Angular aberration radial direction measured in image space with "
+            "respect to the centroid at the wavelength defined by Wave."),
+    "ANAR":("Angular aberration radius measured in image space at the "
+            "wavelength defined by Wave with respect to the primary wavelength "
+            "chief ray."),
+    "ANAX":("Angular aberration x direction measured in image space at the "
+            "wavelength defined by Wave with respect to the primary wavelength "
+            "chief ray."),
+    "ANAY":("Angular aberration y direction measured in image space at the "
+            "wavelength defined by Wave with respect to the primary wavelength "
+            "chief ray."),
+    "ANCX":("Angular aberration x direction measured in image space at the "
+            "wavelength defined by Wave with respect to the centroid."),
+    "ANCY":("Angular aberration y direction measured in image space at the "
+            "wavelength defined by Wave with respect to the centroid."),
     "ASIN":"Arcsine of the value of the operand defined by Op#.",
-    "ASTI":"Astigmatism in waves contributed by the surface defined by Surf at the wavelength defined by Wave.",
+    "ASTI":("Astigmatism in waves contributed by the surface defined by Surf at "
+            "the wavelength defined by Wave."),
     "ATAN":"Arctangent of the value of the operand defined by Op#.",
-    "AXCL":"Axial color, measured in lens units for focal systems and diopters for afocal systems.",
+    "AXCL":("Axial color, measured in lens units for focal systems and diopters "
+            "for afocal systems."),
     "BFSD":"Best Fit Sphere (BFS) data.",
-    "BIOC":"Biocular Convergence. Returns the convergence between two eye configurations in milliradians.",
-    "BIOD":"Biocular Dipvergence. Returns the dipvergence between two eye configurations in milliradians.",
+    "BIOC":("Biocular Convergence. Returns the convergence between two eye "
+            "configurations in milliradians."),
+    "BIOD":("Biocular Dipvergence. Returns the dipvergence between two eye "
+            "configurations in milliradians."),
     "BIPF":"Unused.",
     "BLNK":"Does nothing. Used for separating portions of the operand list.",
     "BSER":"Boresight error.",
-    "CEGT":"Boundary operand that constrains the coating extinction offset to be greater than the target value.",
-    "CELT":"Boundary operand that constrains the coating extinction offset to be less than the target value.",
+    "CEGT":("Boundary operand that constrains the coating extinction offset to "
+            "be greater than the target value."),
+    "CELT":("Boundary operand that constrains the coating extinction offset to "
+            "be less than the target value."),
     "CENX":"Centroid X position. See also CENY, CNPX, CNPY, CNAX, and CNAY.",
     "CENY":"Centroid Y position. See also CENX, CNPX, CNPY, CNAX, and CNAY.",
-    "CEVA":"Boundary operand that constrains the coating extinction offset to be equal to the target value.",
-    "CIGT":"Boundary operand that constrains the coating index offset of the coating layer to be greater than the target value.",
-    "CILT":"Boundary operand that constrains the coating index offset of the coating layer to be less than the target value.",
-    "CIVA":"Boundary operand that constrains the coating index offset of the coating layer to be equal to the target value.",
+    "CEVA":("Boundary operand that constrains the coating extinction offset to "
+            "be equal to the target value."),
+    "CIGT":("Boundary operand that constrains the coating index offset of the "
+            "coating layer to be greater than the target value."),
+    "CILT":("Boundary operand that constrains the coating index offset of the "
+            "coating layer to be less than the target value."),
+    "CIVA":("Boundary operand that constrains the coating index offset of the "
+            "coating layer to be equal to the target value."),
     "CMFV":"Construction merit function value.",
-    "CMGT":"Boundary operand that constrains the coating multiplier of the coating layer to be greater than the target value.",
-    "CMLT":"Boundary operand that constrains the coating multiplier of the coating layer to be less than the target value.",
-    "CMVA":"Boundary operand that constrains the coating multiplier of the coating layer to be equal to the target value.",
+    "CMGT":("Boundary operand that constrains the coating multiplier of the "
+            "coating layer to be greater than the target value."),
+    "CMLT":("Boundary operand that constrains the coating multiplier of the "
+            "coating layer to be less than the target value."),
+    "CMVA":("Boundary operand that constrains the coating multiplier of the "
+            "coating layer to be equal to the target value."),
     "CNAX":"Centroid angular x direction. See also CNAY, CNPX, CNPY, CENX, CENY.",
     "CNAY":"Centroid angular y direction. See CNAX.",
     "CNPX":"Similar to CNAX, but computes the centroid position rather than angle.",
@@ -361,8 +384,10 @@ class Operands(object):
     "TTHI":"Sum of thicknesses of surfaces from Surf1 to Surf2. See TGTH.",
     "TTLT":"Total thickness less than. See TTGT.",
     "TTVA":"Total thickness value. See TTGT.",
-    "UDOP":"User defined operand. See also ZPLM.",
-    "USYM":"If present in merit function, instructs ZEMAX to assume radial symmetry exists in the lens even if ZEMAX detects symmetry does not.",
+    "UDOP":("User defined operand. Used for optimizing numerical results "
+            "computed in externally compiled programs. See also ZPLM."),
+    "USYM":("If present in merit function, instructs ZEMAX to assume radial "
+            "symmetry exists in the lens even if ZEMAX detects symmetry does not."),
     "VOLU":"Volume of element(s) in cubic cm.",
     "WFNO":"Working F/#. See `Working F/#` on page 62, and ISFN, SFNO, and TFNO.",
     "WLEN":"Wavelength. This operand returns the wavelength defined by Wave in micrometers.",
@@ -518,7 +543,7 @@ class Operands(object):
     "YFIE":"Y-field value.",
     }
 
-def showZOperandList(operandType = 2):
+def showZOperandList(operandType = 0):
     """Lists the operands for the specified type with a shot description of
     each operand.
 
@@ -535,11 +560,11 @@ def showZOperandList(operandType = 2):
     if operandType == 0:
         print("Listing all operands:")
         for elem in sorted(Operands.opt_operands.items()):
-            print(elem[0],elem[1])
+            print("[",elem[0],"]",elem[1])
         for elem in sorted(Operands.tol_operands.items()):
-            print(elem[0],elem[1])
+            print("[",elem[0],"]",elem[1])
         for elem in sorted(Operands.mco_operands.items()):
-            print(elem[0],elem[1])
+            print("[",elem[0],"]",elem[1])
         totOperands = (len(Operands.opt_operands) +
                        len(Operands.tol_operands) +
                        len(Operands.mco_operands))
@@ -555,7 +580,7 @@ def showZOperandList(operandType = 2):
             print("Listing Multi-configuration operands:")
             toList = sorted(Operands.mco_operands.items())
         for elem in toList:
-            print(elem[0], elem[1])
+            print("[",elem[0],"]",elem[1])
         print("\nTotal number of operands = {:.0f}".format(len(toList)))
 
 def getZOperandCount(operandType = 0):
@@ -583,7 +608,7 @@ def getZOperandCount(operandType = 0):
     elif operandType == 3:
         return numMcoOperands
 
-def isZOperand(operand, operandType):
+def isZOperand(operand, operandType=0):
     """Returns True or False depending on whether the operand is a valid operand
     of the specified operendType.
 
