@@ -1290,37 +1290,34 @@ class PyZDDE(object):
     def zGetOperand(self,row,column):
         """Returns the operand data from the Merit Function Editor.
 
-        zGetOperand(row,column)->
+        zGetOperand(row,column)-> operandData
 
         args:
-          row   : (int) row
-          column : (int) column
+          row   : (integer) row operand number in the MFE
+          column : (integer) column
         ret:
-          operandData : integer, float or string depending upon column.
-                        Column        Returned operand type
-                         1               (operand) string
-                         2               (int1) integer
-                         3               (int2) integer
-                         4-7             (data1-data4) float
-                         8               (target) float
-                         9               (weight) float
-                         10              (contribution) float
-                         12-13           (data5-data6) float
-
+          operandData : integer, float or string depending upon column  (see
+                        table below) if successful, else -1.
+                        -----------------------------------------------
+                        Column        Returned operand data
+                        -----------------------------------------------
+                         1               operand type (string)
+                         2               int1 (integer)
+                         3               int2 (integer)
+                         4-7             data1-data4 (float)
+                         8               target (float)
+                         9               weight (float)
+                         10              contribution (float)
+                         12-13           data5-data6 (float)
+                        -----------------------------------------------
         Note: To update the merit function prior to calling zGetOperand function,
               use the zOptimize() function with the number of cycles set to -1.
 
         See also zSetOperand and zOptimize.
         """
-        cmd = "GetOperand,{:.0f},{:.0f}".format(row,column)
+        cmd = "GetOperand,{:.0f},{:.0f}".format(row, column)
         reply = self.conversation.Request(cmd)
-        rs = reply.rstrip()
-        if column == 1:
-            return str(rs)
-        elif column in (2,3):
-            return int(float(rs))
-        else:
-            return float(rs)
+        return process_get_set_Operand(column, reply)
 
     def zGetPath(self):
         """Returns the full path name to the <data> folder, and the path name to
@@ -2230,7 +2227,7 @@ class PyZDDE(object):
         ret:
             retValue      : new number of operands (rows).
 
-        See also zDeleteMFO.
+        See also zDeleteMFO. Generally, you may want to use zSetOperand() afterwards.
         """
         return int(self.conversation.Request("InsertMFO,{:.0f}".format(operandNumber)))
 
@@ -2940,6 +2937,52 @@ class PyZDDE(object):
         waveData = tuple([int(elem) for elem in rs])
         return waveData
 
+    def zSetOperand(self, row, column, value):
+        """Sets the operand data in the Merit Function Editor.
+
+        zSetOperand(row,column,value)->operandData
+
+        args:
+          row    : (integer) row operand number in the MFE
+          column : (integer) column number (see table below)
+                        -----------------------------------------------
+                        Column #           value
+                        -----------------------------------------------
+                         1               operand type (string)
+                         2               int1 (integer)
+                         3               int2 (integer)
+                         4-7             data1-data4 (float)
+                         8               target (float)
+                         9               weight (float)
+                         10              contribution (float)
+                         12-13           data5-data6 (float)
+                        -----------------------------------------------
+          value : string/integer/float. See table above.
+        ret:
+          operandData : the value (string/integer/float) set in the MFE cell
+
+        Note:
+            1. To update the merit function after called zSetOperand() function,
+               use the zOptimize() function with the number of cycles set to -1.
+            2. Use zInsertMFO() to insert additional rows, before calling
+               zSetOperand().
+
+        See also zGetOperand, zOptimize, zInsertMFO.
+        """
+        if column == 1:
+            if zo.isZOperand(str(value)):
+                value = str(value)
+            else:
+                print("Not a valid operand in zSetOperand().")
+                return -1
+        elif column in (2,3):
+            value = '{}'.format(int(float(value)))
+        else:
+            value = '{}'.format(float(value))
+        cmd = "SetOperand,{:.0f},{:.0f},{}".format(row, column,value)
+        reply = self.conversation.Request(cmd)
+        return process_get_set_Operand(column, reply)
+
     def zSetPolState(self,nlsPolarized,Ex,Ey,Phx,Phy):
         """Sets the default polarization state. These parameters correspond to
         the Polarization tab under the General settings.
@@ -2971,7 +3014,25 @@ class PyZDDE(object):
         return tuple(polStateData)
 
     def zSetSettingsData(self, number, data):
-        pass
+        """This function sets the settings data used by a window in temporary
+        storage before calling zMakeGraphicWindow or zMakeTextWindow. The data
+        may be retrieved using zGetSettingsData.
+
+        zSetSettingsData(number, data)->settingsData
+
+        args:
+          number  : (integer) Currently, only number = 0 is supported. This number
+                    may be used to expand the feature in the future.
+          data    :
+        ret:
+          settingsData: (string)
+
+        Note: Please refer to "How ZEMAX calls the client" in the Zemax manual.
+        See also zGetSettingsData.
+        """
+        cmd = "SettingsData,{:.0f},{}".format(number,data)
+        reply = self.conversation.Request(cmd)
+        return str(reply.rstrip())
 
     def zSetSolve(self, surfaceNumber, code, *solveData):
         """Sets data for solves and/or pickups on the surface with number
@@ -4105,6 +4166,20 @@ def process_get_set_NSCProperty(code,reply):
         else:
             nscPropData = float(rs)
     return nscPropData
+
+def process_get_set_Operand(column, reply):
+    """Process reply for functions zGetOperand and zSetOperand"""
+    rs = reply.rstrip()
+    if column == 1:
+        #ensure that it is a string ... as it is supposed to return the operand
+        if isinstance(regressLiteralType(rs),str):
+            return str(rs)
+        else:
+            return -1
+    elif column in (2,3):
+        return int(float(rs))
+    else:
+        return float(rs)
 
 def process_get_set_Solve(reply):
     """Process reply for functions zGetSolve and zSetSolve"""

@@ -906,7 +906,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         # Now, call the zQuickFocus() function
         ret = self.link0.zQuickFocus(0,0) # RMS spot size, chief ray as reference
         print(ret)
-        # I might need to have some suraces here.
+        # I might need to have some surfaces here.
 
     @unittest.skip("To implement test")
     def test_zSetAperture(self):
@@ -1051,6 +1051,42 @@ class TestPyZDDEFunctions(unittest.TestCase):
         # verify
         self.assertEqual(primaryWaveNumber,oWaveData[0])
         self.assertEqual(len(wavelengths),oWaveData[1])
+
+    def test_zSetOperand(self):
+        print("\nTEST: zSetOperand()")
+        global zmxfp
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        #Try to set an invalid operand
+        operandData = self.link0.zSetOperand(1,1,'INVALID')
+        self.assertEqual(operandData,-1)
+        #Now try to set an operand in the first row
+        operandData = self.link0.zSetOperand(1,1,'EFFL')
+        self.assertEqual(operandData,'EFFL')
+        operandData = self.link0.zSetOperand(1,3,1) # Set wave to 1
+        self.assertEqual(operandData,1)
+        operandData = self.link0.zSetOperand(1,8,55.5) # Set Target to 55.5 mm
+        self.assertAlmostEqual(operandData,55.5,places=4)
+        #Now try to set an operand into a row, that is not yet inserted in the MFE
+        operandData = self.link0.zSetOperand(2,1,'CVLT')
+        self.assertEqual(operandData,-1)
+        #Insert a multi-function operand row
+        ret = self.link0.zInsertMFO(2)
+        self.assertEqual(ret,2)
+        operandData = self.link0.zSetOperand(2,1,'CVLT')
+        self.assertEqual(operandData,'CVLT')
+        self.link0.zInsertMFO(3)
+        operandData = self.link0.zSetOperand(3,1,'CVGT')
+        self.assertEqual(operandData,'CVGT')
+        operandData = self.link0.zSetOperand(3,2,1) # surface = 1
+        self.assertEqual(operandData,1)
+        operandData = self.link0.zSetOperand(3,9,0.5) # weight = 0.5
+        self.assertEqual(operandData,0.5)
+
+    @unittest.skip("To implement test")
+    def test_zSetSettingsData(self):
+        print("\nTEST: zSetSettingsData()")
+        pass
 
     @unittest.skip("To implement test")
     def test_zSetSolve(self):
