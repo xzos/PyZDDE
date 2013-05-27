@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
-# Name:        pyZDDEunittest.py
-# Purpose:     pyZDDE unit test using the python unittest framework
+# Name:        PyZDDEunittest.py
+# Purpose:     PyZDDE unit test using the python unittest framework
 #
 # Author:      Indranil Sinharoy
 #
@@ -26,9 +26,9 @@ if testdirectory not in sys.path:
 if pyzddedirectory not in sys.path:
     sys.path.append(pyzddedirectory)
 
-import pyZDDE
+import pyzdde
 
-reload(pyZDDE)  # In order to ensure that the latest changes in the pyZDDE module
+reload(pyzdde)  # In order to ensure that the latest changes in the pyzdde module
                 # are updated here.
 
 # ZEMAX file directory
@@ -47,7 +47,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def setUp(self):
         # Create the DDE channel object
-        self.link0 = pyZDDE.pyzdde()
+        self.link0 = pyzdde.PyZDDE()
         # Initialize the DDE
         # The DDE initialization has be done here, and so cannot be tested
         # otherwise as no zDDExxx functions can be carried before initialization.

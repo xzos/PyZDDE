@@ -20,20 +20,20 @@ PyZDDE is a Python toolbox for communicating with ZEMAX using the Microsoft's Dy
 
 ##FILES AND DIRECTORIES:
 
-PyZDDE                     : Top-level folder for the toolbox
+PyZDDE                     : Top-level folder for the toolbox 
 
 PyZDDE/LICENSE      : License file (MIT License)
 
-PyZDDE/pyZDDE.py   : Main file containing the pyZDDE code
+PyZDDE/pyzdde.py   : Main file containing the PyZDDE code. The user must import this module to use the toolbox as "import pyzdde"
 
-zemaxoperands.py     : File containing the ZEMAX operands class and associated functions
+PyZDDE/zemaxoperands.py     : File containing the ZEMAX operands class and associated functions
 
-zemaxbuttons.py       : File containing the ZEMAX buttons class and associated functions.
+PyZDDE/zemaxbuttons.py       : File containing the ZEMAX buttons class and associated functions.
 
-PyZDDE/Test             : Folder containing the unit-test code for pyZDDE 
+PyZDDE/Test             : Folder containing the unit-test code for PyZDDE 
 
-pyZDDE/Examples     : Folder containing example codes that uses pyZDDE
+PyZDDE/Examples     : Folder containing example codes that uses PyZDDE
 
-pyZDDE/ZMXFILES    : Folder containing a few Zemax Lens files for testing the functionality of the toolbox.
+PyZDDE/ZMXFILES    : Folder containing a few Zemax Lens files for testing the functionality of the toolbox.
 
 

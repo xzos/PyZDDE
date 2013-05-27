@@ -23,15 +23,15 @@ cd = cd[0:ind-1]
 if cd not in sys.path:
     sys.path.append(cd)
 # ************************************************************************
-import pyZDDE
+import pyzdde
 
 # The ZEMAX file path
 zmxfp = cd+'\\ZMXFILES\\'
 zmxfile = 'Cooke 40 degree field.zmx'
 filename = zmxfp+zmxfile
 
-# Create a pyZDDE object
-link0 = pyZDDE.pyzdde()
+# Create a PyZDDE object
+link0 = pyzdde.PyZDDE()
 
 # Initiate the DDE link
 status = link0.zDDEInit()

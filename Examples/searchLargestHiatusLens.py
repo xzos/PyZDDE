@@ -46,7 +46,7 @@ if exampleDirectory not in sys.path:
 if pyzddedirectory not in sys.path:
     sys.path.append(pyzddedirectory)
 
-import pyZDDE
+import pyzdde
 
 #Program control parameters
 ORDERED_HIATUS_DATA_IN_FILE = True   # Sorted output in a file ? [May take a little longer time]
@@ -150,7 +150,7 @@ root.mainloop()
 #end of Tikinter GUI code
 
 # Create a DDE channel object
-pyZmLnk = pyZDDE.pyzdde()
+pyZmLnk = pyzdde.PyZDDE()
 #Initialize the DDE link
 stat = pyZmLnk.zDDEInit()
 

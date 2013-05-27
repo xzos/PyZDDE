@@ -24,8 +24,8 @@ if testdirectory not in sys.path:
 if pyzddedirectory not in sys.path:
     sys.path.append(pyzddedirectory)
 
-# Import the pyZDDE module
-import pyZDDE
+# Import the pyzdde module
+import pyzdde
 
 # ZEMAX file directory
 zmxfp = pyzddedirectory+'\\ZMXFILES\\'
@@ -38,9 +38,9 @@ def testSetup():
 def test_scenario_multipleChannel():
     """Test multiple channels of communication with ZEMAX"""
     # Create multiple client objects
-    link0 = pyZDDE.pyzdde()
-    link1 = pyZDDE.pyzdde()
-    link2 = pyZDDE.pyzdde()
+    link0 = pyzdde.PyZDDE()
+    link1 = pyzdde.PyZDDE()
+    link2 = pyzdde.PyZDDE()
 
     # Initialize
     ch0_status = link0.zDDEInit()
