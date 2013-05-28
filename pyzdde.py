@@ -2133,23 +2133,33 @@ class PyZDDE(object):
         return (tuple(waveDataTuple[0]),tuple(waveDataTuple[1]))
 
     def zHammer(self,numOfCycles,algorithm):
-        """Calls the Hammer optimizer. Note that the number of cycles should be
-        kept small enough to allow the algorithm to complete and return before
-        the DDE communication times out, or an error will occur.
+        """Calls the Hammer optimizer.
 
         zHammer(numOfCycles,algorithm)->finalMeritFn
 
         args:
           numOfCycles  : (integer) the number of cycles to run
-                         if numOfCycles < 1, Hammer updates all operands in the
+                         if numOfCycles < 1, zHammer updates all operands in the
                          merit function and returns the current merit function,
                          and no optimization is performed.
-          algorithm    :  0 = Damped Least Squares, 1 = Orthogonal descent
+          algorithm    : 0 = Damped Least Squares
+                         1 = Orthogonal descent
         ret:
           finalMeritFn : (float) the final merit function.
 
-        Note:  If the merit function value returned is 9.0E+009, the optimization
-        failed, usually because the lens or merit function could not be evaluated.
+        Note:
+          1. If the merit function value returned is 9.0E+009, the optimization
+             failed, usually because the lens or merit function could not be
+             evaluated.
+          2. The number of cycles should be kept small enough to allow the algorithm
+             to complete and return before the DDE communication times out, or
+             an error will occur. One possible way to achieve high number of
+             cycles could be to call zHammer multiple times in a loop, each time
+             comparing the returned merit function with few of the previously
+             returned (& stored) merit functions to determine if an optimum has
+             been attained.
+
+        See also zOptimize,  zLoadMerit, zsaveMerit
         """
         cmd = "Hammer,{:1.2g},{:d}".format(numOfCycles,algorithm)
         reply = self.conversation.Request(cmd)
@@ -2266,17 +2276,49 @@ class PyZDDE(object):
         """
         return int(self.conversation.Request("InsertSurface,"+str(surfNum)))
 
-    def zLoadFile(self,filename,append=None):
+    def zLoadDetector(self, surfaceNumber, objectNumber, fileName):
+        """Loads the data saved in a file to an NSC Detector Rectangle, Detector
+        Color, Detector Polar, or Detector Volume object.
+
+        zLoadDetector(surfaceNumber, objectNumber, fileName)->status
+
+        args:
+          surfNumber   : (integer) surface number of the non-sequential group.
+                         Use 1 if the program mode is Non-Sequential.
+          objectNumber : (integer) object number of the detector object
+          fileName     : (string) The filename may include the full path, if no
+                         path is provided the path of the current lens file is
+                         used. The extension should be DDR, DDC, DDP, or DDV for
+                         Detector Rectangle, Color, Polar, and Volume objects,
+                         respectively.
+        ret:
+          status       : 0 if load was successful
+                         Error code (such as -1,-2) if failed.
+        """
+        isRightExt = path.splitext(fileName)[1] in ('.ddr','.DDR','.ddc','.DDC',
+                                                    '.ddp','.DDP','.ddv','.DDV')
+        if not path.isabs(fileName): # full path is not provided
+            fileName = self.zGetPath()[0] + fileName
+        isFile = path.isfile(fileName)  # check if file exist
+        if isRightExt and isFile:
+            cmd = ("LoadDetector,{:d},{:d},{}"
+                   .format(surfaceNumber,objectNumber,fileName))
+            reply = self.conversation.Request(cmd)
+            return regressLiteralType(reply.rstrip())
+        else:
+            return -1
+
+    def zLoadFile(self,fileName,append=None):
         """Loads a ZEMAX file into the server.
 
-        zLoadFile(filename[,append]) -> retVal
+        zLoadFile(fileName[,append]) -> retVal
 
         args:
             filename: full path of the ZEMAX file to be loaded. For example:
                       "C:\ZEMAX\Samples\cooke.zmx"
-            append (optional): If a non-zero value of append is passed, then the new
-                    file is appended to the current file starting at the surface
-                    number defined by the value appended.
+            append  : (optional, integer) If a non-zero value of append is passed,
+                      then the new file is appended to the current file starting
+                      at the surface number defined by the value appended.
         retVal:
                 0: file successfully loaded
              -999: file could not be loaded (check if the file really exists, or
@@ -2284,19 +2326,86 @@ class PyZDDE(object):
              -998: the command timed out
             other: the upload failed.
 
-
         See also zSaveFile, zGetPath, zPushLens, zuiLoadFile
         """
         reply = None
-        if append==None:
-            reply = self.conversation.Request('LoadFile,'+filename)
+        isAbsPath = path.isabs(fileName)
+        isRightExt = path.splitext(fileName)[1] in ('.zmx','.ZMX')
+        isFile = path.isfile(fileName)
+        if isAbsPath and isRightExt and isFile:
+            if append:
+                cmd = "LoadFile,{},{}".format(fileName,append)
+            else:
+                cmd = "LoadFile,{}".format(fileName)
+            reply = self.conversation.Request(cmd)
+            if reply:
+                return int(reply) #Note: Zemax returns -999 if update fails.
+            else:
+                return -998
         else:
-            reply = self.conversation.Request('LoadFile,'+filename,append)
+            return -999
 
-        if reply:
-            return int(reply) #Note: Zemax returns -999 if update fails.
+    def zLoadMerit(self, fileName):
+        """Loads a ZEMAX .MF or .ZMX file and extracts the merit function and
+        places it in the lens loaded in the server.
+
+        zLoadMerit(fileName)->meritData
+
+        args:
+          fileName  : (string) name of the merit function file with full path and
+                       extension.
+        ret:
+          meritData : If the loading is successful, meritData is a 2-tuple
+                      containing the following elements:
+                      number : (integer) number of operands in the merit function
+                      merit  : (float) merit value of the merit function.
+
+                      If meritData = -999, file could not be loaded (check if the
+                      file really exists, or check the path.
+        Note:
+          1. If the merit function value is 9.00e+009, the merit function cannot
+             be evaluated.
+          2. Loading a merit function file does not change the data displayed in
+             the LDE; the server process has a separate copy of the lens data.
+
+        See also: zOptimize, zSaveMerit
+        """
+        isAbsPath = path.isabs(fileName)
+        isRightExt = path.splitext(fileName)[1] in ('.mf','.MF','.zmx','.ZMX')
+        isFile = path.isfile(fileName)
+        if isAbsPath and isRightExt and isFile:
+            reply = self.conversation.Request('LoadMerit,'+fileName)
+            rs = reply.rsplit(",")
+            meritData = [int(float(e)) if i==0 else float(e)
+                         for i,e in enumerate(rs)]
+            return tuple(meritData)
         else:
-            return -998
+            return -999
+
+    def zLoadTolerance(self, fileName):
+        """Loads a tolerance file previously saved with zSaveTolerance and
+        places the tolerances in the lens loaded in the DDE server.
+
+        zLoadTolerance(fileName)->numTolOperands
+
+        args:
+          fileName : (string) file name of the tolerance file. If no path is
+                     provided in the filename, the <data>\Tolerance folder is
+                     assumed.
+        ret:
+          numTolOperands : number of tolerance operands loaded.
+                           -999 if file doesnot exist
+        """
+        if path.isabs(fileName): # full path is provided
+            fullFilePathName = fileName
+        else:                    # full path not provided
+            fullFilePathName = self.zGetPath()[0] + "\\Tolerance\\" + fileName
+        if path.isfile(fullFilePathName):
+            cmd = "LoadTolerance,{}".format(fileName)
+            reply = self.conversation.Request(cmd)
+            return int(float(reply.rstrip()))
+        else:
+            return -999
 
     def zNewLens(self):
         """Erases the current lens. The "minimum" lens that remains is identical
@@ -2307,6 +2416,63 @@ class PyZDDE(object):
 
         """
         return int(self.conversation.Request('NewLens'))
+
+    def zOperandValue(self,operandType,*values):
+        """Returns the value of any optimization operand, even if the operand is
+        not currently in the merit function.
+
+        zOperandValue(operandType,*values)->operandValue
+
+        args:
+          operandType  : a valid optimization operand
+          *values      : variable length argument. Possible arguments include
+                          int1, int2, data1, data2, data3, data4, data5, data6
+        ret:
+          operandValue : (float) the value
+        """
+        if zo.isZOperand(operandType,1) and (0 < len(values) < 9):
+            valList = [str(int(elem)) if i in (0,1) else str(float(elem))
+                       for i,elem in enumerate(values)]
+            arguments = ",".join(valList)
+            cmd = "OperandValue," + operandType + "," + arguments
+            reply = self.conversation.Request(cmd)
+            return float(reply.rstrip())
+        else:
+            return -1
+
+    def zOptimize(self,numOfCycles,algorithm):
+        """Calls the Zemax Damped Least Squares (DLS) optimizer.
+
+        zOptimize(numOfCycles,algorithm)->finalMeritFn
+
+        args:
+          numOfCycles  : (integer) the number of cycles to run
+                         if numOfCycles == 0, optimization runs in automatic mode.
+                         if numOfCycles < 0, zOptimize updates all operands in the
+                         merit function and returns the current merit function,
+                         and no optimization is performed.
+          algorithm    : 0 = Damped Least Squares
+                         1 = Orthogonal descent
+        ret:
+          finalMeritFn : (float) the final merit function.
+
+        Note:
+          1. If the merit function value returned is 9.0E+009, the optimization
+             failed, usually because the lens or merit function could not be
+             evaluated.
+          2. The number of cycles should be kept small enough to allow the algorithm
+             to complete and return before the DDE communication times out, or
+             an error will occur. One possible way to achieve high number of
+             cycles could be to call zOptimize multiple times in a loop, each time
+             comparing the returned merit function with few of the previously
+             returned (& stored) merit functions to determine if an optimum has
+             been attained.
+
+        See also zHammer, zLoadMerit, zsaveMerit
+        """
+        cmd = "Optimize,{:1.2g},{:d}".format(numOfCycles,algorithm)
+        reply = self.conversation.Request(cmd)
+        return float(reply.rstrip())
 
     def zPushLens(self,timeout = None, updateFlag=None):
         """Copy lens in the ZEMAX DDE server into the Lens Data Editor (LDE).
@@ -2394,6 +2560,105 @@ class PyZDDE(object):
             retVal = 0
         return retVal
 
+    def zSaveDetector(self, surfaceNumber, objectNumber, fileName):
+        """Saves the data currently on an NSC Detector Rectangle, Detector Color,
+        Detector Polar, or Detector Volume object to a file.
+
+        zSaveDetector(surfaceNumber, objectNumber, fileName)->status
+
+        args:
+          surfNumber   : (integer) surface number of the non-sequential group.
+                         Use 1 if the program mode is Non-Sequential.
+          objectNumber : (integer) object number of the detector object
+          fileName     : (string) The filename may include the full path, if no
+                         path is provided the path of the current lens file is
+                         used. The extension should be DDR, DDC, DDP, or DDV for
+                         Detector Rectangle, Color, Polar, and Volume objects,
+                         respectively.
+        ret:
+          status       : 0 if save was successful
+                         Error code (such as -1,-2) if failed.
+        """
+        isRightExt = path.splitext(fileName)[1] in ('.ddr','.DDR','.ddc','.DDC',
+                                                    '.ddp','.DDP','.ddv','.DDV')
+        if not path.isabs(fileName): # full path is not provided
+            fileName = self.zGetPath()[0] + fileName
+        if isRightExt:
+            cmd = ("SaveDetector,{:d},{:d},{}"
+                   .format(surfaceNumber,objectNumber,fileName))
+            reply = self.conversation.Request(cmd)
+            return regressLiteralType(reply.rstrip())
+        else:
+            return -1
+
+    def zSaveFile(self, fileName):
+        """Saves the lens currently loaded in the server to a ZEMAX file.
+
+        zSaveFile(fileName)-> status
+
+        args:
+          fileName : (string) file name, including full path with extension.
+        ret:
+          status   :    0 = Zemax successfully saved the lens file & updated the
+                            newly saved lens
+                     -999 = Zemax couldn't save the file
+                       -1 = Incorrect file name
+                     Any other value = update failed.
+
+        See also zGetPath, zGetRefresh, zLoadFile, zPushLens.
+        """
+        isAbsPath = path.isabs(fileName)
+        isRightExt = path.splitext(fileName)[1] in ('.zmx','.ZMX')
+        if isAbsPath and isRightExt:
+            cmd = "SaveFile,{}".format(fileName)
+            reply = self.conversation.Request(cmd)
+            return int(float(reply.rstrip()))
+        else:
+            return -1
+
+    def zSaveMerit(self, fileName):
+        """Saves the current merit function to a ZEMAX .MF file.
+
+        zSaveMerit(fileName)->meritData
+
+        args:
+          fileName  : (string) name of the merit function file with full path and
+                       extension.
+        ret:
+          meritData : If successful, it is the number of operands in the merit
+                      function
+                      If meritData = -1, saving failed.
+
+        See also: zOptimize, zLoadMerit
+        """
+        isAbsPath = path.isabs(fileName)
+        isRightExt = path.splitext(fileName)[1] in ('.mf','.MF')
+        if isAbsPath and isRightExt:
+            cmd = "SaveMerit,{}".format(fileName)
+            reply = self.conversation.Request(cmd)
+            return int(float(reply.rstrip()))
+        else:
+            return -1
+
+    def zSaveTolerance(self, fileName):
+        """Saves the tolerances of the current lens to a file.
+
+        saveTolerance(fileName)->numTolOperands
+
+        args:
+          fileName : (string) file name of the file to save the tolerance data.
+                     If no path is provided in the filename, the <data>\Tolerance
+                     folder is assumed. Although it is not enforced, it is
+                     useful to use ".tol" as extension.
+        ret:
+          numTolOperands : (integer) number of tolerance operands saved.
+
+        See also zLoadTolerance.
+        """
+        cmd = "SaveTolerance,{}".format(fileName)
+        reply = self.conversation.Request(cmd)
+        return int(float(reply.rstrip()))
+
     def zSetAperture(self,surfNum,aType,aMin,aMax,xDecenter=0,yDecenter=0,
                                                             apertureFile =' '):
         """Sets aperture details at a ZEMAX lens surface (surface data dialog box).
@@ -2449,6 +2714,38 @@ class PyZDDE(object):
         rs = reply.split(',')
         apertureInfo = tuple([float(elem) for elem in rs])
         return apertureInfo
+
+    def zSetBuffer(self, bufferNumber, textData):
+        """Used to store client specific data with the window being created or
+        updated. The buffer data can be used to store user selected options,
+        instead of using the settings data on the command line of the zMakeTextWindow
+        or zMakeGraphicWindow functions. The data must be in a string format.
+
+        zSetBuffer(bufferNumber, textData)->status
+
+        args:
+          bufferNumber  : (integer) numbers between 0 and 15 inclusive (for 16
+                           buffers provided)
+          textData      : (string) is the only text that is stored, maximum of
+                          240 characters
+        ret:
+          status        : 0 if successful, else -1
+
+        Note:
+        The buffer data is not associated with any particular window until either
+        the  zMakeTextWindow() or zMakeGraphicWindow() functions are issued. Once
+        ZEMAX receives the MakeTextWindow or MakeGraphicWindow item, the buffer
+        data is then copied to the appropriate window memory, and then may later
+        be retrieved from that window's buffer using zGetBuffer() function.
+
+        See also zGetBuffer.
+        """
+        if (0 < len(textData) < 240) and (0 <= bufferNumber < 16):
+            cmd = "SetBuffer,{:d},{}".format(bufferNumber,str(textData))
+            reply = self.conversation.Request(cmd)
+            return 0 if 'OK' in reply.rsplit() else -1
+        else:
+            return -1
 
     def zSetConfig(self,configNumber):
         """Switches the current configuration number (selected column in the MCE),

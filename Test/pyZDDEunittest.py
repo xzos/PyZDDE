@@ -811,6 +811,10 @@ class TestPyZDDEFunctions(unittest.TestCase):
         curr_surfaceNum = systemData[0]
         self.assertEqual(curr_surfaceNum,init_surfaceNum+1)
 
+    @unittest.skip("To implement")
+    def test_zLoadDetector(self):
+        print("\nTEST: zLoadDetector()")
+
     def test_zLoadFile(self):
         print("\nTEST: zLoadFile()")
         global zmxfp
@@ -824,6 +828,14 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertEqual(ret,0)
         if TestPyZDDEFunctions.pRetVar:
             print("zLoadFile return value:", ret)
+
+    @unittest.skip("To implement")
+    def test_zLoadTolerance(self):
+        print("\nTEST: zLoadTolerance()")
+
+    @unittest.skip("To implement")
+    def test_zLoadMerit(self):
+        print("\nTEST: zLoadMerit()")
 
     def test_zNewLens(self):
         print("\nTEST: zNewLens()")
@@ -848,6 +860,14 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertEqual(systemData[7],1,'pressure')
         self.assertEqual(systemData[8],1,'global surface reference')
         #self.assertEqual(systemData[9],0,'need_save') #'need_save' deprecated
+
+    @unittest.skip("To implement")
+    def test_zOperandValue(self):
+        print("\nTEST: zOperandValue()")
+
+    @unittest.skip("To implement")
+    def test_zOptimize(self):
+        print("\nTEST: zOptimize()")
 
     def test_zPushLens(self):
         print("\nTEST: zPushLens()")
@@ -909,8 +929,33 @@ class TestPyZDDEFunctions(unittest.TestCase):
         # I might need to have some surfaces here.
 
     @unittest.skip("To implement test")
+    def test_zSaveDetector(self):
+        print("\nTEST: zSaveDetector()")
+        pass
+
+    @unittest.skip("To implement test")
+    def test_zSaveFile(self):
+        print("\nTEST: zSaveFile()")
+        pass
+
+    @unittest.skip("To implement test")
+    def test_zSaveMerit(self):
+        print("\nTEST: zSaveMerit()")
+        pass
+
+    @unittest.skip("To implement test")
+    def test_zSaveTolerance(self):
+        print("\nTEST: zSaveTolerance()")
+        pass
+
+    @unittest.skip("To implement test")
     def test_zSetAperture(self):
         print("\nTEST: zSetAperture()")
+        pass
+
+    @unittest.skip("To implement test")
+    def test_zSetBuffer(self):
+        print("\nTEST: zSetBuffer()")
         pass
 
     def test_zSetConfig(self):
