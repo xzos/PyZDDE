@@ -9,7 +9,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.2
+# Revision:    0.5
 #-------------------------------------------------------------------------------
 from __future__ import division
 from __future__ import print_function
@@ -987,6 +987,8 @@ class PyZDDE(object):
         211-226 - Gets the DLL parameter 1-16, respectively.
         ------------------------------------------------------------------------
         """
+        str_codes = (0,1,4)
+        int_codes = (2,3,5,6,29,101,102,110,111)
         cmd = ("GetNSCObjectData,{:d},{:d},{:d}"
               .format(surfaceNumber,objectNumber,code))
         reply = self.conversation.Request(cmd)
@@ -994,9 +996,9 @@ class PyZDDE(object):
         if rs == 'BAD COMMAND':
             nscObjectData = -1
         else:
-            if code in (0,1,4):
+            if code in str_codes:
                 nscObjectData = str(rs)
-            elif code in (2,3,5,6,29,101,102,110,111):
+            elif code in int_codes:
                 nscObjectData = int(float(rs))
             else:
                 nscObjectData = float(rs)
@@ -1035,6 +1037,8 @@ class PyZDDE(object):
         ------------------------------------------------------------------------
         See also zSetNSCObjectFaceData
         """
+        str_codes = (10,30,31,40,60)
+        int_codes = (20,22,24)
         cmd = ("GetNSCObjectFaceData,{:d},{:d},{:d},{:d}"
               .format(surfNumber,objNumber,faceNumber,code))
         reply = self.conversation.Request(cmd)
@@ -1042,9 +1046,9 @@ class PyZDDE(object):
         if rs == 'BAD COMMAND':
             nscObjFaceData = -1
         else:
-            if code in (10,30,31,40,60):
+            if code in str_codes:
                 nscObjFaceData = str(rs)
-            elif code in (20,22,24):
+            elif code in int_codes:
                 nscObjFaceData = int(float(rs))
             else:
                 nscObjFaceData = float(rs)
@@ -1431,6 +1435,81 @@ class PyZDDE(object):
         args4 = "{Ex:1.4f},{Ey:1.4f}".format(Ex=Ex,Ey=Ey)
         args5 = "{Phax:1.4f},{Phay:1.4f}".format(Phax=Phax,Phay=Phay)
         cmd = "GetPolTrace," + args1 + args2 + args3 + args4 + args5
+        reply = self.conversation.Request(cmd)
+        rs = reply.split(',')
+        rayPolTraceData = tuple([int(elem) if i==0 else float(elem)
+                                   for i,elem in enumerate(rs)])
+        return rayPolTraceData
+
+    def zGetPolTraceDirect(self,waveNum,mode,
+                           startSurf,stopSurf,
+                           x,y,z,l,m,n,Ex,Ey,Phax,Phay):
+        """Trace a single polarized ray through the current lens in the ZEMAX
+        DDE server while providing a more direct access to the ZEMAX ray tracing
+        engine than zGetPolTrace. If Ex, Ey, Phax, Phay are all zero, Zemax will
+        trace two orthogonal rays and the resulting transmitted intensity will be
+        averaged.
+
+        zGetPolTrace(waveNum,mode,startSurf,stopSurf,x,y,z,
+                     l,m,n,Ex,Ey,Phax,Phay)->rayPolTraceData
+
+        args:
+          waveNum  : wavelength number as in the wavelength data editor
+          mode     : 0 = real, 1 = paraxial
+          startSurf: surface to trace the ray from.
+          stopSurf : last surface to trace the polarized ray to.
+          x,y,z,   : coordinates of the ray at the starting surface
+          l,m,n    : the direction cosines to the entrance pupil aim point for
+                     the x-, y-, z- direction cosines respectively
+          Ex       : normalized electric field magnitude in x direction
+          Ey       : normalized electric field magnitude in y direction
+          Phax     : relative phase in x direction in degrees
+          Phay     : relative phase in y direction in degrees
+
+        ret:
+          rayPolTraceData : rayPolTraceData is a 8-tuple or 2-tuple (depending
+          on polarized or unpolarized rays) containing the following elements:
+
+          For polarized rays --
+              error       : 0, if the ray traced successfully
+                            +ve number indicates that the ray missed the surface
+                            -ve number indicates that the ray total internal
+                            reflected (TIR) at the surface given by the absolute
+                            value of the errorCode number.
+              intensity   : the transmitted intensity of the ray. It is always
+                            normalized to an input electric field intensity of
+                            unity. The transmitted intensity accounts for surface,
+                            thin film, and bulk absorption effects, but does not
+                            consider whether or not the ray was vignetted.
+              Exr,Eyr,Ezr : real parts of the electric field components
+              Exi,Eyi,Ezi : imaginary parts of the electric field components
+
+          For unpolarized rays --
+              error       : (see above)
+              intensity   : (see above)
+
+        Note:
+        1. The quantity Ex*Ex + Ey*Ey should have a value of 1.0 although any
+           values are accepted.
+        2. There is an important exception to the above rule -- If Ex, Ey, Phax,
+           Phay are all zero, Zemax will trace two orthogonal rays and the resul-
+           ting transmitted intensity will be averaged.
+        3. Always check to verify the ray data is valid (check the error) before
+           using the rest of the data in the tuple.
+        4. Use of zGetPolTraceDirect() has significant overhead as only one ray
+           per DDE call is traced. Please refer to the ZEMAX manual for more
+           details. Also, if a large number of rays are to be traced, see the
+           section "Tracing large number of rays" in the ZEMAX manual.
+
+        See also zGetPolTraceDirect, zGetTrace, zGetTraceDirect
+        """
+        args0 = "{wN:d},{m:d},".format(wN=waveNum,m=mode)
+        args1 = "{sa:d},{sd:d},".format(sa=startSurf,sd=stopSurf)
+        args2 = "{x:1.20g},{y:1.20g},{y:1.20g},".format(x=x,y=y,z=z)
+        args3 = "{l:1.20g},{m:1.20g},{n:1.20g},".format(l=l,m=m,n=n)
+        args4 = "{Ex:1.4f},{Ey:1.4f}".format(Ex=Ex,Ey=Ey)
+        args5 = "{Phax:1.4f},{Phay:1.4f}".format(Phax=Phax,Phay=Phay)
+        cmd = "GetPolTraceDirect," + arg0 + args1 + args2 + args3 + args4 + args5
         reply = self.conversation.Request(cmd)
         rs = reply.split(',')
         rayPolTraceData = tuple([int(elem) if i==0 else float(elem)
@@ -2005,12 +2084,12 @@ class PyZDDE(object):
                                               zGetTrace(3,0,5,0.0,1.0,0.0,0.0)
 
         Note:
-            1. Always check to verify the ray data is valid before using the
-               rest of the string!
-            2. Use of zGetTrace() has significant overhead as only one ray per DDE call
-               is traced. Please refer to the ZEMAX manual for more details. Also, if a
-               large number of rays are to be traced, see the section "Tracing large
-               number of rays" in the ZEMAX manual.
+        1. Always check to verify the ray data is valid  (errorCode) before using
+           the rest of the string!
+        2. Use of zGetTrace() has significant overhead as only one ray per DDE call
+           is traced. Please refer to the ZEMAX manual for more details. Also, if a
+           large number of rays are to be traced, see the section "Tracing large
+           number of rays" in the ZEMAX manual.
 
         See also zGetTraceDirect, zGetPolTrace, zGetPolTraceDirect
         """
@@ -2018,6 +2097,59 @@ class PyZDDE(object):
         args2 = "{hx:1.4f},{hy:1.4f},".format(hx=hx,hy=hy)
         args3 = "{px:1.4f},{py:1.4f}".format(px=px,py=py)
         cmd = "GetTrace," + args1 + args2 + args3
+        reply = self.conversation.Request(cmd)
+        rs = reply.split(',')
+        rayTraceData = tuple([int(elem) if (i==0 or i==1)
+                                 else float(elem) for i,elem in enumerate(rs)])
+        return rayTraceData
+
+    def zGetTraceDirect(self,waveNum,mode,startSurf,stopSurf,x,y,z,l,m,n):
+        """Trace a (single) ray through the current lens in the ZEMAX DDE server
+        while providing a more direct access to the ZEMAX ray tracing engine than
+        zGetTrace.
+
+        zGetTraceDirect(waveNum,mode,startSurf,stopSurf,x,y,z,l,m,n)->rayTraceData
+
+        args:
+          waveNum  : wavelength number as in the wavelength data editor
+          mode     :  0 = real, 1 = paraxial
+          startSurf: starting surface of the ray
+          stopSurf : stopping surface of the ray
+          x,y,z,   : coordinates of the ray at the starting surface
+          l,m,n    : the direction cosines to the entrance pupil aim point for
+                     the x-, y-, z- direction cosines respectively
+        ret:
+          rayTraceData : rayTraceData is a tuple containing the following elements:
+              errorCode : 0, if the ray traced successfully
+                          +ve number indicates that the ray missed the surface
+                          -ve number indicates that the ray total internal reflected
+                          (TIR) at the surface given by the absolute value of the
+                          errorCode number.
+              vigCode   : the first surface where the ray was vignetted. Unless an
+                          error occurs at that surface or subsequent to that surface,
+                          the ray will continue to trace to the requested surface.
+              x,y,z     : coordinates of the ray on the requested surface
+              l,m,n     : the direction cosines after refraction into the media
+                          following the requested surface.
+              l2,m2,n2  : the surface intercept direction normals at the requested
+                          surface.
+              intensity : the relative transmitted intensity of the ray, excluding
+                          any pupil apodization. The surface apodization is defined.
+        Notes:
+         Normally, rays are defined by the normalized field and pupil coordinates
+         hx, hy, px, and py. ZEMAX takes these normalized coordinates and computes
+         the object coordinates (x, y, and z) and the direction cosines to the
+         entrance pupil aim point (l, m, and n; for the x-, y-, and z-direction
+         cosines, respectively).However, there are times when it is more appropriate
+         to trace rays by direct specification of x, y, z, l, m, and n. The direct
+         specification has the added flexibility of defining the starting surface
+         for the ray anywhere in the optical system.
+        """
+        args1 = "{wN:d},{m:d},".format(wN=waveNum,m=mode)
+        args2 = "{sa:d},{sp:d},".format(sa=startSurf,sp=stopSurf)
+        args3 = "{x:1.20f},{y:1.20f},{z:1.20f}".format(x=x,y=y,z=z)
+        args4 = "{l:1.20f},{m:1.20f},{n:1.20f}".format(l=l,m=m,n=n)
+        cmd = "GetTraceDirect," + args1 + args2 + args3 + args4
         reply = self.conversation.Request(cmd)
         rs = reply.split(',')
         rayTraceData = tuple([int(elem) if (i==0 or i==1)
@@ -2407,6 +2539,159 @@ class PyZDDE(object):
         else:
             return -999
 
+    def zMakeGraphicWindow(self,fileName,moduleName,winTitle,textFlag,settingsData=None):
+        """Notifies ZEMAX that graphic data has been written to a file and may now
+        be displayed as a ZEMAX child window. The primary purpose of this item is
+        to implement user defined features in a client application, that look and
+        act like native ZEMAX features.
+
+        There are two ways of using this command:
+
+        zMakeGraphicWindow(fileName,moduleName,winTitle,textFlag,settingsData)->retString
+
+          OR
+
+        zSetSettingsData(0,settingsData)
+        zMakeGraphicWindow(self,fileName,moduleName,winTitle,textFlag)->retString
+
+        args:
+          fileName     : the full path and file name to the temporary file that
+                         holds the graphic data. This must be the same name as
+                         passed to the client executable in the command line
+                         arguments, if any.
+          moduleName   : the full path and executable name of the client program
+                         that created the graphic data.
+          winTitle     : the string which defines the title ZEMAX should place in
+                         the top bar of the window.
+          textFlag     : 1 => the client can also generate a text version of the
+                         data. Since the current data is a graphic display (it
+                         must be if the item is MakeGraphicWindow) ZEMAX wants
+                         to know if the "Text" menu option should be available
+                         to the user, or if it should be grayed out.
+                         0 => ZEMAX will gray out the "Text" menu option and will
+                         not attempt to ask the client to generate a text version
+                         of the data.
+          settingsData : The settings data is a string of values delimited by
+                         spaces (not commas) which are used by the client to define
+                         how the data was generated. These values are only used
+                         by the client, not by ZEMAX. The settings data string
+                         holds the options and data that would normally appear in
+                         a ZEMAX "settings" style dialog box. The settings data
+                         should be used to recreate the data if required. Because
+                         the total length of a data item cannot exceed 255
+                         characters, the function zSetSettingsData() may be used
+                         prior to the call to zMakeGraphicWindow() to specify the
+                         settings data string rather than including the data as
+                         part of zMakeGraphicWindow(). See "How ZEMAX calls the
+                         client" in the manual for more details on the settings
+                         data.
+
+        A sample item string might look like the following:
+
+        zMakeGraphicWindow('C:\TEMP\ZGF001.TMP','C:\ZEMAX\FEATURES\CLIENT.EXE',
+                           'ClientWindow',1,"0 1 2 12.55")
+
+        This call indicates that ZEMAX should open a graphic window, display the
+        data stored in the file 'C:\TEMP\ZGF001.TMP', and that any updates or
+        setting changes can be made by calling the client module
+        'C:\ZEMAX\FEATURES\CLIENT.EXE'. This client can generate a text version
+        of the graphic, and the settings data string (used only by the client)
+        is "0 1 2 12.55".
+        """
+        if settingsData:
+            cmd = ("MakeGraphicWindow,{},{},{},{:d},{}"
+                   .format(fileName,moduleName,winTitle,textFlag,settingsData))
+        else:
+            cmd = ("MakeGraphicWindow,{},{},{},{:d}"
+                   .format(fileName,moduleName,winTitle,textFlag))
+        reply = self.conversation.Request(cmd)
+        return str(reply.rstrip())
+        # FIX !!! What is the appropriate reply?
+
+    def zMakeTextWindow(self,fileName,moduleName,winTitle,settingsData=None):
+        """Notifies ZEMAX that text data has been written to a file and may now
+        be displayed as a ZEMAX child window. The primary purpose of this item
+        is to implement user defined features in a client application, that look
+        and act like native ZEMAX features.
+
+        There are two ways of using this command:
+
+        zMakeTextWindow(fileName,moduleName,winTitle,settingsData)->retString
+
+          OR
+
+        zSetSettingsData(0,settingsData)
+        zMakeTextWindow(self,fileName,moduleName,winTitle)->retString
+
+        args:
+          fileName     : the full path and file name to the temporary file that
+                         holds the text data. This must be the same name as
+                         passed to the client executable in the command line
+                         arguments, if any.
+          moduleName   : the full path and executable name of the client program
+                         that created the text data.
+          winTitle     : the string which defines the title ZEMAX should place in
+                         the top bar of the window.
+          settingsData : The settings data is a string of values delimited by
+                         spaces (not commas) which are used by the client to define
+                         how the data was generated. These values are only used
+                         by the client, not by ZEMAX. The settings data string
+                         holds the options and data that would normally appear in
+                         a ZEMAX "settings" style dialog box. The settings data
+                         should be used to recreate the data if required. Because
+                         the total length of a data item cannot exceed 255
+                         characters, the function zSetSettingsData() may be used
+                         prior to the call to zMakeTextWindow() to specify the
+                         settings data string rather than including the data as
+                         part of zMakeTextWindow(). See "How ZEMAX calls the
+                         client" in the manual for more details on the settings
+                         data.
+
+        A sample item string might look like the following:
+
+        zMakeTextWindow('C:\TEMP\ZGF002.TMP','C:\ZEMAX\FEATURES\CLIENT.EXE',
+                           'ClientWindow',"6 5 4 12.55")
+
+        This call indicates that ZEMAX should open a text window, display the
+        data stored in the file 'C:\TEMP\ZGF002.TMP', and that any updates or
+        setting changes can be made by calling the client module
+        'C:\ZEMAX\FEATURES\CLIENT.EXE'. The settingsdata string (used only by the
+        client) is "6 5 4 12.55".
+        """
+        if settingsData:
+            cmd = ("MakeTextWindow,{},{},{},{}"
+                   .format(fileName,moduleName,winTitle,settingsData))
+        else:
+            cmd = ("MakeTextWindow,{},{},{}"
+                   .format(fileName,moduleName,winTitle))
+        reply = self.conversation.Request(cmd)
+        return str(reply.rstrip())
+        # FIX !!! What is the appropriate reply?
+
+    def zModifySettings(self,fileName,mType,value):
+        """Used to change specific options in ZEMAX settings files. The settings
+        files are used by zMakeTextWindow() and zMakeGraphicWindow()
+
+        zModifySettings(fileName,mType,value)->status
+
+        args:
+          fileName : The full name of the settings file, including the path.
+          mType    : a mnemonic that defines what option value is being modified.
+                     The valid values for type are as defined in the ZPL macro
+                     command MODIFY-SETTINGS that serves the same function as
+                     zModifySettings() does for extensions. See "MODIFYSETTINGS"
+                     in the Zemax manual for a complete list of the type codes.
+          value    : value
+        ret:
+          status :  0 = no error
+                   -1 = invalid file
+                   -2 = incorrect version number
+                   -3 = file access conflict
+        """
+        cmd = "ModifySettings,{},{},{:1.20g}".format(fileName,mType,value)
+        reply = self.conversation.Request(cmd)
+        return int(float(reply.rstrip()))
+
     def zNewLens(self):
         """Erases the current lens. The "minimum" lens that remains is identical
         to the lens Data Editor when "File,New" is selected. No prompt to save
@@ -2416,6 +2701,196 @@ class PyZDDE(object):
 
         """
         return int(self.conversation.Request('NewLens'))
+
+    def zNSCCoherentData(self,surfaceNumber,objectNumDisDetectr,pixel,dataType):
+        """Return data from an NSC detector (Non-sequential coherent data)
+
+        zNSCCoherentData(surfaceNumber,objectNumDisDetectr,pixel,dataType)->
+
+        args:
+          surfaceNumber       : The surface number of the NSC group (1 for pure
+                                NSC systems).
+          objectNumDisDetectr : The object number of the desired detector.
+          pixel               : 0 = the sum of the data for all pixels for that
+                                    detector object is returned
+                                +ve int = the data from the specified pixel is
+                                          returned.
+          dataType            : 0 = real
+                                1 = imaginary
+                                2 = amplitude
+                                3 = power
+        """
+        cmd = ("NSCCoherentData,{:d},{:d},{:d},{:d}"
+               .format(surfaceNumber,objectNumDisDetectr,pixel,dataType))
+        reply = self.conversation.Request(cmd)
+        return float(reply.rstrip())
+
+    def zNSCDetectorData(self,surfaceNumber,objectNumDisDetectr,pixel,dataType):
+        """Return data from an NSC detector (Non-sequential incoherent intensity
+        data)
+
+        zNSCDetectorData(surfaceNumber,objectNumDisDetectr,pixel,dataType)->
+
+        args:
+          surfaceNumber       : The surface number of the NSC group (1 for pure
+                                NSC systems).
+          objectNumDisDetectr : The object number of the desired detector.
+                                0 = all detectors are cleared
+                                -ve int = only the detector defined by the absolute
+                                          value of `objectNumDisDetectr` is cleared
+
+          For Detector Rectangles, Detector Surfaces, & all faceted detectors:
+          -------------------------------------------------------------------
+          pixel : +ve int = the data from the specified pixel is returned.
+                        0 = the sum of the total flux in position space,average flux/area
+                            in position space, or total flux in angle space for all pixels
+                            for that detector object, for Data = 0, 1, or 2, respectively.
+                       -1 = Maximum flux or flux/area.
+                       -2 = Minimum flux or flux/area.
+                       -3 = Number of rays striking the detector.
+                       -4 = Standard deviation (RMS from the mean) of all the non-zero pixel data.
+                       -5 = The mean value of all the non-zero pixel data.
+                       -6,-7,-8 = The x, y, or z coordinate of the position or angle Irradiance
+                                  or Intensity  centroid, respectively.
+                       -9,-10,-11,-12,-13 = The RMS radius, x, y, z, or xy cross term distance
+                                            or angle of all the pixel data with respect to the
+                                            centroid. These are the second moments r^2, x^2, y^2,
+                                            z^2, & xy, respectively.
+          dataType : 0 = flux
+                     1 = flux/area
+                     2 = flux/solid angle pixel
+                     Note:
+                       Only values 0 & 1 (for flux & flux/area) are supported for faceted detectors.
+
+          For Detector Volumes:
+          -----------------------
+          pixel : is interpreted as the voxel number.
+                  if pixel == 0,  the value returned is the sum for all pixels.
+          dataType: 0 = incident flux
+                    1 = absorbed flux
+                    2 = absorbed flux per unit volume
+        """
+        cmd = ("NSCDetectorData,{:d},{:d},{:d},{:d}"
+               .format(surfaceNumber,objectNumDisDetectr,pixel,dataType))
+        reply = self.conversation.Request(cmd)
+        return float(reply.rstrip())
+
+    def zNSCTrace(self,surfNum,objNumSrc,split=0,scatter=0,usePolar=0,
+                  ignoreErrors=0,randomSeed=0,save=0,saveFilename=None,oFilter=None):
+        """Traces rays from one or all NSC sources with various optional arguments.
+        zNSCTrace() always updates the lens before tracing rays to make certain all
+        objects are correctly loaded and updated.
+
+        Possible ways of using this function:
+
+        zNSCTrace(surfNum,objNumSrc,[split,scatter,usePolar,ignoreErrors,
+                  randomSeed,save=0])->traceResult
+
+          OR
+
+        zNSCTrace(surfNum,objNumSrc,[split,scatter,usePolar,ignoreErrors,
+                  randomSeed,]save,saveFilename,oFilter)->traceResult
+
+        args:
+          surfNum      : The surface number of the NSC group (1 for pure NSC systems).
+          objNumSrc    : The object number of the desired source.
+                         0 = all sources will be traced.
+          split        : 0 = splitting is OFF (default)
+                        otherwise = splitting is ON
+          scatter      : 0 = scattering is OFF (default)
+                        otherwise = scattering is ON
+          usePolar     : 0 = polarization is OFF (default)
+                        otherwise = polarization is
+                        Note: If splitting is ON polarization is automatically selected.
+          ignoreErrors : 0 = ray errors will terminate the NSC trace & macro execution
+                             and an error will be reported (default).
+                        otherwise = erros will be ignored
+          randomSeed   : 0 or omitted = the random number generator will be seeded
+                            with a random value, & every call to zNSCTrace will
+                            produce different random rays (default).
+                         integer other than zero = then the random number generator
+                            will be seeded with the specified value, and every call
+                            to zNSCTrace using the same seed will produce identical rays.
+          save         : 0 or omitted = the parameters `saveFilename` and `oFilter`
+                            need not be supplied (default).
+                         otherwise = the rays will be saved in a ZRD file. The ZRD file
+                         will have the name specified by the `saveFilename`, and will
+                         be placed in the same directory as the lens file. The extension
+                         of `saveFilename` should be ZRD, and no path should be specified.
+          saveFilename : (see above)
+          oFilter      : If save is not zero,then the optional filter name is either a
+                         string variable with the filter, or the literal filter in
+                         double quotes. For information on filter strings see
+                         "The filter string" in the Zemax manual.
+        ret:
+          traceResult  : 0 if successful, -1 if problem with saveFileName, other
+                         error codes sent by Zemax.
+
+        Examples (the first two examples are from MZDDE):
+        -----------------------------------------------
+        zNSCTrace(1, 2, 1, 0, 1, 1)
+
+        The above command traces rays in NSC group 1, from source 2, with ray splitting,
+        no ray scattering, using polarization and ignoring errors.
+
+        zNSCTrace(1, 2, 1, 0, 1, 1, 33, 1, "myrays.ZRD", "h2")
+
+        Same as above, only a random seed of 33 is given and the data is saved to the
+        file "myrays.ZRD" after filtering as per h2.
+
+        zNSCTrace(1, 2)
+
+        The above command traces rays in NSC group 1, from source 2, witout ray splitting,
+        no ray scattering, without using polarization and will not ignore errors.
+
+        """
+        requiredArgs = ("{:d},{:d},{:d},{:d},{:d},{:d},{:d},{:d}"
+        .format(surfNum,objNumSrc,split,scatter,usePolar,ignoreErrors,randomSeed,save))
+        if save:
+            isAbsPath = path.isabs(saveFilename)
+            isRightExt = path.splitext(saveFilename)[1] in ('.ZRD',)
+            if isRightExt and not isAbsPath:
+                if oFilter:
+                    optionalArgs = ",{},{}".format(saveFilename,oFilter)
+                else:
+                    optionalArgs = ",{}".format(saveFilename)
+                cmd = "NSCTrace,"+requiredArgs+optionalArgs
+            else:
+                return -1 # either full path present in saveFileName or extension is not .ZRD
+        else:
+            cmd = "NSCTrace,"+requiredArgs
+        reply = self.conversation.Request(cmd)
+        if 'OK' in reply.split():
+            return 0
+        else:
+            return int(float(reply.rstrip()))  # return the error code sent by zemax.
+
+    def zOpenWindow(self, analysisType):
+        """Open a new analysis window on the main ZEMAX screen.
+
+        zOpenWindow(analysisType)->
+
+        args:
+          analysisType  : (string) 3 character case-sensitive label that indicates
+                          the type of analysis to be performed. The 3 letter
+                          labels are identical to those used for the button bar
+                          in ZEMAX. You can see a list of the button codes by
+                          importing zemaxbuttons module and calling the showZButtons
+                          function in an interactive shell, for example:
+
+                              import zemaxbuttons as zb
+                              zb.showZButtonList()
+
+        See also zGetMetaFile.
+        """
+        if zb.isZButtonCode(analysisType):
+            reply = self.conversation.Request("OpenWindow,{}".format(analysisType))
+            if 'OK' in reply.split():
+                return 0
+            else:
+                return int(float(reply.rstrip()))  # error code from Zemax
+        else:
+            return -1 # Incorrect analysisType code
 
     def zOperandValue(self,operandType,*values):
         """Returns the value of any optimization operand, even if the operand is
@@ -2559,6 +3034,32 @@ class PyZDDE(object):
         if 'OK' in reply.split():
             retVal = 0
         return retVal
+
+    def zReleaseWindow(self, tempFileName):
+        """Release locked window/menu mar.
+
+        zReleaseWindow(tempFileName)->status
+
+        args:
+          tempFileName  : (string)
+        ret:
+          status  : 0 = no window is using the filename
+                    1 = the file is being used.
+
+        When ZEMAX calls the client to update or change the settings used by
+        the client function, the menu bar is grayed out on the window to prevent
+        multiple updates or setting changes from being requested simultaneously.
+        Normally, when the client code calls the functions zMakeTextWindow() or
+        zMakeGraphicWindow(), the menu bar is once again activated. However, if
+        during an update or setting change, the new data cannot be computed, then
+        the window must be released. The zReleaseWindow() function serves just
+        this one purpose. If the user selects "Cancel" when changing the settings,
+        the client code should send a zReleaseWindow() call to release the lock
+        out of the menu bar. If this command is not sent, the window cannot be
+        closed, which will prevent ZEMAX from terminating normally.
+        """
+        reply = self.conversation.Request("ReleaseWindow,{}".format(tempFileName))
+        return int(float(reply.rstrip()))
 
     def zSaveDetector(self, surfaceNumber, objectNumber, fileName):
         """Saves the data currently on an NSC Detector Rectangle, Detector Color,
@@ -3010,6 +3511,194 @@ class PyZDDE(object):
             multiConData = [int(elem) for elem in rs[1:]]
             multiConData.insert(0,rs[0])
         return tuple(multiConData)
+
+    def zSetNSCObjectData(self, surfaceNumber, objectNumber, code, data):
+        """Sets the various data for NSC objects.
+
+        zSetNSCOjbect(surfaceNumber,objectNumber,code,data)->nscObjectData
+
+        args:
+            surfaceNumber : (integer) surface number of the NSC group. Use 1 if
+                            the program mode is Non-Sequential.
+            objectNumber  : (integer) the NSC ojbect number
+            code          : (integer) see the nscObjectData returned table
+            data          : data (string/integer/float) to set
+        rets:
+            nscObjectData : nscObjectData as per the table below if successful
+                            else -1
+        ------------------------------------------------------------------------
+        Code - Data set/returned by SetNSCObjectData (after setting the new data)
+        ------------------------------------------------------------------------
+          0  - Object type name. (string)
+          1  - Comment, which also defines the file name if the object is defined
+               by a file. (string)
+          2  - Color. (integer)
+          5  - Reference object number. (integer)
+          6  - Inside of object number. (integer)
+        The following codes set values on the Type tab of the Object Properties dialog.
+          3  - 1 if object uses a user defined aperture file, 0 otherwise. (integer)
+          4  - User defined aperture file name, if any. (string)
+         29  - Sets the "Use Pixel Interpolation" checkbox. (1 = checked, 0 = unchecked)
+        The following codes set values on the Sources tab of the Object Properties dialog.
+        101  - Sets the source object random polarization. (1 = checked, 0 = unchecked)
+        102  - Sets the source object reverse rays option. (1 = checked, 0 for unchecked)
+        103  - Sets the source object Jones X value.
+        104  - Sets the source object Jones Y value.
+        105  - Sets the source object Phase X value.
+        106  - Sets the source object Phase Y value.
+        107  - Sets the source object initial phase in degrees value.
+        108  - Sets the source object coherence length value.
+        109  - Sets the source object pre-propagation value.
+        110  - Sets the source object sampling method; (0 = random, 1 = Sobol sampling)
+        111  - Sets the source object bulk scatter method; (0 = many, 1 = once, 2 = never)
+        The following codes set values on the Bulk Scatter tab of the Object
+        Properties dialog.
+        202  - Sets the Mean Path value.
+        203  - Sets the Angle value.
+        211-226 - Sets the DLL parameter 1-16, respectively.
+        ------------------------------------------------------------------------
+        See also zSetNSCObjectFaceData
+        """
+        str_codes = (0,1,4)
+        int_codes = (2,3,5,6,29,101,102,110,111)
+        if code in str_codes:
+            cmd = ("SetNSCObjectData,{:d},{:d},{:d},{}"
+              .format(surfaceNumber,objectNumber,code,data))
+        elif code in int_codes:
+            cmd = ("SetNSCObjectData,{:d},{:d},{:d},{:d}"
+              .format(surfaceNumber,objectNumber,code,data))
+        else:  # data is float
+            cmd = ("SetNSCObjectData,{:d},{:d},{:d},{:1.20g}"
+              .format(surfaceNumber,objectNumber,code,data))
+        reply = self.conversation.Request(cmd)
+        rs = reply.rstrip()
+        if rs == 'BAD COMMAND':
+            nscObjectData = -1
+        else:
+            if code in str_codes:
+                nscObjectData = str(rs)
+            elif code in int_codes:
+                nscObjectData = int(float(rs))
+            else:
+                nscObjectData = float(rs)
+        return nscObjectData
+
+    def zSetNSCObjectFaceData(self,surfNumber,objNumber,faceNumber,code,data):
+        """Sets the various data for NSC object faces.
+
+        zSetNSCObjectFaceData(surfNumber,objNumber,faceNumber,code,data)->
+                                                                  nscObjFaceData
+
+        args:
+          surfNumber   : (integer) surface number. Use 1 if the program mode is
+                         Non-Sequential.
+          objNumber    : (integer) object number
+          faceNumber   : (integer) face number
+          code         : (integer) code (see below)
+          data         : (float/integer/string) data to set
+        ret:
+          nscObjFaceData  : data for NSC object faces (see the table for the
+                            particular type of data) if successful, else -1
+        ------------------------------------------------------------------------
+        Code     Data set/returned by zSetNSCObjectFaceData (after setting new data)
+        ------------------------------------------------------------------------
+         10   -  Coating name. (string)
+         20   -  Scatter code. (0 = None, 1 = Lambertian, 2 = Gaussian,
+                 3 = ABg, and 4 = user defined.) (integer)
+         21   -  Scatter fraction. (double)
+         22   -  Number of rays to scatter. (integer)
+         23   -  Gaussian scatter sigma. (double)
+         24   -  Face is setting;(0 = object default, 1 = reflective,
+                 2 = absorbing.) (integer)
+         30   -  ABg scatter profile name for reflection. (string)
+         31   -  ABg scatter profile name for transmission. (string)
+         40   -  User Defined Scatter DLL name. (string)
+         41-46 - User Defined Scatter Parameter 1 - 6. (double)
+         60   -  User Defined Scatter data file name. (string)
+        ------------------------------------------------------------------------
+        See also zGetNSCObjectFaceData
+        """
+        str_codes = (10,30,31,40,60)
+        int_codes = (20,22,24)
+        if code in str_codes:
+            cmd = ("SetNSCObjectFaceData,{:d},{:d},{:d},{:d},{}"
+                   .format(surfNumber,objNumber,faceNumber,code,data))
+        elif code in int_codes:
+            cmd = ("SetNSCObjectFaceData,{:d},{:d},{:d},{:d},{:d}"
+                  .format(surfNumber,objNumber,faceNumber,code,data))
+        else: # data is float
+            cmd = ("SetNSCObjectFaceData,{:d},{:d},{:d},{:d},{:1.20g}"
+                  .format(surfNumber,objNumber,faceNumber,code,data))
+        reply = self.conversation.Request(cmd)
+        rs = reply.rstrip()
+        if rs == 'BAD COMMAND':
+            nscObjFaceData = -1
+        else:
+            if code in str_codes:
+                nscObjFaceData = str(rs)
+            elif code in int_codes:
+                nscObjFaceData = int(float(rs))
+            else:
+                nscObjFaceData = float(rs)
+        return nscObjFaceData
+
+    def zSetNSCParameter(self,surfNumber,objNumber,parameterNumber,data):
+        """Sets the parameter data for NSC objects.
+
+        zSetNSCParameter(surfNumber,objNumber,parameterNumber,data)->nscParaVal
+
+        args:
+          surfNumber      : (integer) surface number. Use 1 if
+                            the program mode is Non-Sequential.
+          objNumber       : (integer) object number
+          parameterNumber : (integer) parameter number
+          data            : (float) new numeric value for the parameterNumber
+        ret:
+          nscParaVal     : (float) parameter value
+
+        See also zGetNSCParameter
+        """
+        cmd = ("SetNSCParameter,{:d},{:d},{:d},{:1.20g}"
+              .format(surfNumber,objNumber,parameterNumber,data))
+        reply = self.conversation.Request(cmd)
+        rs = reply.rstrip()
+        if rs == 'BAD COMMAND':
+            nscParaVal = -1
+        else:
+            nscParaVal = float(rs)
+        return nscParaVal
+
+    def zSetNSCPosition(self,surfNumber,objectNumber,code,data):
+        """Returns the position data for NSC objects.
+
+        zSetNSCPosition(surfNumber,objectNumber,code,data)->nscPosData
+
+        arg:
+          surfNumber   : (integer) surface number. Use 1 if
+                         the program mode is Non-Sequential.
+          objectNumber : (integer) object number
+          code         : (integer) 1-7 for x, y, z, tilt-x, tilt-y, tilt-z, and
+                         material, respectively.
+          data         : numeric (float) for codes 1-6, string for material (code-7)
+        ret:
+          nscPosData is a 7-tuple containing x,y,z,tilt-x,tilt-y,tilt-z,material
+
+        See also zGetNSCPosition
+        """
+        if code == 7:
+            cmd = ("SetNSCPosition,{:d},{:d},{:d},{}"
+            .format(surfNumber,objectNumber,code,data))
+        else:
+            cmd = ("SetNSCPosition,{:d},{:d},{:d},{:1.20g}"
+            .format(surfNumber,objectNumber,code,data))
+        reply = self.conversation.Request(cmd)
+        rs = reply.split(',')
+        if rs[0].rstrip() == 'BAD COMMAND':
+            nscPosData = -1
+        else:
+            nscPosData = tuple([str(rs[i].rstrip()) if i==6 else float(rs[i])
+                                                    for i in range(len(rs))])
+        return nscPosData
 
     def zSetNSCProperty(self,surfaceNumber,objectNumber,faceNumber,code,value):
         """Sets a numeric or string value to the property pages of objects

@@ -9,7 +9,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.2
+# Revision:    0.5
 #-------------------------------------------------------------------------------
 from __future__ import division
 from __future__ import print_function
@@ -428,6 +428,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
         for i,d in enumerate(expRayTraceData):
             self.assertAlmostEqual(rayTraceData[i],d,places=4)
 
+    @unittest.skip("To implement test")
+    def test_zGetPolTraceDirect(self):
+        print("\nTEST: zGetPolTraceDirect()")
+        pass
+
     def test_zGetPupil(self):
         print("\nTEST: zGetPupil()")
         # Load a lens to the ZEMAX DDE server
@@ -683,6 +688,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
             print("Ray trace", rayTraceData)
 
     @unittest.skip("To implement")
+    def test_zGetTraceDirect(self):
+        print("\nTEST: zGetTraceDirect()")
+        #Load a lens file
+
+    @unittest.skip("To implement")
     def test_zGetUDOSystem(self):
         print("\nTEST: zGetUDOSystem()")
 
@@ -830,12 +840,24 @@ class TestPyZDDEFunctions(unittest.TestCase):
             print("zLoadFile return value:", ret)
 
     @unittest.skip("To implement")
+    def test_zLoadMerit(self):
+        print("\nTEST: zLoadMerit()")
+
+    @unittest.skip("To implement")
     def test_zLoadTolerance(self):
         print("\nTEST: zLoadTolerance()")
 
     @unittest.skip("To implement")
-    def test_zLoadMerit(self):
-        print("\nTEST: zLoadMerit()")
+    def test_zMakeGraphicWindow(self):
+        print("\nTEST: zMakeGraphicWindow()")
+
+    @unittest.skip("To implement")
+    def test_zMakeTextWindow(self):
+        print("\nTEST: zMakeTextWindow()")
+
+    @unittest.skip("To implement")
+    def test_zModifySettings(self):
+        print("\nTEST: zModifySettings()")
 
     def test_zNewLens(self):
         print("\nTEST: zNewLens()")
@@ -860,6 +882,22 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertEqual(systemData[7],1,'pressure')
         self.assertEqual(systemData[8],1,'global surface reference')
         #self.assertEqual(systemData[9],0,'need_save') #'need_save' deprecated
+
+    @unittest.skip("To implement")
+    def test_zNSCCoherentData(self):
+        print("\nTEST: zNSCCoherentData()")
+
+    @unittest.skip("To implement")
+    def test_zNSCDetectorData(self):
+        print("\nTEST: zNSCDetectorData()")
+
+    @unittest.skip("To implement")
+    def test_zNSCTrace(self):
+        print("\nTEST: zNSCTrace()")
+
+    @unittest.skip("To implement")
+    def test_zOpenWindow(self):
+        print("\nTEST: zOpenWindow()")
 
     @unittest.skip("To implement")
     def test_zOperandValue(self):
@@ -927,6 +965,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
         ret = self.link0.zQuickFocus(0,0) # RMS spot size, chief ray as reference
         print(ret)
         # I might need to have some surfaces here.
+
+    @unittest.skip("To implement test")
+    def test_zReleaseWindow(self):
+        print("\nTEST: zReleaseWindow()")
+        pass
 
     @unittest.skip("To implement test")
     def test_zSaveDetector(self):
@@ -1061,6 +1104,26 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertTupleEqual(multiConData,(7.0, 2, 2, 0, 1, 1, 1.0, 0.0))
         multiConData = self.link0.zSetMulticon(2,2,5.0000,0,1,1,1.0,0.0)
         self.assertTupleEqual(multiConData,(5.0, 2, 2, 0, 1, 1, 1.0, 0.0))
+
+    @unittest.skip("To implement")
+    def test_zSetNSCObjectData(self):
+        print("\nTEST: zSetNSCObjectData()")
+        pass
+
+    @unittest.skip("To implement")
+    def test_zSetNSCObjectFaceData(self):
+        print("\nTEST: zSetNSCObjectFaceData()")
+        pass
+
+    @unittest.skip("To implement test")
+    def test_zSetNSCParameter(self):
+        print("\nTEST: zSetNSCParameter()")
+        pass
+
+    @unittest.skip("To implement test")
+    def test_zSetNSCPosition(self):
+        print("\nTEST: zSetNSCPosition()")
+        pass
 
     @unittest.skip("To implement test")
     def test_zSetNSCProperty(self):
