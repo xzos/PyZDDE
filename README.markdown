@@ -13,7 +13,7 @@ PyZDDE is a Python toolbox for communicating with ZEMAX using the Microsoft's Dy
 
 ##CURENT ISSUES:
 
-1.   The software is CURRENTLY NOT COMPLETE! Quite a number of functions are not yet implemented.
+1.   All the functions for accessing the items that ZEMAX has made available have been written. However, the code base is in rapid development phase. Hence, a distribution version is not available at this point in time. Please download the code to a directory in your computer and add that directory to python search path. SEE  https://www.evernote.com/shard/s82/sh/7ad34692-b2a7-467f-a0be-79116bbbd3cf/b3adc4fa0bb11756b6fdabeade04c49f?noteKey=b3adc4fa0bb11756b6fdabeade04c49f&noteGuid=7ad34692-b2a7-467f-a0be-79116bbbd3cf
 
 2.   Due to known a bug in the PyWin32 library, please use a 32-bit version, built 214 (or earlier) of PyWin32. The known issue has been discussed and documented at http://sourceforge.net/mailarchive/message.php?msg_id=28828321
 
