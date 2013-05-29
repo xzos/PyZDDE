@@ -1,8 +1,7 @@
-PyZDDE is a Python toolbox for communicating with ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging protocol. It is similar to the MZDDE toolbox, in Matlab, developed by Derek Griffith at CSIR (http://kb-en.radiantzemax.com/KnowledgebaseArticle50204.aspx).
+PyZDDE is a Python toolbox for communicating with [ZEMAX] (http://www.radiantzemax.com/)  using the Microsoft's Dynamic Data Exchange (DDE) messaging protocol. ZEMAX is a leading software tool for design and analysis of optical systems. This toolbox, which implements all of the data items listed in the ZEMAX Extensions Chapter of the ZEMAX manual, provides access and control to ZEMAX from Python. It is similar to, and very much inspired by the [MZDDE toolbox] (http://kb-en.radiantzemax.com/KnowledgebaseArticle50204.aspx) in Matlab, developed by Derek Griffith at CSIR. However, at this point, it is not as extensive as MZDDE.
 
 
-
-##PYTHON VERSION and LIBRARIES USED:
+### PYTHON VERSION and LIBRARIES USED:
 
 1.   Python 2.7.3, 32 bit version (required)
 
@@ -11,18 +10,18 @@ PyZDDE is a Python toolbox for communicating with ZEMAX using the Microsoft's Dy
 3.   Matplotlib (optional, used in some of the example programs)
 
 
-##CURENT ISSUES:
+### CURENT ISSUES:
 
-1.   All the functions for accessing the items that ZEMAX has made available have been written. However, the code base is in rapid development phase. Hence, a distribution version is not available at this point in time. Please download the code to a directory in your computer and add that directory to python search path. SEE  https://www.evernote.com/shard/s82/sh/7ad34692-b2a7-467f-a0be-79116bbbd3cf/b3adc4fa0bb11756b6fdabeade04c49f?noteKey=b3adc4fa0bb11756b6fdabeade04c49f&noteGuid=7ad34692-b2a7-467f-a0be-79116bbbd3cf
+1.   All the functions (around 130) for accessing the data items that ZEMAX has made available have been written. However, the codebase is in rapid development phase. Hence, a distribution version is not available at this point in time. Please download the code to a local directory in your computer and add that directory to python search path in order to use it. For more detailed instructions on using PyZDDE, please refer to the [Wiki page] (https://github.com/indranilsinharoy/PyZDDE/wiki)
 
-2.   Due to known a bug in the PyWin32 library, please use a 32-bit version, built 214 (or earlier) of PyWin32. The known issue has been discussed and documented at http://sourceforge.net/mailarchive/message.php?msg_id=28828321
+2.   Due to known a bug in the PyWin32 library, please use a 32-bit version, built 214 (or earlier) of PyWin32. The known issue has been discussed and documented [here] (http://sourceforge.net/mailarchive/message.php?msg_id=28828321)
 
 
-##FILES AND DIRECTORIES:
+### FILES AND DIRECTORIES:
 
 PyZDDE                     : Top-level folder for the toolbox 
 
-PyZDDE/LICENSE      : License file (MIT License)
+PyZDDE/LICENSE      : License file ([MIT License] (http://opensource.org/licenses/MIT))
 
 PyZDDE/pyzdde.py   : Main file containing the PyZDDE code. The user must import this module to use the toolbox as "import pyzdde"
 
