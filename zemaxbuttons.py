@@ -244,8 +244,8 @@ def showZButtonList():
 
     """
     print("Listing all ZEMAX Button codes:")
-    for elem in sorted(Buttons.button_code.items()):
-        print("[",elem[0],"]",elem[1])
+    for code, description in sorted(Buttons.button_code.items()):
+        print("[", code, "]", description)
     print("\nTotal number of buttons = {:d}".format(len(Buttons.button_code)))
 
 def getZButtonCount():

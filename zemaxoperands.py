@@ -567,12 +567,12 @@ def showZOperandList(operandType = 0):
     """
     if operandType == 0:
         print("Listing all operands:")
-        for elem in sorted(Operands.opt_operands.items()):
-            print("[",elem[0],"]",elem[1])
+        for operand, description in sorted(Operands.opt_operands.items()):
+            print("[",operand,"]",description)
         for elem in sorted(Operands.tol_operands.items()):
-            print("[",elem[0],"]",elem[1])
+            print("[",operand,"]",description)
         for elem in sorted(Operands.mco_operands.items()):
-            print("[",elem[0],"]",elem[1])
+            print("[",operand,"]",description)
         totOperands = (len(Operands.opt_operands) +
                        len(Operands.tol_operands) +
                        len(Operands.mco_operands))
@@ -587,8 +587,8 @@ def showZOperandList(operandType = 0):
         elif operandType == 3:
             print("Listing Multi-configuration operands:")
             toList = sorted(Operands.mco_operands.items())
-        for elem in toList:
-            print("[",elem[0],"]",elem[1])
+        for operand, description in toList:
+            print("[",operand,"]",description)
         print("\nTotal number of operands = {:d}".format(len(toList)))
 
 def getZOperandCount(operandType = 0):

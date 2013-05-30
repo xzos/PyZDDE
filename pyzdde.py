@@ -462,7 +462,7 @@ class PyZDDE(object):
             cmd = "GetAspect,{}".format(filename)
         reply = self.conversation.Request(cmd)
         rs = reply.split(",")
-        aspectSide = tuple([float(rs[i]) for i in range(len(rs))])
+        aspectSide = tuple([float(elem) for elem in rs])
         return aspectSide
 
     def zGetBuffer(self,n,tempFileName):
