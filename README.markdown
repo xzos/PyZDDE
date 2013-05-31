@@ -12,7 +12,7 @@ Please refer to the [Wiki] (https://github.com/indranilsinharoy/PyZDDE/wiki) pag
 
 ### <font color="Brown">CURENT ISSUES:</font>
 
-1.   All functions (around 130) for accessing the data items that ZEMAX has made available have been implemented.  Currently, a distribution version is not available as the tool box is being updated regularly. Please download the code to a local directory in your computer and add that directory to python search path in order to use it. For more detailed instructions on using PyZDDE, please refer to the [Wiki page] (https://github.com/indranilsinharoy/PyZDDE/wiki)
+1.   All functions (around 130) for accessing the data items that ZEMAX have been implemented. Currently, a distribution version is not available as the tool box is being updated regularly. Please download the code to a local directory in your computer and add that directory to python search path in order to use it. For more detailed instructions on using PyZDDE, please refer to the [Wiki page] (https://github.com/indranilsinharoy/PyZDDE/wiki)
 
 2.   Due to a known bug in the PyWin32 library, please use a 32-bit version, built 214 (or earlier) of PyWin32. This issue has been discussed and documented [here] (http://sourceforge.net/mailarchive/message.php?msg_id=28828321)
 

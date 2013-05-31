@@ -19,6 +19,7 @@ import sys
 import os
 from os import path
 from math import pi,cos,sin
+from itertools import izip
 import warnings
 
 #Import zemaxOperands
@@ -4771,41 +4772,34 @@ class PyZDDE(object):
         """Convenience function to produce a series of x,y values of rays traced
         in a spiral over the entrance pupil to the image surface. i.e. the final
         destination of the rays is the image surface. This function imitates its
-        namesake from MZDDE toolbox.
+        namesake from MZDDE toolbox (Note: unlike the spiralSpot of MZDDE, you
+        are not required to call zLoadLens() before calling spiralSpot().).
 
         spiralSpot(hy,hx,waveNum,spirals,rays[,mode])->(x,y,z,intensity)
-
-        Note: Since the spiralSpot function performs a GetRefresh() to load lens
-        data from the LDE to the DDE server, perform PushLens() before calling
-        spiralSpot.
         """
-        status = self.zGetRefresh()
-        if ~status:
-            finishAngle = spirals*2*pi
-            dTheta = finishAngle/(rays-1)
-            theta = [i*dTheta for i in range(rays)]
-            r = [i/finishAngle for i in theta]
-            px = [r[i]*cos(theta[i]) for i in range(len(theta))]
-            py = [r[i]*sin(theta[i]) for i in range(len(theta))]
-            x = [] # x-coordinate of the image surface
-            y = [] # y-coordinate of the image surface
-            z = [] # z-coordinate of the image surface
-            intensity = [] # the relative transmitted intensity of the ray
-            for i in range(len(px)):
-                rayTraceData = self.zGetTrace(waveNum,mode,-1,hx,hy,px[i],py[i])
-                if rayTraceData[0] == 0:
-                    x.append(rayTraceData[2])
-                    y.append(rayTraceData[3])
-                    z.append(rayTraceData[4])
-                    intensity.append(rayTraceData[11])
-                else:
-                    print("Raytrace Error")
-                    exit()
-                    # !!! FIX raise an error here
-            return (x,y,z,intensity)
-        else:
-            print("Couldn't copy lens from LDE to server, tracing can't be performed")
-            return (None,None,None,None)
+        # Calculate the ray pattern on the pupil plane
+        finishAngle = spirals*2*pi
+        dTheta = finishAngle/(rays-1)
+        theta = [i*dTheta for i in range(rays)]
+        r = [i/finishAngle for i in theta]
+        pXY = [(ri*cos(thetai), ri*sin(thetai)) for ri, thetai in izip(r,theta)]
+        x = [] # x-coordinate of the image surface
+        y = [] # y-coordinate of the image surface
+        z = [] # z-coordinate of the image surface
+        intensity = [] # the relative transmitted intensity of the ray
+        for px,py in pXY:
+            rayTraceData = self.zGetTrace(waveNum,mode,-1,hx,hy,px,py)
+            if rayTraceData[0] == 0:
+                x.append(rayTraceData[2])
+                y.append(rayTraceData[3])
+                z.append(rayTraceData[4])
+                intensity.append(rayTraceData[11])
+            else:
+                print("Raytrace Error")
+                exit()
+                # !!! FIX raise an error here
+        return (x,y,z,intensity)
+
 
     def lensScale(self,factor=2.0,ignoreSurfaces=None):
         """Scale the lens design by factor specified.
