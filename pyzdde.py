@@ -4399,6 +4399,7 @@ class PyZDDE(object):
 
         See also, zGetSystem(), zGetSystemAper()
         """
+        print(aType, stopSurf, apertureValue)
         cmd = ("SetSystemAper,{:d},{:d},{:1.20g}"
                .format(aType,stopSurf,apertureValue))
         reply = self.conversation.Request(cmd)
@@ -4844,7 +4845,7 @@ class PyZDDE(object):
         #Scale the "system aperture" appropriately
         sysAperData = self.zGetSystemAper()
         if sysAperData[0] == 0:   # System aperture if EPD
-            stopSurf = sysAperData[1]
+            stopSurf = int(sysAperData[1])
             aptVal = sysAperData[2]
             self.zSetSystemAper(0,stopSurf,factor*aptVal)
         elif sysAperData[0] in (1,2,4): # Image Space F/#, Object Space NA, Working Para F/#

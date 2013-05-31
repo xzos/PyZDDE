@@ -215,6 +215,7 @@ for lens_file in filenames:
 
     #Scale lens to a normalized EFFL
     scaleFactor = 1.00
+    ret_ls = 0
     if SCALE_LENSES:
         #Get first order EFL
         efl = pyZmLnk.zGetFirst()[0]
