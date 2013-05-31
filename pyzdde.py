@@ -4773,9 +4773,17 @@ class PyZDDE(object):
         in a spiral over the entrance pupil to the image surface. i.e. the final
         destination of the rays is the image surface. This function imitates its
         namesake from MZDDE toolbox (Note: unlike the spiralSpot of MZDDE, you
-        are not required to call zLoadLens() before calling spiralSpot().).
+        are not required to call zLoadLens() before calling spiralSpot()).
 
         spiralSpot(hy,hx,waveNum,spirals,rays[,mode])->(x,y,z,intensity)
+
+        args:
+          hx      : normalized field height along x axis
+          hy      : normalized field height along y axis
+          waveNum : wavelength number as in the wavelength data editor
+          mode    : 0 = real, 1 = paraxial
+        ret:
+          rayInfo : 4-tuple = (x,y,z,intensity)
         """
         # Calculate the ray pattern on the pupil plane
         finishAngle = spirals*2*pi
