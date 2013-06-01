@@ -1860,7 +1860,8 @@ class PyZDDE(object):
         """
         reply = self.conversation.Request("GetSystemAper")
         rs = reply.split(',')
-        systemAperData = tuple([float(elem) for elem in rs])
+        systemAperData = tuple([float(elem) if i==2 else int(float(elem)) 
+                                for i, elem in enumerate(rs)])
         return systemAperData
 
     def zGetSystemProperty(self,code):
@@ -4399,17 +4400,19 @@ class PyZDDE(object):
 
         See also, zGetSystem(), zGetSystemAper()
         """
-        print(aType, stopSurf, apertureValue)
         cmd = ("SetSystemAper,{:d},{:d},{:1.20g}"
                .format(aType,stopSurf,apertureValue))
         reply = self.conversation.Request(cmd)
         rs = reply.split(',')
-        systemAperData = tuple([float(elem) for elem in rs])
+        systemAperData = tuple([float(elem) if i==2 else int(float(elem)) 
+                                for i, elem in enumerate(rs)])
         return systemAperData
 
     def zSetSystemProperty(self, code, value1, value2=0):
-        """Sets system properties of the system, such as system aperture, field,
-        wavelength, and other data, based on the integer `code` passed.
+        """Sets system properties of the system.
+        
+        System properties such as system aperture, field, wavelength, and other data, 
+        based on the integer `code` passed.
 
         zSetSystemProperty(code)-> sysPropData
         args:
@@ -4845,7 +4848,7 @@ class PyZDDE(object):
         #Scale the "system aperture" appropriately
         sysAperData = self.zGetSystemAper()
         if sysAperData[0] == 0:   # System aperture if EPD
-            stopSurf = int(sysAperData[1])
+            stopSurf = sysAperData[1]
             aptVal = sysAperData[2]
             self.zSetSystemAper(0,stopSurf,factor*aptVal)
         elif sysAperData[0] in (1,2,4): # Image Space F/#, Object Space NA, Working Para F/#
@@ -4861,8 +4864,7 @@ class PyZDDE(object):
         numSurf = 0
         recSystemData_g = self.zGetSystem() #Get the current system parameters
         numSurf = recSystemData_g[0]
-        #print "Number of surfaces in the lens: ", numSurf
-
+        #print("Number of surfaces in the lens: ", numSurf)
         if recSystemData_g[4] > 0:
             print("Warning: Ray aiming is ON in {lF}. But cannot scale Pupil Shift values.".format(lF=lensFile))
 
@@ -4897,7 +4899,8 @@ class PyZDDE(object):
                 #scale the coefficients of the Zernike Fringe polynomial terms in the EDE
                 numBTerms = int(self.zGetExtra(surfNum,1))
                 if numBTerms > 0:
-                    for i in range(3,binSurMaxNum[surfName]): #scaling of terms 3 to 232, p^480 for Binary1 and Binary 2 respectively
+                    for i in range(3,binSurMaxNum[surfName]): # scaling of terms 3 to 232, p^480
+                                                              # for Binary1 and Binary 2 respectively
                         if i > numBTerms + 2: #(+2 because the terms starts from par 3)
                             break
                         else:
@@ -4907,7 +4910,8 @@ class PyZDDE(object):
                 #Scaling of parameters in the LDE
                 par1 = self.zGetSurfaceParameter(surfNum,1) # R2
                 par1_ret = self.zSetSurfaceParameter(surfNum,1,factor*par1)
-                par4 = self.zGetSurfaceParameter(surfNum,4) # A2, need to scale A2 before A1, because A2>A1>0.0 always
+                par4 = self.zGetSurfaceParameter(surfNum,4) # A2, need to scale A2 before A1, 
+                                                            # because A2>A1>0.0 always
                 par4_ret = self.zSetSurfaceParameter(surfNum,4,factor*par4)
                 par3 = self.zGetSurfaceParameter(surfNum,3) # A1
                 par3_ret = self.zSetSurfaceParameter(surfNum,3,factor*par3)
@@ -5034,45 +5038,23 @@ class PyZDDE(object):
 
 
     def calculateHiatus(self,txtFileName2Use=None,keepFile=False):
-        """Function to calculate the Hiatus, also known as the Null space, or nodal
-           space, or the interstitium (i.e. the distance between the two principal
-           planes.
+        """Calculate the Hiatus. 
+        
+        The hiatus, also known as the Null space, or nodal space, or the interstitium 
+        is the distance between the two principal planes.
 
         calculateHiatus([txtFileName2Use,keepFile])-> hiatus
 
         args:
-            txtFileName2Use : (optional, string) If passed, the prescription file
-                              will be named such. Pass a specific txtFileName if
-                              you want to dump the file into a separate directory.
-            keepFile        : (optional, bool) If false (default), the prescription
-                              file will be deleted after use. If true, the file
-                              will persist.
+          txtFileName2Use : (optional, string) If passed, the prescription file
+                            will be named such. Pass a specific txtFileName if
+                            you want to dump the file into a separate directory.
+          keepFile        : (optional, bool) If false (default), the prescription
+                            file will be deleted after use. If true, the file
+                            will persist.
         ret:
-            hiatus          : the value of the hiatus
+          hiatus          : the value of the hiatus
 
-        Note:
-            1. Decision to use Prescription file:
-               The cardinal points information is retrieved from the prescription
-               file. One could also request Zemax to write just the "Cardinal Points"
-               data to a text file. In fact, such a file is much smaller and it
-               also provides information about the number of surfaces. In most
-               situations, especially if only cardinal points'/planes' information
-               is required, one may just use "zGetTextFile(textFileName,'Car',"None",0)".
-               Zemax then calculates the cardianl points/planes only for the primary
-               wavelength. However, the file obtained in the latter method doesn't
-               retrieve information about the distances of the first surface and
-               the image surface required for calculating the hiatus.
-            2. Decision to read all lines from the files into a list:
-               It is very difficult (if not impossible) to read the prescirption
-               files using bytes as we want to get to a specific position based
-               on "keywords" and not "bytes". (we are not guaranteed to find the
-               same "keyword" for a specific byte-based-position everytime we read
-               a prescription file). If we read the file line-by-line such as
-               "for line in file" (using the file iterable object) it becomes hard to
-               read, identify and store a specific line which doesn't have any identifiable
-               keywords. Also, because of possible data loss, Python raises an exception,
-               if we try to use readline() or readlines() within the "for line in file"
-               iteration.
         """
         if txtFileName2Use != None:
             textFileName = txtFileName2Use
@@ -5090,15 +5072,14 @@ class PyZDDE(object):
         count = 0
         #The number of expected Principal planes in each Pre file is equal to the
         #number of wavelengths in the general settings of the lens design
-        #See Note 2 for the reasons why the file was not read as an iterable object
-        #and instead, we create a list of all the lines in the file, which is obviously
-        #very wasteful of memory
+        #We are creating a list of lines by purpose, see note 2 (decisions for this fn)
         line_list = fileref.readlines()
         fileref.close()
 
         for line_num,line in enumerate(line_list):
             #Extract the image surface distance from the global ref sur (surface 1)
-            sectionString = "GLOBAL VERTEX COORDINATES, ORIENTATIONS, AND ROTATION/OFFSET MATRICES:"
+            sectionString = ("GLOBAL VERTEX COORDINATES, ORIENTATIONS,"
+                             " AND ROTATION/OFFSET MATRICES:")
             if line.rstrip()== sectionString:
                 ima_3 = line_list[line_num + numSurf*4 + 6]
                 ima_z = float(ima_3.split()[3])
