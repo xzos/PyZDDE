@@ -144,6 +144,10 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zDeleteSurface()")
         pass
 
+    @unittest.skip("To implement")
+    def test_zExecuteZPLMacro(self):
+        print("\nTEST: zExecuteZPLMacro()")
+
     @unittest.skip("To implement test")
     def test_zExportCAD(self):
         print("\nTEST: zExportCAD()")

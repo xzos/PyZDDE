@@ -159,6 +159,42 @@ class PyZDDE(object):
         """
         return int(self.conversation.Request("CloseUDOData,{:d}".format(bufferCode)))
 
+    def zDeleteConfig(self,number):
+        """Deletes an existing configuration (column) in the multi-configuration
+        editor.
+
+        zDeleteConfig(config)->configNumber
+
+        args:
+            number : (integer) configuration number to delete
+        ret:
+            retVal : (integer) configuration number deleted.
+
+        Note: After deleting the configuration, all succeeding configurations are
+        re-numbered.
+
+        See also zInsertConfig. Use zDeleteMCO() to delete a row/operand
+        """
+        return int(self.conversation.Request("DeleteConfig,{:d}".format(number)))
+
+    def zDeleteMCO(self,operandNumber):
+        """Deletes an existing operand (row) in the multi-configuration editor.
+
+        zDeleteMCO(operandNumber)->newNumberOfOperands
+
+        args:
+            operandNumber        : (integer) operand number (row in the MCE) to
+                                   delete.
+        ret:
+            newNumberOfOperands  : (integer) new number of operands.
+
+        Note: After deleting the row, all succeeding rows (operands) are
+        re-numbered.
+
+        See also zInsertMCO. Use zDeleteConfig() to delete a column/configuration.
+        """
+        return int(self.conversation.Request("DeleteMCO,"+str(operandNumber)))
+
     def zDeleteMFO(self,operand):
         """Deletes an optimization operand (row) in the merit function editor
 
@@ -200,41 +236,38 @@ class PyZDDE(object):
         else:
             return int(float(rs))
 
-    def zDeleteConfig(self,number):
-        """Deletes an existing configuration (column) in the multi-configuration
-        editor.
+    def zExecuteZPLMacro(self,zplMacroCode):
+        """Executes a ZPL macro present in the <data>/Macros folder.
 
-        zDeleteConfig(config)->configNumber
-
-        args:
-            number : (integer) configuration number to delete
-        ret:
-            retVal : (integer) configuration number deleted.
-
-        Note: After deleting the configuration, all succeeding configurations are
-        re-numbered.
-
-        See also zInsertConfig. Use zDeleteMCO() to delete a row/operand
-        """
-        return int(self.conversation.Request("DeleteConfig,{:d}".format(number)))
-
-    def zDeleteMCO(self,operandNumber):
-        """Deletes an existing operand (row) in the multi-configuration editor.
-
-        zDeleteMCO(operandNumber)->newNumberOfOperands
+        zExecuteZPLMacro(zplMacroCode)->status
 
         args:
-            operandNumber        : (integer) operand number (row in the MCE) to
-                                   delete.
+          zplMacroCode : (string) The first 3 letters (case-sensitive) of the
+                         ZPL macro present in the <data>/Macros folder.
         ret:
-            newNumberOfOperands  : (integer) new number of operands.
+          status       : 0 if successfully executed the ZPL macro
+                        -1 if the macro code passed is incorrect
+                        error code (returned by Zemax) otherwise.
 
-        Note: After deleting the row, all succeeding rows (operands) are
-        re-numbered.
-
-        See also zInsertMCO. Use zDeleteConfig() to delete a column/configuration.
+        Note:
+            Limitations:
+            1. Currently one can only "execute" a ZPL macro. There seems to be no
+               way of getting the results of the macro execution back to the
+               client application.
+            2. If there are more than two macros which have the same first 3 letters
+               then all of them will be executed by Zemax.
+            3. The macros must be placed in the <data>/Macros folder, and the
+               "ZPL" field under Preferences/Folder must be the default ZPL
+               folder, i.e. <data>/Macros
         """
-        return int(self.conversation.Request("DeleteMCO,"+str(operandNumber)))
+        status = -1
+        zplMpath = path.join(self.zGetPath()[0], 'Macros')
+        macroList = [f for f in os.listdir(zplMpath)
+                     if f.endswith(('.zpl','.ZPL')) and f.startswith(zplMacroCode)]
+        if macroList:
+            zplCode = macroList[0][:3]
+            status = self.zOpenWindow(zplCode,True)
+        return status
 
     def zDeleteSurface(self,surfaceNumber):
         """Deletes an existing surface.
@@ -1325,10 +1358,10 @@ class PyZDDE(object):
         return process_get_set_Operand(column, reply)
 
     def zGetPath(self):
-        """Returns the full path name to the <data> folder, and the path name to
-        the default folder for lenses.
+        """Returns path name to <data> folder and default lenses folder.
 
         zGetPath()->(pathToDataFolder,pathToDefaultLensFolder)
+
         args:
             None
         ret:
@@ -1616,9 +1649,11 @@ class PyZDDE(object):
         return int(reply.rstrip())
 
     def zGetSettingsData(self,tempFile,number):
-        """Returns the settings data used by a window. The data must have been
-        previously stored by a call to zSetSettingsData() or the data may have
-        been stored by a previous execution of the client program.
+        """Returns the settings data used by a window.
+
+        The data must have been previously stored by a call to zSetSettingsData()
+        or the data may have been stored by a previous execution of the client
+        program.
 
         zGetSettingsData(tempFile,number)->settingsData
 
@@ -1810,18 +1845,18 @@ class PyZDDE(object):
         zGetSystem() -> systemData
 
         ret:
-            systemData : the systemData is a tuple with the following elements:
-                numSurfs      : number of surfaces
-                unitCode      : lens units code (0,1,2,or 3 for mm, cm, in, or M)
-                stopSurf      : the stop surface number
-                nonAxialFlag  : flag to indicate if system is non-axial symmetric
-                                (0 for axial, 1 if not axial)
-                rayAimingType : ray aiming type (0,1, or 2 for off, paraxial or real)
-                adjust_index  : adjust index data to environment flag (0 if false, 1 if true)
-                temp          : the current temperature
-                pressure      : the current pressure
-                globalRefSurf : the global coordinate reference surface number
-                need_save     : indicates whether the file has been modified. [Deprecated]
+          systemData : the systemData is a tuple with the following elements:
+            numSurfs      : number of surfaces
+            unitCode      : lens units code (0,1,2,or 3 for mm, cm, in, or M)
+            stopSurf      : the stop surface number
+            nonAxialFlag  : flag to indicate if system is non-axial symmetric
+                            (0 for axial, 1 if not axial)
+            rayAimingType : ray aiming type (0,1, or 2 for off, paraxial or real)
+            adjust_index  : adjust index data to environment flag (0 if false, 1 if true)
+            temp          : the current temperature
+            pressure      : the current pressure
+            globalRefSurf : the global coordinate reference surface number
+            need_save     : indicates whether the file has been modified. [Deprecated]
 
         Note: the returned data structure is exactly similar to the data structure
         returned by the zSetSystem() method.
@@ -1860,7 +1895,7 @@ class PyZDDE(object):
         """
         reply = self.conversation.Request("GetSystemAper")
         rs = reply.split(',')
-        systemAperData = tuple([float(elem) if i==2 else int(float(elem)) 
+        systemAperData = tuple([float(elem) if i==2 else int(float(elem))
                                 for i, elem in enumerate(rs)])
         return systemAperData
 
@@ -1968,8 +2003,7 @@ class PyZDDE(object):
         return sysPropData
 
     def zGetTextFile(self,textFileName, analysisType, settingsFileName, flag):
-        """Request Zemax to save a text file for any analysis that supports text
-           output.
+        """Request to save a text file for any analysis that supports text output.
 
            zGetText(textFilename, analysisType, settingsFileName, flag) -> retVal
 
@@ -2671,8 +2705,9 @@ class PyZDDE(object):
         # FIX !!! What is the appropriate reply?
 
     def zModifySettings(self,fileName,mType,value):
-        """Used to change specific options in ZEMAX settings files. The settings
-        files are used by zMakeTextWindow() and zMakeGraphicWindow()
+        """Used to change specific options in ZEMAX settings files.
+
+        The settings files are used by zMakeTextWindow() and zMakeGraphicWindow()
 
         zModifySettings(fileName,mType,value)->status
 
@@ -2695,12 +2730,12 @@ class PyZDDE(object):
         return int(float(reply.rstrip()))
 
     def zNewLens(self):
-        """Erases the current lens. The "minimum" lens that remains is identical
-        to the lens Data Editor when "File,New" is selected. No prompt to save
-        the existing lens is given.
+        """Erases the current lens.
+
+        The "minimum" lens that remains is identical to the lens Data Editor
+        when "File,New" is selected. No prompt to save the existing lens is given.
 
         zNewLens-> retVal (retVal = 0 means successful)
-
         """
         return int(self.conversation.Request('NewLens'))
 
@@ -2867,10 +2902,10 @@ class PyZDDE(object):
         else:
             return int(float(reply.rstrip()))  # return the error code sent by zemax.
 
-    def zOpenWindow(self, analysisType):
+    def zOpenWindow(self, analysisType, zplMacro=False):
         """Open a new analysis window on the main ZEMAX screen.
 
-        zOpenWindow(analysisType)->
+        zOpenWindow(analysisType)->status
 
         args:
           analysisType  : (string) 3 character case-sensitive label that indicates
@@ -2879,13 +2914,19 @@ class PyZDDE(object):
                           in ZEMAX. You can see a list of the button codes by
                           importing zemaxbuttons module and calling the showZButtons
                           function in an interactive shell, for example:
-
                               import zemaxbuttons as zb
                               zb.showZButtonList()
-
-        See also zGetMetaFile.
+          zplMacro      : (bool) True if the analysisTyppe code is the first 3-letters
+                          of a ZPL macro name, else False (default).
+                          Note: If the analysiType is ZPL macro, please make sure
+                          that the macro exist in the <data>/Macros folder. It is
+                          recommended to use zExecuteZPLMacro() if you are trying
+                          to execute a ZPL macro.
+        ret:
+          status  : 0 = successful, -1 = incorrect analysis code
+        See also zGetMetaFile, zExecuteZPLMacro
         """
-        if zb.isZButtonCode(analysisType):
+        if zb.isZButtonCode(analysisType) ^ zplMacro:  # XOR operation
             reply = self.conversation.Request("OpenWindow,{}".format(analysisType))
             if 'OK' in reply.split():
                 return 0
@@ -4404,14 +4445,14 @@ class PyZDDE(object):
                .format(aType,stopSurf,apertureValue))
         reply = self.conversation.Request(cmd)
         rs = reply.split(',')
-        systemAperData = tuple([float(elem) if i==2 else int(float(elem)) 
+        systemAperData = tuple([float(elem) if i==2 else int(float(elem))
                                 for i, elem in enumerate(rs)])
         return systemAperData
 
     def zSetSystemProperty(self, code, value1, value2=0):
         """Sets system properties of the system.
-        
-        System properties such as system aperture, field, wavelength, and other data, 
+
+        System properties such as system aperture, field, wavelength, and other data,
         based on the integer `code` passed.
 
         zSetSystemProperty(code)-> sysPropData
@@ -4866,7 +4907,8 @@ class PyZDDE(object):
         numSurf = recSystemData_g[0]
         #print("Number of surfaces in the lens: ", numSurf)
         if recSystemData_g[4] > 0:
-            print("Warning: Ray aiming is ON in {lF}. But cannot scale Pupil Shift values.".format(lF=lensFile))
+            print("Warning: Ray aiming is ON in {lF}. But cannot scale"
+                  " Pupil Shift values.".format(lF=lensFile))
 
         #Scale individual surface properties in the LDE
         for surfNum in range(0,numSurf+1): #Start from the object surface ... to scale thickness if not infinity
@@ -4910,7 +4952,7 @@ class PyZDDE(object):
                 #Scaling of parameters in the LDE
                 par1 = self.zGetSurfaceParameter(surfNum,1) # R2
                 par1_ret = self.zSetSurfaceParameter(surfNum,1,factor*par1)
-                par4 = self.zGetSurfaceParameter(surfNum,4) # A2, need to scale A2 before A1, 
+                par4 = self.zGetSurfaceParameter(surfNum,4) # A2, need to scale A2 before A1,
                                                             # because A2>A1>0.0 always
                 par4_ret = self.zSetSurfaceParameter(surfNum,4,factor*par4)
                 par3 = self.zGetSurfaceParameter(surfNum,3) # A1
@@ -5038,9 +5080,9 @@ class PyZDDE(object):
 
 
     def calculateHiatus(self,txtFileName2Use=None,keepFile=False):
-        """Calculate the Hiatus. 
-        
-        The hiatus, also known as the Null space, or nodal space, or the interstitium 
+        """Calculate the Hiatus.
+
+        The hiatus, also known as the Null space, or nodal space, or the interstitium
         is the distance between the two principal planes.
 
         calculateHiatus([txtFileName2Use,keepFile])-> hiatus

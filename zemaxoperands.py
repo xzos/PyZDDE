@@ -155,30 +155,47 @@ class Operands(object):
     "FREZ": "Freeform Z object constraints.",
     "FTGT": "Full thickness greater than. See FTLT.",
     "FTLT": "Full thickness less than. See FTGT.",
-    "GBPD": "Gaussian beam (paraxial) divergence in the optical space following the surface.",
-    "GBPP": "Gaussian beam (paraxial) position, which is the distance from the waist to the surface. See GBPD.",
-    "GBPR": "Gaussian beam (paraxial) radius of curvature in the optical space following the specified surface.See GBPD.",
-    "GBPS": "Gaussian beam (paraxial) size in the optical space following the specified surface. See GBPD.",
-    "GBPW": "Gaussian beam (paraxial) waist in the optical space following the specified surface. See GBPD.",
-    "GBSD": "Gaussian beam (skew) divergence in the optical space following the specified surface.",
-    "GBSP": "Gaussian beam (skew) position, which is the distance from the waist to the surface. See GBSD.",
-    "GBSR": "Gaussian beam (skew) radius in the optical space following the specified surface. See GBSD.",
-    "GBSS": "Gaussian beam (skew) size in the optical space following the specified surface. See GBSD.",
-    "GBSW": "Gaussian beam (skew) waist in the optical space following the specified surface. See GBSD.",
+    "GBPD": "Gaussian beam (paraxial) divergence in the optical space following "
+            "the surface.",
+    "GBPP": "Gaussian beam (paraxial) position, which is the distance from the "
+            "waist to the surface. See GBPD.",
+    "GBPR": "Gaussian beam (paraxial) radius of curvature in the optical space "
+            "following the specified surface.See GBPD.",
+    "GBPS": "Gaussian beam (paraxial) size in the optical space following the "
+            "specified surface. See GBPD.",
+    "GBPW": "Gaussian beam (paraxial) waist in the optical space following the "
+            "specified surface. See GBPD.",
+    "GBSD": "Gaussian beam (skew) divergence in the optical space following the "
+            "specified surface.",
+    "GBSP": "Gaussian beam (skew) position, which is the distance from the waist "
+            "to the surface. See GBSD.",
+    "GBSR": "Gaussian beam (skew) radius in the optical space following the "
+            "specified surface. See GBSD.",
+    "GBSS": "Gaussian beam (skew) size in the optical space following the "
+            "specified surface. See GBSD.",
+    "GBSW": "Gaussian beam (skew) waist in the optical space following the "
+            "specified surface. See GBSD.",
     "GCOS": "Glass cost.",
-    "GENC": "Geometric Encircled Energy (distance). See also GENF, DENC, DENF, and XENC.",
-    "GENF": "Geometric Encircled Energy (fraction). See also GENC, DENC, DENF, and XENC.",
-    "GLCA": "Global x-direction orientation vector component of the surface defined by Surf.",
-    "GLCB": "Global y-direction orientation vector component of the surface defined by Surf.",
-    "GLCC": "Global z-direction orientation vector component of the surface defined by Surf.",
-    "GLCR": "Global Coordinate Rotation Matrix component at the surface defined by Surf.",
+    "GENC": "Geometric Encircled Energy (distance). See also GENF, DENC, DENF, "
+            "and XENC.",
+    "GENF": "Geometric Encircled Energy (fraction). See also GENC, DENC, DENF, "
+            "and XENC.",
+    "GLCA": "Global x-direction orientation vector component of the surface "
+            "defined by Surf.",
+    "GLCB": "Global y-direction orientation vector component of the surface "
+            "defined by Surf.",
+    "GLCC": "Global z-direction orientation vector component of the surface "
+            "defined by Surf.",
+    "GLCR": "Global Coordinate Rotation Matrix component at the surface "
+            "defined by Surf.",
     "GLCX": "Global vertex x-coordinate of the surface defined by Surf.",
     "GLCY": "Global vertex y-coordinate of the surface defined by Surf.",
     "GLCZ": "Global vertex z-coordinate of the surface defined by Surf.",
     "GMTA": "Geometric MTF average of sagittal and tangential response.",
     "GMTS": "Geometric MTF sagittal response. See GMTA.",
     "GMTT": "Geometric MTF tangential response. See GMTA.",
-    "GOTO": "Skips all operands between the GOTO operand line and the operand number defined by Op#.",
+    "GOTO": "Skips all operands between the GOTO operand line and the operand "
+            "number defined by Op#.",
     "GPIM": "Ghost pupil image. See also GPRT, GPRX, GPRY, GPSX, and GPSY.",
     "GPRT": "Ghost ray transmission.",
     "GPRX": "Ghost ray real x coordinate.",
@@ -195,20 +212,26 @@ class Operands(object):
     "INDX": "Index of refraction.",
     "InGT": "Index `n` greater than.",
     "InLT": "Index `n` less than.",
-    "InVA": "This operand is similar to InGT except it constrains the current value of the index of refraction.",
+    "InVA": "This operand is similar to InGT except it constrains the current "
+            "value of the index of refraction.",
     "ISFN": "Image space F/#. See WFNO.",
     "ISNA": "Image space numerical aperture. See ISFN.",
     "LACL": "Lateral color.",
-    "LINV": "Lagrange (or optical) invariant of system in lens units at the wavelength defined by Wave.",
+    "LINV": "Lagrange (or optical) invariant of system in lens units at the "
+            "wavelength defined by Wave.",
     "LOGE": "Log base e of an operand.",
     "LOGT": "Log base 10 of an operand.",
-    "LONA": "Longitudinal aberration, measured in lens units for focal systems and diopters for afocal systems. See AXCL.",
-    "LPTD": "This boundary operand constrains the slope of the axial grad. ind. profile from changing signs within a gradient index component.",
-    "MAXX": "Returns the largest value within the indicated range of operands defined by Op#1 and Op#2 . See MINN.",
+    "LONA": "Longitudinal aberration, measured in lens units for focal systems "
+            "and diopters for afocal systems. See AXCL.",
+    "LPTD": "This boundary operand constrains the slope of the axial grad. ind. "
+            "profile from changing signs within a gradient index component.",
+    "MAXX": "Returns the largest value within the indicated range of operands "
+            "defined by Op#1 and Op#2 . See MINN.",
     "MCOG": "Multi-configuration operand greater than. See MCOL.",
     "MCOL": "Multi-configuration operand less than. See MCOG.",
     "MCOV": "Multi-configuration operand value. See MCOG.",
-    "MINN": "Returns the smallest value within the indicated range of operands. See MAXX.",
+    "MINN": "Returns the smallest value within the indicated range of operands. "
+            "See MAXX.",
     "MNAB": "Minimum Abbe number. See also MXAB.",
     "MNCA": "Minimum center thickness air. See also  MNCT  and  MNCG.",
     "MNCG": "Minimum center thickness glass. See also MNCT and MNCA.",
@@ -221,13 +244,18 @@ class Operands(object):
     "MNIN": "Minimum index at d-light.",
     "MNPD": "Minimum.",
     "MNSD": "Minimum semi-diameter.",
-    "MSWA": "Modulation square-wave transfer function, average of sagittal and tangential. See MTFA for details.",
-    "MSWS": "Modulation square-wave transfer function, sagittal. See MTFA for details.",
-    "MSWT": "Modulation square-wave transfer function, tangential. See MTFA for details.",
-    "MTFA": "Diffraction modulation transfer function, average of sagittal and tangential.",
+    "MSWA": "Modulation square-wave transfer function, average of sagittal and "
+            "tangential. See MTFA for details.",
+    "MSWS": "Modulation square-wave transfer function, sagittal. See MTFA for "
+            "details.",
+    "MSWT": "Modulation square-wave transfer function, tangential. See MTFA for "
+            "details.",
+    "MTFA": "Diffraction modulation transfer function, average of sagittal and "
+            "tangential.",
     "MTFS": "Modulation transfer function, sagittal. See MTFA for details.",
     "MTFT": "Modulation transfer function, tangential. See MTFA for details.",
-    "MTHA": "Huygens Modulation transfer function, average of sagittal and tangential.",
+    "MTHA": "Huygens Modulation transfer function, average of sagittal and "
+            "tangential.",
     "MTHS": "Huygens Modulation transfer function, sagittal. See MTHA for details.",
     "MTHT": "Huygens Modulation transfer function, tangential. See MTHA for details.",
     "MXAB": "Maximum Abbe number.",
@@ -277,30 +305,48 @@ class Operands(object):
     "NTZV": "Non-sequential object tilt about z value. See NPXG.",
     "OBSN": "Object space numerical aperture.",
     "OOFF": "This operand indicates an unused entry in the operand list.",
-    "OPDC": "Optical path difference with respect to chief ray in waves at the wavelength defined by Wave.",
-    "OPDM": "Optical path difference with respect to the mean OPD over the pupil at the wavelength defined by Wave.",
-    "OPDX": "Optical  path  difference  with  respect  to  the  mean  OPD  over  the  pupil  with  tilt  removed  at  the wavelength defined by Wave.",
+    "OPDC": "Optical path difference with respect to chief ray in waves at the "
+            "wavelength defined by Wave.",
+    "OPDM": "Optical path difference with respect to the mean OPD over the pupil "
+            "at the wavelength defined by Wave.",
+    "OPDX": "Optical path difference with respect to the mean OPD over the pupil "
+            "with tilt removed at the wavelength defined by Wave.",
     "OPGT": "Operand greater than.",
     "OPLT": "Operand less than.",
     "OPTH": "Optical path length. See PLEN.",
     "OPVA": "Operand value.",
-    "OSCD": "Offense against the sine condition (OSC) at the wavelength defined by Wave.",
-    "OSUM": "Sums the values of all operands between the two operands defined by Op#1 and Op#2. See SUMM.",
-    "PANA": "Paraxial ray x-direction surface normal at the ray-surface intercept at the wavelength defined by Wave.",
-    "PANB": "Paraxial ray y-direction surface normal at the ray-surface intercept at the wavelength defined by Wave.",
-    "PANC": "Paraxial ray z-direction surface normal at the ray-surface intercept at the wavelength defined by Wave.",
-    "PARA": "Paraxial ray x-direction cosine of the ray after refraction from the surface defined by Surf at the wavelength defined by Wave.",
-    "PARB": "Paraxial ray y-direction cosine of the ray after refraction from the surface defined by Surf at the wavelength defined by Wave.",
-    "PARC": "Paraxial ray z-direction cosine of the ray after refraction from the surface defined by Surf at the wavelength defined by Wave.",
-    "PARR": "Paraxial ray radial coordinate in lens units at the surface defined by Surf at the wavelength defined by Wave.",
-    "PARX": "Paraxial ray x-coordinate in lens units at the surface defined by Surf at the wavelength defined by Wave.",
-    "PARY": "Paraxial ray y-coordinate in lens units at the surface defined by Surf at the wavelength defined by Wave.",
-    "PARZ": "Paraxial ray z-coordinate in lens units at the surface defined by Surf at the wavelength defined by Wave.",
+    "OSCD": "Offense against the sine condition (OSC) at the wavelength defined "
+            "by Wave.",
+    "OSUM": "Sums the values of all operands between the two operands defined by "
+            "Op#1 and Op#2. See SUMM.",
+    "PANA": "Paraxial ray x-direction surface normal at the ray-surface intercept "
+            "at the wavelength defined by Wave.",
+    "PANB": "Paraxial ray y-direction surface normal at the ray-surface intercept "
+            "at the wavelength defined by Wave.",
+    "PANC": "Paraxial ray z-direction surface normal at the ray-surface intercept "
+            "at the wavelength defined by Wave.",
+    "PARA": "Paraxial ray x-direction cosine of the ray after refraction from "
+            "the surface defined by Surf at the wavelength defined by Wave.",
+    "PARB": "Paraxial ray y-direction cosine of the ray after refraction from "
+            "the surface defined by Surf at the wavelength defined by Wave.",
+    "PARC": "Paraxial ray z-direction cosine of the ray after refraction from "
+            "the surface defined by Surf at the wavelength defined by Wave.",
+    "PARR": "Paraxial ray radial coordinate in lens units at the surface defined "
+            "by Surf at the wavelength defined by Wave.",
+    "PARX": "Paraxial ray x-coordinate in lens units at the surface defined by "
+            "Surf at the wavelength defined by Wave.",
+    "PARY": "Paraxial ray y-coordinate in lens units at the surface defined by "
+            "Surf at the wavelength defined by Wave.",
+    "PARZ": "Paraxial ray z-coordinate in lens units at the surface defined by "
+            "Surf at the wavelength defined by Wave.",
     "PATX": "Paraxial ray x-direction ray tangent.",
     "PATY": "Paraxial ray y-direction ray tangent.",
-    "PETC": "Petzval curvature in inverse lens units at the wavelength defined by Wave.",
-    "PETZ": "Petzval radius of curvature in lens units at the wavelength defined by Wave.",
-    "PIMH": "Paraxial image height at the paraxial image surface at the wavelength defined by Wave.",
+    "PETC": "Petzval curvature in inverse lens units at the wavelength defined "
+            "by Wave.",
+    "PETZ": "Petzval radius of curvature in lens units at the wavelength defined "
+            "by Wave.",
+    "PIMH": "Paraxial image height at the paraxial image surface at the "
+            "wavelength defined by Wave.",
     "PLEN": "Path length. See OPTH.",
     "PMAG": "Paraxial magnification.",
     "PMGT": "Parameter greater than.",
@@ -313,9 +359,13 @@ class Operands(object):
     "POPI": "Physical Optics Propagation Data.",
     "POWF": "Power at a field point.",
     "POWP": "Power at a point in the pupil.",
-    "POWR": "The surface power (in inverse lens units) of the surface defined by Surf at the wavelength defined by Wave.",
-    "PRIM": "Primary wavelength. This is used to change the primary wavelength number to the wavelength defined by Wave during merit function evaluation.",
-    "PROB": "Multiplies the value of the operand defined by Op# by the factor defined by Factor.",
+    "POWR": "The surface power (in inverse lens units) of the surface defined by "
+            "Surf at the wavelength defined by Wave.",
+    "PRIM": "Primary wavelength. This is used to change the primary wavelength "
+            "number to the wavelength defined by Wave during merit function "
+            "evaluation.",
+    "PROB": "Multiplies the value of the operand defined by Op# by the factor "
+            "defined by Factor.",
     "PROD": "Product of two operands (Op#1 X Op#2). See PROB.",
     "QOAC": "Unused.",
     "QSUM": "Quadratic sum. See also SUMM, OSUM, EQUA.",
@@ -330,20 +380,32 @@ class Operands(object):
     "RAID": "Real ray angle of incidence.See also RAED.",
     "RAIN": "Real ray angle of incidence.See also RAEN.",
     "RANG": "Ray angle in radians with respect to z axis.",
-    "REAA": "Real ray x-direction cosine of the ray after refraction from the surface defined by Surf at the wavelength defined by Wave.",
-    "REAB": "Real ray y-direction cosine of the ray after refraction from the surface defined by Surf at the wavelength defined by Wave.",
-    "REAC": "Real ray z-direction cosine of the ray after refraction from the surface defined by Surf at the wavelength defined by Wave.",
-    "REAR": "Real ray radial coordinate in lens units at the surface defined by Surf at the wavelength defined by Wave.",
-    "REAX": "Real ray x-coordinate in lens units at the surface defined by Surf at the wavelength defined by Wave.",
-    "REAY": "Real ray y-coordinate in lens units at the surface defined by Surf at the wavelength defined by Wave.",
-    "REAZ": "Real ray z-coordinate in lens units at the surface defined by Surf at the wavelength defined by Wave.",
+    "REAA": "Real ray x-direction cosine of the ray after refraction from the "
+            "surface defined by Surf at the wavelength defined by Wave.",
+    "REAB": "Real ray y-direction cosine of the ray after refraction from the "
+            "surface defined by Surf at the wavelength defined by Wave.",
+    "REAC": "Real ray z-direction cosine of the ray after refraction from the "
+            "surface defined by Surf at the wavelength defined by Wave.",
+    "REAR": "Real ray radial coordinate in lens units at the surface defined by "
+            "Surf at the wavelength defined by Wave.",
+    "REAX": "Real ray x-coordinate in lens units at the surface defined by Surf "
+            "at the wavelength defined by Wave.",
+    "REAY": "Real ray y-coordinate in lens units at the surface defined by Surf "
+            "at the wavelength defined by Wave.",
+    "REAZ": "Real ray z-coordinate in lens units at the surface defined by Surf "
+            "at the wavelength defined by Wave.",
     "RECI": "Returns the reciprocal of the value of operand Op#1. See also `DIVI`.",
     "RELI": "Relative illumination. See also EFNO.",
-    "RENA": "Real ray x-direction surface normal at the ray-surface intercept at the surfaced defined by Surf at the wavelength defined by Wave.",
-    "RENB": "Real ray y-direction surface normal at the ray-surface intercept at the surface defined by Surf at the wavelength defined by Wave.",
-    "RENC": "Real ray z-direction surface normal at the ray-surface intercept at the surface defined by Surf at the wavelength defined by Wave.",
-    "RETX": "Real ray x-direction ray tangent (slope) at the surface defined by Surf at the wavelength defined by Wave.",
-    "RETY": "Real ray y-direction ray tangent (slope) at the surface defined by Surf at the wavelength defined by Wave.",
+    "RENA": "Real ray x-direction surface normal at the ray-surface intercept "
+            "at the surfaced defined by Surf at the wavelength defined by Wave.",
+    "RENB": "Real ray y-direction surface normal at the ray-surface intercept "
+            "at the surface defined by Surf at the wavelength defined by Wave.",
+    "RENC": "Real ray z-direction surface normal at the ray-surface intercept "
+            "at the surface defined by Surf at the wavelength defined by Wave.",
+    "RETX": "Real ray x-direction ray tangent (slope) at the surface defined by "
+            "Surf at the wavelength defined by Wave.",
+    "RETY": "Real ray y-direction ray tangent (slope) at the surface defined by "
+            "Surf at the wavelength defined by Wave.",
     "RGLA": "Reasonable glass.",
     "RSCE": "RMS spot radius with respect to the centroid in lens units.",
     "RSCH": "RMS spot radius with respect to the chief ray in lens units.",
@@ -353,41 +415,59 @@ class Operands(object):
     "RWCH": "RMS wavefront error with respect to the chief ray in waves.",
     "RWRE": "RMS wavefront error with respect to the centroid in waves.",
     "RWRH": "RMS wavefront error with respect to the chief ray in waves.",
-    "SAGX": "The sag in lens units of the surface defined by Surf at X = the semi-diameter, and Y = 0. See also SSAG.",
-    "SAGY": "The sag in lens units of the surface defined by Surf at Y = the semi-diameter, and X = 0. See also SSAG.",
+    "SAGX": "The sag in lens units of the surface defined by Surf at X = the "
+            "semi-diameter, and Y = 0. See also SSAG.",
+    "SAGY": "The sag in lens units of the surface defined by Surf at Y = the "
+            "semi-diameter, and X = 0. See also SSAG.",
     "SCUR": "Surface curvature.",
-    "SFNO": "Sagittal working F/#, computed at the field point defined by Field and the wavelength defined by Wave. See TFNO.",
-    "SINE": "Sine of the value of the operand defined by Op#. If Flag is 0, then the units are radians, otherwise, degrees.",
+    "SFNO": "Sagittal working F/#, computed at the field point defined by Field "
+            "and the wavelength defined by Wave. See TFNO.",
+    "SINE": "Sine of the value of the operand defined by Op#. If Flag is 0, then "
+            "the units are radians, otherwise, degrees.",
     "SKIN": "Skip if not symmetric. See SKIS.",
-    "SKIS": "Skip if symmetric. If the lens is rotationally symmetric, then computation of the merit function continues at the operand defined by Op#.",
+    "SKIS": "Skip if symmetric. If the lens is rotationally symmetric, then "
+            "computation of the merit function continues at the operand defined by Op#.",
     "SMIA": "SMIA-TV Distortion.",
     "SPCH": "Spherochromatism in lens units.",
-    "SPHA": "Spherical aberration in waves contributed by the surface defined by Surf at the wavelength defined by Wave.",
+    "SPHA": "Spherical aberration in waves contributed by the surface defined by "
+            "Surf at the wavelength defined by Wave.",
     "SQRT": "Square root of the operand defined by Op#.",
-    "SSAG": "The sag in lens units of the surface defined by Surf at the coordinate defined by X and Y. See also SAGX, SAGY.",
+    "SSAG": "The sag in lens units of the surface defined by Surf at the coordinate "
+            "defined by X and Y. See also SAGX, SAGY.",
     "STHI": "Surface Thickness.",
     "STRH": "Strehl Ratio.",
     "SUMM": "Sum of two operands (Op#1 + Op#2). See OSUM.",
-    "SVIG": "Sets the vignetting factors for the current configuration. See also `CVIG`.",
+    "SVIG": "Sets the vignetting factors for the current configuration. "
+            "See also `CVIG`.",
     "TANG": "Tangent of the value of the operand defined by Op#.",
     "TCGT": "Thermal Coefficient of expansion greater than.",
     "TCLT": "Thermal Coefficient of expansion less than.",
     "TCVA": "Thermal Coefficient of expansion value. For glass surfaces, see `GTCE`.",
-    "TFNO": "Tangential working F/#, computed at the field point defined by Field and the wavelength defined by Wave. See SFNO.",
+    "TFNO": "Tangential working F/#, computed at the field point defined by "
+            "Field and the wavelength defined by Wave. See SFNO.",
     "TGTH": "Sum of glass thicknesses from Surf1 to Surf2. See TTHI.",
     "TMAS": "Total mass.",
     "TOLR": "Tolerance data.",
     "TOTR": "Total track (length) of lens in lens units. See `Total track`.",
-    "TRAC": "Transverse aberration radial direction measured in image space with respect to the centroid for the wavelength  defined  by  Wave.",
-    "TRAD": "The x component of the TRAR only. TRAD has the same restrictions that TRAC does; see TRAC for a detailed discussion.",
-    "TRAE": "The y component of the TRAR only. TRAE has the same restrictions that TRAC does; see TRAC for a detailed discussion.",
-    "TRAI": "Transverse aberration radius measured at the surface defined by Surf at the wavelength defined by Wave with respect to the chief ray.",
+    "TRAC": "Transverse aberration radial direction measured in image space with "
+            "respect to the centroid for the wavelength  defined  by  Wave.",
+    "TRAD": "The x component of the TRAR only. TRAD has the same restrictions that "
+            "TRAC does; see TRAC for a detailed discussion.",
+    "TRAE": "The y component of the TRAR only. TRAE has the same restrictions that "
+            "TRAC does; see TRAC for a detailed discussion.",
+    "TRAI": "Transverse aberration radius measured at the surface defined by Surf "
+            "at the wavelength defined by Wave with respect to the chief ray.",
     "TRAN": "Unused.",
-    "TRAR": "Transverse aberration radial direction measured in image space at the wavelength defined by Wave with respect to the chief ray. See ANAR.",
-    "TRAX": "Transverse aberration x direction measured in image space at the wavelength defined by Wave with respect to the chief ray.",
-    "TRAY": "Transverse aberration y direction measured in image space at the wavelength defined by Wave with respect to the chief ray.",
-    "TRCX": "Transverse aberration x direction measured in image space with respect to the centroid. TRCX has the same restrictions that TRAC does.",
-    "TRCY": "Transverse aberration y direction measured in image space with respect to the centroid. TRCY has the same restrictions that TRAC does.",
+    "TRAR": "Transverse aberration radial direction measured in image space at the "
+            "wavelength defined by Wave with respect to the chief ray. See ANAR.",
+    "TRAX": "Transverse aberration x direction measured in image space at the "
+            "wavelength defined by Wave with respect to the chief ray.",
+    "TRAY": "Transverse aberration y direction measured in image space at the "
+            "wavelength defined by Wave with respect to the chief ray.",
+    "TRCX": "Transverse aberration x direction measured in image space with "
+            "respect to the centroid. TRCX has the same restrictions that TRAC does.",
+    "TRCY": "Transverse aberration y direction measured in image space with "
+            "respect to the centroid. TRCY has the same restrictions that TRAC does.",
     "TTGT": "Total  thickness  greater  than. See TTLT and TTVA.",
     "TTHI": "Sum of thicknesses of surfaces from Surf1 to Surf2. See TGTH.",
     "TTLT": "Total thickness less than. See TTGT.",
@@ -398,22 +478,34 @@ class Operands(object):
             "symmetry exists in the lens even if ZEMAX detects symmetry does not."),
     "VOLU": "Volume of element(s) in cubic cm.",
     "WFNO": "Working F/#. See `Working F/#` on page 62, and ISFN, SFNO, and TFNO.",
-    "WLEN": "Wavelength. This operand returns the wavelength defined by Wave in micrometers.",
+    "WLEN": "Wavelength. This operand returns the wavelength defined by Wave "
+            "in micrometers.",
     "XDGT": "Extra data value greater than.",
     "XDLT": "Extra data value less than.",
     "XDVA": "Extra data value.",
-    "XENC": "Extended source encircled energy (distance). See also XENF, DENC, DENF, GENC, and GENF.",
-    "XENF": "Extended source encircled energy (fraction). See also XENC, GENC, GENF, DENC, and DENF.",
-    "XNEA": "Minimum edge thickness for the range of air surfaces defined by Surf1 and Surf2. See MNEA.",
-    "XNEG": "Minimum edge thickness for the range of glass surfaces defined by Surf1 and Surf2.",
-    "XNET": "Minimum edge thickness for the range of surfaces defined by Surf1 and Surf2. See MNET.",
-    "XXEA": "Maximum edge thickness for the range of air surfaces defined by Surf1 and Surf2. See MXEA.",
-    "XXEG": "Maximum edge thickness for the range of glass surfaces defined by Surf1 and Surf2. See MXEG.",
-    "XXET": "Maximum  edge thickness for the range of surfaces defined by  Surf1  and Surf2. See MXET.",
-    "YNIP": "YNI-paraxial. It is the product of the parax. marg. ray ht. & the index times the angle of incidence at the surface.",
+    "XENC": "Extended source encircled energy (distance). See also XENF, DENC, "
+            "DENF, GENC, and GENF.",
+    "XENF": "Extended source encircled energy (fraction). See also XENC, GENC, "
+            "GENF, DENC, and DENF.",
+    "XNEA": "Minimum edge thickness for the range of air surfaces defined by "
+            "Surf1 and Surf2. See MNEA.",
+    "XNEG": "Minimum edge thickness for the range of glass surfaces defined "
+            "by Surf1 and Surf2.",
+    "XNET": "Minimum edge thickness for the range of surfaces defined by Surf1 "
+            "and Surf2. See MNET.",
+    "XXEA": "Maximum edge thickness for the range of air surfaces defined by "
+            "Surf1 and Surf2. See MXEA.",
+    "XXEG": "Maximum edge thickness for the range of glass surfaces defined by "
+            "Surf1 and Surf2. See MXEG.",
+    "XXET": "Maximum  edge thickness for the range of surfaces defined by  "
+            "Surf1  and Surf2. See MXET.",
+    "YNIP": "YNI-paraxial. It is the product of the parax. marg. ray ht. & the "
+            "index times the angle of incidence at the surface.",
     "ZERN": "Zernike Fringe coefficient.",
-    "ZPLM": "Used for optimizing numerical results computed in ZPL macros. See also UDOP.",
-    "ZTHI": "This operand controls the variation in the total thickness of the range surfaces defined by Surf1 and Surf2 over multiple configurations.",
+    "ZPLM": "Used for optimizing numerical results computed in ZPL macros. "
+            "See also UDOP.",
+    "ZTHI": "This operand controls the variation in the total thickness of the "
+            "range surfaces defined by Surf1 and Surf2 over multiple configurations.",
     }
 
     tol_operands = { # key is operand type, value is a short description
@@ -455,10 +547,12 @@ class Operands(object):
     "TMCO": "Tolerance on multi-configuration editor value",
     "CEDV": "Sets an extra data value as a compensator",
     "CMCO": "Sets a multi-configuration value as a compensator",
-    "COMM": "This operand is used to print a comment in the tolerance analysis output report",
+    "COMM": "This operand is used to print a comment in the tolerance analysis "
+            "output report",
     "COMP": "Sets a thickness, radius or conic compensator.",
     "CPAR": "Sets a parameter as a compensator",
-    "SAVE": "Saves the file used to evaluate the tolerance on the prior row in the editor",
+    "SAVE": "Saves the file used to evaluate the tolerance on the prior row in "
+            "the editor",
     "SEED": "Seeds the random number generator for MC analysis. Choose 0 for random.",
     "STAT": "Defines statstics used 'on the fly' during Monte Carlo analysis",
     "TWAV": "Sets the test wavelength for operands measured in fringes",
@@ -497,7 +591,8 @@ class Operands(object):
     "GPIU": "Global polarization state.",
     "GPPX": "Global polarization phase Px.",
     "GPPY": "Global polarization phase Py.",
-    "GQPO": "Obscuration value used for Gaussian Quadrature pupil sampling in the default merit function.",
+    "GQPO": "Obscuration value used for Gaussian Quadrature pupil sampling in "
+            "the default merit function.",
     "HOLD": "Hold.",
     "IGNR": "Ignore This Surface status.",
     "LTTL": "Lens title.",

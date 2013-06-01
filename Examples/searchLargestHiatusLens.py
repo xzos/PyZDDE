@@ -215,7 +215,6 @@ for lens_file in filenames:
 
     #Scale lens to a normalized EFFL
     scaleFactor = 1.00
-    ret_ls = 0
     if SCALE_LENSES:
         #Get first order EFL
         efl = pyZmLnk.zGetFirst()[0]
@@ -226,9 +225,9 @@ for lens_file in filenames:
         #Scale Lens
         ret_ls = pyZmLnk.lensScale(scaleFactor)
 
-    if ret_ls == -1:  # Lens scale failure, don't bother to calculate hiatus
-        print("Lens scaling failed for: ",lens_file)
-        continue
+        if ret_ls == -1:  # Lens scale failure, don't bother to calculate hiatus
+            print("Lens scaling failed for: ",lens_file)
+            continue
 
     #Update the lens
     #ret = pyZmLnk.zGetUpdate() ... I don't think the designs should be updated...
