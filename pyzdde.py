@@ -236,39 +236,6 @@ class PyZDDE(object):
         else:
             return int(float(rs))
 
-    def zExecuteZPLMacro(self,zplMacroCode):
-        """Executes a ZPL macro present in the <data>/Macros folder.
-
-        zExecuteZPLMacro(zplMacroCode)->status
-
-        args:
-          zplMacroCode : (string) The first 3 letters (case-sensitive) of the
-                         ZPL macro present in the <data>/Macros folder.
-        ret:
-          status       : 0 if successfully executed the ZPL macro
-                        -1 if the macro code passed is incorrect
-                        error code (returned by Zemax) otherwise.
-
-        Note:
-            Limitations:
-            1. Currently one can only "execute" a ZPL macro. There seems to be no
-               way of getting the results of the macro execution back to the
-               client application.
-            2. If there are more than two macros which have the same first 3 letters
-               then all of them will be executed by Zemax.
-            3. The macros must be placed in the <data>/Macros folder, and the
-               "ZPL" field under Preferences/Folder must be the default ZPL
-               folder, i.e. <data>/Macros
-        """
-        status = -1
-        zplMpath = path.join(self.zGetPath()[0], 'Macros')
-        macroList = [f for f in os.listdir(zplMpath)
-                     if f.endswith(('.zpl','.ZPL')) and f.startswith(zplMacroCode)]
-        if macroList:
-            zplCode = macroList[0][:3]
-            status = self.zOpenWindow(zplCode,True)
-        return status
-
     def zDeleteSurface(self,surfaceNumber):
         """Deletes an existing surface.
 
@@ -287,49 +254,87 @@ class PyZDDE(object):
         reply = self.conversation.Request(cmd)
         return int(float(reply))
 
-    def zExportCAD(self, fileName, fileType = 1, numSpline = 32, firstSurf = 1,
-                   lastSurf = -1, raysLayer = 1, lensLayer = 0, exportDummy = 0,
-                   useSolids = 1, rayPattern = 0, numRays = 0, wave = 0, field = 0,
-                   delVignett = 1, dummyThick = 1.00, split = 0, scatter = 0,
-                   usePol = 0, config = 0):
+    def zExecuteZPLMacro(self,zplMacroCode):
+        """Executes a ZPL macro present in the <data>/Macros folder.
+
+        zExecuteZPLMacro(zplMacroCode)->status
+
+        args:
+          zplMacroCode : (string) The first 3 letters (case-sensitive) of the
+                         ZPL macro present in the <data>/Macros folder.
+        ret:
+          status       : 0 if successfully executed the ZPL macro
+                        -1 if the macro code passed is incorrect
+                        error code (returned by Zemax) otherwise.
+
+        Note:
+        Limitations:
+          1. Currently one can only "execute" a existing ZPL macro.
+          2. If it is required to redirect the result of executing the ZPL to a
+             text file, modify the ZPL macro in the following way:
+                (a) Add the following two lines at the beginning of the file:
+                    CLOSEWINDOW # to suppress the display of default text window
+                    OUTPUT "full_path_with_extension_of_result_fileName"
+                (b) Add the following line at the end of the file:
+                    OUTPUT SCREEN # close the file and re-enable screen printing
+          3. If there are more than two macros which have the same first 3 letters
+             then all of them will be executed by Zemax.
+          4. The macros must be placed in the <data>/Macros folder, and the
+             "ZPL" field under Preferences/Folder must be the default ZPL
+             folder, i.e. <data>/Macros
+        """
+        status = -1
+        zplMpath = path.join(self.zGetPath()[0], 'Macros')
+        macroList = [f for f in os.listdir(zplMpath)
+                     if f.endswith(('.zpl','.ZPL')) and f.startswith(zplMacroCode)]
+        if macroList:
+            zplCode = macroList[0][:3]
+            status = self.zOpenWindow(zplCode,True)
+        return status
+
+    def zExportCAD(self, fileName, fileType=1, numSpline=32, firstSurf=1,
+                   lastSurf=-1, raysLayer=1, lensLayer=0, exportDummy=0,
+                   useSolids=1, rayPattern=0, numRays=0, wave=0, field=0,
+                   delVignett=1, dummyThick=1.00, split=0, scatter=0,
+                   usePol=0, config=0):
         """Export lens data in IGES/STEP/SAT format for import into CAD programs.
 
         zExportCAD(exportCADdata)->status
 
         args:
-            fileName  : (string) filename including extension (Although not necessary,
-                        including full path is recommended)
-            fileType  : (0, 1, 2 or 3) 0 = IGES, 1 = STEP [default], 2 = SAT, 3 = STL
-            numSpline : (integer) Number of spline segments to use [default = 32]
-            firstSurf : (integer) The first surface to export. In NSC mode, this
-                        is the first object to export
-            lastSurf  : (integer) The last surface to export. In NSC mode, this
-                        is the first object to export [default = -1 i.e. image surface]
-            raysLayer : (integer) Layer to place ray data on [default = 1]
-            lensLayer : (integer) Layer to place lens data on [default = 0]
-            exportDummy : (0 or 1) Export dummy surface. 1 = Export [default = 0]
-            useSolids   : (0 or 1) Export surfaces as solids. 1 = solid surfaces [default = 1]
-            rayPattern  : (0 <= rayPattern <= 7) 0 = XY fan [default], 1 = X fan, 2 = Y fan
-                          3 = ring, 4 = list, 5 = none, 5 = grid, 7 = solid beams.
-            numRays     : (integer) The number of rays to render [Default = 1]
-            wave        : (integer) Wavelength number. 0 indicates all [Default]
-            field       : (integer) The field number. 0 indicates all [Default]
-            delVignett  : (0 or 1) Delete vignetted rays. 1 = delete vig. rays [Default]
-            dummyThick  : (Float) Dummy surface thickness in lens units. [Default = 1.00]
-            split   : (0 or 1) Split rays from NSC sources. 1 = Split sources [Default = 0]
-            scatter : (0 or 1) Scatter rays from NSC sources. 1 = Scatter [Deafult = 0]
-            usePol  : (0 or 1) Use polarization when tracing NSC rays. Note that
-                      polarization is automatically selected if splitting is specified.
-                      [Default (when splitting = 0) is 0]
-            config  : (0 <= config <= n+3, where n is the total number of configurations)
-                      0 = current config [Default], 1 - n for a specific configuration,
-                      n+1 to export "All By File", n+2 to export "All by Layer", and
-                      n+3 for "All at Once".
-                      For a more detailed explanation of the configuration setting,
-                      see "Export IGES/SAT.STEP Solid" in the manual.
+          fileName  : (string) filename including extension (Although not necessary,
+                      including full path is recommended)
+          fileType  : (0, 1, 2 or 3) 0 = IGES, 1 = STEP [default], 2 = SAT, 3 = STL
+          numSpline : (integer) Number of spline segments to use [default = 32]
+          firstSurf : (integer) The first surface to export. In NSC mode, this
+                      is the first object to export
+          lastSurf  : (integer) The last surface to export. In NSC mode, this
+                      is the first object to export [default = -1 i.e. image surface]
+          raysLayer : (integer) Layer to place ray data on [default = 1]
+          lensLayer : (integer) Layer to place lens data on [default = 0]
+          exportDummy : (0 or 1) Export dummy surface. 1 = Export [default = 0]
+          useSolids   : (0 or 1) Export surfaces as solids. 1 = solid surfaces [default = 1]
+          rayPattern  : (0 <= rayPattern <= 7) 0 = XY fan [default], 1 = X fan, 2 = Y fan
+                        3 = ring, 4 = list, 5 = none, 5 = grid, 7 = solid beams.
+          numRays     : (integer) The number of rays to render [Default = 1]
+          wave        : (integer) Wavelength number. 0 indicates all [Default]
+          field       : (integer) The field number. 0 indicates all [Default]
+          delVignett  : (0 or 1) Delete vignetted rays. 1 = delete vig. rays [Default]
+          dummyThick  : (Float) Dummy surface thickness in lens units. [Default = 1.00]
+          split   : (0 or 1) Split rays from NSC sources. 1 = Split sources [Default = 0]
+          scatter : (0 or 1) Scatter rays from NSC sources. 1 = Scatter [Deafult = 0]
+          usePol  : (0 or 1) Use polarization when tracing NSC rays. Note that
+                    polarization is automatically selected if splitting is specified.
+                    [Default (when splitting = 0) is 0]
+          config  : (0 <= config <= n+3, where n is the total number of configurations)
+                    0 = current config [Default], 1 - n for a specific configuration,
+                    n+1 to export "All By File", n+2 to export "All by Layer", and
+                    n+3 for "All at Once".
+                    For a more detailed explanation of the configuration setting,
+                    see "Export IGES/SAT.STEP Solid" in the manual.
         rets:
-            status : (string) the string "Exporting filename" or "BUSY!" (see
-                     description below)
+          status : (string) the string "Exporting filename" or "BUSY!" (see
+                   description below)
 
         There is a complexity in using this feature via DDE. The export of lens
         data may take a long time relative to the timeout interval of the DDE
@@ -395,11 +400,11 @@ class PyZDDE(object):
         zFindLabel(label)->surfaceNumber
 
         args:
-            label   :  (integer) label
+          label   :  (integer) label
         ret:
-            surfaceNumber : (integer) surface number of surface associated with
-                            the `label`. It returns -1 if no surface has the
-                            specified label.
+          surfaceNumber : (integer) surface number of surface associated with
+                          the `label`. It returns -1 if no surface has the
+                          specified label.
 
         See also zSetLabel, zGetLabel()
         """
@@ -1324,6 +1329,43 @@ class PyZDDE(object):
         nscSettingsData = [float(rs[i]) if i in (3,4,5,6) else int(float(rs[i]))
                                                         for i in range(len(rs))]
         return tuple(nscSettingsData)
+
+    def zGetNSCSolve(self, surfaceNumber, objectNumber, parameter):
+        """Returns the current solve status and settings for NSC position & parameter
+        data.
+
+        zGetNSCSolve(surfaceNumber, objectNumber, parameter) -> nscSolveData
+
+        args:
+          surfaceNumber  : (integer) surface number. Use 1 if the program mode is
+                           Non-Sequential.
+          objectNumber   : (integer) object number
+          parameter      : -1 = extract data for x data
+                           -2 = extract data for y data
+                           -3 = extract data for z data
+                           -4 = extract data for tilt x data
+                           -5 = extract data for tilt y data
+                           -6 = extract data for tilt z data
+                            n > 0  = extract data for the nth parameter
+          ret:
+            nscSolveData : 5-tuple containing
+                             (status, pickupObject, pickupColumn, scaleFactor, offset)
+                             The status value is 0 for fixed, 1 for variable, and 2
+                             for a pickup solve.
+                             Only when the staus is a pickup solve is the other data
+                             meaningful.
+                           -1 if it a BAD COMMAND
+
+        See also: zSetNSCSolve
+        """
+        nscSolveData = -1
+        cmd = "GetNSCSolve,{:d},{:d},{:d}".format(surfaceNumber,objectNumber,parameter)
+        reply = self.conversation.Request(cmd)
+        rs = reply.rstrip()
+        if 'BAD COMMAND' not in rs:
+            nscSolveData = tuple([float(e) if i in (3,4) else int(float(e))
+                                 for i,e in enumerate(rs.split(","))])
+        return nscSolveData
 
     def zGetOperand(self,row,column):
         """Returns the operand data from the Merit Function Editor.
@@ -2899,6 +2941,37 @@ class PyZDDE(object):
         reply = self.conversation.Request(cmd)
         if 'OK' in reply.split():
             return 0
+        elif 'BAD COMMAND' in reply.rstrip():
+            return -1
+        else:
+            return int(float(reply.rstrip()))  # return the error code sent by zemax.
+
+    def zNSCLightningTrace(self, surfNumber, source, raySampling, edgeSampling):
+        """Traces rays from one or all NSC sources using Lighting Trace.
+
+        zNSCLightningTrace(surfNumber, source, raySampling, edgeSampling) ->
+
+        args:
+          surfNumber   : (integer) surface number, use 1 for pure NSC mode
+          source       : (integer) object number of the desired source. If source
+                          is zero, all sources will be traced.
+          raySampling  : resolution of the LightningTrace mesh with valid values
+                         between 0 (= "Low (1X)") and 5 (= "1024X").
+          edgeSampling : resolution used in refining the LightningTrace mesh near
+                         the edges of objects, with valid values between 0 ("Low (1X)")
+                         and 4 ("256X").
+
+        Note: zNSCLightningTrace always Updates the lens before executing a
+        LightningTrace to make certain all objects are correctly loaded and
+        updated.
+        """
+        cmd = ("NSCLightningTrace,{:d},{:d},{:d},{:d}"
+               .format(surfNumber, source, raySampling, edgeSampling))
+        reply = self.conversation.Request(cmd)
+        if 'OK' in reply.split():
+            return 0
+        elif 'BAD COMMAND' in reply.rstrip():
+            return -1
         else:
             return int(float(reply.rstrip()))  # return the error code sent by zemax.
 
@@ -2917,19 +2990,27 @@ class PyZDDE(object):
                               import zemaxbuttons as zb
                               zb.showZButtonList()
           zplMacro      : (bool) True if the analysisTyppe code is the first 3-letters
-                          of a ZPL macro name, else False (default).
-                          Note: If the analysiType is ZPL macro, please make sure
-                          that the macro exist in the <data>/Macros folder. It is
-                          recommended to use zExecuteZPLMacro() if you are trying
-                          to execute a ZPL macro.
+                          of a ZPL macro name, else False (default). Please see
+                          the Note below
         ret:
-          status  : 0 = successful, -1 = incorrect analysis code
+          status  : 0 = successful, -1 = incorrect analysis code, -999 = 'FAIL'
+
+        Note:
+        The function checks if the analysisType code is a valid code or not in
+        order to prevent the calling program to get stalled. However, it doesn't
+        check the analysisType code validity if it is a ZPL macro code.
+        If the analysisType is ZPL macro, please make sure that the macro exist
+        in the <data>/Macros folder. It is recommended to use zExecuteZPLMacro()
+        if you are trying to execute a ZPL macro.
+
         See also zGetMetaFile, zExecuteZPLMacro
         """
         if zb.isZButtonCode(analysisType) ^ zplMacro:  # XOR operation
             reply = self.conversation.Request("OpenWindow,{}".format(analysisType))
             if 'OK' in reply.split():
                 return 0
+            elif 'FAIL' in reply.split():
+                return -999
             else:
                 return int(float(reply.rstrip()))  # error code from Zemax
         else:
@@ -3103,6 +3184,22 @@ class PyZDDE(object):
         """
         reply = self.conversation.Request("ReleaseWindow,{}".format(tempFileName))
         return int(float(reply.rstrip()))
+
+    def zRemoveVariables(self):
+        """Sets all currently defined variables to fixed status.
+
+        zRemoveVariables()->status
+
+        args:
+          None
+        ret:
+          status : 0 = successful.
+        """
+        reply = self.conversation.Request('RemoveVariables')
+        if 'OK' in reply.split():
+            return 0
+        else:
+            return -1
 
     def zSaveDetector(self, surfaceNumber, objectNumber, fileName):
         """Saves the data currently on an NSC Detector Rectangle, Detector Color,
@@ -3944,6 +4041,52 @@ class PyZDDE(object):
         nscSettingsData = [float(rs[i]) if i in (3,4,5,6) else int(float(rs[i]))
                                                         for i in range(len(rs))]
         return tuple(nscSettingsData)
+
+    def zSetNSCSolve(self, surfaceNumber, objectNumber, parameter, solveType,
+                     pickupObject, pickupColumn, scale, offset):
+        """Sets the solve type on NSC position and parameter data.
+
+        zSetNSCSolve(surfaceNumber, objectNumber, parametersolveType,
+                     pickupObject, pickupColumn, scale, offset) -> nscSolveData
+
+        args:
+          surfaceNumber  : (integer) surface number. Use 1 if the program mode is
+                           Non-Sequential.
+          objectNumber   : (integer) object number
+          parameter      : -1 = data for x data
+                           -2 = data for y data
+                           -3 = data for z data
+                           -4 = data for tilt x data
+                           -5 = data for tilt y data
+                           -6 = data for tilt z data
+                            n > 0  = data for the nth parameter
+          solveType      : 0 = fixed, 1 = variable, 2 = pickup
+          pickupObject   : if solveType = 0, pickup object number
+          pickupColumn   : if solveType = 0, pickup column number (0 for current column)
+          scale          : if solveType = 0, scale factor
+          offset         : if solveType = 0, offset
+        ret:
+          nscSolveData : 5-tuple containing
+                           (status, pickupObject, pickupColumn, scaleFactor, offset)
+                           The status value is 0 for fixed, 1 for variable, and 2
+                           for a pickup solve.
+                           Only when the staus is a pickup solve is the other data
+                           meaningful.
+                         -1 if it a BAD COMMAND
+
+        See also: zGetNSCSolve
+        """
+        nscSolveData = -1
+        args1 = "{:d},{:d},{:d},".format(surfaceNumber, objectNumber, parameter)
+        args2 = "{:d},{:d},{:d},".format(solveType, pickupObject, pickupColumn)
+        args3 = "{:1.20g},{:1.20g}".format(scale, offset)
+        cmd = ''.join(["SetNSCSolve,",args1,args2,args3])
+        reply = self.conversation.Request(cmd)
+        rs = reply.rstrip()
+        if 'BAD COMMAND' not in rs:
+            nscSolveData = tuple([float(e) if i in (3,4) else int(float(e))
+                                 for i,e in enumerate(rs.split(","))])
+        return nscSolveData
 
     def zSetPrimaryWave(self,primaryWaveNumber):
         """Sets the wavelength data in the ZEMAX DDE server. This function emulates

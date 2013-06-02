@@ -10,13 +10,13 @@ Please refer to the [Wiki] (https://github.com/indranilsinharoy/PyZDDE/wiki) pag
 #### Dependencies:
 
 1.   Python 2.7 and above, 32 bit version (required)
-2.   PyWin32, build 214 (or earlier), 32 bit version (required) [See bullet 2 of the "CURRENT ISSUES" section for issues] 
+2.   PyWin32, build 214 (or earlier), 32 bit version (required) [See bullet 2 of the "Current issues" section for issues] 
 3.   Matplotlib (optional, used in some of the example programs)
 
 
 #### Current issues:
 
-1.   All functions (around 130) for accessing the data items that ZEMAX have been implemented. Currently, a distribution version is not available as the tool box is being updated regularly. Please download the code to a local directory in your computer and add that directory to python search path in order to use it. For more detailed instructions on using PyZDDE, please refer to the [Wiki page] (https://github.com/indranilsinharoy/PyZDDE/wiki)
+1.   All functions (126 data items + additional 9) for accessing the data items that ZEMAX have been implemented. In addition there are around 10 more functions. Currently, a distribution version is not available as the tool box is being updated regularly. Please download the code to a local directory in your computer and add that directory to python search path in order to use it. For more detailed instructions on using PyZDDE, please refer to the [Wiki page] (https://github.com/indranilsinharoy/PyZDDE/wiki)
 
 2.   Due to a known bug in the PyWin32 library, please use a 32-bit version, built 214 (or earlier) of PyWin32. This issue has been discussed and documented [here] (http://sourceforge.net/mailarchive/message.php?msg_id=28828321)
 

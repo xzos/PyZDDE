@@ -398,6 +398,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
         pass
 
     @unittest.skip("To implement test")
+    def test_zGetNSCSolve(self):
+        print("\nTEST: zGetNSCSolve()")
+        pass
+
+    @unittest.skip("To implement test")
     def test_zGetOperand(self):
         print("\nTEST: zGetOperand()")
         pass
@@ -574,7 +579,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zGetSystemApr(self):
         print("\nTEST: zGetSystemApr()")
         # First set the system aperture to known parameters in the ZEMAX server
-        systemAperData_s = self.link0.zSetSystemAper(0,1,25) #sysAper=25mm,EPD
+        systemAperData_s = self.link0.zSetSystemAper(0,1,25.5) #sysAper=25mm,EPD
         systemAperData_g = self.link0.zGetSystemAper()
         self.assertTupleEqual(systemAperData_s,systemAperData_g)
 
@@ -896,6 +901,10 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zNSCDetectorData()")
 
     @unittest.skip("To implement")
+    def test_zNSCLightingTrace(self):
+        print("\nTEST: zNSCLightingTrace()")
+
+    @unittest.skip("To implement")
     def test_zNSCTrace(self):
         print("\nTEST: zNSCTrace()")
 
@@ -973,6 +982,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
     @unittest.skip("To implement test")
     def test_zReleaseWindow(self):
         print("\nTEST: zReleaseWindow()")
+        pass
+
+    @unittest.skip("To implement test")
+    def test_zRemoveVariables(self):
+        print("\nTEST: zRemoveVariables()")
         pass
 
     @unittest.skip("To implement test")
@@ -1138,6 +1152,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zSetNSCSetting()")
         pass
 
+    @unittest.skip("To implement test")
+    def test_zSetNSCSolve(self):
+        print("\nTEST: zSetNSCSolve()")
+        pass
+
     def test_zSetPolState(self):
         print("\nTEST: zSetPolState()")
         #Set polarization of the "new" lens
@@ -1242,10 +1261,10 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def test_zSetSystemAper(self):
         print("\nTEST: zSetSystemAper():")
-        systemAperData_s = self.link0.zSetSystemAper(0,1,25) #sysAper=25mm,EPD
+        systemAperData_s = self.link0.zSetSystemAper(0,1,25.5) #sysAper=25.5mm,EPD
         self.assertEqual(systemAperData_s[0], 0, 'aperType = EPD')
         self.assertEqual(systemAperData_s[1], 1, 'stop surface number')
-        self.assertEqual(systemAperData_s[2],25,'EPD value = 25 mm')
+        self.assertEqual(systemAperData_s[2],25.5,'EPD value = 25.5 mm')
 
     def test_zSetSystemProperty(self):
         print("\nTEST: zSetSystemProperty():")
