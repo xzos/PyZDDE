@@ -254,14 +254,19 @@ class PyZDDE(object):
         reply = self.conversation.Request(cmd)
         return int(float(reply))
 
-    def zExecuteZPLMacro(self,zplMacroCode):
+    def zExecuteZPLMacro(self, zplMacroCode, macroFolderPath=None):
         """Executes a ZPL macro present in the <data>/Macros folder.
 
         zExecuteZPLMacro(zplMacroCode)->status
 
         args:
-          zplMacroCode : (string) The first 3 letters (case-sensitive) of the
-                         ZPL macro present in the <data>/Macros folder.
+          zplMacroCode   : (string) The first 3 letters (case-sensitive) of the
+                           ZPL macro present in the <data>/Macros folder.
+          macroFolderPath: (sring) If the macro folder path is different from
+                            the default macro folder path at <data>/Macros, then
+                            the full path to the macro folder must be provided.
+                            Also, this folder path should match the folder path
+                            specified for Macros in the Zemax Preferences setting.
         ret:
           status       : 0 if successfully executed the ZPL macro
                         -1 if the macro code passed is incorrect
@@ -279,12 +284,15 @@ class PyZDDE(object):
                     OUTPUT SCREEN # close the file and re-enable screen printing
           3. If there are more than two macros which have the same first 3 letters
              then all of them will be executed by Zemax.
-          4. The macros must be placed in the <data>/Macros folder, and the
-             "ZPL" field under Preferences/Folder must be the default ZPL
-             folder, i.e. <data>/Macros
         """
         status = -1
-        zplMpath = path.join(self.zGetPath()[0], 'Macros')
+        if macroFolderPath:
+            if path.isabs(macroFolderPath):
+                zplMpath = macroFolderPath
+            else:
+                return status
+        else:
+            zplMpath = path.join(self.zGetPath()[0], 'Macros')
         macroList = [f for f in os.listdir(zplMpath)
                      if f.endswith(('.zpl','.ZPL')) and f.startswith(zplMacroCode)]
         if macroList:
