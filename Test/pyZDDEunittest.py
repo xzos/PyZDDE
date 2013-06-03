@@ -293,7 +293,18 @@ class TestPyZDDEFunctions(unittest.TestCase):
     @unittest.skip("To implement")
     def test_zGetGlass(self):
         print("\nTEST: zGetGlass()")
-        pass
+        global zmxfp
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        assert ret == 0   # This is not a unit-test assert.
+        glass = self.link0.zGetGlass(0)
+        self.assertEqual(glass, None)
+        glass = self.link0.zGetGlass(1)
+        self.assertEqual(len(glass),3)
+        self.assertEqual(glass[0],'SK16')
+        #make the first surface gradient, it should return None
+        self.link0.zSetSurfaceData(1,4,'GRINSUR1')
+        self.assertEqual(glass, None)
 
     @unittest.skip("To implement")
     def test_zGlobalMatrix(self):

@@ -1420,7 +1420,7 @@ class PyZDDE(object):
                                       lenses.
         """
         reply = str(self.conversation.Request('GetPath'))
-        rs = str(reply.rsplit()[0])
+        rs = str(reply.rstrip())
         return tuple(rs.split(','))
 
     def zGetPolState(self):
@@ -1844,7 +1844,7 @@ class PyZDDE(object):
                                                                  c=code,a=arg2)
         reply = self.conversation.Request(cmd)
         if code in (0,1,4,7,9):
-            surfaceDatum = reply.split()[0]
+            surfaceDatum = reply.rstrip()
         else:
             surfaceDatum = float(reply)
         return surfaceDatum
@@ -3485,13 +3485,11 @@ class PyZDDE(object):
 
         See also zGetField()
         """
-        print("Here:",arg1,arg2,arg3)
         if n:
             cmd = ("SetField,{:d},{:1.20g},{:1.20g},{:1.20g},{:1.20g},{:1.20g}"
                    ",{:1.20g},{:1.20g},{:1.20g}"
                    .format(n,arg1,arg2,arg3,vdx,vdy,vcx,vcy,van))
         else:
-            print("Nowhere:",arg1,arg2,arg3)
             cmd = ("SetField,{:d},{:d},{:d},{:.0f}".format(0,arg1,arg2,arg3))
 
         reply = self.conversation.Request(cmd)
