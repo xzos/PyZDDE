@@ -20,7 +20,19 @@ import os
 from os import path
 from math import pi,cos,sin
 from itertools import izip
+import time
+import datetime
 import warnings
+
+#Try to import IPython if it is available (for notebook helper functions)
+try:
+    from IPython.core.display import display, Image
+except ImportError:
+    print("Couldn't import Image from IPython.core.display")
+    IPLoad = False
+else:
+    IPLoad = True
+
 
 #Import zemaxOperands
 #Generally most python installations will add the current directory or the
@@ -62,6 +74,7 @@ class PyZDDE(object):
         PyZDDE.__chNum +=1   # increment ch. count when DDE ch. is instantiated.
         self.appName = "ZEMAX"+str(PyZDDE.__chNum) if PyZDDE.__chNum > 0 else "ZEMAX"
         self.connection = False  # 1/0 depending on successful connection or not
+        self.macroPath = None
 
     # ZEMAX <--> PyZDDE client connection methods
     #--------------------------------------------
@@ -254,7 +267,7 @@ class PyZDDE(object):
         reply = self.conversation.Request(cmd)
         return int(float(reply))
 
-    def zExecuteZPLMacro(self, zplMacroCode, macroFolderPath=None):
+    def zExecuteZPLMacro(self, zplMacroCode):
         """Executes a ZPL macro present in the <data>/Macros folder.
 
         zExecuteZPLMacro(zplMacroCode)->status
@@ -262,17 +275,15 @@ class PyZDDE(object):
         args:
           zplMacroCode   : (string) The first 3 letters (case-sensitive) of the
                            ZPL macro present in the <data>/Macros folder.
-          macroFolderPath: (sring) If the macro folder path is different from
-                            the default macro folder path at <data>/Macros, then
-                            the full path to the macro folder must be provided.
-                            Also, this folder path should match the folder path
-                            specified for Macros in the Zemax Preferences setting.
         ret:
           status       : 0 if successfully executed the ZPL macro
                         -1 if the macro code passed is incorrect
                         error code (returned by Zemax) otherwise.
 
         Note:
+          1. If the macro path is different from the default macro path at
+             <data>/Macros, then first use zSetMacroPath() to set the macropath
+             and only this, use the function.
         Limitations:
           1. Currently one can only "execute" a existing ZPL macro.
           2. If it is required to redirect the result of executing the ZPL to a
@@ -286,11 +297,8 @@ class PyZDDE(object):
              then all of them will be executed by Zemax.
         """
         status = -1
-        if macroFolderPath:
-            if path.isabs(macroFolderPath):
-                zplMpath = macroFolderPath
-            else:
-                return status
+        if self.macroPath:
+            zplMpath = self.macroPath
         else:
             zplMpath = path.join(self.zGetPath()[0], 'Macros')
         macroList = [f for f in os.listdir(zplMpath)
@@ -3574,6 +3582,25 @@ class PyZDDE(object):
                                           .format(surfaceNumber,label))
         return int(float(reply.rstrip()))
 
+    def zSetMacroPath(self,macroFolderPath):
+        """Set the full path name to the macro folder
+
+        args:
+          macroFolderPath : (string) full-path name of the macro folder path. Also,
+                            this folder path should match the folder path specified
+                            for Macros in the Zemax Preferences setting.
+
+        Note: Use this method to set the full-path name of the macro folder
+        path if it is different from the default path at <data>/Macros
+
+        See also zExecuteZPLMacro
+        """
+        if path.isabs(macroFolderPath):
+            self.macroPath = macroFolderPath
+            return 0
+        else:
+            return -1
+
     def zSetMulticon(self, config, *multicon_args):
         """Set data or operand type in the multi-configuration editior. Note that
         there are 2 ways of using this function.
@@ -4959,17 +4986,59 @@ class PyZDDE(object):
             retVal = 0
         return retVal
 
+# ***************************************************************
+#              IPYTHON WEBNOTEBOOK HELPER FUNCTIONS
+# ***************************************************************
+    def ipCaptureWindow(self, num=1, *args, **kwargs):
+        """Capture graphic window from Zemax and display in IPython.
+
+        The graphic window to capture is indicated by the window number `num`.
+
+        ipCaptureWindow(num [, *args, **kwargs])->
+
+        This function is useful for quickly capturing a graphic window, and
+        embedding into a IPython Webnotebook or QtConsole. The quality of JPG
+        image is limited by the JPG export quality from Zemax.
+
+        NOTE:
+        In order to use this function, please copy the ZPL macros from
+        PyZDDE\ZPLMacros to the macro directory where Zemax is expecting (i.e.
+        as set in Zemax->Preference->Folders)
+        """
+        global IPLoad
+        if IPLoad:
+            macroCode = "W{n}".format(n=str(num).zfill(2))
+            dataPath = self.zGetPath()[0]
+            imgPath = (r"{dp}\IMAFiles\{mc}_Win{n}.jpg"
+                       .format(dp=dataPath,mc=macroCode,n=str(num).zfill(2)))
+            stat = self.zExecuteZPLMacro(macroCode)
+            if ~stat:
+                stat = checkFileExist(imgPath)
+                if stat==0:
+                    #Display the image
+                    display(Image(filename=imgPath))
+                    #Delete the image file
+                    os.remove(imgPath)
+                elif stat==-1:
+                    print("Couldn't find image file")
+                elif stat==-999:
+                    print("Timeout reached before image file was ready")
+            else:
+                print("Macro execution failed.")
+        else:
+            print("Couldn't import IPython modules.")
+
 # ****************************************************************
 #                      CONVENIENCE FUNCTIONS
 # ****************************************************************
-    def spiralSpot(self,hy,hx,waveNum,spirals,rays,mode=0):
+    def spiralSpot(self,hx,hy,waveNum,spirals,rays,mode=0):
         """Convenience function to produce a series of x,y values of rays traced
         in a spiral over the entrance pupil to the image surface. i.e. the final
         destination of the rays is the image surface. This function imitates its
         namesake from MZDDE toolbox (Note: unlike the spiralSpot of MZDDE, you
         are not required to call zLoadLens() before calling spiralSpot()).
 
-        spiralSpot(hy,hx,waveNum,spirals,rays[,mode])->(x,y,z,intensity)
+        spiralSpot(hx,hy,waveNum,spirals,rays[,mode])->(x,y,z,intensity)
 
         args:
           hx      : normalized field height along x axis
@@ -5316,6 +5385,42 @@ def regressLiteralType(x):
     except ValueError:
         lit = str(x)
     return lit
+
+def checkFileExist(filename,timeout=2000):
+    """This function checks if a file exist.
+
+    If the file exist then it is ready to be read, written to, or deleted.
+
+    checkFileExist(filename [,timeout])->status
+
+    args:
+      filename: filename with full path
+      timeout : (milliseconds) how long to wait before returning
+    ret:
+      status:
+        0   : file exist, and file operations are possible
+       -1   : file doesn't exist
+       -999 : timeout reached
+    """
+    ti = datetime.datetime.now()
+    if path.isfile(filename):
+        while True:
+            try:
+                f = open(filename,'r')
+            except IOError:
+                timeDelta = datetime.datetime.now() - ti
+                if timeDelta > timeout:
+                    status = -999
+                    break
+                else:
+                    time.sleep(0.25)
+            else:
+                f.close()
+                status = 0
+                break
+    else: # file path is not valid
+        status = -1
+    return status
 
 def process_get_set_NSCProperty(code,reply):
     """Process reply for functions zGetNSCProperty and zSETNSCProperty"""

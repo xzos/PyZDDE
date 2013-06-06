@@ -39,8 +39,8 @@ if ~status:
     # Load a lens file into the ZEMAX DDE server
     ret = link0.zLoadFile(filename)
     if ~ret:
-        hx = 0.4
-        hy = 0.0
+        hx = 0.0
+        hy = 0.4
         spirals = 100
         rays = 6000
         (xb,yb,zb,intensityb) = link0.spiralSpot(hx,hy,1,spirals,rays)
