@@ -265,7 +265,7 @@ def isZButtonCode(buttonCode):
     args:
       buttonCode : (string) the 3-letter button code to validate
     ret:
-      bool
+      bool        : True if valid button code, False otherwise
     """
     return str(buttonCode) in Buttons.button_code.viewkeys()
 

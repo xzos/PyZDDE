@@ -17,6 +17,7 @@ import win32ui
 import dde
 import sys
 import os
+import subprocess
 from os import path
 from math import pi,cos,sin
 from itertools import izip
@@ -801,7 +802,7 @@ class PyZDDE(object):
         reply = self.conversation.Request("GetLabel,{:d}".format(surfaceNumber))
         return int(float(reply.rstrip()))
 
-    def zGetMetaFile(self,metaFileName,analysisType,settingsFileName,flag):
+    def zGetMetaFile(self,metaFileName,analysisType,settingsFileName=None,flag=0):
         """Creates a windows Metafile of any ZEMAX graphical analysis plot.
 
            zMetaFile(metaFilename, analysisType, settingsFileName, flag)->retVal
@@ -837,18 +838,27 @@ class PyZDDE(object):
         for the settingsfilename, the settings used will be written to the settings
         file, overwriting any data in the file.
 
-        Example: zGetMetaFile("C:\myGraphicfile.EMF",'Lay',"None",0)
+        Example: zGetMetaFile("C:\myGraphicfile.EMF",'Lay',None,0)
 
         See also zGetTextFile, zOpenWindow.
         """
+        if settingsFileName:
+            settingsFile = settingsFileName
+        else:
+            settingsFile = ''
         retVal = -1
-        #Check if the file path is valid and has extension
-        if path.isabs(metaFileName) and path.splitext(metaFileName)[1]!='':
-            cmd = 'GetMetaFile,"{tF}",{aT},"{sF}",{fl:d}'.format(tF=metaFileName,
-                                    aT=analysisType,sF=settingsFileName,fl=flag)
-            reply = self.conversation.Request(cmd)
-            if 'OK' in reply.split():
-                retVal = 0
+        # Check if Valid analysis type
+        if zb.isZButtonCode(analysisType):
+            # Check if the file path is valid and has extension
+            if path.isabs(metaFileName) and path.splitext(metaFileName)[1]!='':
+                cmd = 'GetMetaFile,"{tF}",{aT},"{sF}",{fl:d}'.format(tF=metaFileName,
+                                    aT=analysisType,sF=settingsFile,fl=flag)
+                reply = self.conversation.Request(cmd)
+                if 'OK' in reply.split():
+                    retVal = 0
+        else:
+            print("Invalid analysis code '{}' passed to zGetMetaFile."
+                  .format(analysisType))
         return retVal
 
     def zGetMode(self):
@@ -2060,10 +2070,10 @@ class PyZDDE(object):
         sysPropData = process_get_set_SystemProperty(code,reply)
         return sysPropData
 
-    def zGetTextFile(self,textFileName, analysisType, settingsFileName, flag):
+    def zGetTextFile(self,textFileName, analysisType, settingsFileName=None, flag=0):
         """Request to save a text file for any analysis that supports text output.
 
-           zGetText(textFilename, analysisType, settingsFileName, flag) -> retVal
+           zGetText(textFilename, analysisType [, settingsFileName, flag]) -> retVal
 
            args:
             textFileName : name of the file to be created including the full path,
@@ -2098,6 +2108,10 @@ class PyZDDE(object):
         See also zGetMetaFile, zOpenWindow.
         """
         retVal = -1
+        if settingsFileName:
+            settingsFile = settingsFileName
+        else:
+            settingsFile = ''
         #Check if the file path is valid and has extension
         if path.isabs(textFileName) and path.splitext(textFileName)[1]!='':
             cmd = 'GetTextFile,"{tF}",{aT},"{sF}",{fl:d}'.format(tF=textFileName,
@@ -4994,7 +5008,7 @@ class PyZDDE(object):
 
         The graphic window to capture is indicated by the window number `num`.
 
-        ipCaptureWindow(num [, *args, **kwargs])->
+        ipCaptureWindow(num [, *args, **kwargs])-> displayGraphic
 
         This function is useful for quickly capturing a graphic window, and
         embedding into a IPython Webnotebook or QtConsole. The quality of JPG
@@ -5019,14 +5033,109 @@ class PyZDDE(object):
                     display(Image(filename=imgPath))
                     #Delete the image file
                     os.remove(imgPath)
-                elif stat==-1:
-                    print("Couldn't find image file")
                 elif stat==-999:
                     print("Timeout reached before image file was ready")
             else:
-                print("Macro execution failed.")
+                print("ZPL Macro execution failed.\nZPL Macro path in PyZDDE is set to {}."
+                      .format(self.macroPath))
+                if not self.macroPath:
+                    print("Use zSetMacroPath() to set the correct macro path.")
         else:
             print("Couldn't import IPython modules.")
+
+    def ipCaptureWindow2(self,analysisType, percent=12, MFFtNum=0, blur=1,
+                         gamma=0.35, settingsFileName=None, flag=0):
+        """Capture any analysis window from Zemax main window, using 3-letter analysis code.
+
+        This is similar to ipCaptureWindow, but more capable, and generally produces
+        better graphic output. It uses the metafile exported by Zemax as its
+        source image, converts the metafile into PNG using ImageMagic's convert
+        program and displays/embeds the PNG image on the IPython Webnotebook or
+        QtConsole.
+
+        ipCaptureWindow2(analysisType [,percent=12,MFFtNum=0,blur=1, gamma=0.35,
+                         settingsFileName=None, flag=0]) -> displayGraphic
+
+        args:
+          analysisType  : 3-letter button code for the type of analysis
+          percent       : (float) percentage of the metafile to display (default=12)
+          MFFtNum       : (integer) 0 = Enhanced Metafile, 1 = Standard Metafile
+          blur          : (float) Amount of blurring to use for antialiasing during
+                           resizing of metafile (default=1)
+          gamma         : (float) gamma for the PNG image (default = 0.35). Use
+                          a gamma value of around 0.9 for color surface plots.
+          settingsFileName : If a valid file name is used for the "settingsFileName",
+                             ZEMAX will use or save the settings used to compute the
+                             metafile, depending upon the value of the flag parameter.
+            flag        :  0 = default settings used for the metafile graphic
+                           1 = settings provided in the settings file, if valid,
+                               else default settings used
+                           2 = settings provided in the settings file, if valid,
+                               will be used and the settings box for the requested
+                               feature will be displayed. After the user makes any
+                               changes to the settings the graphic will then be
+                               generated using the new settings.
+        """
+        global IPLoad
+        if IPLoad:
+            # Use the lens file path to store and process temporary images
+            tmpImgPath = self.zGetPath()[1]  # lens file path
+            if MFFtNum==0:
+                ext = 'EMF'
+            else:
+                ext = 'WMF'
+            tmpMetaImgName = "{tip}\\TEMPGPX.{ext}".format(tip=tmpImgPath,ext=ext)
+            tmpPngImgName = "{tip}\\TEMPGPX.png".format(tip=tmpImgPath)
+            # Get the directory where PyZDDE (and thus `convert`) is located
+            cd = os.path.dirname(os.path.realpath(__file__))
+            # Create the ImageMagick command. At this time, we need two different
+            # types of command because in Zemax:
+            # 1. The Standard metafile export (as .WMF) seems to only work for
+            #    layout analysis window, completely restricting its use
+            # 2. The pen width setting in Zemax for the Enhanced metafile (as .EMF)
+            #    is not functioning.
+            if MFFtNum==0:
+                imagickCmd = ("{cd}\convert {MetaImg} -flatten -blur {bl} "
+                              "-resize {per}% -gamma {ga} {PngImg}"
+                              .format(cd=cd,MetaImg=tmpMetaImgName,bl=blur,
+                                      per=percent,ga=gamma,PngImg=tmpPngImgName))
+            else:
+                imagickCmd = ("{cd}\convert {MetaImg} -resize {per}% {PngImg}"
+                              .format(cd=cd,MetaImg=tmpMetaImgName,per=percent,
+                                                           PngImg=tmpPngImgName))
+            # Get the metafile and display the image
+            stat = self.zGetMetaFile(tmpMetaImgName,analysisType,
+                                     settingsFileName,flag)
+            if stat==0:
+                stat = checkFileExist(tmpMetaImgName,timeout=0.5)
+                if stat==0:
+                    # Convert Metafile to PNG using ImageMagick's convert
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    p = subprocess.Popen(args=imagickCmd, stdout=subprocess.PIPE,
+                                         startupinfo=startupinfo)
+                    stat = checkFileExist(tmpPngImgName,timeout=10) # 10 for safety
+                    if stat==0:
+                        # Display the image
+                        time.sleep(0.2)
+                        display(Image(filename=tmpPngImgName))
+                        # Delete the image files
+                        # FIX !!! Determine if any other process is accessing
+                        # the file, and delete the file if it is not
+                        time.sleep(0.25)
+                        if ~checkFileExist(tmpMetaImgName):
+                            os.remove(tmpMetaImgName)
+                        time.sleep(0.25)
+                        if ~checkFileExist(tmpPngImgName):
+                            os.remove(tmpPngImgName)
+                    else:
+                        print("Timeout reached before PNG file was ready")
+                elif stat==-999:
+                    print("Timeout reached before Metafile file was ready")
+            else:
+                print("Metafile couldn't be created.")
+        else:
+                print("Couldn't import IPython modules.")
 
 # ****************************************************************
 #                      CONVENIENCE FUNCTIONS
@@ -5319,7 +5428,6 @@ class PyZDDE(object):
         if txtFileName2Use != None:
             textFileName = txtFileName2Use
         else:
-            #cd = os.getcwd()
             cd = os.path.dirname(os.path.realpath(__file__))
             textFileName = cd +"\\"+"prescriptionFile.txt"
         ret = self.zGetTextFile(textFileName,'Pre',"None",0)
@@ -5386,7 +5494,7 @@ def regressLiteralType(x):
         lit = str(x)
     return lit
 
-def checkFileExist(filename,timeout=2000):
+def checkFileExist(filename,timeout=.25):
     """This function checks if a file exist.
 
     If the file exist then it is ready to be read, written to, or deleted.
@@ -5395,31 +5503,28 @@ def checkFileExist(filename,timeout=2000):
 
     args:
       filename: filename with full path
-      timeout : (milliseconds) how long to wait before returning
+      timeout : (seconds) how long to wait before returning
     ret:
       status:
         0   : file exist, and file operations are possible
-       -1   : file doesn't exist
        -999 : timeout reached
     """
+    timeout_microSec = timeout*1000000.0
     ti = datetime.datetime.now()
-    if path.isfile(filename):
-        while True:
-            try:
-                f = open(filename,'r')
-            except IOError:
-                timeDelta = datetime.datetime.now() - ti
-                if timeDelta > timeout:
-                    status = -999
-                    break
-                else:
-                    time.sleep(0.25)
-            else:
-                f.close()
-                status = 0
+    while True:
+        try:
+            f = open(filename,'r')
+        except IOError:
+            timeDelta = datetime.datetime.now() - ti
+            if timeDelta.microseconds > timeout_microSec:
+                status = -999
                 break
-    else: # file path is not valid
-        status = -1
+            else:
+                time.sleep(0.25)
+        else:
+            f.close()
+            status = 0
+            break
     return status
 
 def process_get_set_NSCProperty(code,reply):
