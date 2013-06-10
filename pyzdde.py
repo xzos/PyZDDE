@@ -1413,7 +1413,8 @@ class PyZDDE(object):
                          4-7             data1-data4 (float)
                          8               target (float)
                          9               weight (float)
-                         10              contribution (float)
+                         10              value (float)
+                         11              percentage contribution (float)
                          12-13           data5-data6 (float)
                         -----------------------------------------------
         Note: To update the merit function prior to calling zGetOperand function,
@@ -2295,11 +2296,11 @@ class PyZDDE(object):
         """Update the lens, which means Zemax recomputes all pupil positions,
         solves, and index data.
 
-        zGetUpdate() -> status
+        zGetUpdate()->status
 
         status :   0 = Zemax successfully updated the lens
                   -1 = No raytrace performed
-                -998 = Command timed
+                -998 = Command timed out
 
         To update the merit function, use the zOptimize item with the number
         of cycles set to -1.
@@ -3095,27 +3096,90 @@ class PyZDDE(object):
              cycles could be to call zOptimize multiple times in a loop, each time
              comparing the returned merit function with few of the previously
              returned (& stored) merit functions to determine if an optimum has
-             been attained.
+             been attained. For an example implementation see zOptimize2()
 
-        See also zHammer, zLoadMerit, zsaveMerit
+        See also zHammer, zLoadMerit, zsaveMerit, zOptimize2
         """
         cmd = "Optimize,{:1.2g},{:d}".format(numOfCycles,algorithm)
         reply = self.conversation.Request(cmd)
         return float(reply.rstrip())
 
-    def zPushLens(self,timeout = None, updateFlag=None):
+    def zOptimize2(self, numCycle=1, algo=0, histLen=5, precision=1e-12,
+                   minMF=1e-15, tMinCycles=5, tMaxCycles=None):
+        """A wrapper around zOptimize() providing few control features.
+
+        zOptimize2([numCycle, algo, histLen, precision, minMF,tMinCycles,
+                  tMaxCycles])->(finalMerit, tCycles)
+
+        Parameters:
+        ----------
+        numCycles  : number of cycles per DDE call to optimization (default=1)
+        algo       : 0=DLS, 1=Orthogonal descent (default=0)
+        histLen    : length of the array of past merit functions returned from each
+                     DDE call to zOptimize for determining steady state of merit
+                     function values (default=5)
+        precision  : minimum acceptable absolute difference between the merit-function
+                     values in the array for steady state computation (default=1e-12)
+        minMF      : minimum Merit Function following which to the optimization loop
+                     is to be terminated even if a steady state hasn't reached.
+        tMinCycles : total number of cycles to run optimization at the very least.
+                     This is NOT the number of cycles per DDE call, but it is
+                     calculated by multiplying the number of cycles per DDL optimize
+                     call to the total number of DDE calls. (default=5)
+        tMaxCycles : the maximum number of cycles after which the optimizaiton should
+                     be terminated even if a steady state hasn't reached
+
+        Returns:
+        -------
+        finalMerit : (float) the final merit function.
+        tCycles    : (integer) total number of cycles calculated by multiplying the
+                     number of cycles per DDL optimize call to the total number of
+                     DDE calls.
+
+        Note:
+        ----
+        zOptimize2() basically calls zOptimize() mutiple number of times in a loop.
+        It can be useful if a large number of optimization cycles are required.
+        """
+        mfvList = [0.0]*histLen    # create a list of zeros
+        count = 0
+        mfvSettled = False
+        finalMerit = 9e9
+        tCycles = 0
+        if not tMaxCycles:
+            tMaxCycles = 2**31 - 1   # Largest plain positive integer value
+        while not mfvSettled and (finalMerit > minMF) and (tCycles < tMaxCycles):
+            finalMerit = self.zOptimize(numCycle,algo)
+            self.zOptimize(-1,0) # update all the operands in the MFE
+            if finalMerit > 8.9999e9: # optimization failure (Zemax returned 9.0E+009)
+                break
+            # populate mfvList in circular fashion
+            mfvList[count % histLen] = finalMerit
+            if (tCycles >= tMinCycles-1): # only after the minimum number of cycles are over,
+                # test to see if the merit-function has settled down
+                mfvList_shifted = mfvList[:-1]
+                mfvList_shifted.append(mfvList[0])
+                for i,j in zip(mfvList,mfvList_shifted):
+                    if abs(i-j) >= precision:
+                        break
+                else:
+                    mfvSettled = True
+            count +=1
+            tCycles = count*numCycle
+        return (finalMerit,tCycles)
+
+    def zPushLens(self, updateFlag=None, timeout=None):
         """Copy lens in the ZEMAX DDE server into the Lens Data Editor (LDE).
 
-        zPushLens([timeout,updateFlag]) -> retVal
+        zPushLens([updateFlag, timeout]) -> retVal
 
         args:
-            timeout (optional)   : if a timeout in seconds in passed, the client will
-                                   wait till the timeout before returning a timeout
-                                   error. If no timeout is passed, the default timeout
-                                   of 3 seconds is used.
-            updateFlag (optional): if 0 or omitted, the open windows are not updated.
-                                   if 1, then all open analysis windows are updated.
-
+         updateFlag (optional): if 0 or omitted, the open windows are not updated.
+                                if 1, then all open analysis windows are updated.
+         timeout (optional)   : if a timeout in seconds in passed, the client will
+                                wait till the timeout before returning a timeout
+                                error. If no timeout is passed, the default timeout
+                                of 3 seconds is used.
         retVal:
                 0: lens successfully pushed into the LDE.
              -999: the lens could not be pushed into the LDE. (check zPushLensPermission)
@@ -4169,7 +4233,7 @@ class PyZDDE(object):
           row    : (integer) row operand number in the MFE
           column : (integer) column number (see table below)
                         -----------------------------------------------
-                        Column #           value
+                        Column        Returned operand data
                         -----------------------------------------------
                          1               operand type (string)
                          2               int1 (integer)
@@ -4177,7 +4241,8 @@ class PyZDDE(object):
                          4-7             data1-data4 (float)
                          8               target (float)
                          9               weight (float)
-                         10              contribution (float)
+                         10              value (float)
+                         11              percentage contribution (float)
                          12-13           data5-data6 (float)
                         -----------------------------------------------
           value : string/integer/float. See table above.
@@ -4544,6 +4609,7 @@ class PyZDDE(object):
         args:
             surfaceNumber  : (integer) surface number of the surface
             parameter      : (integer) parameter (Par in LDE) number being set
+            value          : (float) value to set for the `parameter`
         ret:
             parameterData  : (float) the parameter value
 
@@ -4661,8 +4727,8 @@ class PyZDDE(object):
         ------------------------------------------------------------------------
           4   - Adjust Index Data To Environment. (0:off, 1:on.)
          10   - Aperture Type code. (0:EPD, 1:IF/#, 2:ONA, 3:FBS, 4:PWF/#, 5:OCA)
-         11   - Aperture Value. (stop surface semi-diameter if aperture type is FBS,
-                else system aperture)
+         11   - Aperture Value. (stop surface semi-diameter if aperture type is
+                FBS, else system aperture)
          12   - Apodization Type code. (0:uniform, 1:Gaussian, 2:cosine cubed)
          13   - Apodization Factor.
          14   - Telecentric Object Space. (0:off, 1:on)

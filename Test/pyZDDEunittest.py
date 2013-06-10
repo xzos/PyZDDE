@@ -931,6 +931,10 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zOptimize(self):
         print("\nTEST: zOptimize()")
 
+    @unittest.skip("To implement")
+    def test_zOptimize2(self):
+        print("\nTEST: zOptimize2()")
+
     def test_zPushLens(self):
         print("\nTEST: zPushLens()")
         # push a lens with an invalid flag, should rise ValueError exception
