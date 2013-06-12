@@ -652,13 +652,15 @@ def showZOperandList(operandType = 0):
 
     showZOperandList([operandType])->None (the operands are printed on screen)
 
-    args:
-      operandType : 0 = All operands (use with caution, slow)
-                    1 = Optimization operands
-                    2 = Tolerancing operands (Default)
-                    3 = Multi-configuration operands
-    ret:
-      None (the operands are printed on screen)
+    Parameters
+    ----------
+    operandType : 0 = All operands (use with caution, slow)
+                  1 = Optimization operands
+                  2 = Tolerancing operands (Default)
+                  3 = Multi-configuration operands
+    Returns
+    -------
+    None (the operands are printed on screen)
     """
     if operandType == 0:
         print("Listing all operands:")
@@ -691,13 +693,15 @@ def getZOperandCount(operandType = 0):
 
     getZOperandCount([operandType])->count
 
-    args:
-      operandType : 0 = All operands
-                    1 = Optimization operands
-                    2 = Tolerancing operands
-                    3 = Multi-configuration operands
-    ret:
-      count : number of operands
+    Parameters
+    ----------
+    operandType : 0 = All operands
+                  1 = Optimization operands
+                  2 = Tolerancing operands
+                  3 = Multi-configuration operands
+    Returns
+    -------
+    count : number of operands
     """
     numOptOperands = len(Operands.opt_operands)
     numTolOperands = len(Operands.tol_operands)

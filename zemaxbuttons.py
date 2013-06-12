@@ -262,10 +262,13 @@ def isZButtonCode(buttonCode):
 
     isZButtonCode(buttonCode)->bool
 
-    args:
-      buttonCode : (string) the 3-letter button code to validate
-    ret:
-      bool        : True if valid button code, False otherwise
+    Parameters
+    ----------
+    buttonCode : (string) the 3-letter button code to validate
+
+    Returns
+    -------
+    bool        : True if valid button code, False otherwise
     """
     return str(buttonCode) in Buttons.button_code.viewkeys()
 
@@ -274,10 +277,13 @@ def showZButtonDescription(buttonCode):
 
     showZButtonDescription(buttonCode)->description
 
-    args:
-      buttonCode : (string) a 3-letter button code
-    ret:
-      description : a shot description about the button code function/analysis type.
+    Parameters
+    ----------
+    buttonCode : (string) a 3-letter button code
+
+    Returns
+    -------
+    description : a shot description about the button code function/analysis type.
     """
     if isZButtonCode(str(buttonCode)):
         print("{} is a ZEMAX button code.".format(str(buttonCode)))
