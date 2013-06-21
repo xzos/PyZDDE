@@ -62,7 +62,7 @@ def debugPrint(level,msg):
     """
     global DEBUG_PRINT_LEVEL
     if level <= DEBUG_PRINT_LEVEL:
-        print("DEBUG PRINT (Level" + str(level)+ ": )" + msg)
+        print("DEBUG PRINT (Level " + str(level)+ "): " + msg)
     return
 
 class PyZDDE(object):
@@ -102,15 +102,18 @@ class PyZDDE(object):
         debugPrint(1,"appName = " + self.appName)
         debugPrint(1,"liveCh = " + str(PyZDDE.__liveCh))
         if self.appName=="ZEMAX" or PyZDDE.__liveCh==0: # do this only one time or when there is no channel
-            PyZDDE.server = dde.CreateServer()
-            PyZDDE.server.Create("ZCLIENT")           # Name of the client
+            PyZDDE.__server = dde.CreateServer()
+            PyZDDE.__server.Create("ZCLIENT")           # Name of the client
         # Try to create individual conversations for each ZEMAX application.
-        self.conversation = dde.CreateConversation(PyZDDE.server)
+        self.conversation = dde.CreateConversation(PyZDDE.__server)
         try:
             self.conversation.ConnectTo(self.appName," ")
         except:
             info = sys.exc_info()
             print("Error:", info[1], ": ZEMAX may not have been started!")
+            # should close the DDE server if it exist
+            self.zDDEClose()
+            debugPrint(2,"PyZDDE server: " + str(PyZDDE.__server))
             return -1
         else:
             debugPrint(1,"Zemax instance successfully connected")
@@ -133,19 +136,25 @@ class PyZDDE(object):
         -------
         Status = 0 on success.
         """
-        # Close the server only if a channel was truely established and it is the last one.
+        if PyZDDE.__server and PyZDDE.__liveCh <=0:
+            # Special case, when the user is trying to init DDE without Zemax running
+            PyZDDE.__server.Shutdown()
+            PyZDDE.__server = 0
+            debugPrint(2,"server shutdown as ZEMAX is not running!")
         if self.connection and PyZDDE.__liveCh <=1:
-            self.server.Shutdown()
+            # Close the server only if a channel was truely established and it is the last one.
+            PyZDDE.__server.Shutdown()
             self.connection = False
             PyZDDE.__liveCh -=1  # This will become zero now. (reset)
             PyZDDE.__chNum = -1  # Reset the chNum ...
+            PyZDDE.__server = 0  # Reset server (the previous server object should be garbage collected)
             debugPrint(2,"server shutdown")
         elif self.connection:  # if additional channels were successfully created.
             self.connection = False
             PyZDDE.__liveCh -=1
             debugPrint(2,"liveCh decremented without shutting down DDE channel")
         else:   # if zDDEClose is called by an object which didn't have a channel anyways
-            debugPrint(3,"Nothing to do")
+            debugPrint(2,"Nothing to do")
 
         return 0              # For future compatibility
 
@@ -165,7 +174,7 @@ class PyZDDE(object):
 
     def __del__(self):
         """Destructor"""
-        debugPrint(3,"Destructor called")
+        debugPrint(2,"Destructor called")
         self.zDDEClose()
 
     # ZEMAX control/query methods
