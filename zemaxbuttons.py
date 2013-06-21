@@ -12,6 +12,8 @@
 # Revision:    0.5
 #-------------------------------------------------------------------------------
 from __future__ import print_function
+import re
+
 class Buttons(object):
     """ZEMAX 3-letter buttons. Note ZPL Macro codes are not included.
     The list of button codes were compiled from ZEMAX Version 13.0404, 2013.
@@ -291,6 +293,51 @@ def showZButtonDescription(buttonCode):
         print(Buttons.button_code[str(buttonCode)])
     else:
         print("{} is NOT a valid ZEMAX button code.".format(str(buttonCode)))
+
+def findZButtonCode(keywords):
+    """Find/search Zemax button codes using specific keywords of interest.
+
+    findZButtonCode("keyword#1 [, keyword#2, keyword#3, ...]")->searchResult
+
+    Parameters
+    ----------
+    keywords : a string containing a list of comma separated keywords.
+
+    Example
+    -------
+    >>> zb.findZButtonCode("Zernike")
+    [ Zst ] Zernike Standard Terms
+    [ Zvf ] Zernike Coefficients vs. Field
+    [ Zfr ] Zernike Fringe Terms
+    [ Zat ] Zernike Annular Terms
+
+    Found 4 Button codes.
+
+    >>> zb.findZButtonCode("Fan")
+    [ Opd ] Opd Fan
+    [ Ray ] Ray Fan
+    [ Ptf ] Pol. Transmission Fan
+    [ Pab ] Pupil Aberration Fan
+
+    Found 4 Button codes.
+    """
+    words2find = [words.strip() for words in keywords.split(",")]
+    previousFoundKeys = []
+    for button, description in Buttons.button_code.items():
+        for kWord in words2find:
+            if __find(kWord,description):
+                print("[",button,"]",description)
+                previousFoundKeys.append(button)
+                break # break the inner for loop
+    if previousFoundKeys:
+        print("\nFound {} Button codes.\n".format(len(previousFoundKeys)))
+
+def __find(word2find,instring):
+    r = re.compile(r'\b({0})\b'.format(word2find),flags=re.IGNORECASE)
+    if r.search(instring):
+        return True
+    else:
+        return False
 
 if __name__ == '__main__':
     #Test showZButtonList()

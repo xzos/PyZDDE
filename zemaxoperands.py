@@ -12,6 +12,7 @@
 # Revision:    0.5
 #-------------------------------------------------------------------------------
 from __future__ import print_function
+import re
 
 class Operands(object):
     """
@@ -768,6 +769,74 @@ def showZOperandDescription(operand):
     else:
         print("{} is a NOT a valid ZEMAX operand.".format(str(operand)))
 
+def findZOperand(keywords):
+    """Find/search Zemax operands using specific keywords of interest.
+
+    findZOperand("keyword#1 [, keyword#2, keyword#3, ...]")->searchResult
+
+    Parameters
+    ----------
+    keywords   : a string containing a list of comma separated keywords
+
+    Example
+    -------
+    >>> zo.findZOperand("decenter")
+    [ TEDY ] Tolerance on element y-decenter in lens units
+    [ TEDX ] Tolerance on element x-decenter in lens units
+    [ TUDX ] Tolerance on user defined x-decenter in lens units
+    [ TUDY ] Tolerance on user defined y-decenter in lens units
+    [ TSDY ] Tolerance on Standard surface y-decenter in lens units
+    [ TSDX ] Tolerance on Standard surface x-decenter in lens units
+
+    Found 6 Tolerance operands.
+
+    [ APDY ] Surface aperture Y-decenter.
+    [ APDX ] Surface aperture X-decenter.
+
+    Found 2 Macro operands.
+
+    >>> zo.findZOperand('trace')
+    [ NSRA ] Non-sequential single ray trace.
+    [ NSTR ] Non-sequential trace. See also NSST.
+    [ NSST ] Non-sequential single ray trace. See also NSTR.
+
+    Found 3 Optimization operands.
+    """
+    words2find = [words.strip() for words in keywords.split(",")]
+    previousFoundKeys = []
+    for operand, description in Operands.opt_operands.items():
+        for kWord in words2find:
+            if __find(kWord,description):
+                print("[",operand,"]",description)
+                previousFoundKeys.append(operand)
+                break # break the inner for loop
+    if previousFoundKeys:
+        print("\nFound {} Optimization operands.\n".format(len(previousFoundKeys)))
+    previousFoundKeys = []
+    for operand, description in Operands.tol_operands.items():
+        for kWord in words2find:
+            if __find(kWord,description):
+                print("[",operand,"]",description)
+                previousFoundKeys.append(operand)
+                break # break the inner for loop
+    if previousFoundKeys:
+        print("\nFound {} Tolerance operands.\n".format(len(previousFoundKeys)))
+    previousFoundKeys = []
+    for operand, description in Operands.mco_operands.items():
+        for kWord in words2find:
+            if __find(kWord,description):
+                print("[",operand,"]",description)
+                previousFoundKeys.append(operand)
+                break # break the inner for loop
+    if previousFoundKeys:
+        print("\nFound {} Macro operands.\n".format(len(previousFoundKeys)))
+
+def __find(word2find,instring):
+    r = re.compile(r'\b({0})\b'.format(word2find),flags=re.IGNORECASE)
+    if r.search(instring):
+        return True
+    else:
+        return False
 
 ##    Possible functions to implement
 ##    #Get operand number, given operand type (key)
