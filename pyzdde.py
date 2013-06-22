@@ -5,7 +5,7 @@
 # Author:      Indranil Sinharoy
 #
 # Created:     08/10/2012
-# Copyright:   (c) Indranil Sinharoy, 2012 - 2013
+# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2012 - 2013
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
@@ -52,7 +52,7 @@ DEBUG_PRINT_LEVEL = 0 # 0=No debug prints, but allow all essential prints
                       # 1 to 2 levels of debug print, 2 = print all
 
 # Helper functions
-def debugPrint(level,msg):
+def _debugPrint(level,msg):
     """
     Parameters
     ----------
@@ -94,29 +94,34 @@ class PyZDDE(object):
         status: 0 : DDE link to ZEMAX was successfully established.
                -1 : DDE link couldn't be established.
 
-        The function also sets the timeout value for all ZEMAX DDE calls to 3 sec.
-        The timeout is not implemented now.
+        The function is supposed to sets the timeout value for all ZEMAX DDE
+        calls to 3 sec; however, the timeout is not implemented now.
 
         See also zDDEClose, zDDEStart, zSetTimeout
         """
-        debugPrint(1,"appName = " + self.appName)
-        debugPrint(1,"liveCh = " + str(PyZDDE.__liveCh))
-        if self.appName=="ZEMAX" or PyZDDE.__liveCh==0: # do this only one time or when there is no channel
-            PyZDDE.__server = dde.CreateServer()
-            PyZDDE.__server.Create("ZCLIENT")           # Name of the client
+        _debugPrint(1,"appName = " + self.appName)
+        _debugPrint(1,"liveCh = " + str(PyZDDE.__liveCh))
+        # do this only one time or when there is no channel
+        if self.appName=="ZEMAX" or PyZDDE.__liveCh==0:
+            try:
+                PyZDDE.__server = dde.CreateServer()
+                PyZDDE.__server.Create("ZCLIENT")           # Name of the client
+            except Exception, err:
+                sys.stderr.write("{err}: Possibly another application is already"
+                                 " using a DDE server!".format(err=str(err)))
+                return -1
         # Try to create individual conversations for each ZEMAX application.
         self.conversation = dde.CreateConversation(PyZDDE.__server)
         try:
             self.conversation.ConnectTo(self.appName," ")
         except:
             info = sys.exc_info()
-            print("Error:", info[1], ": ZEMAX may not have been started!")
             # should close the DDE server if it exist
             self.zDDEClose()
-            debugPrint(2,"PyZDDE server: " + str(PyZDDE.__server))
+            _debugPrint(2,"PyZDDE server: " + str(PyZDDE.__server))
             return -1
         else:
-            debugPrint(1,"Zemax instance successfully connected")
+            _debugPrint(1,"Zemax instance successfully connected")
             PyZDDE.__liveCh += 1 # increment the number of live channels
             self.connection = True
             #DDE_TIMEOUT = 3000 #The default timeout
@@ -136,25 +141,25 @@ class PyZDDE(object):
         -------
         Status = 0 on success.
         """
-        if PyZDDE.__server and PyZDDE.__liveCh <=0:
+        if PyZDDE.__server and PyZDDE.__liveCh ==0:
             # Special case, when the user is trying to init DDE without Zemax running
             PyZDDE.__server.Shutdown()
             PyZDDE.__server = 0
-            debugPrint(2,"server shutdown as ZEMAX is not running!")
-        if self.connection and PyZDDE.__liveCh <=1:
+            _debugPrint(2,"server shutdown as ZEMAX is not running!")
+        elif PyZDDE.__server and self.connection and PyZDDE.__liveCh ==1:
             # Close the server only if a channel was truely established and it is the last one.
             PyZDDE.__server.Shutdown()
             self.connection = False
             PyZDDE.__liveCh -=1  # This will become zero now. (reset)
             PyZDDE.__chNum = -1  # Reset the chNum ...
-            PyZDDE.__server = 0  # Reset server (the previous server object should be garbage collected)
-            debugPrint(2,"server shutdown")
+            PyZDDE.__server = 0  # the previous server object should be garbage collected
+            _debugPrint(2,"server shutdown")
         elif self.connection:  # if additional channels were successfully created.
             self.connection = False
             PyZDDE.__liveCh -=1
-            debugPrint(2,"liveCh decremented without shutting down DDE channel")
-        else:   # if zDDEClose is called by an object which didn't have a channel anyways
-            debugPrint(2,"Nothing to do")
+            _debugPrint(2,"liveCh decremented without shutting down DDE channel")
+        else:   # if zDDEClose is called by an object which didn't have a channel
+            _debugPrint(2,"Nothing to do")
 
         return 0              # For future compatibility
 
@@ -174,7 +179,7 @@ class PyZDDE(object):
 
     def __del__(self):
         """Destructor"""
-        debugPrint(2,"Destructor called")
+        _debugPrint(2,"Destructor called")
         self.zDDEClose()
 
     # ZEMAX control/query methods
@@ -1474,7 +1479,7 @@ class PyZDDE(object):
         cmd = ("GetNSCProperty,{:d},{:d},{:d},{:d}"
                 .format(surfaceNumber,objectNumber,code,faceNumber))
         reply = self.conversation.Request(cmd)
-        nscPropData = process_get_set_NSCProperty(code,reply)
+        nscPropData = _process_get_set_NSCProperty(code,reply)
         return nscPropData
 
     def zGetNSCSettings(self):
@@ -1585,7 +1590,7 @@ class PyZDDE(object):
         """
         cmd = "GetOperand,{:d},{:d}".format(row, column)
         reply = self.conversation.Request(cmd)
-        return process_get_set_Operand(column, reply)
+        return _process_get_set_Operand(column, reply)
 
     def zGetPath(self):
         """Returns path name to <data> folder and default lenses folder.
@@ -1992,7 +1997,7 @@ class PyZDDE(object):
         """
         cmd = "GetSolve,{:d},{:d}".format(surfaceNumber,code)
         reply = self.conversation.Request(cmd)
-        solveData = process_get_set_Solve(reply)
+        solveData = _process_get_set_Solve(reply)
         return solveData
 
     def zGetSurfaceData(self,surfaceNumber,code,arg2=None):
@@ -2293,7 +2298,7 @@ class PyZDDE(object):
         """
         cmd = "GetSystemProperty,{c}".format(c=code)
         reply = self.conversation.Request(cmd)
-        sysPropData = process_get_set_SystemProperty(code,reply)
+        sysPropData = _process_get_set_SystemProperty(code,reply)
         return sysPropData
 
     def zGetTextFile(self,textFileName, analysisType, settingsFileName=None, flag=0):
@@ -2381,7 +2386,7 @@ class PyZDDE(object):
                 if tolType == 'TOFF': # the tol editor is actually empty
                     toleranceData = 0
         else:
-            toleranceData = process_get_set_Tol(operandNumber,reply)
+            toleranceData = _process_get_set_Tol(operandNumber,reply)
         return toleranceData
 
     def zGetTrace(self,waveNum,mode,surf,hx,hy,px,py):
@@ -2536,7 +2541,7 @@ class PyZDDE(object):
         """
         cmd = "GetUDOSystem,{:d}".format(bufferCode)
         reply = self.conversation.Request(cmd)
-        return regressLiteralType(reply.rstrip())
+        return _regressLiteralType(reply.rstrip())
         # FIX !!! At this time, I am not sure what is the expected return.
 
     def zGetUpdate(self):
@@ -2841,7 +2846,7 @@ class PyZDDE(object):
             cmd = ("LoadDetector,{:d},{:d},{}"
                    .format(surfaceNumber,objectNumber,fileName))
             reply = self.conversation.Request(cmd)
-            return regressLiteralType(reply.rstrip())
+            return _regressLiteralType(reply.rstrip())
         else:
             return -1
 
@@ -3675,7 +3680,7 @@ class PyZDDE(object):
             cmd = ("SaveDetector,{:d},{:d},{}"
                    .format(surfaceNumber,objectNumber,fileName))
             reply = self.conversation.Request(cmd)
-            return regressLiteralType(reply.rstrip())
+            return _regressLiteralType(reply.rstrip())
         else:
             return -1
 
@@ -4537,7 +4542,7 @@ class PyZDDE(object):
         else:
             cmd = cmd + str(float(value))
         reply = self.conversation.Request(cmd)
-        nscPropData = process_get_set_NSCProperty(code,reply)
+        nscPropData = _process_get_set_NSCProperty(code,reply)
         return nscPropData
 
     def zSetNSCSettings(self,nscSettingsData):
@@ -4709,7 +4714,7 @@ class PyZDDE(object):
             value = '{}'.format(float(value))
         cmd = "SetOperand,{:d},{:d},{}".format(row, column, value)
         reply = self.conversation.Request(cmd)
-        return process_get_set_Operand(column, reply)
+        return _process_get_set_Operand(column, reply)
 
     def zSetPolState(self,nlsPolarized,Ex,Ey,Phx,Phy):
         """Sets the default polarization state. These parameters correspond to
@@ -4955,7 +4960,7 @@ class PyZDDE(object):
             cmd = ("SetSolve,{:d},{:d},{:d}"
                   .format(surfaceNumber,code,solveData[0]))
         reply = self.conversation.Request(cmd)
-        solveData = process_get_set_Solve(reply)
+        solveData = _process_get_set_Solve(reply)
         return solveData
 
     def zSetSurfaceData(self,surfaceNumber,code,value,arg2=None):
@@ -5276,7 +5281,7 @@ class PyZDDE(object):
         """
         cmd = "SetSystemProperty,{c:d},{v1},{v2}".format(c=code,v1=value1,v2=value2)
         reply = self.conversation.Request(cmd)
-        sysPropData = process_get_set_SystemProperty(code,reply)
+        sysPropData = _process_get_set_SystemProperty(code,reply)
         return sysPropData
 
     def zSetTol(self,operandNumber,col,value):
@@ -5320,7 +5325,7 @@ class PyZDDE(object):
         if operandNumber == 0: # returns just the number of operands
             return int(float(reply.rstrip()))
         else:
-            return process_get_set_Tol(operandNumber,reply)
+            return _process_get_set_Tol(operandNumber,reply)
         # FIX !!! currently, I am not able to set more than 1 row in the tolerance
         # editor, through this command. I don't find anything like zInsertTol ...
         # A similar function exist for Multi-Configuration editor (zInsertMCO) and
@@ -5395,7 +5400,7 @@ class PyZDDE(object):
         """
         cmd = "SetUDOItem,{:d},{:d},{:1.20g}".format(bufferCode,dataNumber,data)
         reply = self.conversation.Request(cmd)
-        return regressLiteralType(reply.rstrip())
+        return _regressLiteralType(reply.rstrip())
         # FIX !!! At this time, I am not sure what is the expected return.
 
     def zSetVig(self):
@@ -5565,198 +5570,18 @@ class PyZDDE(object):
             retVal = 0
         return retVal
 
-# ***************************************************************
-#              IPYTHON WEBNOTEBOOK HELPER FUNCTIONS
-# ***************************************************************
-    def ipCaptureWindow(self, num=1, *args, **kwargs):
-        """Capture graphic window from Zemax and display in IPython.
-
-        ipCaptureWindow(num [, *args, **kwargs])-> displayGraphic
-
-        Parameters
-        ----------
-        num: The graphic window to capture is indicated by the window number `num`.
-
-        This function is useful for quickly capturing a graphic window, and
-        embedding into a IPython Webnotebook or QtConsole. The quality of JPG
-        image is limited by the JPG export quality from Zemax.
-
-        NOTE:
-        ----
-        In order to use this function, please copy the ZPL macros from
-        PyZDDE\ZPLMacros to the macro directory where Zemax is expecting (i.e.
-        as set in Zemax->Preference->Folders)
-        """
-        global IPLoad
-        if IPLoad:
-            macroCode = "W{n}".format(n=str(num).zfill(2))
-            dataPath = self.zGetPath()[0]
-            imgPath = (r"{dp}\IMAFiles\{mc}_Win{n}.jpg"
-                       .format(dp=dataPath,mc=macroCode,n=str(num).zfill(2)))
-            stat = self.zExecuteZPLMacro(macroCode)
-            if ~stat:
-                stat = checkFileExist(imgPath)
-                if stat==0:
-                    #Display the image
-                    display(Image(filename=imgPath))
-                    #Delete the image file
-                    deleteFile(imgPath)
-                elif stat==-999:
-                    print("Timeout reached before image file was ready")
-            else:
-                print("ZPL Macro execution failed.\nZPL Macro path in PyZDDE is set to {}."
-                      .format(self.macroPath))
-                if not self.macroPath:
-                    print("Use zSetMacroPath() to set the correct macro path.")
-        else:
-            print("Couldn't import IPython modules.")
-
-    def ipCaptureWindow2(self,analysisType, percent=12, MFFtNum=0, blur=1,
-                         gamma=0.35, settingsFileName=None, flag=0):
-        """Capture any analysis window from Zemax main window, using 3-letter analysis code.
-
-        This is similar to ipCaptureWindow, but more capable, and generally produces
-        better graphic output. It uses the metafile exported by Zemax as its
-        source image, converts the metafile into PNG using ImageMagic's convert
-        program and displays/embeds the PNG image on the IPython Webnotebook or
-        QtConsole.
-
-        ipCaptureWindow2(analysisType [,percent=12,MFFtNum=0,blur=1, gamma=0.35,
-                         settingsFileName=None, flag=0]) -> displayGraphic
-
-        Parameters
-        ----------
-        analysisType  : 3-letter button code for the type of analysis
-        percent       : (float) percentage of the metafile to display (default=12)
-        MFFtNum       : (integer) 0 = Enhanced Metafile, 1 = Standard Metafile
-        blur          : (float) Amount of blurring to use for antialiasing during
-                         resizing of metafile (default=1)
-        gamma         : (float) gamma for the PNG image (default = 0.35). Use
-                        a gamma value of around 0.9 for color surface plots.
-        settingsFileName : If a valid file name is used for the "settingsFileName",
-                           ZEMAX will use or save the settings used to compute the
-                           metafile, depending upon the value of the flag parameter.
-        flag        :  0 = default settings used for the metafile graphic
-                       1 = settings provided in the settings file, if valid,
-                           else default settings used
-                       2 = settings provided in the settings file, if valid,
-                           will be used and the settings box for the requested
-                           feature will be displayed. After the user makes any
-                           changes to the settings the graphic will then be
-                           generated using the new settings.
-        """
-        global IPLoad
-        if IPLoad:
-            # Use the lens file path to store and process temporary images
-            tmpImgPath = self.zGetPath()[1]  # lens file path
-            if MFFtNum==0:
-                ext = 'EMF'
-            else:
-                ext = 'WMF'
-            tmpMetaImgName = "{tip}\\TEMPGPX.{ext}".format(tip=tmpImgPath,ext=ext)
-            tmpPngImgName = "{tip}\\TEMPGPX.png".format(tip=tmpImgPath)
-            # Get the directory where PyZDDE (and thus `convert`) is located
-            cd = os.path.dirname(os.path.realpath(__file__))
-            # Create the ImageMagick command. At this time, we need two different
-            # types of command because in Zemax:
-            # 1. The Standard metafile export (as .WMF) seems to only work for
-            #    layout analysis window, completely restricting its use
-            # 2. The pen width setting in Zemax for the Enhanced metafile (as .EMF)
-            #    is not functioning.
-            if MFFtNum==0:
-                imagickCmd = ("{cd}\convert {MetaImg} -flatten -blur {bl} "
-                              "-resize {per}% -gamma {ga} {PngImg}"
-                              .format(cd=cd,MetaImg=tmpMetaImgName,bl=blur,
-                                      per=percent,ga=gamma,PngImg=tmpPngImgName))
-            else:
-                imagickCmd = ("{cd}\convert {MetaImg} -resize {per}% {PngImg}"
-                              .format(cd=cd,MetaImg=tmpMetaImgName,per=percent,
-                                                           PngImg=tmpPngImgName))
-            # Get the metafile and display the image
-            stat = self.zGetMetaFile(tmpMetaImgName,analysisType,
-                                     settingsFileName,flag)
-            if stat==0:
-                stat = checkFileExist(tmpMetaImgName,timeout=0.5)
-                if stat==0:
-                    # Convert Metafile to PNG using ImageMagick's convert
-                    startupinfo = subprocess.STARTUPINFO()
-                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                    p = subprocess.Popen(args=imagickCmd, stdout=subprocess.PIPE,
-                                         startupinfo=startupinfo)
-                    stat = checkFileExist(tmpPngImgName,timeout=10) # 10 for safety
-                    if stat==0:
-                        # Display the image
-                        time.sleep(0.2)
-                        display(Image(filename=tmpPngImgName))
-                        # Delete the image files
-                        deleteFile(tmpMetaImgName)
-                        deleteFile(tmpPngImgName)
-                    else:
-                        print("Timeout reached before PNG file was ready")
-                elif stat==-999:
-                    print("Timeout reached before Metafile file was ready")
-            else:
-                print("Metafile couldn't be created.")
-        else:
-                print("Couldn't import IPython modules.")
-
-    def ipGetTextWindow(self, analysisType, settingsFileName=None, flag=0,
-                        *args, **kwargs):
-        """
-
-        Parameters
-        ----------
-        analysisType : 3 letter case-sensitive label that indicates the
-                       type of the analysis to be performed. They are identical
-                       to those used for the button bar in Zemax. The labels
-                       are case sensitive. If no label is provided or recognized,
-                       a standard raytrace will be generated.
-        settingsFileName : If a valid file name is used for the "settingsFileName",
-                           ZEMAX will use or save the settings used to compute the
-                           text file, depending upon the value of the flag parameter.
-        flag        :  0 = default settings used for the text
-                       1 = settings provided in the settings file, if valid,
-                           else default settings used
-                       2 = settings provided in the settings file, if valid,
-                           will be used and the settings box for the requested
-                           feature will be displayed. After the user makes any
-                           changes to the settings the text will then be
-                           generated using the new settings.
-                       Please see the ZEMAX manual for more details.
-        """
-        global IPLoad
-        if IPLoad:
-            # Use the lens file path to store and process temporary images
-            tmpTxtPath = self.zGetPath()[1]  # lens file path
-            tmpTxtFile = "{ttp}\\TEMPTXT.txt".format(ttp=tmpTxtPath)
-            print(tmpTxtFile)
-            ret = self.zGetTextFile(tmpTxtFile,analysisType,settingsFileName,flag)
-            if ~ret:
-                stat = checkFileExist(tmpTxtFile)
-                if stat==0:
-                    tf = open(tmpTxtFile,'r')
-                    for line in tf:
-                        print(line.rstrip('\n'))  # print in the execution cell
-                    tf.close()
-                    deleteFile(tmpTxtFile)
-                else:
-                    print("Text file of analysis window not created")
-            else:
-                print("GetTextFile didn't succeed")
-        else:
-            print("Couldn't import IPython modules.")
 
 # ****************************************************************
 #                      CONVENIENCE FUNCTIONS
 # ****************************************************************
-    def spiralSpot(self,hx,hy,waveNum,spirals,rays,mode=0):
+    def zSpiralSpot(self,hx,hy,waveNum,spirals,rays,mode=0):
         """Convenience function to produce a series of x,y values of rays traced
         in a spiral over the entrance pupil to the image surface. i.e. the final
         destination of the rays is the image surface. This function imitates its
         namesake from MZDDE toolbox (Note: unlike the spiralSpot of MZDDE, you
-        are not required to call zLoadLens() before calling spiralSpot()).
+        are not required to call zLoadLens() before calling zSpiralSpot()).
 
-        spiralSpot(hx,hy,waveNum,spirals,rays[,mode])->(x,y,z,intensity)
+        zSpiralSpot(hx,hy,waveNum,spirals,rays[,mode])->(x,y,z,intensity)
 
         Parameters
         ----------
@@ -5792,11 +5617,10 @@ class PyZDDE(object):
                 # !!! FIX raise an error here
         return (x,y,z,intensity)
 
-
-    def lensScale(self,factor=2.0,ignoreSurfaces=None):
+    def zLensScale(self,factor=2.0,ignoreSurfaces=None):
         """Scale the lens design by factor specified.
 
-        lensScale([factor,ignoreSurfaces])->ret
+        zLensScale([factor,ignoreSurfaces])->ret
 
         Parameters
         ----------
@@ -6022,13 +5846,13 @@ class PyZDDE(object):
         return ret
 
 
-    def calculateHiatus(self,txtFileName2Use=None,keepFile=False):
+    def zCalculateHiatus(self,txtFileName2Use=None,keepFile=False):
         """Calculate the Hiatus.
 
         The hiatus, also known as the Null space, or nodal space, or the interstitium
         is the distance between the two principal planes.
 
-        calculateHiatus([txtFileName2Use,keepFile])-> hiatus
+        zCalculateHiatus([txtFileName2Use,keepFile])-> hiatus
 
         Parameters
         ----------
@@ -6086,8 +5910,192 @@ class PyZDDE(object):
 
         if not keepFile:
             #Delete the prescription file (the directory remains clean)
-            deleteFile(textFileName)
+            _deleteFile(textFileName)
         return hiatus
+
+# ***************************************************************
+#              IPYTHON WEBNOTEBOOK HELPER FUNCTIONS
+# ***************************************************************
+    def ipzCaptureWindow(self, num=1, *args, **kwargs):
+        """Capture graphic window from Zemax and display in IPython.
+
+        ipzCaptureWindow(num [, *args, **kwargs])-> displayGraphic
+
+        Parameters
+        ----------
+        num: The graphic window to capture is indicated by the window number `num`.
+
+        This function is useful for quickly capturing a graphic window, and
+        embedding into a IPython Webnotebook or QtConsole. The quality of JPG
+        image is limited by the JPG export quality from Zemax.
+
+        NOTE:
+        ----
+        In order to use this function, please copy the ZPL macros from
+        PyZDDE\ZPLMacros to the macro directory where Zemax is expecting (i.e.
+        as set in Zemax->Preference->Folders)
+        """
+        global IPLoad
+        if IPLoad:
+            macroCode = "W{n}".format(n=str(num).zfill(2))
+            dataPath = self.zGetPath()[0]
+            imgPath = (r"{dp}\IMAFiles\{mc}_Win{n}.jpg"
+                       .format(dp=dataPath,mc=macroCode,n=str(num).zfill(2)))
+            stat = self.zExecuteZPLMacro(macroCode)
+            if ~stat:
+                stat = _checkFileExist(imgPath)
+                if stat==0:
+                    #Display the image
+                    display(Image(filename=imgPath))
+                    #Delete the image file
+                    _deleteFile(imgPath)
+                elif stat==-999:
+                    print("Timeout reached before image file was ready")
+            else:
+                print("ZPL Macro execution failed.\nZPL Macro path in PyZDDE is set to {}."
+                      .format(self.macroPath))
+                if not self.macroPath:
+                    print("Use zSetMacroPath() to set the correct macro path.")
+        else:
+            print("Couldn't import IPython modules.")
+
+    def ipzCaptureWindow2(self,analysisType, percent=12, MFFtNum=0, blur=1,
+                         gamma=0.35, settingsFileName=None, flag=0):
+        """Capture any analysis window from Zemax main window, using 3-letter analysis code.
+
+        This is similar to ipzCaptureWindow, but more capable, and generally produces
+        better graphic output. It uses the metafile exported by Zemax as its
+        source image, converts the metafile into PNG using ImageMagic's convert
+        program and displays/embeds the PNG image on the IPython Webnotebook or
+        QtConsole.
+
+        ipzCaptureWindow2(analysisType [,percent=12,MFFtNum=0,blur=1, gamma=0.35,
+                         settingsFileName=None, flag=0]) -> displayGraphic
+
+        Parameters
+        ----------
+        analysisType  : 3-letter button code for the type of analysis
+        percent       : (float) percentage of the metafile to display (default=12)
+        MFFtNum       : (integer) 0 = Enhanced Metafile, 1 = Standard Metafile
+        blur          : (float) Amount of blurring to use for antialiasing during
+                         resizing of metafile (default=1)
+        gamma         : (float) gamma for the PNG image (default = 0.35). Use
+                        a gamma value of around 0.9 for color surface plots.
+        settingsFileName : If a valid file name is used for the "settingsFileName",
+                           ZEMAX will use or save the settings used to compute the
+                           metafile, depending upon the value of the flag parameter.
+        flag        :  0 = default settings used for the metafile graphic
+                       1 = settings provided in the settings file, if valid,
+                           else default settings used
+                       2 = settings provided in the settings file, if valid,
+                           will be used and the settings box for the requested
+                           feature will be displayed. After the user makes any
+                           changes to the settings the graphic will then be
+                           generated using the new settings.
+        """
+        global IPLoad
+        if IPLoad:
+            # Use the lens file path to store and process temporary images
+            tmpImgPath = self.zGetPath()[1]  # lens file path
+            if MFFtNum==0:
+                ext = 'EMF'
+            else:
+                ext = 'WMF'
+            tmpMetaImgName = "{tip}\\TEMPGPX.{ext}".format(tip=tmpImgPath,ext=ext)
+            tmpPngImgName = "{tip}\\TEMPGPX.png".format(tip=tmpImgPath)
+            # Get the directory where PyZDDE (and thus `convert`) is located
+            cd = os.path.dirname(os.path.realpath(__file__))
+            # Create the ImageMagick command. At this time, we need two different
+            # types of command because in Zemax:
+            # 1. The Standard metafile export (as .WMF) seems to only work for
+            #    layout analysis window, completely restricting its use
+            # 2. The pen width setting in Zemax for the Enhanced metafile (as .EMF)
+            #    is not functioning.
+            if MFFtNum==0:
+                imagickCmd = ("{cd}\convert {MetaImg} -flatten -blur {bl} "
+                              "-resize {per}% -gamma {ga} {PngImg}"
+                              .format(cd=cd,MetaImg=tmpMetaImgName,bl=blur,
+                                      per=percent,ga=gamma,PngImg=tmpPngImgName))
+            else:
+                imagickCmd = ("{cd}\convert {MetaImg} -resize {per}% {PngImg}"
+                              .format(cd=cd,MetaImg=tmpMetaImgName,per=percent,
+                                                           PngImg=tmpPngImgName))
+            # Get the metafile and display the image
+            stat = self.zGetMetaFile(tmpMetaImgName,analysisType,
+                                     settingsFileName,flag)
+            if stat==0:
+                stat = _checkFileExist(tmpMetaImgName,timeout=0.5)
+                if stat==0:
+                    # Convert Metafile to PNG using ImageMagick's convert
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    p = subprocess.Popen(args=imagickCmd, stdout=subprocess.PIPE,
+                                         startupinfo=startupinfo)
+                    stat = _checkFileExist(tmpPngImgName,timeout=10) # 10 for safety
+                    if stat==0:
+                        # Display the image
+                        time.sleep(0.2)
+                        display(Image(filename=tmpPngImgName))
+                        # Delete the image files
+                        _deleteFile(tmpMetaImgName)
+                        _deleteFile(tmpPngImgName)
+                    else:
+                        print("Timeout reached before PNG file was ready")
+                elif stat==-999:
+                    print("Timeout reached before Metafile file was ready")
+            else:
+                print("Metafile couldn't be created.")
+        else:
+                print("Couldn't import IPython modules.")
+
+    def ipzGetTextWindow(self, analysisType, settingsFileName=None, flag=0,
+                        *args, **kwargs):
+        """Print the text output of a Zemax analysis type into a IPython cell.
+
+        ipzGetTextWindow(analysisType [,settingsFile, flag, *args, **kwargs])->
+                                                                      textOutput
+
+        Parameters
+        ----------
+        analysisType : 3 letter case-sensitive label that indicates the
+                       type of the analysis to be performed. They are identical
+                       to those used for the button bar in Zemax. The labels
+                       are case sensitive. If no label is provided or recognized,
+                       a standard raytrace will be generated.
+        settingsFileName : If a valid file name is used for the "settingsFileName",
+                           ZEMAX will use or save the settings used to compute the
+                           text file, depending upon the value of the flag parameter.
+        flag        :  0 = default settings used for the text
+                       1 = settings provided in the settings file, if valid,
+                           else default settings used
+                       2 = settings provided in the settings file, if valid,
+                           will be used and the settings box for the requested
+                           feature will be displayed. After the user makes any
+                           changes to the settings the text will then be
+                           generated using the new settings.
+                       Please see the ZEMAX manual for more details.
+        """
+        global IPLoad
+        if IPLoad:
+            # Use the lens file path to store and process temporary images
+            tmpTxtPath = self.zGetPath()[1]  # lens file path
+            tmpTxtFile = "{ttp}\\TEMPTXT.txt".format(ttp=tmpTxtPath)
+            print(tmpTxtFile)
+            ret = self.zGetTextFile(tmpTxtFile,analysisType,settingsFileName,flag)
+            if ~ret:
+                stat = _checkFileExist(tmpTxtFile)
+                if stat==0:
+                    tf = open(tmpTxtFile,'r')
+                    for line in tf:
+                        print(line.rstrip('\n'))  # print in the execution cell
+                    tf.close()
+                    _deleteFile(tmpTxtFile)
+                else:
+                    print("Text file of analysis window not created")
+            else:
+                print("GetTextFile didn't succeed")
+        else:
+            print("Couldn't import IPython modules.")
 
 # ***************************************************************************
 # Helper functions to process data from ZEMAX DDE server. This is especially
@@ -6095,15 +6103,15 @@ class PyZDDE(object):
 # outputs exactly same reply structure.
 # ***************************************************************************
 
-def regressLiteralType(x):
+def _regressLiteralType(x):
     """The function returns the literal with its proper type, such as int, float,
     or string from the input string x.
     Example:
-        regressLiteralType("1")->1
-        regressLiteralType("1.0")->1.0
-        regressLiteralType("1e-3")->0.001
-        regressLiteralType("YUV")->'YUV'
-        regressLiteralType("YO8")->'YO8'
+        _regressLiteralType("1")->1
+        _regressLiteralType("1.0")->1.0
+        _regressLiteralType("1e-3")->0.001
+        _regressLiteralType("YUV")->'YUV'
+        _regressLiteralType("YO8")->'YO8'
     """
     try:
         float(x)  # Test for numeric or string
@@ -6112,12 +6120,12 @@ def regressLiteralType(x):
         lit = str(x)
     return lit
 
-def checkFileExist(filename,timeout=.25):
+def _checkFileExist(filename,timeout=.25):
     """This function checks if a file exist.
 
     If the file exist then it is ready to be read, written to, or deleted.
 
-    checkFileExist(filename [,timeout])->status
+    _checkFileExist(filename [,timeout])->status
 
     Parameters
     ----------
@@ -6148,12 +6156,12 @@ def checkFileExist(filename,timeout=.25):
             break
     return status
 
-def deleteFile(fileName, n=10):
+def _deleteFile(fileName, n=10):
     """Cleanly deletes a file. It takes n attempts to delete the file.
 
     If it can't delete the file in n attempts then it returns fail.
 
-    deleteFile(fileName [,n])->status
+    _deleteFile(fileName [,n])->status
 
     Parameters
     ----------
@@ -6185,7 +6193,7 @@ def deleteFile(fileName, n=10):
             deleted = True
     return status
 
-def process_get_set_NSCProperty(code,reply):
+def _process_get_set_NSCProperty(code,reply):
     """Process reply for functions zGetNSCProperty and zSETNSCProperty"""
     rs = reply.rstrip()
     if rs == 'BAD COMMAND':
@@ -6200,12 +6208,12 @@ def process_get_set_NSCProperty(code,reply):
             nscPropData = float(rs)
     return nscPropData
 
-def process_get_set_Operand(column, reply):
+def _process_get_set_Operand(column, reply):
     """Process reply for functions zGetOperand and zSetOperand"""
     rs = reply.rstrip()
     if column == 1:
         #ensure that it is a string ... as it is supposed to return the operand
-        if isinstance(regressLiteralType(rs),str):
+        if isinstance(_regressLiteralType(rs),str):
             return str(rs)
         else:
             return -1
@@ -6214,16 +6222,16 @@ def process_get_set_Operand(column, reply):
     else:
         return float(rs)
 
-def process_get_set_Solve(reply):
+def _process_get_set_Solve(reply):
     """Process reply for functions zGetSolve and zSetSolve"""
     reply = reply.rstrip()
     rs = reply.split(",")
     if 'BAD COMMAND' in rs:
         return -1
     else:
-        return tuple([regressLiteralType(x) for x in rs])
+        return tuple([_regressLiteralType(x) for x in rs])
 
-def process_get_set_SystemProperty(code,reply):
+def _process_get_set_SystemProperty(code,reply):
     """Process reply for functions zGetSystemProperty and zSetSystemProperty"""
     #Convert reply to proper type
     if code in  (102,103, 104,105,106,107,108,109,110): # unexpected cases
@@ -6236,7 +6244,7 @@ def process_get_set_SystemProperty(code,reply):
         sysPropData = int(float(reply))      # integer
     return sysPropData
 
-def process_get_set_Tol(operandNumber,reply):
+def _process_get_set_Tol(operandNumber,reply):
     """Process reply for functions zGetTol and zSetTol"""
     rs = reply.rsplit(",")
     tolType = [rs[0]]
@@ -6251,12 +6259,12 @@ def process_get_set_Tol(operandNumber,reply):
 # ***************************************************************************
 # Initial code testing used to be done using the following lines of code.
 # Currently all functionality are being tested using the unit test module.
-# The test_PyZDDE() function are left for quick test. The test_PyZDDE() function
-# will not be executed if the module is imported! In order to execute the
-# test_PyZDDE() function, execute this (pyzdde.py) module. It may prove to be
-#useful to quickly test your system.
+# The _test_PyZDDE() function are left for quick test. The _test_PyZDDE()
+# function will not be executed if the module is imported! In order to execute
+# the _test_PyZDDE() function, execute this (pyzdde.py) module. It may prove
+# to be useful to quickly test your system.
 
-def test_PyZDDE():
+def _test_PyZDDE():
     """Test the pyzdde module functions"""
     zmxfp = os.path.dirname(os.path.realpath(__file__))+'\\ZMXFILES\\'
     # Create PyZDDE object(s)
@@ -6595,4 +6603,4 @@ def test_PyZDDE():
 
 if __name__ == '__main__':
     import os, time
-    test_PyZDDE()
+    _test_PyZDDE()

@@ -23,10 +23,10 @@
 #                 on the message. That particular file is then excluded from the
 #                 analysis.
 #
-# Author:      Indranil Sinharoy
+# Author:      Indranil Sinharoy, Southern Methodist University
 #
 # Created:     23/04/2013
-# Copyright:   (c) Indranil 2013
+# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2013
 # Licence:     MIT License
 #-------------------------------------------------------------------------------
 
@@ -223,7 +223,7 @@ for lens_file in filenames:
         if fDBG_PRINT:
             print("EFFL: ",efl," Scale Factor: ", scaleFactor)
         #Scale Lens
-        ret_ls = pyZmLnk.lensScale(scaleFactor)
+        ret_ls = pyZmLnk.zLensScale(scaleFactor)
 
         if ret_ls == -1:  # Lens scale failure, don't bother to calculate hiatus
             print("Lens scaling failed for: ",lens_file)
@@ -236,7 +236,7 @@ for lens_file in filenames:
     textFileName = exampleDirectory + '\\' + "searchSpecAttr_Prescription.txt"
 
     #Get the Hiatus for the lens design
-    hiatus = pyZmLnk.calculateHiatus(textFileName,keepFile=False)
+    hiatus = pyZmLnk.zCalculateHiatus(textFileName,keepFile=False)
 
     if hiatus > HIATUS_UPPER_LIMIT:
         continue

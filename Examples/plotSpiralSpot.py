@@ -5,7 +5,7 @@
 # NOTE:      Please note that this code uses matplotlib plotting library from
 #            http://matplotlib.org/ for 2D-plotting
 #
-# Author:    Indranil Sinharoy
+# Author:    Indranil Sinharoy, Southern Methodist University.
 #
 # Created:   06/10/2012
 # Copyright: (c) 2012, 2013
@@ -43,9 +43,9 @@ if ~status:
         hy = 0.4
         spirals = 100
         rays = 6000
-        (xb,yb,zb,intensityb) = link0.spiralSpot(hx,hy,1,spirals,rays)
-        (xg,yg,zg,intensityg) = link0.spiralSpot(hx,hy,2,spirals,rays)
-        (xr,yr,zr,intensityr) = link0.spiralSpot(hx,hy,3,spirals,rays)
+        (xb,yb,zb,intensityb) = link0.zSpiralSpot(hx,hy,1,spirals,rays)
+        (xg,yg,zg,intensityg) = link0.zSpiralSpot(hx,hy,2,spirals,rays)
+        (xr,yr,zr,intensityr) = link0.zSpiralSpot(hx,hy,3,spirals,rays)
         fig = plt.figure(facecolor='w')
         ax = fig.add_subplot(111)
         ax.set_aspect('equal')
