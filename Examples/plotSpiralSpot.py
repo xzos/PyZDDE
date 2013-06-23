@@ -13,6 +13,7 @@
 #-------------------------------------------------------------------------------
 from __future__ import print_function
 import sys, os
+import traceback
 import matplotlib.pyplot as plt
 
 # *********** Add PyZDDE to the python search path ***********************
@@ -24,6 +25,7 @@ if cd not in sys.path:
     sys.path.append(cd)
 # ************************************************************************
 import pyzdde
+reload(pyzdde)
 
 # The ZEMAX file path
 zmxfp = cd+'\\ZMXFILES\\'
@@ -33,35 +35,37 @@ filename = zmxfp+zmxfile
 # Create a PyZDDE object
 link0 = pyzdde.PyZDDE()
 
-# Initiate the DDE link
-status = link0.zDDEInit()
-if ~status:
-    # Load a lens file into the ZEMAX DDE server
-    ret = link0.zLoadFile(filename)
-    if ~ret:
-        hx = 0.0
-        hy = 0.4
-        spirals = 100
-        rays = 6000
-        (xb,yb,zb,intensityb) = link0.zSpiralSpot(hx,hy,1,spirals,rays)
-        (xg,yg,zg,intensityg) = link0.zSpiralSpot(hx,hy,2,spirals,rays)
-        (xr,yr,zr,intensityr) = link0.zSpiralSpot(hx,hy,3,spirals,rays)
-        fig = plt.figure(facecolor='w')
-        ax = fig.add_subplot(111)
-        ax.set_aspect('equal')
-        ax.scatter(xr,yr,s=5,c='red',linewidth=0.35,zorder=20)
-        ax.scatter(xg,yg,s=5,c='lime',linewidth=0.35,zorder=21)
-        ax.scatter(xb,yb,s=5,c='blue',linewidth=0.35,zorder=22)
-        ax.set_xlabel('x');ax.set_ylabel('y')
-        fig.suptitle('Spiral Spot')
-        ax.grid(color='lightgray', linestyle='-', linewidth=1)
-        ax.ticklabel_format(scilimits=(-2,2))
-        plt.show()
+try:
+    # Initiate the DDE link
+    status = link0.zDDEInit()
+    if ~status:
+        # Load a lens file into the ZEMAX DDE server
+        ret = link0.zLoadFile(filename)
+        if ~ret:
+            hx = 0.0
+            hy = 0.4
+            spirals = 100
+            rays = 6000
+            (xb,yb,zb,intensityb) = link0.zSpiralSpot(hx,hy,1,spirals,rays)
+            (xg,yg,zg,intensityg) = link0.zSpiralSpot(hx,hy,2,spirals,rays)
+            (xr,yr,zr,intensityr) = link0.zSpiralSpot(hx,hy,3,spirals,rays)
+            fig = plt.figure(facecolor='w')
+            ax = fig.add_subplot(111)
+            ax.set_aspect('equal')
+            ax.scatter(xr,yr,s=5,c='red',linewidth=0.35,zorder=20)
+            ax.scatter(xg,yg,s=5,c='lime',linewidth=0.35,zorder=21)
+            ax.scatter(xb,yb,s=5,c='blue',linewidth=0.35,zorder=22)
+            ax.set_xlabel('x');ax.set_ylabel('y')
+            fig.suptitle('Spiral Spot')
+            ax.grid(color='lightgray', linestyle='-', linewidth=1)
+            ax.ticklabel_format(scilimits=(-2,2))
+            plt.show()
+        else:
+            print("Could not load lens file.")
     else:
-        print("Could not load lens file")
+        print("DDE link could not be established.")
+except Exception, err:
+    traceback.print_exc()
+finally:
     # close the DDE channel
     link0.zDDEClose()
-else:
-    print("DDE link could not be established")
-
-

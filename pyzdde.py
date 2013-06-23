@@ -106,16 +106,17 @@ class PyZDDE(object):
             try:
                 PyZDDE.__server = dde.CreateServer()
                 PyZDDE.__server.Create("ZCLIENT")           # Name of the client
-            except Exception, err:
+            except Exception, err1:
                 sys.stderr.write("{err}: Possibly another application is already"
-                                 " using a DDE server!".format(err=str(err)))
+                                 " using a DDE server!".format(err=str(err1)))
                 return -1
         # Try to create individual conversations for each ZEMAX application.
         self.conversation = dde.CreateConversation(PyZDDE.__server)
         try:
             self.conversation.ConnectTo(self.appName," ")
-        except:
-            info = sys.exc_info()
+        except Exception, err2:
+            sys.stderr.write("ERROR: {err}. ZEMAX may not have been started!\n"
+                             .format(err=str(err2)))
             # should close the DDE server if it exist
             self.zDDEClose()
             _debugPrint(2,"PyZDDE server: " + str(PyZDDE.__server))

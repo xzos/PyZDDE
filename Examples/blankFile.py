@@ -22,10 +22,9 @@ import pyzdde
 import zemaxoperands as zo
 import zemaxbuttons  as zb
 
-
+# Create a PyZDDE object
+link0 = pyzdde.PyZDDE()
 try:
-    # Create a PyZDDE object
-    link0 = pyzdde.PyZDDE()
     # Initiate the DDE link
     status = link0.zDDEInit()   # if status == -1, then zDDEInit failed!
 
@@ -35,7 +34,6 @@ try:
 
 except Exception, err:
     traceback.print_exc()
-    return -1
 finally:
     #Close DDE link
     link0.zDDEClose()
