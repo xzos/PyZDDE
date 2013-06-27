@@ -25,7 +25,6 @@ if cd not in sys.path:
     sys.path.append(cd)
 # ************************************************************************
 import pyzdde
-reload(pyzdde)
 
 # The ZEMAX file path
 zmxfp = cd+'\\ZMXFILES\\'
