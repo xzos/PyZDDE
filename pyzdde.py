@@ -51,7 +51,7 @@ import zemaxbuttons  as zb
 DEBUG_PRINT_LEVEL = 0 # 0=No debug prints, but allow all essential prints
                       # 1 to 2 levels of debug print, 2 = print all
 
-# Helper functions
+# Helper function for debugging
 def _debugPrint(level,msg):
     """
     Parameters
@@ -328,7 +328,7 @@ class PyZDDE(object):
                       -1 if the macro code passed is incorrect
                       error code (returned by Zemax) otherwise.
 
-        Note:
+        Note
         ----
           1. If the macro path is different from the default macro path at
              <data>/Macros, then first use zSetMacroPath() to set the macropath
@@ -653,7 +653,7 @@ class PyZDDE(object):
           numberOfConfigs        : number of configs (columns)
           numberOfMutiConfigOper : number of multi config operands (rows)
 
-        Note:
+        Note
         ----
         The function returns (1,1,1) even if the multi-configuration editor
         is empty. This is because, by default, the current lens in the LDE
@@ -794,7 +794,7 @@ class PyZDDE(object):
         file_name: filename of the Zemax file that is currently present in the
                    Zemax DDE server.
 
-        Note:
+        Note
         ----
         1. Extreme caution should be used if the file is to be tampered with;
            since at any time ZEMAX may read or write from/to this file.
@@ -838,7 +838,7 @@ class PyZDDE(object):
         glassInfo : 3-tuple containing the name, nd,vd, dpgf if there is a
                      valid glass associated with the surface, else `None`
 
-        Note:
+        Note
         ----
         If the specified surface is not valid, is not made of glass, or is
         gradient index, the returned string is empty. This data may be meaningless
@@ -1099,7 +1099,7 @@ class PyZDDE(object):
                    -1 if it was a bad commnad (generally if the `surface` is
                    not a non-sequential surface)
 
-        Note:
+        Note
         ----
         This function returns 1 if the only object in the NSC editor is a
         "Null Object".
@@ -1582,7 +1582,7 @@ class PyZDDE(object):
                        12-13           data5-data6 (float)
                       -----------------------------------------------
 
-        Note:
+        Note
         ----
         To update the merit function prior to calling zGetOperand function,
         use the zOptimize() function with the number of cycles set to -1.
@@ -1631,7 +1631,7 @@ class PyZDDE(object):
           Phax         : (float) relative phase in x direction in degrees
           Phay         : (float) relative phase in y direction in degrees
 
-        Note:
+        Note
         ----
         The quantity Ex*Ex + Ey*Ey should have a value of 1.0 although any
         values are accepted.
@@ -1697,7 +1697,7 @@ class PyZDDE(object):
         wavelength 2, the function would be:
                  zGetPolTrace(2,0,-1,0.0,0.0,0.0,1.0,0,0,0,0)
 
-        Note:
+        Note
         ----
         1. The quantity Ex*Ex + Ey*Ey should have a value of 1.0 although any
            values are accepted.
@@ -1774,7 +1774,7 @@ class PyZDDE(object):
             error       : (see above)
             intensity   : (see above)
 
-        Note:
+        Note
         ----
         1. The quantity Ex*Ex + Ey*Ey should have a value of 1.0 although any
            values are accepted.
@@ -1988,7 +1988,7 @@ class PyZDDE(object):
                                        pickupcolumn
         ------------------------------------------------------------------------
 
-        Note:
+        Note
         ----
         The `solvetype` is an integer code, & the parameters have meanings
         that depend upon the solve type; see the chapter "SOLVES" in the Zemax
@@ -2117,7 +2117,7 @@ class PyZDDE(object):
         --------
         parameterData  : (float) the parameter value
 
-        Note:
+        Note
         ----
         To get thickness, radius, glass, semi-diameter, conic, etc, use
         zGetSurfaceData()
@@ -2149,7 +2149,7 @@ class PyZDDE(object):
           globalRefSurf : the global coordinate reference surface number
           need_save     : indicates whether the file has been modified. [Deprecated]
 
-        Note:
+        Note
         ----
         The returned data structure is exactly similar to the data structure
         returned by the zSetSystem() method.
@@ -2183,7 +2183,7 @@ class PyZDDE(object):
                                else
                                    value is the sytem aperture
 
-        Note:
+        Note
         ----
         The returned tuple is the same as the returned tuple of zSetSystemAper()
 
@@ -2436,7 +2436,7 @@ class PyZDDE(object):
         (errorCode,vigCode,x,y,z,l,m,n,l2,m2,n2,intensity) = \
                                           zGetTrace(3,0,5,0.0,1.0,0.0,0.0)
 
-        Note:
+        Note
         ----
         1. Always check to verify the ray data is valid  (errorCode) before using
            the rest of the string!
@@ -2532,7 +2532,7 @@ class PyZDDE(object):
         ------
           ?
 
-        Note:
+        Note
         ----
         Once the data is computed, up to 1001 values may be sent back to
         the server, and ultimately to the optimizer within ZEMAX, with the
@@ -2597,7 +2597,7 @@ class PyZDDE(object):
             wavelength : value of the specific wavelength (floating point)
             weight     : weight of the specific wavelength (floating point)
 
-        Note:
+        Note
         ----
         The returned tuple is exactly same in structure and contents to that
         returned by zSetWave().
@@ -2659,7 +2659,7 @@ class PyZDDE(object):
         -------
         finalMeritFn : (float) the final merit function.
 
-        Note:
+        Note
         ----
         1. If the merit function value returned is 9.0E+009, the optimization
            failed, usually because the lens or merit function could not be
@@ -2693,7 +2693,7 @@ class PyZDDE(object):
         -------
          ?
 
-        Note:
+        Note
         -----
         The ASCII file is a single column of free-format numbers, with a
         .DAT extension.
@@ -2720,7 +2720,7 @@ class PyZDDE(object):
         configNumberRet : (integer) the column number of the configuration that
                           is inserted at configNumber.
 
-        Note:
+        Note
         ----
         1. The configNumber returned (configNumberRet) is generally different
            from the number in the input configNumber.
@@ -2910,7 +2910,7 @@ class PyZDDE(object):
 
                      If meritData = -999, file could not be loaded (check if the
                     file really exists, or check the path.
-        Note:
+        Note
         -----
         1. If the merit function value is 9.00e+009, the merit function cannot
            be evaluated.
@@ -3356,7 +3356,7 @@ class PyZDDE(object):
         -------
         status  : 0 = successful, -1 = incorrect analysis code, -999 = 'FAIL'
 
-        Note:
+        Note
         ----
         The function checks if the analysisType code is a valid code or not in
         order to prevent the calling program to get stalled. However, it doesn't
@@ -3421,7 +3421,7 @@ class PyZDDE(object):
         -------
         finalMeritFn : (float) the final merit function.
 
-        Note:
+        Note
         ----
         1. If the merit function value returned is 9.0E+009, the optimization
            failed, usually because the lens or merit function could not be
@@ -3473,7 +3473,7 @@ class PyZDDE(object):
                      number of cycles per DDL optimize call to the total number of
                      DDE calls.
 
-        Note:
+        Note
         ----
         zOptimize2() basically calls zOptimize() mutiple number of times in a loop.
         It can be useful if a large number of optimization cycles are required.
@@ -3527,7 +3527,7 @@ class PyZDDE(object):
              -998: the command timed out
             other: the update failed.
 
-        Note:
+        Note
         -----
         This operation requires the permission of the user running the
         ZEMAX program. The proper use of zPushLens is to first call zPushLensPermission.
@@ -3840,7 +3840,7 @@ class PyZDDE(object):
         -------
         status        : 0 if successful, else -1
 
-        Note:
+        Note
         -----
         The buffer data is not associated with any particular window until either
         the  zMakeTextWindow() or zMakeGraphicWindow() functions are issued. Once
@@ -3951,7 +3951,7 @@ class PyZDDE(object):
             vcy    : compression y vignetting factor
             van    : angle vignetting factor
 
-        Note:
+        Note
         -----
         The returned tuple's content and structure is exactly same as that
         of zGetField()
@@ -4071,7 +4071,7 @@ class PyZDDE(object):
         -------
         status : 0 = success, -1 = failure
 
-        Note:
+        Note
         ----
         Use this method to set the full-path name of the macro folder
         path if it is different from the default path at <data>/Macros
@@ -4652,7 +4652,7 @@ class PyZDDE(object):
           primary : number indicating the primary wavelength (integer)
           number  : number of wavelengths currently defined (integer).
 
-        Note:
+        Note
         ----
         The returned tuple is exactly same in structure and contents to that
         returned by zGetWave(0).
@@ -4694,7 +4694,7 @@ class PyZDDE(object):
         -------
         operandData : the value (string/integer/float) set in the MFE cell
 
-        Note:
+        Note
         ----
         1. To update the merit function after called zSetOperand() function,
            use the zOptimize() function with the number of cycles set to -1.
@@ -4736,7 +4736,7 @@ class PyZDDE(object):
         -------
         polStateData is 5-tuple containing nlsPolarized, Ex, Ey, Phax, and Phay
 
-        Note:
+        Note
         ----
         The quantity Ex*Ex + Ey*Ey should have a value of 1.0 although any
         values are accepted.
@@ -4768,7 +4768,7 @@ class PyZDDE(object):
         -------
         settingsData: (string)
 
-        Note:
+        Note
         ----
         Please refer to "How ZEMAX calls the client" in the Zemax manual.
         See also zGetSettingsData.
@@ -4821,7 +4821,7 @@ class PyZDDE(object):
                         above table (same return as zGetSolve), if successful,
                         -1 if the command is a 'BAD COMMAND'
 
-        Note:
+        Note
         ----
         The `solvetype` is an integer code, & the parameters have meanings
         that depend upon the solve type; see the chapter "SOLVES" in the Zemax
@@ -5115,7 +5115,7 @@ class PyZDDE(object):
             globalRefSurf : the global coordinate reference surface number
             need_save     : indicates whether the file has been modified. [Deprecated]
 
-        Note:
+        Note
         -----
         The returned data structure is exactly similar to the data structure
         returned by the zGetSystem() method.
@@ -5386,7 +5386,7 @@ class PyZDDE(object):
         -------
           ?
 
-        Note:
+        Note
         -----
         After the last data item has been sent, the buffer must be closed
         using the zCloseUDOData() function before the optimization may proceed.
@@ -5456,7 +5456,7 @@ class PyZDDE(object):
             wavelength : value of the specific wavelength (floating point)
             weight     : weight of the specific wavelength (floating point)
 
-        Note:
+        Note
         -----
         The returned tuple is exactly same in structure and contents to that
         returned by zGetWave().
@@ -5573,7 +5573,7 @@ class PyZDDE(object):
 
 
 # ****************************************************************
-#                      CONVENIENCE FUNCTIONS
+#                      EXTRA FUNCTIONS
 # ****************************************************************
     def zSpiralSpot(self,hx,hy,waveNum,spirals,rays,mode=0):
         """Convenience function to produce a series of x,y values of rays traced
@@ -5915,7 +5915,7 @@ class PyZDDE(object):
         return hiatus
 
 # ***************************************************************
-#              IPYTHON WEBNOTEBOOK HELPER FUNCTIONS
+#              IPYTHON NOTEBOOK UTILITY FUNCTIONS
 # ***************************************************************
     def ipzCaptureWindow(self, num=1, *args, **kwargs):
         """Capture graphic window from Zemax and display in IPython.
@@ -5927,7 +5927,7 @@ class PyZDDE(object):
         num: The graphic window to capture is indicated by the window number `num`.
 
         This function is useful for quickly capturing a graphic window, and
-        embedding into a IPython Webnotebook or QtConsole. The quality of JPG
+        embedding into a IPython notebook or QtConsole. The quality of JPG
         image is limited by the JPG export quality from Zemax.
 
         NOTE:
@@ -5967,7 +5967,7 @@ class PyZDDE(object):
         This is similar to ipzCaptureWindow, but more capable, and generally produces
         better graphic output. It uses the metafile exported by Zemax as its
         source image, converts the metafile into PNG using ImageMagic's convert
-        program and displays/embeds the PNG image on the IPython Webnotebook or
+        program and displays/embeds the PNG image on the IPython notebook or
         QtConsole.
 
         ipzCaptureWindow2(analysisType [,percent=12,MFFtNum=0,blur=1, gamma=0.35,
@@ -6174,7 +6174,7 @@ def _deleteFile(fileName, n=10):
     status   :  0  = file deleting successful
               -999 = reached maximum number of attemps, without deleting file.
 
-    Note:
+    Note
     ----
     It assumes that the file with filename actually exist and doesn't do any
     error checking on its existance. This is OK as this function is for internal
