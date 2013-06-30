@@ -29,7 +29,7 @@ import warnings
 try:
     from IPython.core.display import display, Image
 except ImportError:
-    print("Couldn't import Image from IPython.core.display")
+    #print("Couldn't import Image/display from IPython.core.display")
     IPLoad = False
 else:
     IPLoad = True
@@ -77,6 +77,10 @@ class PyZDDE(object):
         self.appName = "ZEMAX"+str(PyZDDE.__chNum) if PyZDDE.__chNum > 0 else "ZEMAX"
         self.connection = False  # 1/0 depending on successful connection or not
         self.macroPath = None
+
+    def __repr__(self):
+        return ("PyZDDE(appName=%r, connection=%r, macroPath=%r)" %
+                (self.appName,self.connection,self.macroPath))
 
     # ZEMAX <--> PyZDDE client connection methods
     #--------------------------------------------

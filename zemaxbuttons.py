@@ -2,7 +2,7 @@
 # Name:        zemaxbuttons.py
 # Purpose:     Class of ZEMAX 3-letter Button codes
 #
-# Author:      Indranil Sinharoy
+# Author:      Indranil Sinharoy, Southern Methodist University
 #
 # Created:     26/05/2013
 # Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2012 - 2013
@@ -12,9 +12,10 @@
 # Revision:    0.5
 #-------------------------------------------------------------------------------
 from __future__ import print_function
-import re
+import re as _re
+from pyzddeutils import _prettifyCodeDesc, _boldifyText, _prettifyText, _print_mod
 
-class Buttons(object):
+class _Buttons(object):
     """ZEMAX 3-letter buttons. Note ZPL Macro codes are not included.
     The list of button codes were compiled from ZEMAX Version 13.0404, 2013.
     """
@@ -246,9 +247,9 @@ def showZButtonList():
 
     """
     print("Listing all ZEMAX Button codes:")
-    for code, description in sorted(Buttons.button_code.items()):
-        print("[", code, "]", description)
-    print("\nTotal number of buttons = {:d}".format(len(Buttons.button_code)))
+    for code, description in sorted(_Buttons.button_code.items()):
+        _print_mod(_prettifyCodeDesc(code,description))
+    _print_mod(_boldifyText("Total number of buttons = ",str(len(_Buttons.button_code))))
 
 def getZButtonCount():
     """Returns the total number of buttons
@@ -256,7 +257,7 @@ def getZButtonCount():
     getZButtonCount()->count
 
     """
-    return len(Buttons.button_code)
+    return len(_Buttons.button_code)
 
 def isZButtonCode(buttonCode):
     """Returns True or False depending on whether the button code is a valid
@@ -266,13 +267,13 @@ def isZButtonCode(buttonCode):
 
     Parameters
     ----------
-    buttonCode : (string) the 3-letter button code to validate
+    buttonCode : (string) the 3-letter case-sensitive button code to validate
 
     Returns
     -------
     bool        : True if valid button code, False otherwise
     """
-    return str(buttonCode) in Buttons.button_code.viewkeys()
+    return str(buttonCode) in _Buttons.button_code.viewkeys()
 
 def showZButtonDescription(buttonCode):
     """Get a short description about a button code.
@@ -288,9 +289,10 @@ def showZButtonDescription(buttonCode):
     description : a shot description about the button code function/analysis type.
     """
     if isZButtonCode(str(buttonCode)):
-        print("{} is a ZEMAX button code.".format(str(buttonCode)))
-        print("Description:",end=' ')
-        print(Buttons.button_code[str(buttonCode)])
+        _print_mod(_prettifyText(str(buttonCode), " is a ZEMAX button code",
+                               color0='magenta',color1='black'))
+        _print_mod(_prettifyText("Description: ", _Buttons.button_code[str(buttonCode)],
+                  color0='blue',color1='black'))
     else:
         print("{} is NOT a valid ZEMAX button code.".format(str(buttonCode)))
 
@@ -306,34 +308,35 @@ def findZButtonCode(keywords):
     Example
     -------
     >>> zb.findZButtonCode("Zernike")
-    [ Zst ] Zernike Standard Terms
-    [ Zvf ] Zernike Coefficients vs. Field
-    [ Zfr ] Zernike Fringe Terms
-    [ Zat ] Zernike Annular Terms
+    [Zst] Zernike Standard Terms
+    [Zvf] Zernike Coefficients vs. Field
+    [Zfr] Zernike Fringe Terms
+    [Zat] Zernike Annular Terms
 
     Found 4 Button codes.
 
     >>> zb.findZButtonCode("Fan")
-    [ Opd ] Opd Fan
-    [ Ray ] Ray Fan
-    [ Ptf ] Pol. Transmission Fan
-    [ Pab ] Pupil Aberration Fan
+    [Opd] Opd Fan
+    [Ray] Ray Fan
+    [Ptf] Pol. Transmission Fan
+    [Pab] Pupil Aberration Fan
 
     Found 4 Button codes.
     """
     words2find = [words.strip() for words in keywords.split(",")]
     previousFoundKeys = []
-    for button, description in Buttons.button_code.items():
+    for button, description in _Buttons.button_code.items():
         for kWord in words2find:
             if __find(kWord,description):
-                print("[",button,"]",description)
+                _print_mod(_prettifyCodeDesc(button,description))
                 previousFoundKeys.append(button)
                 break # break the inner for loop
     if previousFoundKeys:
-        print("\nFound {} Button codes.\n".format(len(previousFoundKeys)))
+        _print_mod(_boldifyText("Found ", str(len(previousFoundKeys)),
+                              " Button codes",'blue','red','blue'))
 
 def __find(word2find,instring):
-    r = re.compile(r'\b({0})\b'.format(word2find),flags=re.IGNORECASE)
+    r = _re.compile(r'\b({0})\b'.format(word2find),flags=_re.IGNORECASE)
     if r.search(instring):
         return True
     else:

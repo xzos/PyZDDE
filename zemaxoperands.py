@@ -12,9 +12,10 @@
 # Revision:    0.5
 #-------------------------------------------------------------------------------
 from __future__ import print_function
-import re
+import re as _re
+from pyzddeutils import _prettifyCodeDesc, _boldifyText, _prettifyText, _print_mod
 
-class Operands(object):
+class _Operands(object):
     """
     An operand is a single command which ZEMAX uses to perform a calculation or
     function. There are three types of operands in ZEMAX: optimization,
@@ -665,29 +666,33 @@ def showZOperandList(operandType = 0):
     """
     if operandType == 0:
         print("Listing all operands:")
-        for operand, description in sorted(Operands.opt_operands.items()):
-            print("[",operand,"]",description)
-        for elem in sorted(Operands.tol_operands.items()):
-            print("[",operand,"]",description)
-        for elem in sorted(Operands.mco_operands.items()):
-            print("[",operand,"]",description)
-        totOperands = (len(Operands.opt_operands) +
-                       len(Operands.tol_operands) +
-                       len(Operands.mco_operands))
-        print("\nTotal number of operands = {:d}".format(totOperands))
+        for operand, description in sorted(_Operands.opt_operands.items()):
+            #print("[",operand,"]",description)
+            _print_mod(_prettifyCodeDesc(operand,description))
+        for elem in sorted(_Operands.tol_operands.items()):
+            #print("[",operand,"]",description)
+            _print_mod(_prettifyCodeDesc(operand,description))
+        for elem in sorted(_Operands.mco_operands.items()):
+            #print("[",operand,"]",description)
+            _print_mod(_prettifyCodeDesc(operand,description))
+        totOperands = (len(_Operands.opt_operands) +
+                       len(_Operands.tol_operands) +
+                       len(_Operands.mco_operands))
+        #print("\nTotal number of operands = {:d}".format(totOperands))
+        _print_mod(_boldifyText("Total number of operandss = ",str(totOperands)))
     else:
         if operandType == 1:
             print("Listing Optimization operands:")
-            toList = sorted(Operands.opt_operands.items())
+            toList = sorted(_Operands.opt_operands.items())
         elif operandType == 2:
             print("Listing Tolerancing operands:")
-            toList = sorted(Operands.tol_operands.items())
+            toList = sorted(_Operands.tol_operands.items())
         elif operandType == 3:
             print("Listing Multi-configuration operands:")
-            toList = sorted(Operands.mco_operands.items())
+            toList = sorted(_Operands.mco_operands.items())
         for operand, description in toList:
-            print("[",operand,"]",description)
-        print("\nTotal number of operands = {:d}".format(len(toList)))
+            _print_mod(_prettifyCodeDesc(operand,description))
+        _print_mod(_boldifyText("Total number of operandss = ",str(len(toList))))
 
 def getZOperandCount(operandType = 0):
     """Returns the total number of operands for the specified operand type
@@ -704,9 +709,9 @@ def getZOperandCount(operandType = 0):
     -------
     count : number of operands
     """
-    numOptOperands = len(Operands.opt_operands)
-    numTolOperands = len(Operands.tol_operands)
-    numMcoOperands = len(Operands.mco_operands)
+    numOptOperands = len(_Operands.opt_operands)
+    numTolOperands = len(_Operands.tol_operands)
+    numMcoOperands = len(_Operands.mco_operands)
     if operandType == 0:
         return (numOptOperands + numTolOperands + numMcoOperands)
     elif operandType == 1:
@@ -732,15 +737,15 @@ def isZOperand(operand, operandType=0):
       bool : True if valid operand, else False.
     """
     if operandType == 1:
-        return str(operand) in Operands.opt_operands.viewkeys()
+        return str(operand) in _Operands.opt_operands.viewkeys()
     elif operandType == 2:
-        return str(operand) in Operands.tol_operands.viewkeys()
+        return str(operand) in _Operands.tol_operands.viewkeys()
     elif operandType == 3:
-        return str(operand) in Operands.mco_operands.viewkeys()
+        return str(operand) in _Operands.mco_operands.viewkeys()
     elif operandType == 0:
-        return ((str(operand) in Operands.opt_operands.viewkeys()) or
-                (str(operand) in Operands.tol_operands.viewkeys()) or
-                (str(operand) in Operands.mco_operands.viewkeys()))
+        return ((str(operand) in _Operands.opt_operands.viewkeys()) or
+                (str(operand) in _Operands.tol_operands.viewkeys()) or
+                (str(operand) in _Operands.mco_operands.viewkeys()))
     else:
         return False
 
@@ -755,17 +760,20 @@ def showZOperandDescription(operand):
       description : a short description of the operand and the type of operand.
     """
     if isZOperand(str(operand),1):
-        print("{} is a Optimization operand.".format(str(operand)))
-        print("Description:",end=' ')
-        print(Operands.opt_operands[str(operand)])
+        _print_mod(_prettifyText(str(operand), " is a Optimization operand",
+                               color0='magenta',color1='black'))
+        _print_mod(_prettifyText("Description: ", _Operands.opt_operands[str(operand)],
+                  color0='blue',color1='black'))
     elif isZOperand(str(operand),2):
-        print("{} is a Tolerancing operand.".format(str(operand)))
-        print("Description:",end=' ')
-        print(Operands.tol_operands[str(operand)])
+        _print_mod(_prettifyText(str(operand), " is a Tolerancing operand",
+                               color0='magenta',color1='black'))
+        _print_mod(_prettifyText("Description: ", _Operands.tol_operands[str(operand)],
+                  color0='blue',color1='black'))
     elif isZOperand(str(operand),3):
-        print("{} is a Multi-configuration operand.".format(str(operand)))
-        print("Description:",end=' ')
-        print(Operands.mco_operands[str(operand)])
+        _print_mod(_prettifyText(str(operand), " is a Multi-configuration operand",
+                               color0='magenta',color1='black'))
+        _print_mod(_prettifyText("Description: ", _Operands.mco_operands[str(operand)],
+                  color0='blue',color1='black'))
     else:
         print("{} is a NOT a valid ZEMAX operand.".format(str(operand)))
 
@@ -781,58 +789,61 @@ def findZOperand(keywords):
     Example
     -------
     >>> zo.findZOperand("decenter")
-    [ TEDY ] Tolerance on element y-decenter in lens units
-    [ TEDX ] Tolerance on element x-decenter in lens units
-    [ TUDX ] Tolerance on user defined x-decenter in lens units
-    [ TUDY ] Tolerance on user defined y-decenter in lens units
-    [ TSDY ] Tolerance on Standard surface y-decenter in lens units
-    [ TSDX ] Tolerance on Standard surface x-decenter in lens units
+    [TEDY] Tolerance on element y-decenter in lens units
+    [TEDX] Tolerance on element x-decenter in lens units
+    [TUDX] Tolerance on user defined x-decenter in lens units
+    [TUDY] Tolerance on user defined y-decenter in lens units
+    [TSDY] Tolerance on Standard surface y-decenter in lens units
+    [TSDX] Tolerance on Standard surface x-decenter in lens units
 
     Found 6 Tolerance operands.
 
-    [ APDY ] Surface aperture Y-decenter.
-    [ APDX ] Surface aperture X-decenter.
+    [APDY] Surface aperture Y-decenter.
+    [APDX] Surface aperture X-decenter.
 
     Found 2 Macro operands.
 
     >>> zo.findZOperand('trace')
-    [ NSRA ] Non-sequential single ray trace.
-    [ NSTR ] Non-sequential trace. See also NSST.
-    [ NSST ] Non-sequential single ray trace. See also NSTR.
+    [NSRA] Non-sequential single ray trace.
+    [NSTR] Non-sequential trace. See also NSST.
+    [NSST] Non-sequential single ray trace. See also NSTR.
 
     Found 3 Optimization operands.
     """
     words2find = [words.strip() for words in keywords.split(",")]
     previousFoundKeys = []
-    for operand, description in Operands.opt_operands.items():
+    for operand, description in _Operands.opt_operands.items():
         for kWord in words2find:
             if __find(kWord,description):
-                print("[",operand,"]",description)
+                _print_mod(_prettifyCodeDesc(operand,description))
                 previousFoundKeys.append(operand)
                 break # break the inner for loop
     if previousFoundKeys:
-        print("\nFound {} Optimization operands.\n".format(len(previousFoundKeys)))
+        _print_mod(_boldifyText("Found ", str(len(previousFoundKeys)),
+                              " Optimization operands",'blue','red','blue'))
     previousFoundKeys = []
-    for operand, description in Operands.tol_operands.items():
+    for operand, description in _Operands.tol_operands.items():
         for kWord in words2find:
             if __find(kWord,description):
-                print("[",operand,"]",description)
+                _print_mod(_prettifyCodeDesc(operand,description))
                 previousFoundKeys.append(operand)
                 break # break the inner for loop
     if previousFoundKeys:
-        print("\nFound {} Tolerance operands.\n".format(len(previousFoundKeys)))
+        _print_mod(_boldifyText("Found ", str(len(previousFoundKeys)),
+                              " Tolerance operands",'blue','red','blue'))
     previousFoundKeys = []
-    for operand, description in Operands.mco_operands.items():
+    for operand, description in _Operands.mco_operands.items():
         for kWord in words2find:
             if __find(kWord,description):
-                print("[",operand,"]",description)
+                _print_mod(_prettifyCodeDesc(operand,description))
                 previousFoundKeys.append(operand)
                 break # break the inner for loop
     if previousFoundKeys:
-        print("\nFound {} Macro operands.\n".format(len(previousFoundKeys)))
+        _print_mod(_boldifyText("Found ", str(len(previousFoundKeys)),
+                              " Macro operands",'blue','red','blue'))
 
 def __find(word2find,instring):
-    r = re.compile(r'\b({0})\b'.format(word2find),flags=re.IGNORECASE)
+    r = _re.compile(r'\b({0})\b'.format(word2find),flags=_re.IGNORECASE)
     if r.search(instring):
         return True
     else:
