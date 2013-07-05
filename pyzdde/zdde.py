@@ -43,10 +43,13 @@ else:
 #path and importing the modules should be removed once something like distutils
 #is used to install the module's package into the python site-packages directory.
 currDir = os.path.dirname(os.path.realpath(__file__))
-if currDir not in sys.path:
-    sys.path.append(currDir)
-import zemaxoperands as zo
-import zemaxbuttons  as zb
+index = currDir.find('pyzdde')
+pDir = currDir[0:index-1]
+if pDir not in sys.path:
+    sys.path.append(pDir)
+
+import zcodes.zemaxbuttons as zb
+import zcodes.zemaxoperands as zo
 
 DEBUG_PRINT_LEVEL = 0 # 0=No debug prints, but allow all essential prints
                       # 1 to 2 levels of debug print, 2 = print all
@@ -6266,12 +6269,15 @@ def _process_get_set_Tol(operandNumber,reply):
 # Currently all functionality are being tested using the unit test module.
 # The _test_PyZDDE() function are left for quick test. The _test_PyZDDE()
 # function will not be executed if the module is imported! In order to execute
-# the _test_PyZDDE() function, execute this (pyzdde.py) module. It may prove
+# the _test_PyZDDE() function, execute this (zdde.py) module. It may prove
 # to be useful to quickly test your system.
 
 def _test_PyZDDE():
     """Test the pyzdde module functions"""
-    zmxfp = os.path.dirname(os.path.realpath(__file__))+'\\ZMXFILES\\'
+    currDir = os.path.dirname(os.path.realpath(__file__))
+    index = currDir.find('pyzdde')
+    pDir = currDir[0:index-1]
+    zmxfp = pDir+'\\ZMXFILES\\'
     # Create PyZDDE object(s)
     link0 = PyZDDE()
     link1 = PyZDDE()

@@ -46,7 +46,7 @@ if exampleDirectory not in sys.path:
 if pyzddedirectory not in sys.path:
     sys.path.append(pyzddedirectory)
 
-import pyzdde
+import pyzdde.zdde as pyzdde
 
 #Program control parameters
 ORDERED_HIATUS_DATA_IN_FILE = True   # Sorted output in a file ? [May take a little longer time]

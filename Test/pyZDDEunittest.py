@@ -26,7 +26,7 @@ if testdirectory not in sys.path:
 if pyzddedirectory not in sys.path:
     sys.path.append(pyzddedirectory)
 
-import pyzdde
+import pyzdde.zdde as pyzdde
 
 reload(pyzdde)  # In order to ensure that the latest changes in the pyzdde module
                 # are updated here.

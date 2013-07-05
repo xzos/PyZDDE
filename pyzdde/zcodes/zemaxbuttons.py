@@ -13,7 +13,7 @@
 #-------------------------------------------------------------------------------
 from __future__ import print_function
 import re as _re
-from pyzddeutils import _prettifyCodeDesc, _boldifyText, _prettifyText, _print_mod
+from pyzdde.utils.pyzddeutils import _prettifyCodeDesc, _boldifyText, _prettifyText, _print_mod
 
 class _Buttons(object):
     """ZEMAX 3-letter buttons. Note ZPL Macro codes are not included.

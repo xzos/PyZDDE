@@ -18,12 +18,12 @@ if PyZDDEPath not in sys.path:
     sys.path.append(PyZDDEPath)
 #******************************************************************************
 
-import pyzdde
-import zemaxoperands as zo
-import zemaxbuttons  as zb
+import pyzdde.zdde as pyz
+import pyzdde.zcodes.zemaxoperands as zo # if required. (use pyz.zo to access module functions)
+import pyzdde.zcodes.zemaxbuttons  as zb # if required. (use pyz.zb to access module functions)
 
 # Create a PyZDDE object
-link0 = pyzdde.PyZDDE()
+link0 = pyz.PyZDDE()
 try:
     # Initiate the DDE link
     status = link0.zDDEInit()   # if status == -1, then zDDEInit failed!
