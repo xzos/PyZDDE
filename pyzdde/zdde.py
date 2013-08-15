@@ -11,6 +11,9 @@
 #              For further details, please refer to LICENSE.txt
 # Revision:    0.5
 #-------------------------------------------------------------------------------
+"""PyZDDE, which is a toolbox written in Python, is used for communicating with
+ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging protocol.
+"""
 from __future__ import division
 from __future__ import print_function
 import win32ui
@@ -343,7 +346,8 @@ class PyZDDE(object):
 
         Limitations:
         -----------
-          1. Currently one can only "execute" a existing ZPL macro.
+          1. Currently you can only "execute" an existing ZPL macro. i.e. you can't
+             create a ZPL macro on-the-fly and try to execute it.
           2. If it is required to redirect the result of executing the ZPL to a
              text file, modify the ZPL macro in the following way:
                 (a) Add the following two lines at the beginning of the file:
@@ -967,7 +971,7 @@ class PyZDDE(object):
         the settingsfilename, the settings used will be written to the settings
         file, overwriting any data in the file.
 
-        Example: zGetMetaFile("C:\myGraphicfile.EMF",'Lay',None,0)
+        Example: zGetMetaFile("C:\Projects\myGraphicfile.EMF",'Lay',None,0)
 
         See also zGetTextFile, zOpenWindow.
         """
@@ -5942,6 +5946,8 @@ class PyZDDE(object):
         In order to use this function, please copy the ZPL macros from
         PyZDDE\ZPLMacros to the macro directory where Zemax is expecting (i.e.
         as set in Zemax->Preference->Folders)
+
+        For earlier versions (before 2010) please use ipzCaptureWindow2().
         """
         global IPLoad
         if IPLoad:
@@ -6004,7 +6010,12 @@ class PyZDDE(object):
         global IPLoad
         if IPLoad:
             # Use the lens file path to store and process temporary images
-            tmpImgPath = self.zGetPath()[1]  # lens file path
+            #tmpImgPath = self.zGetPath()[1]  # lens file path (default) ...
+            # don't use the default lens path, as in earlier versions (before 2009)
+            # of ZEMAX this path is in `C:\Program Files\Zemax\Samples`. Accessing
+            # this folder to create the temporary file and then delete will most
+            # likely not work due to permission issues.
+            tmpImgPath = path.dirname(self.zGetFile())  # directory of the lens file
             if MFFtNum==0:
                 ext = 'EMF'
             else:

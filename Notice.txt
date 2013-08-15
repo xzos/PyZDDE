@@ -1,4 +1,4 @@
-This copyright is limited to PyZDDE/convert and PyZDDe/emfplus, incorporated from the ImageMagick package:
+This copyright is limited to PyZDDE/pyzdde/convert and PyZDDe/pyzdde/emfplus, incorporated from the ImageMagick package:
 
 Terms and Conditions for Use, Reproduction, and Distribution
 
