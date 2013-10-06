@@ -1849,7 +1849,7 @@ class PyZDDE(object):
         pupilData = tuple([int(elem) if (i==0 or i==6)
                                  else float(elem) for i,elem in enumerate(rs)])
         return pupilData
-
+        
     def zGetRefresh(self):
         """Copy the lens data from the LDE into the stored copy of the ZEMAX
         server.The lens is then updated, and ZEMAX re-computes all data.
@@ -5924,6 +5924,23 @@ class PyZDDE(object):
             #Delete the prescription file (the directory remains clean)
             _deleteFile(textFileName)
         return hiatus
+
+    def zGetPupilMagnification(self):
+        """Return the pupil magnification, which is the ratio of the exit-pupil
+        diameter to the entrance pupil diameter.
+        
+        zGetPupilMagnification()->pupilMag
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        pupilMag    : (real value) The pupil magnification
+        """
+        _, _, ENPD, ENPP, EXPD, EXPP, _, _ = self.zGetPupil()
+        return (EXPD/ENPD)
 
 # ***************************************************************
 #              IPYTHON NOTEBOOK UTILITY FUNCTIONS
