@@ -25,15 +25,18 @@ Please refer to the [Wiki] (https://github.com/indranilsinharoy/PyZDDE/wiki) pag
 
 #### Dependencies:
 
-1.   Python 2.7 and above, 32 bit version (required)
-2.   PyWin32, build 214 (or earlier), 32 bit version (required) [See bullet 2 of the "Current issues" section for issues] 
+1.   Python 2.7 and above, 32/64 bit version (haven't tested on Python 3.x)
+2.   PyWin32, build 218.4 or later
 3.   Matplotlib (optional, used in some of the example programs)
 
 
 #### Current issues:
 
-1.   Due to a known bug in the PyWin32 library, please use a 32-bit version, built 214 (or earlier) of PyWin32. This issue has been discussed and documented [here] (http://sourceforge.net/mailarchive/message.php?msg_id=28828321)
-If you are using any of the Python Scientific Package distributions such as Enthought EPD, Enthough Canopy, Continumm Analytics' Anaconda, Python(x,y) or WinPython, please ensure that you are using version 214 of PyWin32. At this point in time (June 2013), EPD and Canopy comes with the 214 version of PyWin32. So, Anaconda, Python(x,y) and WinPython users will have to roll-back to version 214.
+1.   ~~Due to a known bug in the PyWin32 library, please use a 32-bit version, built 214 (or earlier) of PyWin32. This issue has been discussed and documented [here] (http://sourceforge.net/mailarchive/message.php?msg_id=28828321)
+If you are using any of the Python Scientific Package distributions such as Enthought EPD, Enthough Canopy, Continumm Analytics' Anaconda, Python(x,y) or WinPython, please ensure that you are using version 214 of PyWin32. At this point in time (June 2013), EPD and Canopy comes with the 214 version of PyWin32. So, Anaconda, Python(x,y) and WinPython users will have to roll-back to version 214.~~
+
+UPDATE:
+It seems that the DDE communication error in PyWin32 has been resolved in both 32-bit and 64-bit versions of built 218.4 (I have verified this using both [WinPython](http://winpython.sourceforge.net/) and [Anaconda](https://store.continuum.io/cshop/anaconda/) distributions). So PyZDDE can be used with both 32 and 64 bit versions of Python. 
 
 
 #### License:

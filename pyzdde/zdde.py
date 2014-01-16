@@ -1849,7 +1849,7 @@ class PyZDDE(object):
         pupilData = tuple([int(elem) if (i==0 or i==6)
                                  else float(elem) for i,elem in enumerate(rs)])
         return pupilData
-        
+
     def zGetRefresh(self):
         """Copy the lens data from the LDE into the stored copy of the ZEMAX
         server.The lens is then updated, and ZEMAX re-computes all data.
@@ -5928,13 +5928,13 @@ class PyZDDE(object):
     def zGetPupilMagnification(self):
         """Return the pupil magnification, which is the ratio of the exit-pupil
         diameter to the entrance pupil diameter.
-        
+
         zGetPupilMagnification()->pupilMag
-        
+
         Parameters
         ----------
         None
-        
+
         Returns
         -------
         pupilMag    : (real value) The pupil magnification
@@ -5981,7 +5981,8 @@ class PyZDDE(object):
                     #Delete the image file
                     _deleteFile(imgPath)
                 elif stat==-999:
-                    print("Timeout reached before image file was ready")
+                    print("Timeout reached before image file was ready.")
+                    print("The specified graphic window may not be open in ZEMAX!")
             else:
                 print("ZPL Macro execution failed.\nZPL Macro path in PyZDDE is set to {}."
                       .format(self.macroPath))
