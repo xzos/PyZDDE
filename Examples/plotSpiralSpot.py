@@ -43,8 +43,8 @@ try:
         if ~ret:
             hx = 0.0
             hy = 0.4
-            spirals = 100
-            rays = 6000
+            spirals = 10 #100
+            rays = 600 #6000
             (xb,yb,zb,intensityb) = link0.zSpiralSpot(hx,hy,1,spirals,rays)
             (xg,yg,zg,intensityg) = link0.zSpiralSpot(hx,hy,2,spirals,rays)
             (xr,yr,zr,intensityr) = link0.zSpiralSpot(hx,hy,3,spirals,rays)

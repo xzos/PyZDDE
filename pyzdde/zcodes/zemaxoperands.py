@@ -692,7 +692,7 @@ def showZOperandList(operandType = 0):
             toList = sorted(_Operands.mco_operands.items())
         for operand, description in toList:
             _print_mod(_prettifyCodeDesc(operand,description))
-        _print_mod(_boldifyText("Total number of operandss = ",str(len(toList))))
+        _print_mod(_boldifyText("Total number of operands = ",str(len(toList))))
 
 def getZOperandCount(operandType = 0):
     """Returns the total number of operands for the specified operand type
