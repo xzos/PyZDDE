@@ -3130,7 +3130,10 @@ class PyZDDE(object):
                  -2 = incorrect version number
                  -3 = file access conflict
         """
-        cmd = "ModifySettings,{},{},{:1.20g}".format(fileName,mType,value)
+        if isinstance(value, str):
+            cmd = "ModifySettings,{},{},{}".format(fileName,mType,value)
+        else:
+            cmd = "ModifySettings,{},{},{:1.20g}".format(fileName,mType,value)
         reply = self.conversation.Request(cmd)
         return int(float(reply.rstrip()))
 
@@ -5066,7 +5069,11 @@ class PyZDDE(object):
                 raise ValueError('Invalid input, expecting argument')
         reply = self.conversation.Request(cmd)
         if code in (0,1,4,7,9):
-            surfaceDatum = reply.split()[0]
+            surfaceDatum = reply.split()
+            if len(surfaceDatum):
+                surfaceDatum = surfaceDatum[0]
+            else:
+                surfaceDatum = ''
         else:
             surfaceDatum = float(reply)
         return surfaceDatum
