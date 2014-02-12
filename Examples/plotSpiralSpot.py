@@ -5,10 +5,7 @@
 # NOTE:      Please note that this code uses matplotlib plotting library from
 #            http://matplotlib.org/ for 2D-plotting
 #
-# Author:    Indranil Sinharoy, Southern Methodist University.
-#
-# Created:   06/10/2012
-# Copyright: (c) 2012, 2013
+# Copyright: (c) 2012- 2014
 # Licence:   MIT License
 #-------------------------------------------------------------------------------
 from __future__ import print_function

@@ -2,10 +2,7 @@
 # Name:        zemaxoperands.py
 # Purpose:     Class of ZEMAX operands
 #
-# Author:      Indranil Sinharoy
-#
-# Created:     24/05/2013
-# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2012 - 2013
+# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2012 - 2014
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt

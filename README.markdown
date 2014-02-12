@@ -13,11 +13,25 @@ There are 4 types of functions in the toolbox:
 1.  Functions for accessing ZEMAX using the data items defined in the "ZEMAX EXTENSIONS" chapter of the ZEMAX manual. These functions' names start with "z" and the rest of the function names matches the data item defined by Zemax. For example `zGetSolve` for the data item GetSolve, `zSetSolve` for the data item SetSolve, etc. 
 2.  Helper functions to enhance the toolbox functionality beyond just the data items, such as `zLensScale`, `zCalculateHiatus`, `zSpiralSpot`. Also, there are other utilities which increase the capability of the toolbox such as `zOptimize2`, `zSetWaveTuple`, `zExecuteZPLMacro`, etc. More functions are expected to be added over time.
 3.  Few functions such as `ipzCaptureWindow`, `ipzGetTextWindow` can be used to embed analysis/graphic windows and text files from Zemax into an IPython Notebook or IPython QtConsole. 
-4.  There are several other functions that do not require to interact with Zemax directly. Examples include `showZOperandList`, `findZOperand`, `findZButtonCode`, etc. These functions may be used even without Zemax. Also, more functions are expected to be added over time.
+4.  There are several other functions which can be used independent of a running Zemax session.. Examples include `showZOperandList`, `findZOperand`, `findZButtonCode`, etc. Also, more functions are expected to be added over time.
 
 
-All the functions prefixed with "z" or "ipz" interact with Zemax directly and hence require Zemax to running simultaneously.
+All the functions prefixed with "z" or "ipz"  (types 1, 2 and 3) interact with Zemax directly and hence require a Zemax session to be running simultaneously. As they are instance methods of a pyzdde channel object, a pyzdde object needs to be created.
 
+For example:
+
+```python
+import pyzdde.zdde as pyz
+ln = pyz.PyZDDE()              # create a pyzdde object
+```
+
+Helper functions of type 4 can be accessed the the `zdde` module directly. 
+
+For example:
+
+```python
+pyz.zo.findZOperand("decenter")
+```
 
 
 #### Usage and getting started:

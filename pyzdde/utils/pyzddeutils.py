@@ -2,10 +2,7 @@
 # Name:        pyzddeutils.py
 # Purpose:     Utility functions for PyZDDE
 #
-# Author:      Indranil Sinharoy, Southern Methodist University
-#
-# Created:     30/06/2013
-# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2012 - 2013
+# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2012 - 2014
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt

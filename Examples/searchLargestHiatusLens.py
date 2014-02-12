@@ -23,10 +23,7 @@
 #                 on the message. That particular file is then excluded from the
 #                 analysis.
 #
-# Author:      Indranil Sinharoy, Southern Methodist University
-#
-# Created:     23/04/2013
-# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2013
+# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2013 - 2014
 # Licence:     MIT License
 #-------------------------------------------------------------------------------
 
