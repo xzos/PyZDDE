@@ -1,11 +1,8 @@
 #-------------------------------------------------------------------------------
-# Name:        pyzdde.py
+# Name:        zdde.py
 # Purpose:     Python based DDE link with ZEMAX server, similar to Matlab based
 #              MZDDE toolbox.
-# Author:      Indranil Sinharoy
-#
-# Created:     08/10/2012
-# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2012 - 2013
+# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2012 - 2014
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
@@ -22,7 +19,7 @@ import sys
 import os
 import subprocess
 from os import path
-from math import pi,cos,sin
+from math import pi, cos, sin
 from itertools import izip
 import time
 import datetime
@@ -37,14 +34,23 @@ except ImportError:
 else:
     IPLoad = True
 
+# Try to import Matplotlib's imread
+try:
+    import matplotlib.image as matimg
+except ImportError:
+    MPLimgLoad = False
+else:
+    MPLimgLoad = True
 
-#Import zemaxOperands
-#Generally most python installations will add the current directory or the
-#directory of the __main__ module to the path, it is not guaranteed. To ensure
-#that the required paths are available during python search path, we add it
-#explicitly. The following method of adding the path-to-the-file to python search
-#path and importing the modules should be removed once something like distutils
-#is used to install the module's package into the python site-packages directory.
+
+# Import zemaxOperands
+#TODO!!!
+# Generally most python installations will add the current directory or the
+# directory of the __main__ module to the path; however, it is not guaranteed. To ensure
+# that the required paths are available during python search path, we add it
+# explicitly. The following method of adding the path-to-the-file to python search
+# path and importing the modules should be removed once something like distutils
+# is used to install the module's package into the python site-packages directory.
 currDir = os.path.dirname(os.path.realpath(__file__))
 index = currDir.find('pyzdde')
 pDir = currDir[0:index-1]
@@ -830,6 +836,9 @@ class PyZDDE(object):
           rwfn    : real working F/#,
           pima    : paraxial image height, and
           pmag    : paraxial magnification.
+
+        See also zGetSystem, zGetSystemProperty
+        Use `zGetSystem` to get General Lens System Data.
         """
         reply = self.conversation.Request('GetFirst')
         rs = reply.split(',')
@@ -1565,7 +1574,7 @@ class PyZDDE(object):
                                  for i,e in enumerate(rs.split(","))])
         return nscSolveData
 
-    def zGetOperand(self,row,column):
+    def zGetOperand(self, row, column):
         """Returns the operand data from the Merit Function Editor.
 
         zGetOperand(row,column)-> operandData
@@ -2141,7 +2150,7 @@ class PyZDDE(object):
 
 
     def zGetSystem(self):
-        """Gets a number of general lens system data (General Lens Data)
+        """Returns a number of general system data (General Lens Data)
 
         zGetSystem() -> systemData
 
@@ -2165,7 +2174,8 @@ class PyZDDE(object):
         The returned data structure is exactly similar to the data structure
         returned by the zSetSystem() method.
 
-        See also zSetSystem, zGetSystemAper, zGetAperture, zSetAperture
+        See also zSetSystem, zGetFirst, zGetSystemProperty, zGetSystemAper, zGetAperture, zSetAperture
+        Use `zGetFirst` to get first order lens data such as EFL, F/# etc.
         """
         reply = self.conversation.Request("GetSystem")
         rs = reply.split(',')
@@ -2306,15 +2316,15 @@ class PyZDDE(object):
               106,107,108,109, and 110. This is unexpected! So, PyZDDE will return
               the reply (string) as is for the user to handle.
         ------------------------------------------------------------------------
-        See also zSetSystemProperty
+        See also zSetSystemProperty, zGetFirt
         """
         cmd = "GetSystemProperty,{c}".format(c=code)
         reply = self.conversation.Request(cmd)
         sysPropData = _process_get_set_SystemProperty(code,reply)
         return sysPropData
 
-    def zGetTextFile(self,textFileName, analysisType, settingsFileName=None, flag=0):
-        """Request to save a text file for any analysis that supports text output.
+    def zGetTextFile(self, textFileName, analysisType, settingsFileName=None, flag=0):
+        """Generate a text file for any analysis that supports text output.
 
         zGetText(textFilename, analysisType [, settingsFileName, flag]) -> retVal
 
@@ -2327,7 +2337,7 @@ class PyZDDE(object):
                        to those used for the button bar in Zemax. The labels
                        are case sensitive. If no label is provided or recognized,
                        a standard raytrace will be generated.
-        settingsFileName : If a valid file name is used for the "settingsFileName",
+        settingsFileName : If a valid file name is used for the `settingsFileName`,
                            ZEMAX will use or save the settings used to compute the
                            text file, depending upon the value of the flag parameter.
         flag        :  0 = default settings used for the text
@@ -2348,13 +2358,13 @@ class PyZDDE(object):
                  a full path name or extention).
         -998   : Command timed out
 
-        Notes:
+        Notes
         -----
         No matter what the flag value is, if a valid file name is provided
-        for the settingsfilename, the settings used will be written to the settings
+        for `settingsfilename`, the settings used will be written to the settings
         file, overwriting any data in the file.
 
-        See also zGetMetaFile, zOpenWindow.
+        See also `zGetMetaFile`, `zOpenWindow`.
         """
         retVal = -1
         if settingsFileName:
@@ -2401,7 +2411,7 @@ class PyZDDE(object):
             toleranceData = _process_get_set_Tol(operandNumber,reply)
         return toleranceData
 
-    def zGetTrace(self,waveNum,mode,surf,hx,hy,px,py):
+    def zGetTrace(self, waveNum, mode, surf, hx, hy, px, py):
         """Trace a (single) ray through the current lens in the ZEMAX DDE server.
 
         zGetTrace(waveNum,mode,surf,hx,hy,px,py) -> rayTraceData
@@ -3414,7 +3424,7 @@ class PyZDDE(object):
         else:
             return -1
 
-    def zOptimize(self,numOfCycles,algorithm):
+    def zOptimize(self, numOfCycles, algorithm):
         """Calls the Zemax Damped Least Squares (DLS) optimizer.
 
         zOptimize(numOfCycles,algorithm)->finalMeritFn
@@ -3450,71 +3460,6 @@ class PyZDDE(object):
         cmd = "Optimize,{:1.2g},{:d}".format(numOfCycles,algorithm)
         reply = self.conversation.Request(cmd)
         return float(reply.rstrip())
-
-    def zOptimize2(self, numCycle=1, algo=0, histLen=5, precision=1e-12,
-                   minMF=1e-15, tMinCycles=5, tMaxCycles=None):
-        """A wrapper around zOptimize() providing few control features.
-
-        zOptimize2([numCycle, algo, histLen, precision, minMF,tMinCycles,
-                  tMaxCycles])->(finalMerit, tCycles)
-
-        Parameters
-        ----------
-        numCycles  : number of cycles per DDE call to optimization (default=1)
-        algo       : 0=DLS, 1=Orthogonal descent (default=0)
-        histLen    : length of the array of past merit functions returned from each
-                     DDE call to zOptimize for determining steady state of merit
-                     function values (default=5)
-        precision  : minimum acceptable absolute difference between the merit-function
-                     values in the array for steady state computation (default=1e-12)
-        minMF      : minimum Merit Function following which to the optimization loop
-                     is to be terminated even if a steady state hasn't reached.
-                     This might be useful if a target merit function is desired.
-        tMinCycles : total number of cycles to run optimization at the very least.
-                     This is NOT the number of cycles per DDE call, but it is
-                     calculated by multiplying the number of cycles per DDL optimize
-                     call to the total number of DDE calls. (default=5)
-        tMaxCycles : the maximum number of cycles after which the optimizaiton should
-                     be terminated even if a steady state hasn't reached
-
-        Returns
-        -------
-        finalMerit : (float) the final merit function.
-        tCycles    : (integer) total number of cycles calculated by multiplying the
-                     number of cycles per DDL optimize call to the total number of
-                     DDE calls.
-
-        Note
-        ----
-        zOptimize2() basically calls zOptimize() mutiple number of times in a loop.
-        It can be useful if a large number of optimization cycles are required.
-        """
-        mfvList = [0.0]*histLen    # create a list of zeros
-        count = 0
-        mfvSettled = False
-        finalMerit = 9e9
-        tCycles = 0
-        if not tMaxCycles:
-            tMaxCycles = 2**31 - 1   # Largest plain positive integer value
-        while not mfvSettled and (finalMerit > minMF) and (tCycles < tMaxCycles):
-            finalMerit = self.zOptimize(numCycle,algo)
-            self.zOptimize(-1,algo) # update all the operands in the MFE (not necessary?)
-            if finalMerit > 8.9999e9: # optimization failure (Zemax returned 9.0E+009)
-                break
-            # populate mfvList in circular fashion
-            mfvList[count % histLen] = finalMerit
-            if (tCycles >= tMinCycles-1): # only after the minimum number of cycles are over,
-                # test to see if the merit-function has settled down
-                mfvList_shifted = mfvList[:-1]
-                mfvList_shifted.append(mfvList[0])
-                for i,j in zip(mfvList,mfvList_shifted):
-                    if abs(i-j) >= precision:
-                        break
-                else:
-                    mfvSettled = True
-            count +=1
-            tCycles = count*numCycle
-        return (finalMerit,tCycles)
 
     def zPushLens(self, updateFlag=None, timeout=None):
         """Copy lens in the ZEMAX DDE server into the Lens Data Editor (LDE).
@@ -5877,7 +5822,6 @@ class PyZDDE(object):
         Returns
         -------
         hiatus          : the value of the hiatus
-
         """
         if txtFileName2Use != None:
             textFileName = txtFileName2Use
@@ -5887,7 +5831,7 @@ class PyZDDE(object):
         ret = self.zGetTextFile(textFileName,'Pre',"None",0)
         assert ret == 0
         recSystemData_g = self.zGetSystem() #Get the current system parameters
-        numSurf       = recSystemData_g[0]
+        numSurf = recSystemData_g[0]
         #Open the text file in read mode to read
         fileref = open(textFileName,"r")
         principalPlane_objSpace = 0.0; principalPlane_imgSpace = 0.0; hiatus = 0.0
@@ -5942,6 +5886,152 @@ class PyZDDE(object):
         _, _, ENPD, ENPP, EXPD, EXPP, _, _ = self.zGetPupil()
         return (EXPD/ENPD)
 
+    def zGetSeidelAberration(self, which='wave', txtFileName2Use=None, keepFile=False):
+        """Return the Seidel Aberration coefficients
+
+        zGetSeidelAberration([which='wave', txtFileName2Use=None, keepFile=False]) -> sac
+
+        Parameters
+        ----------
+        which           : (string, optional)
+                          'wave' = Wavefront aberration coefficient (summary) is returned
+                          'aber' = Seidel aberration coefficients (total) is returned
+                          'both' = both Wavefront (summary) and Seidel aberration (total)
+                                   coefficients are returned
+        txtFileName2Use : (optional, string) If passed, the prescription file
+                          will be named such. Pass a specific txtFileName if
+                          you want to dump the file into a separate directory.
+        keepFile        : (optional, bool) If false (default), the prescription
+                          file will be deleted after use. If true, the file
+                          will persist.
+        Returns
+        -------
+        sac          : the Seidel aberration coefficients
+                       if 'which' is 'wave', then a dictionary of Wavefront aberration
+                       coefficient summary is returned.
+                       if 'which' is 'aber', then a dictionary of Seidel total aberration
+                       coefficient is returned
+                       if 'which' is 'both', then a tuple of dictionaries containint Wavefront
+                       aberration coefficients and Seidel aberration coefficients is returned.
+        """
+        if txtFileName2Use != None:
+            textFileName = txtFileName2Use
+        else:
+            cd = os.path.dirname(os.path.realpath(__file__))
+            textFileName = cd +"\\"+"seidelAberrationFile.txt"
+        ret = self.zGetTextFile(textFileName,'Sei',"None",0)
+        assert ret == 0
+        recSystemData_g = self.zGetSystem() #Get the current system parameters
+        numSurf = recSystemData_g[0]
+        #We are creating a list of lines by purpose, see note 2 (decisions for this fn)
+        fp = open(textFileName, 'r')
+        line_list = fp.readlines()
+        fp.close()
+        seidelAberrationCoefficients = {}         # Aberration Coefficients
+        seidelWaveAberrationCoefficients = {}     # Wavefront Aberration Coefficients
+        for line_num,line in enumerate(line_list):
+            # Get the Seidel aberration coefficients
+            sectionString1 = ("Seidel Aberration Coefficients:")
+            if line.rstrip()== sectionString1:
+                sac_keys_tmp = line_list[line_num + 2].rstrip()[7:] # remove "Surf" and "\n" from start and end
+                sac_keys = sac_keys_tmp.split('    ')
+                sac_vals = line_list[line_num + numSurf+3].split()[1:]
+            # Get the Wavefront aberration Coefficients
+            sectionString2 = ("Wavefront Aberration Coefficient Summary:")
+            if line.rstrip()== sectionString2:
+                swac_keys01 = line_list[line_num + 2].split()     # Seidel wave aberration coefficient names
+                swac_vals01 = line_list[line_num + 3].split()[1:] # Seidel wave aberration coefficient values
+                swac_keys02 = line_list[line_num + 5].split()     # Seidel wave aberration coefficient names
+                swac_vals02 = line_list[line_num + 6].split()[1:] # Seidel wave aberration coefficient values
+        # Assert if the lengths of key-value lists are not equal
+        assert len(sac_keys) == len(sac_vals)
+        assert len(swac_keys01) == len(swac_vals01)
+        assert len(swac_keys02) == len(swac_vals02)
+        # Create the dictionary
+        for k, v in zip(sac_keys, sac_vals):
+            seidelAberrationCoefficients[k] = float(v)
+        for k, v in zip(swac_keys01, swac_vals01):
+            seidelWaveAberrationCoefficients[k] = float(v)
+        for k, v in zip(swac_keys02, swac_vals02):
+            seidelWaveAberrationCoefficients[k] = float(v)
+        if not keepFile:
+            #Delete the prescription file (the directory remains clean)
+            _deleteFile(textFileName)
+        if which == 'wave':
+            return seidelWaveAberrationCoefficients
+        elif which == 'aber':
+            return seidelAberrationCoefficients
+        elif which == 'both':
+            return seidelWaveAberrationCoefficients, seidelAberrationCoefficients
+        else:
+            return None
+
+    def zOptimize2(self, numCycle=1, algo=0, histLen=5, precision=1e-12,
+                   minMF=1e-15, tMinCycles=5, tMaxCycles=None):
+        """A wrapper around zOptimize() providing few control features.
+
+        zOptimize2([numCycle, algo, histLen, precision, minMF,tMinCycles,
+                  tMaxCycles])->(finalMerit, tCycles)
+
+        Parameters
+        ----------
+        numCycles  : number of cycles per DDE call to optimization (default=1)
+        algo       : 0=DLS, 1=Orthogonal descent (default=0)
+        histLen    : length of the array of past merit functions returned from each
+                     DDE call to zOptimize for determining steady state of merit
+                     function values (default=5)
+        precision  : minimum acceptable absolute difference between the merit-function
+                     values in the array for steady state computation (default=1e-12)
+        minMF      : minimum Merit Function following which to the optimization loop
+                     is to be terminated even if a steady state hasn't reached.
+                     This might be useful if a target merit function is desired.
+        tMinCycles : total number of cycles to run optimization at the very least.
+                     This is NOT the number of cycles per DDE call, but it is
+                     calculated by multiplying the number of cycles per DDL optimize
+                     call to the total number of DDE calls. (default=5)
+        tMaxCycles : the maximum number of cycles after which the optimizaiton should
+                     be terminated even if a steady state hasn't reached
+
+        Returns
+        -------
+        finalMerit : (float) the final merit function.
+        tCycles    : (integer) total number of cycles calculated by multiplying the
+                     number of cycles per DDL optimize call to the total number of
+                     DDE calls.
+
+        Note
+        ----
+        zOptimize2() basically calls zOptimize() mutiple number of times in a loop.
+        It can be useful if a large number of optimization cycles are required.
+        """
+        mfvList = [0.0]*histLen    # create a list of zeros
+        count = 0
+        mfvSettled = False
+        finalMerit = 9e9
+        tCycles = 0
+        if not tMaxCycles:
+            tMaxCycles = 2**31 - 1   # Largest plain positive integer value
+        while not mfvSettled and (finalMerit > minMF) and (tCycles < tMaxCycles):
+            finalMerit = self.zOptimize(numCycle,algo)
+            self.zOptimize(-1,algo) # update all the operands in the MFE (not necessary?)
+            if finalMerit > 8.9999e9: # optimization failure (Zemax returned 9.0E+009)
+                break
+            # populate mfvList in circular fashion
+            mfvList[count % histLen] = finalMerit
+            if (tCycles >= tMinCycles-1): # only after the minimum number of cycles are over,
+                # test to see if the merit-function has settled down
+                mfvList_shifted = mfvList[:-1]
+                mfvList_shifted.append(mfvList[0])
+                for i,j in zip(mfvList,mfvList_shifted):
+                    if abs(i-j) >= precision:
+                        break
+                else:
+                    mfvSettled = True
+            count +=1
+            tCycles = count*numCycle
+        return (finalMerit,tCycles)
+
+
 # ***************************************************************
 #              IPYTHON NOTEBOOK UTILITY FUNCTIONS
 # ***************************************************************
@@ -5991,39 +6081,47 @@ class PyZDDE(object):
         else:
             print("Couldn't import IPython modules.")
 
-    def ipzCaptureWindow2(self,analysisType, percent=12, MFFtNum=0, blur=1,
-                         gamma=0.35, settingsFileName=None, flag=0):
+    def ipzCaptureWindow2(self, analysisType, percent=12, MFFtNum=0, blur=1,
+                         gamma=0.35, settingsFileName=None, flag=0, retArr=False):
         """Capture any analysis window from Zemax main window, using 3-letter analysis code.
 
-        This is similar to ipzCaptureWindow, but more capable, and generally produces
-        better graphic output. It uses the metafile exported by Zemax as its
-        source image, converts the metafile into PNG using ImageMagic's convert
-        program and displays/embeds the PNG image on the IPython notebook or
-        QtConsole.
 
         ipzCaptureWindow2(analysisType [,percent=12,MFFtNum=0,blur=1, gamma=0.35,
-                         settingsFileName=None, flag=0]) -> displayGraphic
+                         settingsFileName=None, flag=0, retArr=False]) -> displayGraphic/
 
         Parameters
         ----------
-        analysisType  : 3-letter button code for the type of analysis
-        percent       : (float) percentage of the metafile to display (default=12)
-        MFFtNum       : (integer) 0 = Enhanced Metafile, 1 = Standard Metafile
-        blur          : (float) Amount of blurring to use for antialiasing during
-                         resizing of metafile (default=1)
-        gamma         : (float) gamma for the PNG image (default = 0.35). Use
-                        a gamma value of around 0.9 for color surface plots.
-        settingsFileName : If a valid file name is used for the "settingsFileName",
-                           ZEMAX will use or save the settings used to compute the
-                           metafile, depending upon the value of the flag parameter.
-        flag        :  0 = default settings used for the metafile graphic
-                       1 = settings provided in the settings file, if valid,
-                           else default settings used
-                       2 = settings provided in the settings file, if valid,
-                           will be used and the settings box for the requested
-                           feature will be displayed. After the user makes any
-                           changes to the settings the graphic will then be
-                           generated using the new settings.
+        analysisType : string
+                       3-letter button code for the type of analysis
+        percent : float
+                  percentage of the Zemax metafile to display (default=12). Used for resizing
+                  the large metafile.
+        MFFtNum : integer
+                  type of metafile. 0 = Enhanced Metafile, 1 = Standard Metafile
+        blur : float
+               amount of blurring to use for antialiasing during resizing of metafile (default=1)
+        gamma : float
+                gamma for the PNG image (default = 0.35). Use a gamma value of around 0.9
+                for color surface plots.
+        settingsFileName : string
+                           If a valid file name is used for the `settingsFileName`, ZEMAX will use or save
+                           the settings used to compute the  metafile, depending upon the value of the flag
+                           parameter.
+        flag : integer
+                0 = default settings used for the metafile graphic
+                1 = settings provided in the settings file, if valid, else default settings used
+                2 = settings provided in the settings file, if valid, will be used and the settings
+                    box for the requested feature will be displayed. After the user makes any changes to
+                    the settings the graphic will then be generated using the new settings.
+        retArr : boolean
+                whether to return the image as an array or not.
+                If `False` (default), the image is embedded and no array is returned.
+                If `True`, an numpy array is returned that may be plotted using Matpotlib.
+
+        Returns
+        -------
+        None if `retArr` is False (default). The graphic is embedded into the notebook,
+        else `pixel_array` (ndarray) if `retArr` is True.
         """
         global IPLoad
         if IPLoad:
@@ -6070,9 +6168,14 @@ class PyZDDE(object):
                                          startupinfo=startupinfo)
                     stat = _checkFileExist(tmpPngImgName,timeout=10) # 10 for safety
                     if stat==0:
-                        # Display the image
                         time.sleep(0.2)
-                        display(Image(filename=tmpPngImgName))
+                        if retArr:
+                            if MPLimgLoad:
+                                arr = matimg.imread(tmpPngImgName, 'PNG')
+                            else:
+                                print("Couldn't import Matplotlib")
+                        else: # Display the image
+                            display(Image(filename=tmpPngImgName))
                         # Delete the image files
                         _deleteFile(tmpMetaImgName)
                         _deleteFile(tmpPngImgName)
@@ -6084,6 +6187,8 @@ class PyZDDE(object):
                 print("Metafile couldn't be created.")
         else:
                 print("Couldn't import IPython modules.")
+        if MPLimgLoad and retArr:
+            return arr
 
     def ipzGetTextWindow(self, analysisType, settingsFileName=None, flag=0,
                         *args, **kwargs):
@@ -6111,13 +6216,17 @@ class PyZDDE(object):
                            changes to the settings the text will then be
                            generated using the new settings.
                        Please see the ZEMAX manual for more details.
+
+        Returns
+        -------
+        None (the contents of the text file is dumped into an IPython cell)
         """
         global IPLoad
         if IPLoad:
             # Use the lens file path to store and process temporary images
             tmpTxtPath = self.zGetPath()[1]  # lens file path
             tmpTxtFile = "{ttp}\\TEMPTXT.txt".format(ttp=tmpTxtPath)
-            print(tmpTxtFile)
+            #print(tmpTxtFile) # for debugging
             ret = self.zGetTextFile(tmpTxtFile,analysisType,settingsFileName,flag)
             if ~ret:
                 stat = _checkFileExist(tmpTxtFile)
@@ -6134,10 +6243,62 @@ class PyZDDE(object):
         else:
             print("Couldn't import IPython modules.")
 
+
+# ***********************************************************************
+#   OTHER HELPER FUNCTIONS THAT DO NOT REQUIRE A RUNNING ZEMAX SESSION
+# ***********************************************************************
+def numAper(aperConeAngle, rIndex=1.0):
+    """Return the Numerical Aperture (NA) for the associated aperture cone angle
+
+    numAper(aperConeAngle [, rIndex]) -> na
+
+    Parameters
+    ----------
+    aperConeAngle : (float) aperture cone angle, in radians
+    rIndex        : (float) refractive index of the medium
+
+    Returns
+    -------
+    na : (float) Numerical Aperture
+    """
+    return rIndex*sin(aperConeAngle)
+
+def na2fn(na):
+    """Convert numerical aperture (NA) to F-number
+
+    This conversion is valid for small apertures.
+
+    Parameters
+    ----------
+    na : (float) Numerical aperture value
+
+    Returns
+    -------
+    fn : (float) F-number value
+    """
+    return 1.0/(2.0*na)
+
+def fn2na(fn):
+    """Convert F-number to numerical aperture (NA)
+
+    This conversion is valid for small apertures.
+
+    Parameters
+    ----------
+    fn : (float) F-number value
+
+    Returns
+    -------
+    na : (float) Numerical aperture value
+    """
+    return 1.0/(2.0*fn)
+
+
 # ***************************************************************************
 # Helper functions to process data from ZEMAX DDE server. This is especially
 # convenient for processing replies from Zemax for those function calls that
-# outputs exactly same reply structure.
+# output exactly same reply structure. These functions are mainly used intenally
+# and may not be exposed directly.
 # ***************************************************************************
 
 def _regressLiteralType(x):

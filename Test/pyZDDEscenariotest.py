@@ -4,10 +4,7 @@
 #              connections and other scenerios. This test doesnot use the python
 #              unit testing framework
 #
-# Author:      Indranil Sinharoy
-#
-# Created:     19/10/2012
-# Copyright:   (c) Indranil Sinharoy, 2012 - 2013
+# Copyright:   (c) Indranil Sinharoy, 2012 - 2014
 # Licence:     MIT License
 #-------------------------------------------------------------------------------
 from __future__ import print_function
