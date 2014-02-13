@@ -5069,11 +5069,7 @@ class PyZDDE(object):
                 raise ValueError('Invalid input, expecting argument')
         reply = self.conversation.Request(cmd)
         if code in (0,1,4,7,9):
-            surfaceDatum = reply.split()
-            if len(surfaceDatum):
-                surfaceDatum = surfaceDatum[0]
-            else:
-                surfaceDatum = ''
+            surfaceDatum = reply.rstrip()
         else:
             surfaceDatum = float(reply)
         return surfaceDatum
