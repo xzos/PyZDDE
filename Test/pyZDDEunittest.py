@@ -34,6 +34,9 @@ zmxfp = pyzddedirectory+'\\ZMXFILES\\'
 # Zemax file(s) used in the test
 lensFile = ["Cooke 40 degree field.zmx"]
 lensFileName = lensFile[0]
+# Zemax settings file(s) used in the test
+settingsFile = ["Cooke 40 degree field.CFG"]
+settingsFileName = settingsFile[0]
 
 # Flag to enable printing of returned values.
 PRINT_RETURNED_VALUES = 1     # if test results are not going to be viewed by
@@ -872,14 +875,26 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zMakeTextWindow(self):
         print("\nTEST: zMakeTextWindow()")
 
-    @unittest.skip("To implement")
     def test_zModifySettings(self):
         print("\nTEST: zModifySettings()")
+        # Load the ZEMAX DDE server with a lens so that it has something to begin with
+        global zmxfp
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        sfilename = zmxfp+settingsFileName
+        # Pass valid parameters and integer value
+        ret = self.link0.zModifySettings(sfilename,'LAY_RAYS', 5)
+        self.assertEqual(ret, 0)
+        # Send an invalid filename
+        ret = self.link0.zModifySettings('invalidFileName.CFG','LAY_RAYS', 5)
+        self.assertEqual(ret, -1)
+        # Pass valid parameters and string type value
+        ret = self.link0.zModifySettings(sfilename,'UN1_OPERAND', 'ZERN')
+        self.assertEqual(ret, 0)
 
     def test_zNewLens(self):
         print("\nTEST: zNewLens()")
-        # Load the ZEMAX DDE server with a lens so that it has something to begin
-        # with
+        # Load the ZEMAX DDE server with a lens so that it has something to begin with
         global zmxfp
         filename = zmxfp+lensFileName
         ret = self.link0.zLoadFile(filename)
@@ -1346,7 +1361,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertEqual(waveData2[1],0.5)
 
     def test_zSetVig(self):
-        print("\TEST: zSetVig()")
+        print("\nTEST: zSetVig()")
         retVal = self.link0.zSetVig()
         self.assertEqual(retVal,0)
 

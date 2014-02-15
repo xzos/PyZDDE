@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.5
+# Revision:    0.6
 #-------------------------------------------------------------------------------
 """PyZDDE, which is a toolbox written in Python, is used for communicating with
 ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging protocol.
@@ -3116,7 +3116,7 @@ class PyZDDE(object):
         return str(reply.rstrip())
         # FIX !!! What is the appropriate reply?
 
-    def zModifySettings(self,fileName,mType,value):
+    def zModifySettings(self, fileName, mType, value):
         """Used to change specific options in ZEMAX settings files.
 
         The settings files are used by zMakeTextWindow() and zMakeGraphicWindow()
@@ -4923,7 +4923,7 @@ class PyZDDE(object):
         solveData = _process_get_set_Solve(reply)
         return solveData
 
-    def zSetSurfaceData(self,surfaceNumber,code,value,arg2=None):
+    def zSetSurfaceData(self, surfaceNumber, code, value, arg2=None):
         """Sets surface data on a sequential lens surface.
 
         zSetSurfaceData(surfaceNum,code,value [, arg2])-> surfaceDatum
@@ -4944,7 +4944,7 @@ class PyZDDE(object):
         To set the surface type to a user defined surface, send the new DLL name
         using code 9 rather by setting the surface type.
         ------------------------------------------------------------------------
-        Code      - Datum to be set by by zSetSurfaceData
+        Code      - Datum to be set by `zSetSurfaceData`
         ------------------------------------------------------------------------
         0         - Surface type name. (string)
         1         - Comment. (string)
@@ -4994,7 +4994,7 @@ class PyZDDE(object):
                     number is defined by arg2.
         Other     - Reserved for future expansion of this feature.
         ------------------------------------------------------------------------
-        See also zGetSurfaceData and ZemaxSurfTypes
+        See also `zGetSurfaceData` and `ZemaxSurfTypes`
         """
         cmd = "SetSurfaceData,{:d},{:d}".format(surfaceNumber,code)
         if code in (0,1,4,7,9):
@@ -5034,7 +5034,7 @@ class PyZDDE(object):
         -------
         parameterData  : (float) the parameter value
 
-        See also zSetSurfaceData, zGetSurfaceParameter
+        See also `zSetSurfaceData`, `zGetSurfaceParameter`
         """
         cmd = ("SetSurfaceParameter,{:d},{:d},{:1.20g}"
                .format(surfaceNumber,parameter,value))
@@ -5042,8 +5042,8 @@ class PyZDDE(object):
         return float(reply)
 
 
-    def zSetSystem(self,unitCode,stopSurf,rayAimingType,useEnvData,
-                                              temp,pressure,globalRefSurf):
+    def zSetSystem(self, unitCode, stopSurf, rayAimingType, useEnvData,
+                                              temp, pressure, globalRefSurf):
         """Sets a number of general systems property (General Lens Data)
 
         zSetSystem(unitCode,stopSurf,rayAimingType,useenvdata,
@@ -5077,12 +5077,13 @@ class PyZDDE(object):
         Note
         -----
         The returned data structure is exactly similar to the data structure
-        returned by the zGetSystem() method.
+        returned by the `zGetSystem` method.
 
         If you are interested in setting the system apeture, such as aperture type,
-        aperture value, etc, use zSetSystemAper().
+        aperture value, etc, use `zSetSystemAper`.
 
-        See also zGetSystem, zGetSystemAper, zSetSystemAper, zGetAperture, zSetAperture
+        See also `zGetSystem`, `zGetSystemAper`, `zSetSystemAper`, `zGetAperture`,
+        `zSetAperture`
         """
         cmd = ("SetSystem,{:d},{:d},{:d},{:d},{:1.20g},{:1.20g},{:d}"
               .format(unitCode,stopSurf,rayAimingType,useEnvData,temp,pressure,
@@ -5093,7 +5094,7 @@ class PyZDDE(object):
                                                   for i,elem in enumerate(rs)])
         return systemData
 
-    def zSetSystemAper(self,aType,stopSurf,apertureValue):
+    def zSetSystemAper(self, aType, stopSurf, apertureValue):
         """Sets the lens system aperture and corresponding data.
 
         zSetSystemAper(aType, stopSurf, apertureValue)-> systemAperData
@@ -5120,9 +5121,9 @@ class PyZDDE(object):
             stopSurf           : (see above)
             value              : (see above)
 
-        Note: the returned tuple is the same as the returned tuple of zGetSystemAper()
+        Note: the returned tuple is the same as the returned tuple of `zGetSystemAper`
 
-        See also, zGetSystem(), zGetSystemAper()
+        See also, `zGetSystem`, `zGetSystemAper`
         """
         cmd = ("SetSystemAper,{:d},{:d},{:1.20g}"
                .format(aType,stopSurf,apertureValue))
@@ -5237,7 +5238,7 @@ class PyZDDE(object):
               the reply (string) as is for the user to handle. The zSetSystemProperty
               functions as expected nevertheless.
 
-        See also zGetSystemProperty.
+        See also `zGetSystemProperty`.
         """
         cmd = "SetSystemProperty,{c:d},{v1},{v2}".format(c=code,v1=value1,v2=value2)
         reply = self.conversation.Request(cmd)
@@ -6438,7 +6439,7 @@ def _process_get_set_SystemProperty(code,reply):
     if code in  (102,103, 104,105,106,107,108,109,110): # unexpected cases
         sysPropData = reply
     elif code in (16,17,23,40,41,42,43): # string
-        sysPropData = str(reply)
+        sysPropData = reply.rstrip()    #str(reply)
     elif code in (11,13,24,53,54,55,56,60,61,62,63,71,72,73,77,78): # floats
         sysPropData = float(reply)
     else:
