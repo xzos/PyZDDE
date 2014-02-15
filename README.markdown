@@ -21,8 +21,12 @@ All the functions prefixed with "z" or "ipz"  (types 1, 2 and 3) interact with Z
 For example:
 
 ```python
-import pyzdde.zdde as pyz
-ln = pyz.PyZDDE()              # create a pyzdde object
+import pyzdde.zdde as pyz        # import pyzdde module
+ln = pyz.PyZDDE()                      # create a pyzdde object
+ln.zDDEInit()                                # method of type 1
+ln.zPushLens(1)                          # method of type 1
+ln.zExecuteZPLMacro('CEN')   # method of type 2
+ln.ipzCaptureWindow2('Lay')    # method of type 3
 ```
 
 Helper functions of type 4 can be accessed the the `zdde` module directly. 
@@ -30,12 +34,13 @@ Helper functions of type 4 can be accessed the the `zdde` module directly.
 For example:
 
 ```python
-pyz.zo.findZOperand("decenter")
+pyz.zo.findZOperand("decenter")   # method of type 4
+pyz.numAper(U)                                # method of type 4
 ```
 
 
 #### Usage and getting started:
-Please refer to the [Wiki] (https://github.com/indranilsinharoy/PyZDDE/wiki) page.
+Please refer to the [Wiki] (https://github.com/indranilsinharoy/PyZDDE/wiki) page. It has detailed guide on how to start using PyZDDE.
 
 #### Dependencies:
 
@@ -50,7 +55,7 @@ Please refer to the [Wiki] (https://github.com/indranilsinharoy/PyZDDE/wiki) pag
 If you are using any of the Python Scientific Package distributions such as Enthought EPD, Enthough Canopy, Continumm Analytics' Anaconda, Python(x,y) or WinPython, please ensure that you are using version 214 of PyWin32. At this point in time (June 2013), EPD and Canopy comes with the 214 version of PyWin32. So, Anaconda, Python(x,y) and WinPython users will have to roll-back to version 214.~~
 
 UPDATE:
-It seems that the DDE communication error in PyWin32 has been resolved in both 32-bit and 64-bit versions of built 218.4 (I have verified this using both [WinPython](http://winpython.sourceforge.net/) and [Anaconda](https://store.continuum.io/cshop/anaconda/) distributions). So PyZDDE can be used with both 32 and 64 bit versions of Python. 
+It seems that the DDE communication error in PyWin32 has been resolved in both 32-bit and 64-bit versions of built 218.4 (I have verified this using both [WinPython](http://winpython.sourceforge.net/) and [Anaconda](https://store.continuum.io/cshop/anaconda/) distributions). So PyZDDE can be used with both 32 and 64 bit versions of Python. If you are getting an `ImportError` during `pyzdde.zdde` import, then it is most likely due to the PyWin32. Please ensure that you are using the appropriate version of PyWin32.
 
 
 #### License:

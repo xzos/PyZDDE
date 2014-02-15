@@ -183,9 +183,10 @@ Misc/
 Test/*.txt
 Examples/*.txt
 
-#Although the following files are in the repository, we don't need to commit changes in them everytime
+#Although the following files are in the repository for the unit-test, we don't need to commit changes in them everytime
 ZMXFILES/*.zmx
 ZMXFILES/*.ZMX
+ZMXFILES/*.CFG
 
 #ZEMAX settings files and sessions files
 *.CFG
