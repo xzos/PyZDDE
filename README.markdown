@@ -2,7 +2,7 @@
 
 ##### Current revision:
 
-0.6.0
+0.7.0
 
 #### Overview
 
@@ -49,23 +49,14 @@ Please refer to the [Wiki page] (https://github.com/indranilsinharoy/PyZDDE/wiki
 #### Dependencies:
 
 1.   Python 2.7 and above, 32/64 bit version (I haven't tested on Python 3.x)
-2.   PyWin32, build 218.4 or later
+2.   PyWin32, build 218.4 or later (Recommended)
 3.   Matplotlib (optional, used in some of the example programs)
 
-
-#### Current issues:
-
-1.   ~~Due to a known bug in the PyWin32 library, please use a 32-bit version, built 214 (or earlier) of PyWin32. This issue has been discussed and documented [here] (http://sourceforge.net/mailarchive/message.php?msg_id=28828321)
-If you are using any of the Python Scientific Package distributions such as Enthought EPD, Enthough Canopy, Continumm Analytics' Anaconda, Python(x,y) or WinPython, please ensure that you are using version 214 of PyWin32. At this point in time (June 2013), EPD and Canopy comes with the 214 version of PyWin32. So, Anaconda, Python(x,y) and WinPython users will have to roll-back to version 214.~~
-
-UPDATE on [issue #1]:
-It seems that the DDE communication error in PyWin32 has been resolved in both 32-bit and 64-bit versions of built 218.4 (I have verified this using both [WinPython](http://winpython.sourceforge.net/) and [Anaconda](https://store.continuum.io/cshop/anaconda/) distributions). So PyZDDE can be used with both 32 and 64 bit versions of Python. If you are getting an `ImportError` during `pyzdde.zdde` import, then it is most likely due to the PyWin32. Please ensure that you are using the appropriate version of PyWin32.
-
-
-If you come across any other issues or bugs please create a new issue at the [issues page](https://github.com/indranilsinharoy/PyZDDE/issues?state=open). 
+#### Issues and Bugs:
+Please report any issues or bugs at the [issues page](https://github.com/indranilsinharoy/PyZDDE/issues?state=open). 
 
 #### License:
-The code is under the [MIT License] (http://opensource.org/licenses/MIT).
+The code is under the [MIT License] (http://opensource.org/licenses/MIT). 
 
 
 

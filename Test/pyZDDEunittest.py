@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.6.0
+# Revision:    0.7.0
 #-------------------------------------------------------------------------------
 from __future__ import division
 from __future__ import print_function
