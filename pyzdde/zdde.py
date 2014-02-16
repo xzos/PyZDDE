@@ -6,15 +6,13 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.6.0
+# Revision:    0.7.0
 #-------------------------------------------------------------------------------
 """PyZDDE, which is a toolbox written in Python, is used for communicating with
 ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging protocol.
 """
 from __future__ import division
 from __future__ import print_function
-import win32ui
-import dde
 import sys
 import os
 import subprocess
@@ -24,6 +22,18 @@ from itertools import izip
 import time
 import datetime
 import warnings
+
+# Try to import dde from pywin32 (this step might fail in some versions of pywin32)
+# If it fails, then use the dde_backup module
+import win32ui
+try:
+    import dde
+except ImportError:
+    #print("The DDE module from PyWin32 failed to be imported. Using dde_backup module instead.")
+    import dde_backup as dde
+    USING_BACKUP_DDE = True
+else:
+    USING_BACKUP_DDE = False
 
 #Try to import IPython if it is available (for notebook helper functions)
 try:
@@ -88,7 +98,7 @@ class PyZDDE(object):
         PyZDDE.__chNum +=1   # increment ch. count when DDE ch. is instantiated.
         self.appName = "ZEMAX"+str(PyZDDE.__chNum) if PyZDDE.__chNum > 0 else "ZEMAX"
         self.connection = False  # 1/0 depending on successful connection or not
-        self.macroPath = None
+        self.macroPath = None    # variable to store macro path
 
     def __repr__(self):
         return ("PyZDDE(appName=%r, connection=%r, macroPath=%r)" %
@@ -113,7 +123,7 @@ class PyZDDE(object):
         The function is supposed to sets the timeout value for all ZEMAX DDE
         calls to 3 sec; however, the timeout is not implemented now.
 
-        See also zDDEClose, zDDEStart, zSetTimeout
+        See also `zDDEClose`, `zDDEStart`, `zSetTimeout`
         """
         _debugPrint(1,"appName = " + self.appName)
         _debugPrint(1,"liveCh = " + str(PyZDDE.__liveCh))
@@ -160,18 +170,27 @@ class PyZDDE(object):
         """
         if PyZDDE.__server and PyZDDE.__liveCh ==0:
             # Special case, when the user is trying to init DDE without Zemax running
-            PyZDDE.__server.Shutdown()
+            if USING_BACKUP_DDE:
+                PyZDDE.__server.Shutdown(self.conversation) # dde_backup's shutdown function
+            else:
+                PyZDDE.__server.Shutdown() # pywin32.dde's shutdown function
             PyZDDE.__server = 0
             _debugPrint(2,"server shutdown as ZEMAX is not running!")
         elif PyZDDE.__server and self.connection and PyZDDE.__liveCh ==1:
-            # Close the server only if a channel was truely established and it is the last one.
-            PyZDDE.__server.Shutdown()
+            # In case of pywin32's dde, close the server only if a channel was truely
+            # established and it is the last one.
+            if USING_BACKUP_DDE:
+                PyZDDE.__server.Shutdown(self.conversation) # dde_backup's shutdown function
+            else:
+                PyZDDE.__server.Shutdown() # pywin32.dde's shutdown function
             self.connection = False
             PyZDDE.__liveCh -=1  # This will become zero now. (reset)
             PyZDDE.__chNum = -1  # Reset the chNum ...
             PyZDDE.__server = 0  # the previous server object should be garbage collected
             _debugPrint(2,"server shutdown")
         elif self.connection:  # if additional channels were successfully created.
+            if USING_BACKUP_DDE:
+                PyZDDE.__server.Shutdown(self.conversation)
             self.connection = False
             PyZDDE.__liveCh -=1
             _debugPrint(2,"liveCh decremented without shutting down DDE channel")

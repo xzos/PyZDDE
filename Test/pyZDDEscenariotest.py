@@ -43,14 +43,14 @@ def test_scenario_multipleChannel():
     # Initialize
     ch0_status = link0.zDDEInit()
     print("Status for link 0:", ch0_status)
-    assert ch0_status==0
+    assert ch0_status==0  # Note that this will case the program to terminate without shutting down the server. The program will have to be restarted.
     print("App Name for Link 0:", link0.appName)
     print("Connection status for Link 0:", link0.connection)
     time.sleep(0.1) # Not required, but just for observation
 
     ch1_status = link1.zDDEInit()
     print("Status for link 1:",ch1_status)
-    assert ch1_status == 0
+    assert ch1_status == 0 # Note that this will case the program to terminate without shutting down the server. The program will have to be restarted.
     print("App Name for Link 1:", link1.appName)
     print("Connection status for Link 1:", link1.connection)
     time.sleep(0.1)   # Not required, but just for observation
@@ -62,7 +62,7 @@ def test_scenario_multipleChannel():
     link0.zInsertSurface(1)
 
     # Delete one of the objects
-    del link2
+    del link2   # We can delete this object like this since no DDE conversation object was created for it.
 
     # Load a lens into the second ZEMAX DDE server
     filename = zmxfp+"Cooke 40 degree field.zmx"
