@@ -177,7 +177,7 @@ class PyZDDE(object):
             PyZDDE.__server = 0
             _debugPrint(2,"server shutdown as ZEMAX is not running!")
         elif PyZDDE.__server and self.connection and PyZDDE.__liveCh ==1:
-            # In case of pywin32's dde, close the server only if a channel was truely
+            # In case of pywin32's dde, close the server only if a channel was truly
             # established and it is the last one.
             if USING_BACKUP_DDE:
                 PyZDDE.__server.Shutdown(self.conversation) # dde_backup's shutdown function
