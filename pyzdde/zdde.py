@@ -25,8 +25,8 @@ import warnings
 
 # Try to import dde from pywin32 (this step might fail in some versions of pywin32)
 # If it fails, then use the dde_backup module
-import win32ui
 try:
+    import win32ui
     import dde
 except ImportError:
     #print("The DDE module from PyWin32 failed to be imported. Using dde_backup module instead.")
