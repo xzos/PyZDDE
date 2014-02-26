@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.7.0
+# Revision:    0.7.1
 #-------------------------------------------------------------------------------
 """PyZDDE, which is a toolbox written in Python, is used for communicating with
 ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging protocol.
@@ -69,12 +69,13 @@ if pDir not in sys.path:
 
 import zcodes.zemaxbuttons as zb
 import zcodes.zemaxoperands as zo
+from utils.pyzddeutils import cropImgBorders, imshow
 
 DEBUG_PRINT_LEVEL = 0 # 0=No debug prints, but allow all essential prints
                       # 1 to 2 levels of debug print, 2 = print all
 
 # Helper function for debugging
-def _debugPrint(level,msg):
+def _debugPrint(level, msg):
     """
     Parameters
     ----------
@@ -158,7 +159,7 @@ class PyZDDE(object):
     def zDDEClose(self):
         """Close the DDE link with Zemax server.
 
-        zDDEClose( ) -> Status
+        `zDDEClose( ) -> Status`
 
         Parameters
         ----------
@@ -199,16 +200,16 @@ class PyZDDE(object):
 
         return 0              # For future compatibility
 
-    def zSetTimeout(self,time):
+    def zSetTimeout(self, time):
         """ sets the timeout in seconds for all ZEMAX DDE calls.
 
-        zSetTimeOut(time)
+        `zSetTimeOut(time)`
 
         Parameters
         ----------
         time: time in seconds.
 
-        See also zDDEInit, zDDEStart
+        See also `zDDEIni`t, `zDDEStart`
         """
         warnings.warn("Not implemented. Default timeout = 1 min")
         PyZDDE.DDE_TIMEOUT = round(time*1000) # set time in milliseconds
@@ -220,11 +221,11 @@ class PyZDDE(object):
 
     # ZEMAX control/query methods
     #----------------------------
-    def zCloseUDOData(self,bufferCode):
+    def zCloseUDOData(self, bufferCode):
         """Close the User Defined Operand (UDO) buffer, which allows the ZEMAX
         optimizer to proceed.
 
-        zCloseUDOData(bufferCode)->retVal
+        `zCloseUDOData(bufferCode)->retVal`
 
         Parameters
         ----------
@@ -235,15 +236,15 @@ class PyZDDE(object):
         -------
         retVal     : ?
 
-        See also zGetUDOSystem and zSetUDOItem
+        See also `zGetUDOSystem` and `zSetUDOItem`
         """
         return int(self.conversation.Request("CloseUDOData,{:d}".format(bufferCode)))
 
-    def zDeleteConfig(self,number):
+    def zDeleteConfig(self, number):
         """Deletes an existing configuration (column) in the multi-configuration
         editor.
 
-        zDeleteConfig(config)->configNumber
+        `zDeleteConfig(config)->configNumber`
 
         Parameters
         ----------
@@ -256,14 +257,14 @@ class PyZDDE(object):
         Note: After deleting the configuration, all succeeding configurations are
         re-numbered.
 
-        See also zInsertConfig. Use zDeleteMCO() to delete a row/operand
+        See also `zInsertConfig`. Use `zDeleteMCO` to delete a row/operand
         """
         return int(self.conversation.Request("DeleteConfig,{:d}".format(number)))
 
-    def zDeleteMCO(self,operandNumber):
+    def zDeleteMCO(self, operandNumber):
         """Deletes an existing operand (row) in the multi-configuration editor.
 
-        zDeleteMCO(operandNumber)->newNumberOfOperands
+        `zDeleteMCO(operandNumber)->newNumberOfOperands`
 
         Parameters
         ----------
@@ -276,14 +277,14 @@ class PyZDDE(object):
         Note: After deleting the row, all succeeding rows (operands) are
         re-numbered.
 
-        See also zInsertMCO. Use zDeleteConfig() to delete a column/configuration.
+        See also `zInsertMCO`. Use `zDeleteConfig` to delete a column/configuration.
         """
         return int(self.conversation.Request("DeleteMCO,"+str(operandNumber)))
 
-    def zDeleteMFO(self,operand):
+    def zDeleteMFO(self, operand):
         """Deletes an optimization operand (row) in the merit function editor
 
-        zDeleteMFO(operand)->newNumOfOperands
+        `zDeleteMFO(operand)->newNumOfOperands`
 
         Parameters
         ----------
@@ -293,15 +294,15 @@ class PyZDDE(object):
         -------
         newNumOfOperands : (integer) the new number of operands
 
-        See also zInsertMFO
+        See also `zInsertMFO`
         """
         return int(self.conversation.Request("DeleteMFO,{:d}".format(operand)))
 
-    def zDeleteObject(self,surfaceNumber,objectNumber):
+    def zDeleteObject(self, surfaceNumber, objectNumber):
         """Deletes the NSC object associated with the given `objectNumber`at the
         surface associated with the `surfaceNumber`.
 
-        zDeleteObject(sufaceNumber, objectNumber)->retVal
+        `zDeleteObject(sufaceNumber, objectNumber)->retVal`
 
         Parameters
         ----------
@@ -316,7 +317,7 @@ class PyZDDE(object):
         Note: (from MZDDE) The `surfaceNumber` is 1 if the lens is fully NSC mode.
         If the command is issued when there is no more objects in, it simply
         returns 0.
-        See also zInsertObject()
+        See also `zInsertObject`
         """
         cmd = "DeleteObject,{:d},{:d}".format(surfaceNumber,objectNumber)
         reply = self.conversation.Request(cmd)
@@ -326,10 +327,10 @@ class PyZDDE(object):
         else:
             return int(float(rs))
 
-    def zDeleteSurface(self,surfaceNumber):
+    def zDeleteSurface(self, surfaceNumber):
         """Deletes an existing surface.
 
-        zDeleteSurface(surfaceNumber)->retVal
+        `zDeleteSurface(surfaceNumber)->retVal`
 
         Parameters
         ----------
@@ -341,7 +342,7 @@ class PyZDDE(object):
 
         Note that you cannot delete the OBJ surface (but the function still
         returns 0)
-        Also see, zInsertSurface.
+        Also see `zInsertSurface`.
         """
         cmd = "DeleteSurface,{:d}".format(surfaceNumber)
         reply = self.conversation.Request(cmd)
@@ -350,7 +351,7 @@ class PyZDDE(object):
     def zExecuteZPLMacro(self, zplMacroCode):
         """Executes a ZPL macro present in the <data>/Macros folder.
 
-        zExecuteZPLMacro(zplMacroCode)->status
+        `zExecuteZPLMacro(zplMacroCode)->status`
 
         Parameters
         ----------
@@ -402,7 +403,7 @@ class PyZDDE(object):
                    usePol=0, config=0):
         """Export lens data in IGES/STEP/SAT format for import into CAD programs.
 
-        zExportCAD(exportCADdata)->status
+        `zExportCAD(exportCADdata)->status`
 
         Parameters
         ----------
@@ -489,7 +490,7 @@ class PyZDDE(object):
     def zExportCheck(self):
         """Used to indicate the status of the last executed zExportCAD() command.
 
-        zExportCheck()->status
+        `zExportCheck()->status`
 
         Parameters
         ----------
@@ -502,7 +503,7 @@ class PyZDDE(object):
         """
         return int(self.conversation.Request('ExportCheck'))
 
-    def zFindLabel(self,label):
+    def zFindLabel(self, label):
         """Returns the surface that has the integer label associated with the
         specified surface.
 
@@ -518,15 +519,15 @@ class PyZDDE(object):
                         the `label`. It returns -1 if no surface has the
                         specified label.
 
-        See also zSetLabel, zGetLabel()
+        See also `zSetLabel`, `zGetLabel`
         """
         reply = self.conversation.Request("FindLabel,{:d}".format(label))
         return int(float(reply))
 
-    def zGetAddress(self,addressLineNumber):
+    def zGetAddress(self, addressLineNumber):
         """Extract the address line number indicated by `addressLineNumber`
 
-        zGetAddress(addressLineNumber)->addressLine
+        `zGetAddress(addressLineNumber)->addressLine`
 
         Parameters
         ----------
@@ -540,10 +541,10 @@ class PyZDDE(object):
                                           .format(addressLineNumber))
         return str(reply)
 
-    def zGetAperture(self,surfNum):
+    def zGetAperture(self, surfNum):
         """Get the surface aperture data.
 
-        zGetAperture(surfNum) -> apertureInfo
+        `zGetAperture(surfNum) -> apertureInfo`
 
         Parameters
         ----------
@@ -582,11 +583,11 @@ class PyZDDE(object):
         apertureInfo.append(rs[-1].rstrip()) #append the test file (string)
         return tuple(apertureInfo)
 
-    def zGetApodization(self,px,py):
+    def zGetApodization(self, px, py):
         """Computes the intensity apodization of a ray from the apodization
         type and value.
 
-        zGetApodication(px,py)->intensityApodization
+        `zGetApodication(px,py)->intensityApodization`
 
         Parameters
         ----------
@@ -600,7 +601,7 @@ class PyZDDE(object):
                                           .format(px,py))
         return float(reply)
 
-    def zGetAspect(self,filename=None):
+    def zGetAspect(self, filename=None):
         """Returns the graphic display aspect ratio and the width or height of the
         printed page in current lens units.
 
@@ -626,7 +627,7 @@ class PyZDDE(object):
         aspectSide = tuple([float(elem) for elem in rs])
         return aspectSide
 
-    def zGetBuffer(self,n,tempFileName):
+    def zGetBuffer(self, n, tempFileName):
         """Retrieve ZEMAX DDE client specific data from a window being updated.
 
         zGetBuffer(n,tempFileName)->bufferData
@@ -647,17 +648,17 @@ class PyZDDE(object):
         Note each window may have it's own buffer data, and ZEMAX uses the
         filename to identify the window for which the buffer contents are required.
 
-        See also zSetBuffer.
+        See also `zSetBuffer`.
         """
         cmd = "GetBuffer,{:d},{}".format(n,tempFileName)
         reply = self.conversation.Request(cmd)
         return str(reply.rstrip())
         # !!!FIX what is the proper return for this command?
 
-    def zGetComment(self,surfaceNumber):
+    def zGetComment(self, surfaceNumber):
         """Returns the surface comment, if any, associated with the surface
 
-        zGetComment(surfaceNumber)->comment
+        `zGetComment(surfaceNumber)->comment`
 
         Parameters
         ----------
@@ -676,7 +677,7 @@ class PyZDDE(object):
         the number of configurations (number of columns), and the number of
         multiple configuration operands (number of rows).
 
-        zGetConfig()->(currentConfig, numberOfConfigs, numberOfMutiConfigOper)
+        `zGetConfig()->(currentConfig, numberOfConfigs, numberOfMutiConfigOper)`
 
         Parameters
         ----------
@@ -697,7 +698,7 @@ class PyZDDE(object):
         of configurations is therefore 1, and the number of operators in the
         multi-configuration editor is also 1 (generally, MOFF).
 
-        See also zSetConfig. Use zInsertConfig to insert new configuration in the
+        See also `zSetConfig`. Use `zInsertConfig` to insert new configuration in the
         multi-configuration editor.
         """
         reply = self.conversation.Request('GetConfig')
@@ -724,7 +725,7 @@ class PyZDDE(object):
     def zGetExtra(self,surfaceNumber,columnNumber):
         """Returns extra surface data from the Extra Data Editor
 
-        zGetExtra(surfaceNumber,columnNumber)->value
+        `zGetExtra(surfaceNumber,columnNumber)->value`
 
         Parameters
         ----------
@@ -735,16 +736,16 @@ class PyZDDE(object):
         -------
         value   : (float) numeric data value
 
-        See also zSetExtra
+        See also `zSetExtra`
         """
         cmd="GetExtra,{sn:d},{cn:d}".format(sn=surfaceNumber,cn=columnNumber)
         reply = self.conversation.Request(cmd)
         return float(reply)
 
-    def zGetField(self,n):
+    def zGetField(self, n):
         """Extract field data from ZEMAX DDE server
 
-        zGetField(n) -> fieldData
+        `zGetField(n) -> fieldData`
 
         Parameters
         ----------
@@ -776,9 +777,9 @@ class PyZDDE(object):
           van    : angle vignetting factor
 
         Note: the returned tuple's content and structure is exactly same as that
-        of zSetField()
+        of `zSetField`
 
-        See also zSetField()
+        See also `zSetField`
         """
         reply = self.conversation.Request('GetField,'+str(n))
         rs = reply.split(',')
@@ -792,7 +793,7 @@ class PyZDDE(object):
     def zGetFieldTuple(self):
         """Get all field data in a single N-D tuple.
 
-        zGetFieldTuple()->fieldDataTuple
+        `zGetFieldTuple()->fieldDataTuple`
 
         Parameters
         ----------
@@ -804,7 +805,7 @@ class PyZDDE(object):
                         with every dimension representing a single field location.
                         Each dimension has all 8 field parameters.
 
-        See also zGetField(), zSetField(), zSetFieldTuple()
+        See also `zGetField`, `zSetField`, `zSetFieldTuple`
         """
         fieldCount = self.zGetField(0)[1]
         fieldDataTuple = [ ]
@@ -819,7 +820,7 @@ class PyZDDE(object):
         """This method extracts and returns the full name of the lens, including
         the drive and path.
 
-        zGetFile()-> file_name
+        `zGetFile()-> file_name`
 
         Parameters
         ----------
@@ -841,7 +842,7 @@ class PyZDDE(object):
     def zGetFirst(self):
         """Returns the first order data about the lens.
 
-        zGetFirst()->(focal, pwfn, rwfn, pima, pmag)
+        `zGetFirst()->(focal, pwfn, rwfn, pima, pmag)`
 
         Parameters
         ----------
@@ -856,7 +857,7 @@ class PyZDDE(object):
           pima    : paraxial image height, and
           pmag    : paraxial magnification.
 
-        See also zGetSystem, zGetSystemProperty
+        See also `zGetSystem`, `zGetSystemProperty`
         Use `zGetSystem` to get General Lens System Data.
         """
         reply = self.conversation.Request('GetFirst')
@@ -866,7 +867,7 @@ class PyZDDE(object):
     def zGetGlass(self,surfaceNumber):
         """Returns some data about the glass on any surface.
 
-        zGetGlass(surfaceNumber)->glassInfo
+        `zGetGlass(surfaceNumber)->glassInfo`
 
         Parameters
         ---------
@@ -874,7 +875,7 @@ class PyZDDE(object):
 
         Returns
         -------
-        glassInfo : 3-tuple containing the name, nd,vd, dpgf if there is a
+        glassInfo : 3-tuple containing the `name`, `nd`, `vd`, `dpgf` if there is a
                      valid glass associated with the surface, else `None`
 
         Note
@@ -896,7 +897,7 @@ class PyZDDE(object):
         """Returns the the matrix required to convert any local coordinates (such
         as from a ray trace) into global coordinates.
 
-        zGetGlobalMatrix(surfaceNumber)->globalMatrix
+        `zGetGlobalMatrix(surfaceNumber)->globalMatrix`
 
         Parameters
         ----------
@@ -944,7 +945,7 @@ class PyZDDE(object):
         surface. Labels are be retained by ZEMAX as surfaces are inserted or deleted
         around the target surface.
 
-        zGetLabel(surfaceNumber)->label
+        `zGetLabel(surfaceNumber)->label`
 
         Parameters
         ----------
@@ -954,7 +955,7 @@ class PyZDDE(object):
         -------
         label         : (integer) the integer label
 
-        See also zSetLabel, zFindLabel
+        See also `zSetLabel`, `zFindLabel`
         """
         reply = self.conversation.Request("GetLabel,{:d}".format(surfaceNumber))
         return int(float(reply.rstrip()))
@@ -962,7 +963,7 @@ class PyZDDE(object):
     def zGetMetaFile(self,metaFileName,analysisType,settingsFileName=None,flag=0):
         """Creates a windows Metafile of any ZEMAX graphical analysis plot.
 
-        zMetaFile(metaFilename, analysisType, settingsFileName, flag)->retVal
+        `zMetaFile(metaFilename, analysisType, settingsFileName, flag)->retVal`
 
         Parameters
         ----------
@@ -999,9 +1000,9 @@ class PyZDDE(object):
         the settingsfilename, the settings used will be written to the settings
         file, overwriting any data in the file.
 
-        Example: zGetMetaFile("C:\Projects\myGraphicfile.EMF",'Lay',None,0)
+        Example: `zGetMetaFile("C:\Projects\myGraphicfile.EMF",'Lay',None,0)`
 
-        See also zGetTextFile, zOpenWindow.
+        See also `zGetTextFile`, `zOpenWindow`.
         """
         if settingsFileName:
             settingsFile = settingsFileName
@@ -1027,7 +1028,7 @@ class PyZDDE(object):
         lens in the DDE server. For the purpose of this function, "Sequential"
         implies that there are no non-sequential surfaces in the LDE.
 
-        zGetMode()->zmxModeInformation
+        `zGetMode()->zmxModeInformation`
 
         Parameters
         ----------
@@ -1060,10 +1061,10 @@ class PyZDDE(object):
                 mode = 0  # sequential
         return (mode,tuple(nscSurfNums))
 
-    def zGetMulticon(self,config,row):
+    def zGetMulticon(self, config, row):
         """Extract data from the multi-configuration editor.
 
-        zGetMulticon(config,row)->multiConData
+        `zGetMulticon(config,row)->multiConData`
 
         Parameters
         ---------
@@ -1072,7 +1073,7 @@ class PyZDDE(object):
 
         Returns
         -------
-        multiConData is a tuple whose elements are dependent on the value of
+        `multiConData` is a tuple whose elements are dependent on the value of
         `config`
 
         If `config` > 0, then the elements of multiConData are:
@@ -1083,9 +1084,9 @@ class PyZDDE(object):
           values indicate the source data for the pickup solve.
 
         If `config` = 0, then the elements of multiConData are:
-            (operand_type,number1,number2,number3)
+            (operand_type, number1, number2, number3)
 
-        See also zSetMulticon.
+        See also `zSetMulticon`.
         """
         cmd = "GetMulticon,{config:d},{row:d}".format(config=config,row=row)
         reply = self.conversation.Request(cmd)
@@ -1104,7 +1105,7 @@ class PyZDDE(object):
     def zGetName(self):
         """Returns the name of the lens.
 
-        zGetName()->lensName
+        `zGetName()->lensName`
 
         Parameters
         ---------
@@ -1118,10 +1119,10 @@ class PyZDDE(object):
         reply = self.conversation.Request('GetName')
         return str(reply.rstrip())
 
-    def zGetNSCData(self,surfaceNumber,code):
+    def zGetNSCData(self, surfaceNumber, code):
         """Returns the data for NSC groups.
 
-        zGetNSCData(surface,code)->nscData
+        `zGetNSCData(surface,code)->nscData`
 
         Parameters
         ---------
@@ -1156,11 +1157,11 @@ class PyZDDE(object):
                     nscData = 0
         return nscData
 
-    def zGetNSCMatrix(self,surfaceNumber,objectNumber):
+    def zGetNSCMatrix(self, surfaceNumber, objectNumber):
         """Returns a tuple containing the rotation and position matrices relative
         to the NSC surface origin.
 
-        zGetNSCMatrix(surfaceNumber,objectNumber)->nscMatrix
+        `zGetNSCMatrix(surfaceNumber,objectNumber)->nscMatrix`
 
         Parameters
         ----------
@@ -1185,10 +1186,10 @@ class PyZDDE(object):
             nscMatrix = tuple([float(elem) for elem in rs.split(',')])
         return nscMatrix
 
-    def zGetNSCObjectData(self,surfaceNumber,objectNumber,code):
+    def zGetNSCObjectData(self, surfaceNumber, objectNumber, code):
         """Returns the various data for NSC objects.
 
-        zGetNSCOjbect(surfaceNumber,objectNumber,code)->nscObjectData
+        `zGetNSCOjbect(surfaceNumber,objectNumber,code)->nscObjectData`
 
         Parameters
         ----------
@@ -1250,10 +1251,10 @@ class PyZDDE(object):
                 nscObjectData = float(rs)
         return nscObjectData
 
-    def zGetNSCObjectFaceData(self,surfNumber,objNumber,faceNumber,code):
+    def zGetNSCObjectFaceData(self, surfNumber, objNumber, faceNumber, code):
         """Returns the various data for NSC object faces.
 
-        zGetNSCObjectFaceData(surfNumber,objNumber,faceNumber,code)->nscObjFaceData
+        `zGetNSCObjectFaceData(surfNumber,objNumber,faceNumber,code)->nscObjFaceData`
 
         Parameters
         ----------
@@ -1284,7 +1285,7 @@ class PyZDDE(object):
          41-46 - User Defined Scatter Parameter 1 - 6. (double)
          60   -  User Defined Scatter data file name. (string)
         ------------------------------------------------------------------------
-        See also zSetNSCObjectFaceData
+        See also `zSetNSCObjectFaceData`
         """
         str_codes = (10,30,31,40,60)
         int_codes = (20,22,24)
@@ -1303,10 +1304,10 @@ class PyZDDE(object):
                 nscObjFaceData = float(rs)
         return nscObjFaceData
 
-    def zGetNSCParameter(self,surfNumber,objNumber,parameterNumber):
+    def zGetNSCParameter(self, surfNumber, objNumber, parameterNumber):
         """Returns the parameter data for NSC objects.
 
-        zGetNSCParameter(surfNumber,objNumber,parameterNumber)->nscParaVal
+        `zGetNSCParameter(surfNumber,objNumber,parameterNumber)->nscParaVal`
 
         Parameters
         ----------
@@ -1319,7 +1320,7 @@ class PyZDDE(object):
         -------
         nscParaVal     : (float) parameter value
 
-        See also zSetNSCParameter
+        See also `zSetNSCParameter`
         """
         cmd = ("GetNSCParameter,{:d},{:d},{:d}"
               .format(surfNumber,objNumber,parameterNumber))
@@ -1331,10 +1332,10 @@ class PyZDDE(object):
             nscParaVal = float(rs)
         return nscParaVal
 
-    def zGetNSCPosition(self,surfNumber,objectNumber):
+    def zGetNSCPosition(self, surfNumber, objectNumber):
         """Returns the position data for NSC objects.
 
-        zGetNSCPosition(surfNumber,objectNumber)->nscPosData
+        `zGetNSCPosition(surfNumber,objectNumber)->nscPosData`
 
         Parameters
         ----------
@@ -1346,7 +1347,7 @@ class PyZDDE(object):
         -------
         nscPosData is a 7-tuple containing x,y,z,tilt-x,tilt-y,tilt-z,material
 
-        See also zSetNSCPosition
+        See also `zSetNSCPosition`
         """
         cmd = ("GetNSCPosition,{:d},{:d}".format(surfNumber,objectNumber))
         reply = self.conversation.Request(cmd)
@@ -1358,12 +1359,12 @@ class PyZDDE(object):
                                                     for i in range(len(rs))])
         return nscPosData
 
-    def zGetNSCProperty(self,surfaceNumber,objectNumber,faceNumber,code):
+    def zGetNSCProperty(self, surfaceNumber, objectNumber, faceNumber, code):
         """Returns a numeric or string value from the property pages of objects
         defined in the non-sequential components editor. It mimics the ZPL
         function NPRO.
 
-        zGetNSCProperty(surfaceNumber,objectNumber,faceNumber,code)->nscPropData
+        `zGetNSCProperty(surfaceNumber,objectNumber,faceNumber,code)->nscPropData`
 
         Parameters
         ----------
@@ -1514,7 +1515,7 @@ class PyZDDE(object):
         201-203 - Gets the nd (201), vd (202), and dpgf (203) parameters of an
                   object using a model glass.
         ------------------------------------------------------------------------
-        See also zSetNSCProperty
+        See also `zSetNSCProperty`
         """
         cmd = ("GetNSCProperty,{:d},{:d},{:d},{:d}"
                 .format(surfaceNumber,objectNumber,code,faceNumber))
@@ -1527,7 +1528,7 @@ class PyZDDE(object):
         minimum absolute intensity, minimum relative intensity, glue distance,
         miss ray distance, and ignore errors flag used for NSC ray tracing.
 
-        zGetNSCSettings()->nscSettingsData
+        `zGetNSCSettings()->nscSettingsData`
 
         Parameters
         ---------
@@ -1545,7 +1546,7 @@ class PyZDDE(object):
           missRayLen : (float) miss ray distance
           ignoreErr  : (integer) 1 if true, 0 if false
 
-        See also zSetNSCSettings
+        See also `zSetNSCSettings`
         """
         reply = str(self.conversation.Request('GetNSCSettings'))
         rs = reply.rsplit(",")
@@ -1557,7 +1558,7 @@ class PyZDDE(object):
         """Returns the current solve status and settings for NSC position & parameter
         data.
 
-        zGetNSCSolve(surfaceNumber, objectNumber, parameter) -> nscSolveData
+        `zGetNSCSolve(surfaceNumber, objectNumber, parameter) -> nscSolveData`
 
         Parameters
         ----------
@@ -1582,7 +1583,7 @@ class PyZDDE(object):
                            meaningful.
                           -1 if it a BAD COMMAND
 
-        See also: zSetNSCSolve
+        See also `zSetNSCSolve`
         """
         nscSolveData = -1
         cmd = "GetNSCSolve,{:d},{:d},{:d}".format(surfaceNumber,objectNumber,parameter)
@@ -1596,7 +1597,7 @@ class PyZDDE(object):
     def zGetOperand(self, row, column):
         """Returns the operand data from the Merit Function Editor.
 
-        zGetOperand(row,column)-> operandData
+        `zGetOperand(row,column)-> operandData`
 
         Parameters
         ----------
@@ -1624,9 +1625,9 @@ class PyZDDE(object):
         Note
         ----
         To update the merit function prior to calling zGetOperand function,
-        use the zOptimize() function with the number of cycles set to -1.
+        use the `zOptimize` function with the number of cycles set to -1.
 
-        See also zSetOperand and zOptimize.
+        See also `zSetOperand` and `zOptimize`.
         """
         cmd = "GetOperand,{:d},{:d}".format(row, column)
         reply = self.conversation.Request(cmd)
@@ -1988,11 +1989,11 @@ class PyZDDE(object):
         reply = self.conversation.Request(cmd)
         return str(reply.rstrip())
 
-    def zGetSolve(self,surfaceNumber,code):
+    def zGetSolve(self, surfaceNumber, code):
         """Returns data about solves and/or pickups on the surface with number
         `surfaceNumber`.
 
-        zGetSolve(surfaceNumber,code)->solveData
+        `zGetSolve(surfaceNumber, code)->solveData`
 
         Parameters
         ----------
@@ -2003,9 +2004,9 @@ class PyZDDE(object):
         Returns
         -------
         solveData     : a tuple, depending on the code value according to the
-                          following table if successful, else -1.
+                        following table if successful, else -1.
         ------------------------------------------------------------------------
-        GetSolve Code           -  Returned data format
+        code                    -  Returned data format
         ------------------------------------------------------------------------
         0 (curvature)           -  solvetype, parameter1, parameter2, pickupcolumn
         1 (thickness)           -  solvetype, parameter1, parameter2, parameter3,
@@ -2033,7 +2034,7 @@ class PyZDDE(object):
         that depend upon the solve type; see the chapter "SOLVES" in the Zemax
         manual for details.
 
-        See also zSetSolve, zGetNSCSolve, zSetNSCSolve.
+        See also `zSetSolve`, `zGetNSCSolve`, `zSetNSCSolve`.
         """
         cmd = "GetSolve,{:d},{:d}".format(surfaceNumber,code)
         reply = self.conversation.Request(cmd)
@@ -3138,17 +3139,17 @@ class PyZDDE(object):
     def zModifySettings(self, fileName, mType, value):
         """Used to change specific options in ZEMAX settings files.
 
-        The settings files are used by zMakeTextWindow() and zMakeGraphicWindow()
+        The settings files are used by `zMakeTextWindow` and `zMakeGraphicWindow`
 
-        zModifySettings(fileName,mType,value)->status
+        `zModifySettings(fileName,mType,value)->status`
 
         Parameters
         ----------
         fileName : The full name of the settings file, including the path.
         mType    : a mnemonic that defines what option value is being modified.
                    The valid values for type are as defined in the ZPL macro
-                   command MODIFY-SETTINGS that serves the same function as
-                   zModifySettings() does for extensions. See "MODIFYSETTINGS"
+                   command `MODIFYSETTINGS` that serves the same function as
+                   `zModifySettings()` does for extensions. See `MODIFYSETTINGS`
                    in the Zemax manual for a complete list of the type codes.
         value    : value (can be String or Integer)
 
@@ -3362,7 +3363,7 @@ class PyZDDE(object):
                      the edges of objects, with valid values between 0 ("Low (1X)")
                      and 4 ("256X").
 
-        Note: zNSCLightningTrace always Updates the lens before executing a
+        Note: `zNSCLightningTrac`e always updates the lens before executing a
         LightningTrace to make certain all objects are correctly loaded and
         updated.
         """
@@ -3379,7 +3380,7 @@ class PyZDDE(object):
     def zOpenWindow(self, analysisType, zplMacro=False):
         """Open a new analysis window on the main ZEMAX screen.
 
-        zOpenWindow(analysisType)->status
+        `zOpenWindow(analysisType)->status`
 
         Parameters
         ---------
@@ -3389,8 +3390,8 @@ class PyZDDE(object):
                       in ZEMAX. You can see a list of the button codes by
                       importing zemaxbuttons module and calling the showZButtons
                       function in an interactive shell, for example:
-                          import zemaxbuttons as zb
-                          zb.showZButtonList()
+                          `import zemaxbuttons as zb`
+                          `zb.showZButtonList()`
         zplMacro      : (bool) True if the analysisTyppe code is the first 3-letters
                       of a ZPL macro name, else False (default). Please see
                       the Note below
@@ -3408,7 +3409,7 @@ class PyZDDE(object):
         in the <data>/Macros folder. It is recommended to use zExecuteZPLMacro()
         if you are trying to execute a ZPL macro.
 
-        See also zGetMetaFile, zExecuteZPLMacro
+        See also `zGetMetaFile`, `zExecuteZPLMacro`
         """
         if zb.isZButtonCode(analysisType) ^ zplMacro:  # XOR operation
             reply = self.conversation.Request("OpenWindow,{}".format(analysisType))
@@ -3421,17 +3422,17 @@ class PyZDDE(object):
         else:
             return -1 # Incorrect analysisType code
 
-    def zOperandValue(self,operandType,*values):
+    def zOperandValue(self, operandType, *values):
         """Returns the value of any optimization operand, even if the operand is
         not currently in the merit function.
 
-        zOperandValue(operandType,*values)->operandValue
+        `zOperandValue(operandType,*values)->operandValue`
 
         Parameters
         ----------
         operandType  : a valid optimization operand
-        *values      : variable length argument. Possible arguments include
-                          int1, int2, data1, data2, data3, data4, data5, data6
+        *values      : a sequence of arguments. Possible arguments include
+                       int1, int2, data1, data2, data3, data4, data5, data6
         Returns
         -------
         operandValue : (float) the value
@@ -3449,7 +3450,7 @@ class PyZDDE(object):
     def zOptimize(self, numOfCycles, algorithm):
         """Calls the Zemax Damped Least Squares (DLS) optimizer.
 
-        zOptimize(numOfCycles,algorithm)->finalMeritFn
+        `zOptimize(numOfCycles,algorithm)->finalMeritFn`
 
         Parameters
         ----------
@@ -3475,9 +3476,9 @@ class PyZDDE(object):
            cycles could be to call zOptimize multiple times in a loop, each time
            comparing the returned merit function with few of the previously
            returned (& stored) merit functions to determine if an optimum has
-           been attained. For an example implementation see zOptimize2()
+           been attained. For an example implementation see `zOptimize2()`
 
-        See also zHammer, zLoadMerit, zsaveMerit, zOptimize2
+        See also `zHammer`, `zLoadMerit`, `zsaveMerit`, `zOptimize2`
         """
         cmd = "Optimize,{:1.2g},{:d}".format(numOfCycles,algorithm)
         reply = self.conversation.Request(cmd)
@@ -3486,7 +3487,7 @@ class PyZDDE(object):
     def zPushLens(self, updateFlag=None, timeout=None):
         """Copy lens in the ZEMAX DDE server into the Lens Data Editor (LDE).
 
-        zPushLens([updateFlag, timeout]) -> retVal
+        `zPushLens([updateFlag, timeout]) -> retVal`
 
         Parameters
         ---------
@@ -3507,11 +3508,11 @@ class PyZDDE(object):
 
         Note
         -----
-        This operation requires the permission of the user running the
-        ZEMAX program. The proper use of zPushLens is to first call zPushLensPermission.
+        This operation requires the permission of the user running the ZEMAX program.
+        The proper use of `zPushLens` is to first call `zPushLensPermission`.
 
-        See also zPushLensPermission, zLoadFile, zGetUpdate, zGetPath, zGetRefresh,
-        zSaveFile.
+        See also `zPushLensPermission`, `zLoadFile`, `zGetUpdate`, `zGetPath`,
+        `zGetRefresh`, `zSaveFile`.
         """
         reply = None
         if timeout:
@@ -3532,7 +3533,7 @@ class PyZDDE(object):
     def zPushLensPermission(self):
         """Establish if ZEMAX extensions are allowed to push lenses in the LDE.
 
-        zPushLensPermission() -> status
+        `zPushLensPermission() -> status`
 
         Parameters
         ---------
@@ -3546,7 +3547,7 @@ class PyZDDE(object):
 
         For more details, please refer to the ZEMAX manual.
 
-        See also zPushLens, zGetRefresh
+        See also `zPushLens`, `zGetRefresh`
         """
         status = None
         status = self.conversation.Request('PushLensPermission')
@@ -3558,7 +3559,7 @@ class PyZDDE(object):
         length weighted average over all fields. It adjusts the thickness of the
         surface prior to the image surface.
 
-        zQuickFocus([mode,centroid]) -> retVal
+        `zQuickFocus([mode,centroid]) -> retVal`
 
         Parameters
         ----------
@@ -4071,10 +4072,10 @@ class PyZDDE(object):
         If `config` is non-zero, then the function is used to set data in the
         MCE using the following syntax:
 
-        zSetMulticon(config,row,value,status,pickuprow,
-                     pickupconfig,scale,offset)->multiConData
+        `zSetMulticon(config,row,value,status,pickuprow,
+                      pickupconfig,scale,offset)->multiConData`
 
-        Example: multiConData = zSetMulticon(1,5,5.6,0,0,0,1.0,0.0)
+        Example: `multiConData = zSetMulticon(1,5,5.6,0,0,0,1.0,0.0)`
 
         Parameters
         ----------
@@ -4092,18 +4093,19 @@ class PyZDDE(object):
         multiConData is a 8-tuple whose elements are:
         (value,num_config,num_row,status,pickuprow,pickupconfig,scale,offset)
 
-        The status integer is 0 for fixed, 1 for variable, 2 for pickup, and 3
-        for thermal pickup. If status is 2 or 3, the pickuprow and pickupconfig
+        The `status` integer is 0 for fixed, 1 for variable, 2 for pickup, and 3
+        for thermal pickup. If `status` is 2 or 3, the `pickuprow` and `pickupconfig`
         values indicate the source data for the pickup solve.
+
 
         USAGE TYPE - II
         ===============
-        If the `config` = 0 , zSetMulticon may be used to set the operand type
+        If the `config` = 0 , `zSetMulticon` may be used to set the operand type
         and number data using the following syntax:
 
-        zSetMulticon(0,row,operand_type,number1,number2,number3)-> multiConData
+        `zSetMulticon(0,row,operand_type,number1,number2,number3)-> multiConData`
 
-        Example: multiConData = zSetMulticon(0,5,'THIC',15,0,0)
+        Example: `multiConData = zSetMulticon(0,5,'THIC',15,0,0)`
 
         Parameters
         ----------
@@ -4124,13 +4126,13 @@ class PyZDDE(object):
         NOTE:
         -----
         1. If there are current operands in the MCE, it is recommended to first
-           use zInsertMCO to insert a row and then use zSetMulticon(0,...). For
-           example use zInsertMCO(5) and then use zSetMulticon(0,5,'THIC',15,0,0).
-           If not, then existing rows may be overwritten.
+           use `zInsertMCO` to insert a row and then use `zSetMulticon(0,...)`. For
+           example use `zInsertMCO(5)` and then use `zSetMulticon(0,5,'THIC',15,0,0)`.
+           If a row is not inserted first, then existing rows may be overwritten.
         2. The functions raises an exception if it determines the arguments
            to be invalid.
 
-        See also zGetMulticon()
+        See also `zGetMulticon`
         """
         if config > 0 and len(multicon_args) == 7:
             (row,value,status,pickuprow,pickupconfig,scale,offset) = multicon_args
@@ -4759,7 +4761,11 @@ class PyZDDE(object):
         """Sets data for solves and/or pickups on the surface with number
         `surfaceNumber`.
 
-        zSetSolve(surfaceNumber, code, solveData)->solveData
+        `zSetSolve(surfaceNumber, code, *solveData)->solveData`
+
+        also
+
+        `zSetSolve(surfaceNumber, code, solvetype [, arg1, arg2, arg3, arg4])->solveData`
 
         Parameters
         ----------
@@ -4767,12 +4773,17 @@ class PyZDDE(object):
         code          : (integer) indicating which surface parameter the solve
                          data is for, such as curvature, thickness, glass, conic,
                          semi-diameter, etc. (see the table below)
-        *solveData    : is a set of arguments (could be a tuple) containing
-                        `solvetype`, `param1`,`param2`,`param3`,and `param4`,
-                        depending on the code value according to the
-                        following table.
+        *solveData    : There are two ways of passing this parameter.
+                        1. As a sequence of arguments:
+                            solvetype, param1, param2, param3,and param4
+                        2. As a tuple/list of the above arguments preceded by the
+                           `*` operator to flatten/splatter the tuple/list (see example below).
+
+                        The exact nature of the parameters depend on the `code` value
+                        according to the following table.
+
         ------------------------------------------------------------------------
-        GetSolve Code           -  Solve data (solveData) & Returned data format
+        code                    -  Solve data (solveData) & Returned data format
         ------------------------------------------------------------------------
         0 (curvature)           -  solvetype, parameter1, parameter2, pickupcolumn
         1 (thickness)           -  solvetype, parameter1, parameter2, parameter3,
@@ -4796,7 +4807,7 @@ class PyZDDE(object):
         Returns
         -------
         solveData     : a tuple, depending on the code value according to the
-                        above table (same return as zGetSolve), if successful,
+                        above table (same return as `zGetSolve`), if successful,
                         -1 if the command is a 'BAD COMMAND'
 
         Note
@@ -4805,13 +4816,21 @@ class PyZDDE(object):
         that depend upon the solve type; see the chapter "SOLVES" in the Zemax
         manual for details.
 
-        See also zGetSolve, zGetNSCSolve, zSetNSCSolve.
+        Example
+        -------
+        To set a solve on the curvature (0) of surface number 6 such that the
+        Marginal Ray angle (2) value is 0.1, the following are equivalent:
+
+        `sdata = ln.zSetSolve(6, 0, *(2, 0.1))`
+        `sdata = ln.zSetSolve(6, 0,   2, 0.1 )`
+
+        See also `zGetSolve`, `zGetNSCSolve`, `zSetNSCSolve`.
         """
         if not solveData:
             print("Error [zSetSolve] No solve data passed.")
             return -1
         try:
-            if code == 0:                    # Solve specified on CURVATURE
+            if code == 0:          # Solve specified on CURVATURE
                 if solveData[0] == 0:           # fixed
                     data = ''
                 elif solveData[0] == 1:         # variable (V)

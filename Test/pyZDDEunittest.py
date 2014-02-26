@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.7.0
+# Revision:    0.7.1
 #-------------------------------------------------------------------------------
 from __future__ import division
 from __future__ import print_function
@@ -524,9 +524,16 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zGetSettingsData(self):
         print("\nTEST: zGetSettingsData()")
 
-    @unittest.skip("To implement")
     def test_zGetSolve(self):
         print("\nTEST: zGetSolve()")
+        global zmxfp
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        # set a solve on the curvature (0) of surface number 6 such that the
+        # Marginal Ray angle (2) value is 0.1.
+        solveData_set = self.link0.zSetSolve(6, 0, *(2, 0.1))
+        solveData_get = self.link0.zGetSolve(6, 0)
+        self.assertTupleEqual(solveData_set, solveData_get)
 
     def test_zGetSurfaceData(self):
         print("\nTEST: zGetSurfaceData()")
@@ -1246,10 +1253,21 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zSetSettingsData()")
         pass
 
-    @unittest.skip("To implement test")
     def test_zSetSolve(self):
         print("\nTEST: zSetSolve()")
-        pass
+        global zmxfp
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        # set a solve on the curvature (0) of surface number 6 such that the
+        # Marginal Ray angle (2) value is 0.1. The following three methods are
+        # equivalent and should produce the same output
+        solveData = self.link0.zSetSolve(6, 0, *(2, 0.1))
+        self.assertTupleEqual(solveData, (2, 0.1, 0.0, 0))
+        solveData = self.link0.zSetSolve(6, 0, *[2, 0.1])
+        self.assertTupleEqual(solveData, (2, 0.1, 0.0, 0))
+        solveData = self.link0.zSetSolve(6, 0, 2, 0.1)
+        self.assertTupleEqual(solveData, (2, 0.1, 0.0, 0))
+
 
     @unittest.skip("To implement")
     def test_zSetSurfaceData(self):
