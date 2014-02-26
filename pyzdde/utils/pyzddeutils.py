@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.6
+# Revision:    0.7.1
 #-------------------------------------------------------------------------------
 from __future__ import print_function
 
@@ -30,6 +30,25 @@ if IPLoad:
         _print_mod = display # use IPython's display to prettify print
 else:
     _print_mod = print    # regular print if IPython is not available.
+
+# Try to import matplot lib
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    #print("Couldn't import matplotlib pybplot")
+    MplPltLoad = False
+else:
+    MplPltLoad = True
+
+# Try to import Numpy
+try:
+    import numpy as np
+except ImportError:
+    #print("Couldn't import numpy")
+    NpyLoad = False
+else:
+    NpyLoad = True
+
 
 class _prettifyCodeDesc(object):
     """Class to enable colorized Code-Description string output in IPython notebook
@@ -98,4 +117,80 @@ class _boldifyText(object):
     def __repr__(self):
         return "%s%s%s" % (self.text0, self.text1, self.text2)
 
+def cropImgBorders(pixarr, left, right, top, bottom):
+    """crops boder pixels from an image array
 
+    Parameters
+    ----------
+    pixarr : ndarray
+        The image pixel array of ndim >=3
+    left : integer
+        number of pixels to crop from left
+    right : integer
+        number of pixels to crop from right
+    top : integer
+        number of pixels to crop from top
+    bottom : integer
+        number of pixels to crop from bottom
+
+    Returns
+    -------
+    newarr : ndarray
+        The cropped image pixel array
+
+    Note
+    ----
+    Requires Numpy
+    """
+    if NpyLoad:
+        rows, cols = pixarr.shape[0:2]
+        newarr = np.zeros((rows-top-bottom, cols - left - right, pixarr.shape[2]), dtype=pixarr.dtype)
+        for i in range(pixarr.shape[2]):
+            newarr[:,:,i] = pixarr[top:rows-bottom, left:cols-right, i]
+        return newarr
+    else:
+        print("The function couldn't be executed. Requires Numpy")
+
+def imshow(pixarr, cropBorderPixels=(0, 0, 0, 0), figsize=None, title=None, fig=None):
+    """Convenience function to render the screenshot
+
+    Parameters
+    ----------
+    pixarr : ndarray
+        The image pixel array
+    cropBorderPixels : 4-tuple of integer elements
+        (left, right, top, bottom) where `left`, `right`, `top` and `bottom` indicates
+        the number of pixels to crop from left, right, top, and bottom of the image
+    figsize : 2-tuple
+        Figure size in inches (default=None)
+    title : string
+        figure title (default=None)
+    fig : matplotlib figure object (optional)
+        If a figure object is passed, the given figure will be used for plotting.
+
+    Returns
+    -------
+    None
+    """
+    if MplPltLoad and NpyLoad:
+        if fig:
+            figure = fig
+        else:
+            figure = plt.figure(figsize=figsize)
+        ax = figure.add_subplot(111)
+        left, right, top, bottom = cropBorderPixels
+        narr = cropImgBorders(pixarr, left, right, top, bottom)
+        ax.imshow(narr, interpolation='spline36')
+        if title:
+            ax.set_title(title,fontsize=13)
+        # remove chart-junk
+        # remove ticks and splines
+        ax.get_xaxis().set_ticks([])
+        ax.get_yaxis().set_ticks([])
+        ax.spines['right'].set_color('none')
+        ax.spines['left'].set_color('none')
+        ax.spines['top'].set_color('none')
+        ax.spines['bottom'].set_color('none')
+        plt.show()
+    else:
+        print("The function couldn't be executed. Requires Numpy and/or Matplotlib")
