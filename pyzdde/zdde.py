@@ -25,15 +25,22 @@ import warnings
 
 # Try to import dde from pywin32 (this step might fail in some versions of pywin32)
 # If it fails, then use the dde_backup module
-try:
-    import win32ui
-    import dde
-except ImportError:
-    #print("The DDE module from PyWin32 failed to be imported. Using dde_backup module instead.")
+USE_PYWIN32DDE = False
+
+if USE_PYWIN32DDE:
+    try:
+        import win32ui
+        import dde
+    except ImportError:
+        print("The DDE module from PyWin32 failed to be imported. Using dde_backup module instead.")
+        import dde_backup as dde
+        USING_BACKUP_DDE = True
+    else:
+        USING_BACKUP_DDE = False
+else:
     import dde_backup as dde
     USING_BACKUP_DDE = True
-else:
-    USING_BACKUP_DDE = False
+
 
 #Try to import IPython if it is available (for notebook helper functions)
 try:
@@ -93,7 +100,6 @@ class PyZDDE(object):
     __chNum = -1          # channel Number
     __liveCh = 0          # number of live channels.
     __server = 0
-    DDE_TIMEOUT = 3000    # Not implemented (for future), timeout (pywin32 DDE = 1 min)
 
     def __init__(self):
         PyZDDE.__chNum +=1   # increment ch. count when DDE ch. is instantiated.
@@ -152,8 +158,6 @@ class PyZDDE(object):
             _debugPrint(1,"Zemax instance successfully connected")
             PyZDDE.__liveCh += 1 # increment the number of live channels
             self.connection = True
-            #DDE_TIMEOUT = 3000 #The default timeout
-            # !!! FIX: Not yet implemented.
             return 0
 
     def zDDEClose(self):
@@ -207,12 +211,15 @@ class PyZDDE(object):
 
         Parameters
         ----------
-        time: time in seconds.
+        time: time in seconds (integer value)
 
-        See also `zDDEIni`t, `zDDEStart`
+        Returns
+        -------
+        None
+
+        See also `zDDEInit`, `zDDEStart`
         """
-        warnings.warn("Not implemented. Default timeout = 1 min")
-        PyZDDE.DDE_TIMEOUT = round(time*1000) # set time in milliseconds
+        self.conversation.SetDDETimeout(round(time))
 
     def __del__(self):
         """Destructor"""
@@ -3252,8 +3259,9 @@ class PyZDDE(object):
         reply = self.conversation.Request(cmd)
         return float(reply.rstrip())
 
-    def zNSCTrace(self,surfNum,objNumSrc,split=0,scatter=0,usePolar=0,
-                  ignoreErrors=0,randomSeed=0,save=0,saveFilename=None,oFilter=None):
+    def zNSCTrace(self, surfNum, objNumSrc, split=0, scatter=0, usePolar=0,
+                  ignoreErrors=0, randomSeed=0, save=0, saveFilename=None,
+                  oFilter=None, timeout=60):
         """Traces rays from one or all NSC sources with various optional arguments.
         zNSCTrace() always updates the lens before tracing rays to make certain all
         objects are correctly loaded and updated.
@@ -3300,6 +3308,7 @@ class PyZDDE(object):
                      string variable with the filter, or the literal filter in
                      double quotes. For information on filter strings see
                      "The filter string" in the Zemax manual.
+        timeout      : timeout in seconds (default = 60 seconds)
 
         Returns
         -------
@@ -3339,7 +3348,7 @@ class PyZDDE(object):
                 return -1 # either full path present in saveFileName or extension is not .ZRD
         else:
             cmd = "NSCTrace,"+requiredArgs
-        reply = self.conversation.Request(cmd)
+        reply = self.conversation.Request(cmd, timeout)
         if 'OK' in reply.split():
             return 0
         elif 'BAD COMMAND' in reply.rstrip():
