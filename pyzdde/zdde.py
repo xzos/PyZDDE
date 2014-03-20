@@ -23,14 +23,16 @@ import time
 import datetime
 import warnings
 
-# Try to import dde from pywin32 (this step might fail in some versions of pywin32)
-# If it fails, then use the dde_backup module
-USE_PYWIN32DDE = False
+# By default, PyZDDE uses its own DDE module. However, if for any reason
+# one wants to use the DDE module from PyWin32 package, make the following flag
+# true. Note that you cannot set timeout if using PyWin32
+USE_PYWIN32DDE = True
 
 if USE_PYWIN32DDE:
     try:
         import win32ui
         import dde
+        print("To remove: using win32ui")
     except ImportError:
         print("The DDE module from PyWin32 failed to be imported. Using dde_backup module instead.")
         import dde_backup as dde
@@ -40,6 +42,7 @@ if USE_PYWIN32DDE:
 else:
     import dde_backup as dde
     USING_BACKUP_DDE = True
+    print("To remove: using backupdde")
 
 
 #Try to import IPython if it is available (for notebook helper functions)
@@ -205,21 +208,53 @@ class PyZDDE(object):
         return 0              # For future compatibility
 
     def zSetTimeout(self, time):
-        """ sets the timeout in seconds for all ZEMAX DDE calls.
+        """Sets the timeout in seconds for all ZEMAX DDE calls.
 
         `zSetTimeOut(time)`
 
         Parameters
         ----------
-        time: time in seconds (integer value)
+        time: timeout value in seconds (integer value)
 
         Returns
         -------
-        None
+        timeout : set timeout value in seconds
+        -999    : if timeout cannot be set (if using PyWin32ui)
 
         See also `zDDEInit`, `zDDEStart`
         """
-        self.conversation.SetDDETimeout(round(time))
+        if USING_BACKUP_DDE:
+            self.conversation.SetDDETimeout(round(time))
+            return self.conversation.GetDDETimeout()
+        else:
+            print("Cannot set timeout using PyWin32 DDE")
+            return -999
+
+    def zGetTimeout(self):
+        """Returns the value of the currently set timeout in seconds
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        timeout in seconds
+        """
+        if USING_BACKUP_DDE:
+            return self.conversation.GetDDETimeout()
+        else:
+            print("Warning: PyZDDE is using PyWin32. Default timeout = 60 sec.")
+        return -999
+
+    def _sendDDEcommand(self, cmd, timeout=None):
+        """Method to send command to DDE client
+        """
+        if USE_PYWIN32DDE: # can't set timeout in pywin32 ddi request
+            reply = self.conversation.Request(cmd)
+        else:
+            reply = self.conversation.Request(cmd, timeout)
+        return reply
 
     def __del__(self):
         """Destructor"""
@@ -245,7 +280,7 @@ class PyZDDE(object):
 
         See also `zGetUDOSystem` and `zSetUDOItem`
         """
-        return int(self.conversation.Request("CloseUDOData,{:d}".format(bufferCode)))
+        return int(self._sendDDEcommand("CloseUDOData,{:d}".format(bufferCode)))
 
     def zDeleteConfig(self, number):
         """Deletes an existing configuration (column) in the multi-configuration
@@ -266,7 +301,7 @@ class PyZDDE(object):
 
         See also `zInsertConfig`. Use `zDeleteMCO` to delete a row/operand
         """
-        return int(self.conversation.Request("DeleteConfig,{:d}".format(number)))
+        return int(self._sendDDEcommand("DeleteConfig,{:d}".format(number)))
 
     def zDeleteMCO(self, operandNumber):
         """Deletes an existing operand (row) in the multi-configuration editor.
@@ -286,7 +321,7 @@ class PyZDDE(object):
 
         See also `zInsertMCO`. Use `zDeleteConfig` to delete a column/configuration.
         """
-        return int(self.conversation.Request("DeleteMCO,"+str(operandNumber)))
+        return int(self._sendDDEcommand("DeleteMCO,"+str(operandNumber)))
 
     def zDeleteMFO(self, operand):
         """Deletes an optimization operand (row) in the merit function editor
@@ -303,7 +338,7 @@ class PyZDDE(object):
 
         See also `zInsertMFO`
         """
-        return int(self.conversation.Request("DeleteMFO,{:d}".format(operand)))
+        return int(self._sendDDEcommand("DeleteMFO,{:d}".format(operand)))
 
     def zDeleteObject(self, surfaceNumber, objectNumber):
         """Deletes the NSC object associated with the given `objectNumber`at the
@@ -327,7 +362,7 @@ class PyZDDE(object):
         See also `zInsertObject`
         """
         cmd = "DeleteObject,{:d},{:d}".format(surfaceNumber,objectNumber)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.rstrip()
         if rs == 'BAD COMMAND':
             return -1
@@ -352,10 +387,10 @@ class PyZDDE(object):
         Also see `zInsertSurface`.
         """
         cmd = "DeleteSurface,{:d}".format(surfaceNumber)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return int(float(reply))
 
-    def zExecuteZPLMacro(self, zplMacroCode):
+    def zExecuteZPLMacro(self, zplMacroCode, timeout=None):
         """Executes a ZPL macro present in the <data>/Macros folder.
 
         `zExecuteZPLMacro(zplMacroCode)->status`
@@ -364,6 +399,7 @@ class PyZDDE(object):
         ----------
         zplMacroCode   : (string) The first 3 letters (case-sensitive) of the
                          ZPL macro present in the <data>/Macros folder.
+        timeout        : (integer) timeout value. Default=None
 
         Returns
         --------
@@ -400,7 +436,7 @@ class PyZDDE(object):
                      if f.endswith(('.zpl','.ZPL')) and f.startswith(zplMacroCode)]
         if macroList:
             zplCode = macroList[0][:3]
-            status = self.zOpenWindow(zplCode,True)
+            status = self.zOpenWindow(zplCode, True, timeout)
         return status
 
     def zExportCAD(self, fileName, fileType=1, numSpline=32, firstSurf=1,
@@ -491,7 +527,7 @@ class PyZDDE(object):
                                      wave, field, delVignett, dummyThick, split,
                                      scatter, usePol, config)]
         cmd = ",".join(args)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return str(reply)
 
     def zExportCheck(self):
@@ -508,7 +544,7 @@ class PyZDDE(object):
         status : (integer) 0 = last CAD export completed
                            1 = last CAD export in progress
         """
-        return int(self.conversation.Request('ExportCheck'))
+        return int(self._sendDDEcommand('ExportCheck'))
 
     def zFindLabel(self, label):
         """Returns the surface that has the integer label associated with the
@@ -528,7 +564,7 @@ class PyZDDE(object):
 
         See also `zSetLabel`, `zGetLabel`
         """
-        reply = self.conversation.Request("FindLabel,{:d}".format(label))
+        reply = self._sendDDEcommand("FindLabel,{:d}".format(label))
         return int(float(reply))
 
     def zGetAddress(self, addressLineNumber):
@@ -544,7 +580,7 @@ class PyZDDE(object):
         -------
         addressLine : (string) address line
         """
-        reply = self.conversation.Request("GetAddress,{:d}"
+        reply = self._sendDDEcommand("GetAddress,{:d}"
                                           .format(addressLineNumber))
         return str(reply)
 
@@ -583,7 +619,7 @@ class PyZDDE(object):
         apertureFile : a text file with .UDA extention. see "User defined
                        apertures and obscurations" in ZEMAX manual for more details.
         """
-        reply = self.conversation.Request("GetAperture,"+str(surfNum))
+        reply = self._sendDDEcommand("GetAperture,"+str(surfNum))
         rs = reply.split(',')
         apertureInfo = [int(rs[i]) if i==5 else float(rs[i])
                                              for i in range(len(rs[:-1]))]
@@ -604,7 +640,7 @@ class PyZDDE(object):
         -------
         intensityApodization : (float) intensity apodization
         """
-        reply = self.conversation.Request("GetApodization,{:1.20g},{:1.20g}"
+        reply = self._sendDDEcommand("GetApodization,{:1.20g},{:1.20g}"
                                           .format(px,py))
         return float(reply)
 
@@ -629,7 +665,7 @@ class PyZDDE(object):
             cmd = "GetAspect"
         else:
             cmd = "GetAspect,{}".format(filename)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.split(",")
         aspectSide = tuple([float(elem) for elem in rs])
         return aspectSide
@@ -658,7 +694,7 @@ class PyZDDE(object):
         See also `zSetBuffer`.
         """
         cmd = "GetBuffer,{:d},{}".format(n,tempFileName)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return str(reply.rstrip())
         # !!!FIX what is the proper return for this command?
 
@@ -676,7 +712,7 @@ class PyZDDE(object):
         comment      : (string) the comment, if any, associated with the surface
 
         """
-        reply = self.conversation.Request("GetComment,{:d}".format(surfaceNumber))
+        reply = self._sendDDEcommand("GetComment,{:d}".format(surfaceNumber))
         return str(reply.rstrip())
 
     def zGetConfig(self):
@@ -708,7 +744,7 @@ class PyZDDE(object):
         See also `zSetConfig`. Use `zInsertConfig` to insert new configuration in the
         multi-configuration editor.
         """
-        reply = self.conversation.Request('GetConfig')
+        reply = self._sendDDEcommand('GetConfig')
         rs = reply.split(',')
         # !!! FIX: Should this function return "0" when the MCE is empty, just
         # like what is done for the zGetNSCData() function?
@@ -727,7 +763,7 @@ class PyZDDE(object):
         -------
         date: date is a string.
         """
-        return self.conversation.Request('GetDate')
+        return self._sendDDEcommand('GetDate')
 
     def zGetExtra(self,surfaceNumber,columnNumber):
         """Returns extra surface data from the Extra Data Editor
@@ -746,7 +782,7 @@ class PyZDDE(object):
         See also `zSetExtra`
         """
         cmd="GetExtra,{sn:d},{cn:d}".format(sn=surfaceNumber,cn=columnNumber)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return float(reply)
 
     def zGetField(self, n):
@@ -788,7 +824,7 @@ class PyZDDE(object):
 
         See also `zSetField`
         """
-        reply = self.conversation.Request('GetField,'+str(n))
+        reply = self._sendDDEcommand('GetField,'+str(n))
         rs = reply.split(',')
         if n: # n > 0
             fieldData = tuple([float(elem) for elem in rs])
@@ -817,7 +853,7 @@ class PyZDDE(object):
         fieldCount = self.zGetField(0)[1]
         fieldDataTuple = [ ]
         for i in range(fieldCount):
-            reply = self.conversation.Request('GetField,'+str(i+1))
+            reply = self._sendDDEcommand('GetField,'+str(i+1))
             rs = reply.split(',')
             fieldData = tuple([float(elem) for elem in rs])
             fieldDataTuple.append(fieldData)
@@ -843,7 +879,7 @@ class PyZDDE(object):
         1. Extreme caution should be used if the file is to be tampered with;
            since at any time ZEMAX may read or write from/to this file.
         """
-        reply = self.conversation.Request('GetFile')
+        reply = self._sendDDEcommand('GetFile')
         return reply.rstrip()
 
     def zGetFirst(self):
@@ -867,7 +903,7 @@ class PyZDDE(object):
         See also `zGetSystem`, `zGetSystemProperty`
         Use `zGetSystem` to get General Lens System Data.
         """
-        reply = self.conversation.Request('GetFirst')
+        reply = self._sendDDEcommand('GetFirst')
         rs = reply.split(',')
         return tuple([float(elem) for elem in rs])
 
@@ -891,7 +927,7 @@ class PyZDDE(object):
         gradient index, the returned string is empty. This data may be meaningless
         for glasses defined only outside of the FdC band.
         """
-        reply = self.conversation.Request("GetGlass,{:d}".format(surfaceNumber))
+        reply = self._sendDDEcommand("GetGlass,{:d}".format(surfaceNumber))
         rs = reply.split(',')
         if len(rs) > 1:
             glassInfo = tuple([str(rs[i]) if i == 0 else float(rs[i])
@@ -922,7 +958,7 @@ class PyZDDE(object):
         Surface" in the Zemax manual.
         """
         cmd = "GetGlobalMatrix,{:d}".format(surfaceNumber)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.rstrip()
         globalMatrix = tuple([float(elem) for elem in rs.split(',')])
         return globalMatrix
@@ -941,7 +977,7 @@ class PyZDDE(object):
         indexTuple : tuple of (real) index of refraction values, defined for each
                      wavelength. (n1,n2,n3,...) if surface number is not valid,
         """
-        reply = self.conversation.Request("GetIndex,{:d}".format(surfaceNumber))
+        reply = self._sendDDEcommand("GetIndex,{:d}".format(surfaceNumber))
         rs = reply.split(",")
         indexTuple = [float(rs[i]) for i in range(len(rs))]
         return tuple(indexTuple)
@@ -964,7 +1000,7 @@ class PyZDDE(object):
 
         See also `zSetLabel`, `zFindLabel`
         """
-        reply = self.conversation.Request("GetLabel,{:d}".format(surfaceNumber))
+        reply = self._sendDDEcommand("GetLabel,{:d}".format(surfaceNumber))
         return int(float(reply.rstrip()))
 
     def zGetMetaFile(self,metaFileName,analysisType,settingsFileName=None,flag=0):
@@ -1022,7 +1058,7 @@ class PyZDDE(object):
             if path.isabs(metaFileName) and path.splitext(metaFileName)[1]!='':
                 cmd = 'GetMetaFile,"{tF}",{aT},"{sF}",{fl:d}'.format(tF=metaFileName,
                                     aT=analysisType,sF=settingsFile,fl=flag)
-                reply = self.conversation.Request(cmd)
+                reply = self._sendDDEcommand(cmd)
                 if 'OK' in reply.split():
                     retVal = 0
         else:
@@ -1096,7 +1132,7 @@ class PyZDDE(object):
         See also `zSetMulticon`.
         """
         cmd = "GetMulticon,{config:d},{row:d}".format(config=config,row=row)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         if config: # if config > 0
             rs = reply.split(",")
             if '' in rs: # if the MCE is "empty"
@@ -1123,7 +1159,7 @@ class PyZDDE(object):
         lensName  : (string) name of the current lens (as entered on the
                     General data dialog box) in the DDE server
         """
-        reply = self.conversation.Request('GetName')
+        reply = self._sendDDEcommand('GetName')
         return str(reply.rstrip())
 
     def zGetNSCData(self, surfaceNumber, code):
@@ -1152,7 +1188,7 @@ class PyZDDE(object):
         "Null Object".
         """
         cmd = "GetNSCData,{:d},{:d}".format(surfaceNumber,code)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.rstrip()
         if rs == 'BAD COMMAND':
             nscData = -1
@@ -1185,7 +1221,7 @@ class PyZDDE(object):
                         it returns -1, if bad command.
         """
         cmd = "GetNSCMatrix,{:d},{:d}".format(surfaceNumber,objectNumber)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.rstrip()
         if rs == 'BAD COMMAND':
             nscMatrix = -1
@@ -1245,7 +1281,7 @@ class PyZDDE(object):
         int_codes = (2,3,5,6,29,101,102,110,111)
         cmd = ("GetNSCObjectData,{:d},{:d},{:d}"
               .format(surfaceNumber,objectNumber,code))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.rstrip()
         if rs == 'BAD COMMAND':
             nscObjectData = -1
@@ -1298,7 +1334,7 @@ class PyZDDE(object):
         int_codes = (20,22,24)
         cmd = ("GetNSCObjectFaceData,{:d},{:d},{:d},{:d}"
               .format(surfNumber,objNumber,faceNumber,code))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.rstrip()
         if rs == 'BAD COMMAND':
             nscObjFaceData = -1
@@ -1331,7 +1367,7 @@ class PyZDDE(object):
         """
         cmd = ("GetNSCParameter,{:d},{:d},{:d}"
               .format(surfNumber,objNumber,parameterNumber))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.rstrip()
         if rs == 'BAD COMMAND':
             nscParaVal = -1
@@ -1357,7 +1393,7 @@ class PyZDDE(object):
         See also `zSetNSCPosition`
         """
         cmd = ("GetNSCPosition,{:d},{:d}".format(surfNumber,objectNumber))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
         if rs[0].rstrip() == 'BAD COMMAND':
             nscPosData = -1
@@ -1526,7 +1562,7 @@ class PyZDDE(object):
         """
         cmd = ("GetNSCProperty,{:d},{:d},{:d},{:d}"
                 .format(surfaceNumber,objectNumber,code,faceNumber))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         nscPropData = _process_get_set_NSCProperty(code,reply)
         return nscPropData
 
@@ -1555,7 +1591,7 @@ class PyZDDE(object):
 
         See also `zSetNSCSettings`
         """
-        reply = str(self.conversation.Request('GetNSCSettings'))
+        reply = str(self._sendDDEcommand('GetNSCSettings'))
         rs = reply.rsplit(",")
         nscSettingsData = [float(rs[i]) if i in (3,4,5,6) else int(float(rs[i]))
                                                         for i in range(len(rs))]
@@ -1594,7 +1630,7 @@ class PyZDDE(object):
         """
         nscSolveData = -1
         cmd = "GetNSCSolve,{:d},{:d},{:d}".format(surfaceNumber,objectNumber,parameter)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.rstrip()
         if 'BAD COMMAND' not in rs:
             nscSolveData = tuple([float(e) if i in (3,4) else int(float(e))
@@ -1637,7 +1673,7 @@ class PyZDDE(object):
         See also `zSetOperand` and `zOptimize`.
         """
         cmd = "GetOperand,{:d},{:d}".format(row, column)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return _process_get_set_Operand(column, reply)
 
     def zGetPath(self):
@@ -1655,7 +1691,7 @@ class PyZDDE(object):
         pathToDefaultLensFolder : (string) full path to the default folder for
                                   lenses.
         """
-        reply = str(self.conversation.Request('GetPath'))
+        reply = str(self._sendDDEcommand('GetPath'))
         rs = str(reply.rstrip())
         return tuple(rs.split(','))
 
@@ -1685,7 +1721,7 @@ class PyZDDE(object):
 
         See also zSetPolState.
         """
-        reply = self.conversation.Request("GetPolState")
+        reply = self._sendDDEcommand("GetPolState")
         rs = reply.rsplit(",")
         polStateData = [int(float(elem)) if i==0 else float(elem)
                                        for i,elem in enumerate(rs[:-1])]
@@ -1766,7 +1802,7 @@ class PyZDDE(object):
         args4 = "{Ex:1.4f},{Ey:1.4f}".format(Ex=Ex,Ey=Ey)
         args5 = "{Phax:1.4f},{Phay:1.4f}".format(Phax=Phax,Phay=Phay)
         cmd = "GetPolTrace," + args1 + args2 + args3 + args4 + args5
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
         rayPolTraceData = tuple([int(elem) if i==0 else float(elem)
                                    for i,elem in enumerate(rs)])
@@ -1844,7 +1880,7 @@ class PyZDDE(object):
         args4 = "{Ex:1.4f},{Ey:1.4f}".format(Ex=Ex,Ey=Ey)
         args5 = "{Phax:1.4f},{Phay:1.4f}".format(Phax=Phax,Phay=Phay)
         cmd = "GetPolTraceDirect," + arg0 + args1 + args2 + args3 + args4 + args5
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
         rayPolTraceData = tuple([int(elem) if i==0 else float(elem)
                                    for i,elem in enumerate(rs)])
@@ -1880,7 +1916,7 @@ class PyZDDE(object):
             apodization_factor : number shown on general data dialog box.
 
         """
-        reply = self.conversation.Request('GetPupil')
+        reply = self._sendDDEcommand('GetPupil')
         rs = reply.split(',')
         pupilData = tuple([int(elem) if (i==0 or i==6)
                                  else float(elem) for i,elem in enumerate(rs)])
@@ -1907,7 +1943,7 @@ class PyZDDE(object):
         See also zGetUpdate, zPushLens.
         """
         reply = None
-        reply = self.conversation.Request('GetRefresh')
+        reply = self._sendDDEcommand('GetRefresh')
         if reply:
             return int(reply) #Note: Zemax returns -1 if GetRefresh fails.
         else:
@@ -1933,7 +1969,7 @@ class PyZDDE(object):
           alternateSag  : (float) altenate sag
         """
         cmd = "GetSag,{:d},{:1.20g},{:1.20g}".format(surfaceNumber,x,y)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         sagData = reply.rsplit(",")
         return (float(sagData[0]),float(sagData[1]))
 
@@ -1951,7 +1987,7 @@ class PyZDDE(object):
         -------
         sequenceNumbers : 2-tuple containing the sequence numbers
         """
-        reply = self.conversation.Request("GetSequence")
+        reply = self._sendDDEcommand("GetSequence")
         seqNum = reply.rsplit(",")
         return (float(seqNum[0]),float(seqNum[1]))
 
@@ -1966,7 +2002,7 @@ class PyZDDE(object):
         ------
         serial number
         """
-        reply = self.conversation.Request('GetSerial')
+        reply = self._sendDDEcommand('GetSerial')
         return int(reply.rstrip())
 
     def zGetSettingsData(self,tempFile,number):
@@ -1993,7 +2029,7 @@ class PyZDDE(object):
         See also zSetSettingsData
         """
         cmd = "GetSettingsData,{},{:d}".format(tempFile,number)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return str(reply.rstrip())
 
     def zGetSolve(self, surfaceNumber, code):
@@ -2044,7 +2080,7 @@ class PyZDDE(object):
         See also `zSetSolve`, `zGetNSCSolve`, `zSetNSCSolve`.
         """
         cmd = "GetSolve,{:d},{:d}".format(surfaceNumber,code)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         solveData = _process_get_set_Solve(reply)
         return solveData
 
@@ -2121,7 +2157,7 @@ class PyZDDE(object):
         else:
             cmd = "GetSurfaceData,{sN:d},{c:d},{a:d}".format(sN=surfaceNumber,
                                                                  c=code,a=arg2)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         if code in (0,1,4,7,9):
             surfaceDatum = reply.rstrip()
         else:
@@ -2145,7 +2181,7 @@ class PyZDDE(object):
                        type column of the LDE.
         """
         cmd = "GetSurfaceDLL,{sN:d}".format(surfaceNumber)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
         return (rs[0],rs[1])
 
@@ -2172,7 +2208,7 @@ class PyZDDE(object):
         See also zGetSurfaceData, ZSetSurfaceParameter.
         """
         cmd = "GetSurfaceParameter,{sN:d},{p:d}".format(sN=surfaceNumber,p=parameter)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return float(reply)
 
 
@@ -2204,7 +2240,7 @@ class PyZDDE(object):
         See also zSetSystem, zGetFirst, zGetSystemProperty, zGetSystemAper, zGetAperture, zSetAperture
         Use `zGetFirst` to get first order lens data such as EFL, F/# etc.
         """
-        reply = self.conversation.Request("GetSystem")
+        reply = self._sendDDEcommand("GetSystem")
         rs = reply.split(',')
         systemData = tuple([float(elem) if (i==6) else int(float(elem))
                                                   for i,elem in enumerate(rs)])
@@ -2237,7 +2273,7 @@ class PyZDDE(object):
 
         See also, zGetSystem(), zSetSystemAper()
         """
-        reply = self.conversation.Request("GetSystemAper")
+        reply = self._sendDDEcommand("GetSystemAper")
         rs = reply.split(',')
         systemAperData = tuple([float(elem) if i==2 else int(float(elem))
                                 for i, elem in enumerate(rs)])
@@ -2346,7 +2382,7 @@ class PyZDDE(object):
         See also zSetSystemProperty, zGetFirt
         """
         cmd = "GetSystemProperty,{c}".format(c=code)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         sysPropData = _process_get_set_SystemProperty(code,reply)
         return sysPropData
 
@@ -2402,7 +2438,7 @@ class PyZDDE(object):
         if path.isabs(textFileName) and path.splitext(textFileName)[1]!='':
             cmd = 'GetTextFile,"{tF}",{aT},"{sF}",{fl:d}'.format(tF=textFileName,
                                     aT=analysisType,sF=settingsFileName,fl=flag)
-            reply = self.conversation.Request(cmd)
+            reply = self._sendDDEcommand(cmd)
             if 'OK' in reply.split():
                 retVal = 0
         return retVal
@@ -2426,11 +2462,11 @@ class PyZDDE(object):
 
         See also zSetTol, zSetTolRow
         """
-        reply = self.conversation.Request("GetTol,{:d}".format(operandNumber))
+        reply = self._sendDDEcommand("GetTol,{:d}".format(operandNumber))
         if operandNumber == 0:
             toleranceData = int(float(reply.rstrip()))
             if toleranceData == 1:
-                reply = self.conversation.Request("GetTol,1")
+                reply = self._sendDDEcommand("GetTol,1")
                 tolType = reply.rsplit(",")[0]
                 if tolType == 'TOFF': # the tol editor is actually empty
                     toleranceData = 0
@@ -2499,7 +2535,7 @@ class PyZDDE(object):
         args2 = "{hx:1.4f},{hy:1.4f},".format(hx=hx,hy=hy)
         args3 = "{px:1.4f},{py:1.4f}".format(px=px,py=py)
         cmd = "GetTrace," + args1 + args2 + args3
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
         rayTraceData = tuple([int(elem) if (i==0 or i==1)
                                  else float(elem) for i,elem in enumerate(rs)])
@@ -2556,7 +2592,7 @@ class PyZDDE(object):
         args3 = "{x:1.20f},{y:1.20f},{z:1.20f}".format(x=x,y=y,z=z)
         args4 = "{l:1.20f},{m:1.20f},{n:1.20f}".format(l=l,m=m,n=n)
         cmd = "GetTraceDirect," + args1 + args2 + args3 + args4
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
         rayTraceData = tuple([int(elem) if (i==0 or i==1)
                                  else float(elem) for i,elem in enumerate(rs)])
@@ -2589,7 +2625,7 @@ class PyZDDE(object):
         See also zSetUDOItem.
         """
         cmd = "GetUDOSystem,{:d}".format(bufferCode)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return _regressLiteralType(reply.rstrip())
         # FIX !!! At this time, I am not sure what is the expected return.
 
@@ -2615,7 +2651,7 @@ class PyZDDE(object):
         See also zGetRefresh, zOptimize, zPushLens
         """
         status,ret = -998, None
-        ret = self.conversation.Request("GetUpdate")
+        ret = self._sendDDEcommand("GetUpdate")
         if ret != None:
             status = int(ret)  #Note: Zemax returns -1 if GetUpdate fails.
         return status
@@ -2626,7 +2662,7 @@ class PyZDDE(object):
         zGetVersion() -> version (integer, generally 5 digit)
 
         """
-        return int(self.conversation.Request("GetVersion"))
+        return int(self._sendDDEcommand("GetVersion"))
 
     def zGetWave(self,n):
         """Extract wavelength data from ZEMAX DDE server.
@@ -2652,7 +2688,7 @@ class PyZDDE(object):
 
         See also zSetWave(),zSetWaveTuple(), zGetWaveTuple().
         """
-        reply = self.conversation.Request('GetWave,'+str(n))
+        reply = self._sendDDEcommand('GetWave,'+str(n))
         rs = reply.split(',')
         if n:
             waveData = tuple([float(ele) for ele in rs])
@@ -2683,7 +2719,7 @@ class PyZDDE(object):
         waveDataTuple = [[],[]]
         for i in range(waveCount):
             cmd = "GetWave,{wC:d}".format(wC=i+1)
-            reply = self.conversation.Request(cmd)
+            reply = self._sendDDEcommand(cmd)
             rs = reply.split(',')
             waveDataTuple[0].append(float(rs[0])) # store the wavelength
             waveDataTuple[1].append(float(rs[1])) # store the weight
@@ -2723,7 +2759,7 @@ class PyZDDE(object):
         See also zOptimize,  zLoadMerit, zsaveMerit
         """
         cmd = "Hammer,{:1.2g},{:d}".format(numOfCycles,algorithm)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return float(reply.rstrip())
 
     def zImportExtraData(self,surfaceNumber,fileName):
@@ -2747,7 +2783,7 @@ class PyZDDE(object):
         .DAT extension.
         """
         cmd = "ImportExtraData,{:d},{}".format(surfaceNumber,fileName)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return reply.rstrip()
         # !!! FIX determine what is the currect return
 
@@ -2778,7 +2814,7 @@ class PyZDDE(object):
 
         See also zDeleteConfig.
         """
-        return int(self.conversation.Request("InsertConfig,{:d}".format(configNumber)))
+        return int(self._sendDDEcommand("InsertConfig,{:d}".format(configNumber)))
 
     def zInsertMCO(self,operandNumber):
         """Insert a new multi-configuration operand (row) in the multi-configuration
@@ -2797,7 +2833,7 @@ class PyZDDE(object):
 
         See also zDeleteMCO. Use zInsertConfig(), to insert a new configuration (row).
         """
-        return int(self.conversation.Request("InsertMCO,{:d}".format(operandNumber)))
+        return int(self._sendDDEcommand("InsertMCO,{:d}".format(operandNumber)))
 
     def zInsertMFO(self,operandNumber):
         """Insert a new optimization operand (row) in the merit function editor.
@@ -2815,7 +2851,7 @@ class PyZDDE(object):
 
         See also zDeleteMFO. Generally, you may want to use zSetOperand() afterwards.
         """
-        return int(self.conversation.Request("InsertMFO,{:d}".format(operandNumber)))
+        return int(self._sendDDEcommand("InsertMFO,{:d}".format(operandNumber)))
 
     def zInsertObject(self,surfaceNumber,objectNumber):
         """
@@ -2838,7 +2874,7 @@ class PyZDDE(object):
         zDeleteObject function.
         """
         cmd = "InsertObject,{:d},{:d}".format(surfaceNumber,objectNumber)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         if reply.rstrip() == 'BAD COMMAND':
             return -1
         else:
@@ -2863,7 +2899,7 @@ class PyZDDE(object):
         See also zSetSurfaceData() to define data for the new surface and the
         zDeleteSurface() functions.
         """
-        return int(self.conversation.Request("InsertSurface,"+str(surfNum)))
+        return int(self._sendDDEcommand("InsertSurface,"+str(surfNum)))
 
     def zLoadDetector(self, surfaceNumber, objectNumber, fileName):
         """Loads the data saved in a file to an NSC Detector Rectangle, Detector
@@ -2894,7 +2930,7 @@ class PyZDDE(object):
         if isRightExt and isFile:
             cmd = ("LoadDetector,{:d},{:d},{}"
                    .format(surfaceNumber,objectNumber,fileName))
-            reply = self.conversation.Request(cmd)
+            reply = self._sendDDEcommand(cmd)
             return _regressLiteralType(reply.rstrip())
         else:
             return -1
@@ -2931,7 +2967,7 @@ class PyZDDE(object):
                 cmd = "LoadFile,{},{}".format(fileName,append)
             else:
                 cmd = "LoadFile,{}".format(fileName)
-            reply = self.conversation.Request(cmd)
+            reply = self._sendDDEcommand(cmd)
             if reply:
                 return int(reply) #Note: Zemax returns -999 if update fails.
             else:
@@ -2971,7 +3007,7 @@ class PyZDDE(object):
         isRightExt = path.splitext(fileName)[1] in ('.mf','.MF','.zmx','.ZMX')
         isFile = path.isfile(fileName)
         if isAbsPath and isRightExt and isFile:
-            reply = self.conversation.Request('LoadMerit,'+fileName)
+            reply = self._sendDDEcommand('LoadMerit,'+fileName)
             rs = reply.rsplit(",")
             meritData = [int(float(e)) if i==0 else float(e)
                          for i,e in enumerate(rs)]
@@ -3001,7 +3037,7 @@ class PyZDDE(object):
             fullFilePathName = self.zGetPath()[0] + "\\Tolerance\\" + fileName
         if path.isfile(fullFilePathName):
             cmd = "LoadTolerance,{}".format(fileName)
-            reply = self.conversation.Request(cmd)
+            reply = self._sendDDEcommand(cmd)
             return int(float(reply.rstrip()))
         else:
             return -999
@@ -3078,7 +3114,7 @@ class PyZDDE(object):
         else:
             cmd = ("MakeGraphicWindow,{},{},{},{:d}"
                    .format(fileName,moduleName,winTitle,textFlag))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return str(reply.rstrip())
         # FIX !!! What is the appropriate reply?
 
@@ -3139,7 +3175,7 @@ class PyZDDE(object):
         else:
             cmd = ("MakeTextWindow,{},{},{}"
                    .format(fileName,moduleName,winTitle))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return str(reply.rstrip())
         # FIX !!! What is the appropriate reply?
 
@@ -3171,7 +3207,7 @@ class PyZDDE(object):
             cmd = "ModifySettings,{},{},{}".format(fileName,mType,value)
         else:
             cmd = "ModifySettings,{},{},{:1.20g}".format(fileName,mType,value)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return int(float(reply.rstrip()))
 
     def zNewLens(self):
@@ -3182,7 +3218,7 @@ class PyZDDE(object):
 
         zNewLens-> retVal (retVal = 0 means successful)
         """
-        return int(self.conversation.Request('NewLens'))
+        return int(self._sendDDEcommand('NewLens'))
 
     def zNSCCoherentData(self,surfaceNumber,objectNumDisDetectr,pixel,dataType):
         """Return data from an NSC detector (Non-sequential coherent data)
@@ -3205,7 +3241,7 @@ class PyZDDE(object):
         """
         cmd = ("NSCCoherentData,{:d},{:d},{:d},{:d}"
                .format(surfaceNumber,objectNumDisDetectr,pixel,dataType))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return float(reply.rstrip())
 
     def zNSCDetectorData(self,surfaceNumber,objectNumDisDetectr,pixel,dataType):
@@ -3256,8 +3292,39 @@ class PyZDDE(object):
         """
         cmd = ("NSCDetectorData,{:d},{:d},{:d},{:d}"
                .format(surfaceNumber,objectNumDisDetectr,pixel,dataType))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return float(reply.rstrip())
+
+    def zNSCLightningTrace(self, surfNumber, source, raySampling, edgeSampling, timeout=60):
+        """Traces rays from one or all NSC sources using Lighting Trace.
+
+        zNSCLightningTrace(surfNumber, source, raySampling, edgeSampling) ->
+
+        Parameters
+        ---------
+        surfNumber   : (integer) surface number, use 1 for pure NSC mode
+        source       : (integer) object number of the desired source. If source
+                      is zero, all sources will be traced.
+        raySampling  : resolution of the LightningTrace mesh with valid values
+                     between 0 (= "Low (1X)") and 5 (= "1024X").
+        edgeSampling : resolution used in refining the LightningTrace mesh near
+                     the edges of objects, with valid values between 0 ("Low (1X)")
+                     and 4 ("256X").
+        timeout      : timeout value in seconds. Default=60sec
+
+        Note: `zNSCLightningTrac`e always updates the lens before executing a
+        LightningTrace to make certain all objects are correctly loaded and
+        updated.
+        """
+        cmd = ("NSCLightningTrace,{:d},{:d},{:d},{:d}"
+               .format(surfNumber, source, raySampling, edgeSampling))
+        reply = self._sendDDEcommand(cmd, timeout)
+        if 'OK' in reply.split():
+            return 0
+        elif 'BAD COMMAND' in reply.rstrip():
+            return -1
+        else:
+            return int(float(reply.rstrip()))  # return the error code sent by zemax.
 
     def zNSCTrace(self, surfNum, objNumSrc, split=0, scatter=0, usePolar=0,
                   ignoreErrors=0, randomSeed=0, save=0, saveFilename=None,
@@ -3348,7 +3415,7 @@ class PyZDDE(object):
                 return -1 # either full path present in saveFileName or extension is not .ZRD
         else:
             cmd = "NSCTrace,"+requiredArgs
-        reply = self.conversation.Request(cmd, timeout)
+        reply = self._sendDDEcommand(cmd, timeout)
         if 'OK' in reply.split():
             return 0
         elif 'BAD COMMAND' in reply.rstrip():
@@ -3356,37 +3423,7 @@ class PyZDDE(object):
         else:
             return int(float(reply.rstrip()))  # return the error code sent by zemax.
 
-    def zNSCLightningTrace(self, surfNumber, source, raySampling, edgeSampling):
-        """Traces rays from one or all NSC sources using Lighting Trace.
-
-        zNSCLightningTrace(surfNumber, source, raySampling, edgeSampling) ->
-
-        Parameters
-        ---------
-        surfNumber   : (integer) surface number, use 1 for pure NSC mode
-        source       : (integer) object number of the desired source. If source
-                      is zero, all sources will be traced.
-        raySampling  : resolution of the LightningTrace mesh with valid values
-                     between 0 (= "Low (1X)") and 5 (= "1024X").
-        edgeSampling : resolution used in refining the LightningTrace mesh near
-                     the edges of objects, with valid values between 0 ("Low (1X)")
-                     and 4 ("256X").
-
-        Note: `zNSCLightningTrac`e always updates the lens before executing a
-        LightningTrace to make certain all objects are correctly loaded and
-        updated.
-        """
-        cmd = ("NSCLightningTrace,{:d},{:d},{:d},{:d}"
-               .format(surfNumber, source, raySampling, edgeSampling))
-        reply = self.conversation.Request(cmd)
-        if 'OK' in reply.split():
-            return 0
-        elif 'BAD COMMAND' in reply.rstrip():
-            return -1
-        else:
-            return int(float(reply.rstrip()))  # return the error code sent by zemax.
-
-    def zOpenWindow(self, analysisType, zplMacro=False):
+    def zOpenWindow(self, analysisType, zplMacro=False, timeout=None):
         """Open a new analysis window on the main ZEMAX screen.
 
         `zOpenWindow(analysisType)->status`
@@ -3404,6 +3441,7 @@ class PyZDDE(object):
         zplMacro      : (bool) True if the analysisTyppe code is the first 3-letters
                       of a ZPL macro name, else False (default). Please see
                       the Note below
+        timeout       : timeout value in seconds. Default=None
 
         Returns
         -------
@@ -3421,7 +3459,7 @@ class PyZDDE(object):
         See also `zGetMetaFile`, `zExecuteZPLMacro`
         """
         if zb.isZButtonCode(analysisType) ^ zplMacro:  # XOR operation
-            reply = self.conversation.Request("OpenWindow,{}".format(analysisType))
+            reply = self._sendDDEcommand("OpenWindow,{}".format(analysisType), timeout)
             if 'OK' in reply.split():
                 return 0
             elif 'FAIL' in reply.split():
@@ -3451,12 +3489,12 @@ class PyZDDE(object):
                        for i,elem in enumerate(values)]
             arguments = ",".join(valList)
             cmd = "OperandValue," + operandType + "," + arguments
-            reply = self.conversation.Request(cmd)
+            reply = self._sendDDEcommand(cmd)
             return float(reply.rstrip())
         else:
             return -1
 
-    def zOptimize(self, numOfCycles, algorithm):
+    def zOptimize(self, numOfCycles, algorithm, timeout=None):
         """Calls the Zemax Damped Least Squares (DLS) optimizer.
 
         `zOptimize(numOfCycles,algorithm)->finalMeritFn`
@@ -3470,6 +3508,8 @@ class PyZDDE(object):
                        and no optimization is performed.
         algorithm    : 0 = Damped Least Squares
                        1 = Orthogonal descent
+        timeout      : timeout value in seconds
+
         Returns
         -------
         finalMeritFn : (float) the final merit function.
@@ -3490,7 +3530,7 @@ class PyZDDE(object):
         See also `zHammer`, `zLoadMerit`, `zsaveMerit`, `zOptimize2`
         """
         cmd = "Optimize,{:1.2g},{:d}".format(numOfCycles,algorithm)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd, timeout)
         return float(reply.rstrip())
 
     def zPushLens(self, updateFlag=None, timeout=None):
@@ -3524,13 +3564,10 @@ class PyZDDE(object):
         `zGetRefresh`, `zSaveFile`.
         """
         reply = None
-        if timeout:
-            warnings.warn("Timeout not implemented. Default = 1 min.")
-            pass
         if updateFlag==1:
-            reply = self.conversation.Request('PushLens,1')
+            reply = self._sendDDEcommand('PushLens,1', timeout)
         elif updateFlag == 0 or updateFlag == None:
-            reply = self.conversation.Request('PushLens')
+            reply = self._sendDDEcommand('PushLens', timeout)
         else:
             raise ValueError('Invalid value for flag')
 
@@ -3559,7 +3596,7 @@ class PyZDDE(object):
         See also `zPushLens`, `zGetRefresh`
         """
         status = None
-        status = self.conversation.Request('PushLensPermission')
+        status = self._sendDDEcommand('PushLensPermission')
         return int(status)
 
     def zQuickFocus(self,mode=0,centroid=0):
@@ -3587,7 +3624,7 @@ class PyZDDE(object):
         """
         retVal = -1
         cmd = "QuickFocus,{mode:d},{cent:d}".format(mode=mode,cent=centroid)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         if 'OK' in reply.split():
             retVal = 0
         return retVal
@@ -3618,7 +3655,7 @@ class PyZDDE(object):
         out of the menu bar. If this command is not sent, the window cannot be
         closed, which will prevent ZEMAX from terminating normally.
         """
-        reply = self.conversation.Request("ReleaseWindow,{}".format(tempFileName))
+        reply = self._sendDDEcommand("ReleaseWindow,{}".format(tempFileName))
         return int(float(reply.rstrip()))
 
     def zRemoveVariables(self):
@@ -3634,7 +3671,7 @@ class PyZDDE(object):
         -------
         status : 0 = successful.
         """
-        reply = self.conversation.Request('RemoveVariables')
+        reply = self._sendDDEcommand('RemoveVariables')
         if 'OK' in reply.split():
             return 0
         else:
@@ -3668,7 +3705,7 @@ class PyZDDE(object):
         if isRightExt:
             cmd = ("SaveDetector,{:d},{:d},{}"
                    .format(surfaceNumber,objectNumber,fileName))
-            reply = self.conversation.Request(cmd)
+            reply = self._sendDDEcommand(cmd)
             return _regressLiteralType(reply.rstrip())
         else:
             return -1
@@ -3696,7 +3733,7 @@ class PyZDDE(object):
         isRightExt = path.splitext(fileName)[1] in ('.zmx','.ZMX')
         if isAbsPath and isRightExt:
             cmd = "SaveFile,{}".format(fileName)
-            reply = self.conversation.Request(cmd)
+            reply = self._sendDDEcommand(cmd)
             return int(float(reply.rstrip()))
         else:
             return -1
@@ -3722,7 +3759,7 @@ class PyZDDE(object):
         isRightExt = path.splitext(fileName)[1] in ('.mf','.MF')
         if isAbsPath and isRightExt:
             cmd = "SaveMerit,{}".format(fileName)
-            reply = self.conversation.Request(cmd)
+            reply = self._sendDDEcommand(cmd)
             return int(float(reply.rstrip()))
         else:
             return -1
@@ -3746,7 +3783,7 @@ class PyZDDE(object):
         See also zLoadTolerance.
         """
         cmd = "SaveTolerance,{}".format(fileName)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return int(float(reply.rstrip()))
 
     def zSetAperture(self,surfNum,aType,aMin,aMax,xDecenter=0,yDecenter=0,
@@ -3804,7 +3841,7 @@ class PyZDDE(object):
         cmd  = ("SetAperture,{sN:d},{aT:d},{aMn:1.20g},{aMx:1.20g},{xD:1.20g},"
                 "{yD:1.20g},{aF}".format(sN=surfNum,aT=aType,aMn=aMin,aMx=aMax,
                  xD=xDecenter,yD=yDecenter,aF=apertureFile))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
         apertureInfo = tuple([float(elem) for elem in rs])
         return apertureInfo
@@ -3840,7 +3877,7 @@ class PyZDDE(object):
         """
         if (0 < len(textData) < 240) and (0 <= bufferNumber < 16):
             cmd = "SetBuffer,{:d},{}".format(bufferNumber,str(textData))
-            reply = self.conversation.Request(cmd)
+            reply = self._sendDDEcommand(cmd)
             return 0 if 'OK' in reply.rsplit() else -1
         else:
             return -1
@@ -3867,7 +3904,7 @@ class PyZDDE(object):
         See also zGetConfig. Use zInsertConfig to insert new configuration in the
         multi-configuration editor.
         """
-        reply = self.conversation.Request("SetConfig,{:d}".format(configNumber))
+        reply = self._sendDDEcommand("SetConfig,{:d}".format(configNumber))
         rs = reply.split(',')
         return tuple([int(elem) for elem in rs])
 
@@ -3891,7 +3928,7 @@ class PyZDDE(object):
         """
         cmd = ("SetExtra,{:d},{:d},{:1.20g}"
                .format(surfaceNumber,columnNumber,value))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return float(reply)
 
     def zSetField(self,n,arg1,arg2,arg3=1.0,vdx=0.0,vdy=0.0,vcx=0.0,vcy=0.0,van=0.0):
@@ -3953,7 +3990,7 @@ class PyZDDE(object):
         else:
             cmd = ("SetField,{:d},{:d},{:d},{:.0f}".format(0,arg1,arg2,arg3))
 
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
         if n:
             fieldData = tuple([float(elem) for elem in rs])
@@ -3995,7 +4032,7 @@ class PyZDDE(object):
             raise ValueError('Invalid number of fields')
         cmd = ("SetField,{:d},{:d},{:d},{:d}"
               .format(0,fieldType,fieldCount,fNormalization))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         oFieldDataTuple = [ ]
         for i in range(fieldCount):
             fieldData = self.zSetField(i+1,*iFieldDataTuple[i])
@@ -4017,7 +4054,7 @@ class PyZDDE(object):
         status : 0 = success, -1 = fail
         """
         retVal = -1
-        reply = self.conversation.Request('SetFloat')
+        reply = self._sendDDEcommand('SetFloat')
         if 'OK' in reply.split():
             retVal = 0
         return retVal
@@ -4040,7 +4077,7 @@ class PyZDDE(object):
 
         See also zGetLabel, zFindLabel
         """
-        reply = self.conversation.Request("SetLabel,{:d},{:d}"
+        reply = self._sendDDEcommand("SetLabel,{:d},{:d}"
                                           .format(surfaceNumber,label))
         return int(float(reply.rstrip()))
 
@@ -4156,7 +4193,7 @@ class PyZDDE(object):
             raise ValueError('Invalid input, expecting proper argument')
         # FIX !!! Should it just return -1, instead of raising a value error?
         # If the raise is removed, change code accordingly in the unittest.
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         if config: # if config > 0
             rs = reply.split(",")
             multiConData = [float(rs[i]) if (i == 0 or i == 6 or i== 7) else int(rs[i])
@@ -4228,7 +4265,7 @@ class PyZDDE(object):
         else:  # data is float
             cmd = ("SetNSCObjectData,{:d},{:d},{:d},{:1.20g}"
               .format(surfaceNumber,objectNumber,code,data))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.rstrip()
         if rs == 'BAD COMMAND':
             nscObjectData = -1
@@ -4290,7 +4327,7 @@ class PyZDDE(object):
         else: # data is float
             cmd = ("SetNSCObjectFaceData,{:d},{:d},{:d},{:d},{:1.20g}"
                   .format(surfNumber,objNumber,faceNumber,code,data))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.rstrip()
         if rs == 'BAD COMMAND':
             nscObjFaceData = -1
@@ -4324,7 +4361,7 @@ class PyZDDE(object):
         """
         cmd = ("SetNSCParameter,{:d},{:d},{:d},{:1.20g}"
               .format(surfNumber,objNumber,parameterNumber,data))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.rstrip()
         if rs == 'BAD COMMAND':
             nscParaVal = -1
@@ -4358,7 +4395,7 @@ class PyZDDE(object):
         else:
             cmd = ("SetNSCPosition,{:d},{:d},{:d},{:1.20g}"
             .format(surfNumber,objectNumber,code,data))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
         if rs[0].rstrip() == 'BAD COMMAND':
             nscPosData = -1
@@ -4531,7 +4568,7 @@ class PyZDDE(object):
             cmd = cmd + str(int(value))
         else:
             cmd = cmd + str(float(value))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         nscPropData = _process_get_set_NSCProperty(code,reply)
         return nscPropData
 
@@ -4570,7 +4607,7 @@ class PyZDDE(object):
                                                  ignoreErr) = nscSettingsData
         cmd = ("SetNSCSettings,{:d},{:d},{:d},{:1.20g},{:1.20g},{:1.20g},{:1.20g},{:d}"
         .format(maxInt,maxSeg,maxNest,minAbsI,minRelI,glueDist,missRayLen,ignoreErr))
-        reply = str(self.conversation.Request(cmd))
+        reply = str(self._sendDDEcommand(cmd))
         rs = reply.rsplit(",")
         nscSettingsData = [float(rs[i]) if i in (3,4,5,6) else int(float(rs[i]))
                                                         for i in range(len(rs))]
@@ -4618,7 +4655,7 @@ class PyZDDE(object):
         args2 = "{:d},{:d},{:d},".format(solveType, pickupObject, pickupColumn)
         args3 = "{:1.20g},{:1.20g}".format(scale, offset)
         cmd = ''.join(["SetNSCSolve,",args1,args2,args3])
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.rstrip()
         if 'BAD COMMAND' not in rs:
             nscSolveData = tuple([float(e) if i in (3,4) else int(float(e))
@@ -4650,7 +4687,7 @@ class PyZDDE(object):
         """
         waveData = self.zGetWave(0)
         cmd = "SetWave,{:d},{:d},{:d}".format(0,primaryWaveNumber,waveData[1])
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
         waveData = tuple([int(elem) for elem in rs])
         return waveData
@@ -4703,7 +4740,7 @@ class PyZDDE(object):
         else:
             value = '{}'.format(float(value))
         cmd = "SetOperand,{:d},{:d},{}".format(row, column, value)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return _process_get_set_Operand(column, reply)
 
     def zSetPolState(self,nlsPolarized,Ex,Ey,Phx,Phy):
@@ -4734,7 +4771,7 @@ class PyZDDE(object):
         """
         cmd = ("SetPolState,{:d},{:1.20g},{:1.20g},{:1.20g},{:1.20g}"
                 .format(nlsPolarized,Ex,Ey,Phx,Phy))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.rsplit(",")
         polStateData = [int(float(elem)) if i==0 else float(elem)
                                        for i,elem in enumerate(rs[:-1])]
@@ -4763,7 +4800,7 @@ class PyZDDE(object):
         See also zGetSettingsData.
         """
         cmd = "SettingsData,{:d},{}".format(number,data)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return str(reply.rstrip())
 
     def zSetSolve(self, surfaceNumber, code, *solveData):
@@ -4966,7 +5003,7 @@ class PyZDDE(object):
         else:
             cmd = ("SetSolve,{:d},{:d},{:d}"
                   .format(surfaceNumber,code,solveData[0]))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         solveData = _process_get_set_Solve(reply)
         return solveData
 
@@ -5059,7 +5096,7 @@ class PyZDDE(object):
                 cmd = cmd+","+str(arg2)
             else:
                 raise ValueError('Invalid input, expecting argument')
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         if code in (0,1,4,7,9):
             surfaceDatum = reply.rstrip()
         else:
@@ -5085,7 +5122,7 @@ class PyZDDE(object):
         """
         cmd = ("SetSurfaceParameter,{:d},{:d},{:1.20g}"
                .format(surfaceNumber,parameter,value))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return float(reply)
 
 
@@ -5135,7 +5172,7 @@ class PyZDDE(object):
         cmd = ("SetSystem,{:d},{:d},{:d},{:d},{:1.20g},{:1.20g},{:d}"
               .format(unitCode,stopSurf,rayAimingType,useEnvData,temp,pressure,
                globalRefSurf))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
         systemData = tuple([float(elem) if (i==6) else int(float(elem))
                                                   for i,elem in enumerate(rs)])
@@ -5174,7 +5211,7 @@ class PyZDDE(object):
         """
         cmd = ("SetSystemAper,{:d},{:d},{:1.20g}"
                .format(aType,stopSurf,apertureValue))
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
         systemAperData = tuple([float(elem) if i==2 else int(float(elem))
                                 for i, elem in enumerate(rs)])
@@ -5288,7 +5325,7 @@ class PyZDDE(object):
         See also `zGetSystemProperty`.
         """
         cmd = "SetSystemProperty,{c:d},{v1},{v2}".format(c=code,v1=value1,v2=value2)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         sysPropData = _process_get_set_SystemProperty(code,reply)
         return sysPropData
 
@@ -5329,7 +5366,7 @@ class PyZDDE(object):
                 return -1
         else:
             cmd = "SetTol,{:d},{:d},{:1.20g}".format(operandNumber,col,value)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         if operandNumber == 0: # returns just the number of operands
             return int(float(reply.rstrip()))
         else:
@@ -5407,7 +5444,7 @@ class PyZDDE(object):
         See also zGetUDOSystem, zCloseUDOData.
         """
         cmd = "SetUDOItem,{:d},{:d},{:1.20g}".format(bufferCode,dataNumber,data)
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         return _regressLiteralType(reply.rstrip())
         # FIX !!! At this time, I am not sure what is the expected return.
 
@@ -5429,7 +5466,7 @@ class PyZDDE(object):
         retVal  : 0 = success, -1 = fail
         """
         retVal = -1
-        reply = self.conversation.Request("SetVig")
+        reply = self._sendDDEcommand("SetVig")
         if 'OK' in reply.split():
             retVal = 0
         return retVal
@@ -5475,7 +5512,7 @@ class PyZDDE(object):
         else:
             cmd = "SetWave,{:d},{:d},{:d}".format(0,arg1,arg2)
 
-        reply = self.conversation.Request(cmd)
+        reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
         if n:
             waveData = tuple([float(ele) for ele in rs])
@@ -5512,7 +5549,7 @@ class PyZDDE(object):
         for i in range(waveCount):
             cmd = ("SetWave,{:d},{:1.20g},{:1.20g}"
                    .format(i+1,iWaveDataTuple[0][i],iWaveDataTuple[1][i]))
-            reply = self.conversation.Request(cmd)
+            reply = self._sendDDEcommand(cmd)
             rs = reply.split(',')
             oWaveDataTuple[0].append(float(rs[0])) # store the wavelength
             oWaveDataTuple[1].append(float(rs[1])) # store the weight
@@ -5533,7 +5570,7 @@ class PyZDDE(object):
         retVal   : 0 if success, -1 if failed.
         """
         retVal = -1
-        reply = self.conversation.Request("WindowMaximize,{:d}".format(windowNumber))
+        reply = self._sendDDEcommand("WindowMaximize,{:d}".format(windowNumber))
         if 'OK' in reply.split():
             retVal = 0
         return retVal
@@ -5553,7 +5590,7 @@ class PyZDDE(object):
         retVal   : 0 if success, -1 if failed.
         """
         retVal = -1
-        reply = self.conversation.Request("WindowMinimize,{:d}".format(windowNumber))
+        reply = self._sendDDEcommand("WindowMinimize,{:d}".format(windowNumber))
         if 'OK' in reply.split():
             retVal = 0
         return retVal
@@ -5573,7 +5610,7 @@ class PyZDDE(object):
         retVal   : 0 if success, -1 if failed.
         """
         retVal = -1
-        reply = self.conversation.Request("WindowRestore,{:d}".format(windowNumber))
+        reply = self._sendDDEcommand("WindowRestore,{:d}".format(windowNumber))
         if 'OK' in reply.split():
             retVal = 0
         return retVal

@@ -1,7 +1,6 @@
 #-------------------------------------------------------------------------------
 # Name:        dde_backup.py
-# Purpose:     Send DDE Execute command to running program (this is a backup if the
-#              dde module of PyWin32 fails with ImportError)
+# Purpose:     Send DDE command to ZEMAX
 #
 # Notes:       This code has been adapted from David Naylor's dde-client code from
 #              ActiveState's Python recipes (Revision 1).
@@ -160,7 +159,7 @@ class CreateConversation(object):
         """
         self.ddeClientName = ddeServer.clientName
         self.ddeServerName = 'None'
-        self.ddetimeout = 60    # default dde timeout = 60 seconds
+        self.ddetimeout = 50    # default dde timeout = 50 seconds
 
     def ConnectTo(self, appName, data=None):
         global number_of_apps_communicating
@@ -183,11 +182,17 @@ class CreateConversation(object):
             print("This could be a TIMEOUT issue. Use a higher timeout value if you suspect "
                   "that the ZEMAX operation is taking a long time to complete.\n")
         return reply
+
     def SetDDETimeout(self, timeout):
         """Set DDE timeout
         timeout : timeout in seconds
         """
         self.ddetimeout = timeout
+
+    def GetDDETimeout(self):
+        """Returns the current timeout value in seconds
+        """
+        return self.ddetimeout
 
 
 def get_winfunc(libname, funcname, restype=None, argtypes=(), _libcache={}):
