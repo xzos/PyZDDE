@@ -151,7 +151,7 @@ def cropImgBorders(pixarr, left, right, top, bottom):
     else:
         print("The function couldn't be executed. Requires Numpy")
 
-def imshow(pixarr, cropBorderPixels=(0, 0, 0, 0), figsize=None, title=None, fig=None):
+def imshow(pixarr, cropBorderPixels=(0, 0, 0, 0), figsize=None, title=None, fig=None, faxes=None):
     """Convenience function to render the screenshot
 
     Parameters
@@ -167,17 +167,32 @@ def imshow(pixarr, cropBorderPixels=(0, 0, 0, 0), figsize=None, title=None, fig=
         figure title (default=None)
     fig : matplotlib figure object (optional)
         If a figure object is passed, the given figure will be used for plotting.
+    faxes : matplotlib figure axis (optional, however recommended if `fig` is passed)
+        If a figure object is passed, it is recommended to also pass an axes object. Also,
+        if an `faxes` is passed, the `fig` must also be given.
 
     Returns
     -------
     None
+
+    Note
+    ----
+    If `fig` is provided, then the function will not call `plt.show`. Please use
+    `plt.show` as required (after the function returns)
     """
     if MplPltLoad and NpyLoad:
-        if fig:
+        if fig and faxes:
             figure = fig
+            ax = faxes
+        elif fig and not faxes:
+            figure = fig
+            ax = figure.add_subplot(111)
+        elif not fig and faxes:
+            print("Please pass a valid figure object along the given axes.")
+            return
         else:
             figure = plt.figure(figsize=figsize)
-        ax = figure.add_subplot(111)
+            ax = figure.add_subplot(111)
         left, right, top, bottom = cropBorderPixels
         narr = cropImgBorders(pixarr, left, right, top, bottom)
         ax.imshow(narr, interpolation='spline36')
@@ -191,6 +206,7 @@ def imshow(pixarr, cropBorderPixels=(0, 0, 0, 0), figsize=None, title=None, fig=
         ax.spines['left'].set_color('none')
         ax.spines['top'].set_color('none')
         ax.spines['bottom'].set_color('none')
-        plt.show()
+        if not fig and not faxes:
+            plt.show()
     else:
         print("The function couldn't be executed. Requires Numpy and/or Matplotlib")

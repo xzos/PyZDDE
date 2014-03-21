@@ -23,16 +23,15 @@ import time
 import datetime
 import warnings
 
-# By default, PyZDDE uses its own DDE module. However, if for any reason
+# By default, PyZDDE uses the DDE module called dde_backup. However, if for any reason
 # one wants to use the DDE module from PyWin32 package, make the following flag
 # true. Note that you cannot set timeout if using PyWin32
-USE_PYWIN32DDE = True
+USE_PYWIN32DDE = False
 
 if USE_PYWIN32DDE:
     try:
         import win32ui
         import dde
-        print("To remove: using win32ui")
     except ImportError:
         print("The DDE module from PyWin32 failed to be imported. Using dde_backup module instead.")
         import dde_backup as dde
@@ -42,8 +41,6 @@ if USE_PYWIN32DDE:
 else:
     import dde_backup as dde
     USING_BACKUP_DDE = True
-    print("To remove: using backupdde")
-
 
 #Try to import IPython if it is available (for notebook helper functions)
 try:
@@ -2460,7 +2457,7 @@ class PyZDDE(object):
           number of tolerance operands defined.
           if operandNumber > 0, toleranceData = (tolType, int1, int2, min, max, int3)
 
-        See also zSetTol, zSetTolRow
+        See also `zSetTol`, `zSetTolRow`
         """
         reply = self._sendDDEcommand("GetTol,{:d}".format(operandNumber))
         if operandNumber == 0:
@@ -2529,7 +2526,7 @@ class PyZDDE(object):
            large number of rays are to be traced, see the section "Tracing large
            number of rays" in the ZEMAX manual.
 
-        See also zGetTraceDirect, zGetPolTrace, zGetPolTraceDirect
+        See also `zGetTraceDirect`, `zGetPolTrace`, `zGetPolTraceDirect`
         """
         args1 = "{wN:d},{m:d},{s:d},".format(wN=waveNum,m=mode,s=surf)
         args2 = "{hx:1.4f},{hy:1.4f},".format(hx=hx,hy=hy)
@@ -2541,7 +2538,7 @@ class PyZDDE(object):
                                  else float(elem) for i,elem in enumerate(rs)])
         return rayTraceData
 
-    def zGetTraceDirect(self,waveNum,mode,startSurf,stopSurf,x,y,z,l,m,n):
+    def zGetTraceDirect(self, waveNum, mode, startSurf, stopSurf, x, y, z, l, m, n):
         """Trace a (single) ray through the current lens in the ZEMAX DDE server
         while providing a more direct access to the ZEMAX ray tracing engine than
         zGetTrace.
@@ -6055,7 +6052,7 @@ class PyZDDE(object):
             return None
 
     def zOptimize2(self, numCycle=1, algo=0, histLen=5, precision=1e-12,
-                   minMF=1e-15, tMinCycles=5, tMaxCycles=None):
+                   minMF=1e-15, tMinCycles=5, tMaxCycles=None, timeout=None):
         """A wrapper around zOptimize() providing few control features.
 
         zOptimize2([numCycle, algo, histLen, precision, minMF,tMinCycles,
@@ -6079,6 +6076,7 @@ class PyZDDE(object):
                      call to the total number of DDE calls. (default=5)
         tMaxCycles : the maximum number of cycles after which the optimizaiton should
                      be terminated even if a steady state hasn't reached
+        timeout    : timeout value (integer) in seconds used in each pass
 
         Returns
         -------
@@ -6089,7 +6087,7 @@ class PyZDDE(object):
 
         Note
         ----
-        zOptimize2() basically calls zOptimize() mutiple number of times in a loop.
+        `zOptimize2` basically calls `zOptimize` mutiple number of times in a loop.
         It can be useful if a large number of optimization cycles are required.
         """
         mfvList = [0.0]*histLen    # create a list of zeros
@@ -6100,7 +6098,7 @@ class PyZDDE(object):
         if not tMaxCycles:
             tMaxCycles = 2**31 - 1   # Largest plain positive integer value
         while not mfvSettled and (finalMerit > minMF) and (tCycles < tMaxCycles):
-            finalMerit = self.zOptimize(numCycle,algo)
+            finalMerit = self.zOptimize(numCycle, algo, timeout)
             self.zOptimize(-1,algo) # update all the operands in the MFE (not necessary?)
             if finalMerit > 8.9999e9: # optimization failure (Zemax returned 9.0E+009)
                 break
