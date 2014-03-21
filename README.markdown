@@ -2,7 +2,7 @@
 
 ##### Current revision:
 
-0.7.2
+0.7.2 (Updated on 04/21/2014)
 
 #### Overview
 

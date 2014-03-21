@@ -7,10 +7,8 @@
 #              A list of data items are available in the Extensions chapter of
 #              the ZEMAX manual or the OpticStudio Help
 #
-# Author:      Indranil Sinharoy
-#
 # Created:     20/03/2014
-# Copyright:   (c) Indranil 2014
+# Copyright:   (c) Indranil Sinharoy, 2014
 # Licence:     MIT License
 #-------------------------------------------------------------------------------
 from __future__ import print_function
