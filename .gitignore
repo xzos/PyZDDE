@@ -180,7 +180,9 @@ pip-log.txt
 ## Project specific files
 ####################
 Misc/
-Test/*.txt
+#Test/*.txt
+Test/Prescription_unitTest_00.txt
+Test/Prescription_unitTest_01.txt
 Examples/*.txt
 
 #Although the following files are in the repository for the unit-test, we don't need to commit changes in them everytime
