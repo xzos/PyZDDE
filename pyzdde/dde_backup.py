@@ -1,7 +1,6 @@
 #-------------------------------------------------------------------------------
 # Name:        dde_backup.py
-# Purpose:     Send DDE Execute command to running program (this is a backup if the
-#              dde module of PyWin32 fails with ImportError)
+# Purpose:     Send DDE command to ZEMAX
 #
 # Notes:       This code has been adapted from David Naylor's dde-client code from
 #              ActiveState's Python recipes (Revision 1).
@@ -12,6 +11,7 @@
 # Website:     http://code.activestate.com/recipes/577654-dde-client/
 #-------------------------------------------------------------------------------
 from __future__ import print_function
+import sys
 from ctypes import POINTER, WINFUNCTYPE, c_char_p, c_void_p, c_int, c_ulong, c_char_p
 from ctypes.wintypes import BOOL, DWORD, BYTE, INT, LPCWSTR, UINT, ULONG
 
@@ -145,7 +145,7 @@ class CreateConversation(object):
     """This is really just an interface class so that PyZDDE can use either the
     current dde code or the pywin32 transparently.
 
-    Multiple of objects of this type may be instantiated depending upon the
+    Multiple objects of this type may be instantiated depending upon the
     number of simultaneous channels of communication with Zemax that the user
     program wants to establish using `ln = pyz.PyZDDE()` followed by `ln.zDDEInit()`
     calls.
@@ -159,6 +159,7 @@ class CreateConversation(object):
         """
         self.ddeClientName = ddeServer.clientName
         self.ddeServerName = 'None'
+        self.ddetimeout = 50    # default dde timeout = 50 seconds
 
     def ConnectTo(self, appName, data=None):
         global number_of_apps_communicating
@@ -167,9 +168,31 @@ class CreateConversation(object):
         number_of_apps_communicating +=1
         #print("Number of apps communicating: ", number_of_apps_communicating) # for debugging
 
-    def Request(self, item, timeout=5000):
-        reply = self.ddec.request(item, timeout)
+    def Request(self, item, timeout=None):
+        """Request DDE client
+        timeout in seconds
+        """
+        reply = '-998' # Timeout error value
+        if not timeout:
+            timeout = self.ddetimeout
+        try:
+            reply = self.ddec.request(item, int(timeout*1000)) # convert timeout into milliseconds
+        except DDEError:
+            print("DDE ERROR TYPE:", sys.exc_info()[1])
+            print("This could be a TIMEOUT issue. Use a higher timeout value if you suspect "
+                  "that the ZEMAX operation is taking a long time to complete.\n")
         return reply
+
+    def SetDDETimeout(self, timeout):
+        """Set DDE timeout
+        timeout : timeout in seconds
+        """
+        self.ddetimeout = timeout
+
+    def GetDDETimeout(self):
+        """Returns the current timeout value in seconds
+        """
+        return self.ddetimeout
 
 
 def get_winfunc(libname, funcname, restype=None, argtypes=(), _libcache={}):
@@ -204,7 +227,7 @@ class DDE(object):
     Uninitialize       = get_winfunc("user32", "DdeUninitialize",        BOOL,     (DWORD,))
 
 class DDEError(RuntimeError):
-    """Exception raise when a DDE errpr occures."""
+    """Exception raise when a DDE error occures."""
     def __init__(self, msg, idInst=None):
         if idInst is None:
             RuntimeError.__init__(self, msg)
