@@ -520,7 +520,7 @@ class PyZDDE(object):
         """
         #Determine last surface/object depending upon zemax mode
         if lastSurf == -1:
-            zmxMode = self.zGetMode()
+            zmxMode = self._zGetMode()
             if zmxMode[0] != 1:
                 lastSurf = self.zGetSystem()[0]
             else:
@@ -1072,14 +1072,17 @@ class PyZDDE(object):
                   .format(analysisType))
         return retVal
 
-    def zGetMode(self):
+    def _zGetMode(self):
         """Returns the mode (Sequential, Non-sequential or Mixed) of the current
         lens in the DDE server.
+
+        Note that this only works when a zmx file is loaded into the server. Currently
+        this function is meant to be used for internal purpose only.
 
         For the purpose of this function, "Sequential" implies that there are no
         non-sequential surfaces in the LDE.
 
-        `zGetMode()->zmxModeInformation`
+        `_zGetMode()->zmxModeInformation`
 
         Parameters
         ----------

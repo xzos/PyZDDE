@@ -326,10 +326,10 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zGetMetaFile()")
         pass
 
-    @unittest.skip("To implement test")
-    def test_zGetMode(self):
-        print("\nTEST: zGetMode()")
-        pass
+##    @unittest.skip("To implement test")
+##    def test_zGetMode(self):
+##        print("\nTEST: zGetMode()")
+##        pass
 
     def test_zGetMulticon(self):
         print("\nTEST: zGetMulticon()")

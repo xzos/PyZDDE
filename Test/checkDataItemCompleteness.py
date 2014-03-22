@@ -23,9 +23,12 @@ def main():
     pyzobj = pyz.PyZDDE()
     method_list = [method[0] for method in inspect.getmembers(pyzobj, predicate=inspect.ismethod)]
     dataItemSet_pyzdde = []
+    ipzFunctions = [] # interactive helper functions
     for item in method_list:
         if item.startswith('z'):
             dataItemSet_pyzdde.append(item.split('z', 1)[1])
+        elif item.startswith('ipz'):
+            ipzFunctions.append(item)
     dataItemSet_pyzdde = set(dataItemSet_pyzdde)
     #print("\nData items in PyZDDE: \n", dataItemSet_pyzdde)
     itemCount_pyzdde = len(dataItemSet_pyzdde)
@@ -56,6 +59,16 @@ def main():
         dataItemsNotInPyZDDE = dataItemSet_zemax.difference(dataItemSet_pyzdde)
         print("\nOOPS! Looks like there are some still lurking around.")
         print("\nData items in Zemax but not in PyZDDE: \n", dataItemsNotInPyZDDE)
+
+    # Other functions not defined in ZEMAX manual
+    extraFunctions_set = dataItemSet_pyzdde.difference(dataItemSet_zemax)
+    extraFunctions = [''.join(['z', exfun]) for exfun in extraFunctions_set]
+    print("\Extra functions:")
+    print(extraFunctions)
+    print("Total extra functions: ", len(extraFunctions))
+    print("\nipz helper functions:")
+    print(ipzFunctions)
+    print("Total ipz functions: ", len(ipzFunctions))
 
 if __name__ == '__main__':
     main()
