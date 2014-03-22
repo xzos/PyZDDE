@@ -2,7 +2,9 @@
 
 ##### Current revision:
 
-0.7.2 (Updated on 03/21/2014)
+0.7.2 (Last significant update on 03/21/2014)
+
+Brief change log is available in the [News and Updates](https://github.com/indranilsinharoy/PyZDDE/wiki/News-and-updates) page. 
 
 #### Overview
 

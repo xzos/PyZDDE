@@ -81,6 +81,13 @@ from utils.pyzddeutils import cropImgBorders, imshow
 DEBUG_PRINT_LEVEL = 0 # 0=No debug prints, but allow all essential prints
                       # 1 to 2 levels of debug print, 2 = print all
 
+_system_aperture = {0 : 'EPD',
+                    1 : 'Image space F/#',
+                    2 : 'Object space NA',
+                    3 : 'Float by stop',
+                    4 : 'Paraxial working F/#',
+                    5 : 'Object cone angle'}
+
 # Helper function for debugging
 def _debugPrint(level, msg):
     """
@@ -588,7 +595,7 @@ class PyZDDE(object):
 
         Parameters
         ----------
-        surfNum : surface number
+        surfNum : surface number (Integer)
 
         Returns
         -------
@@ -615,6 +622,8 @@ class PyZDDE(object):
         yDecenter    : amount of decenter from current optical axis (lens units)
         apertureFile : a text file with .UDA extention. see "User defined
                        apertures and obscurations" in ZEMAX manual for more details.
+
+        For system aperture, see `zGetSystemAper`.
         """
         reply = self._sendDDEcommand("GetAperture,"+str(surfNum))
         rs = reply.split(',')
@@ -1065,8 +1074,10 @@ class PyZDDE(object):
 
     def zGetMode(self):
         """Returns the mode (Sequential, Non-sequential or Mixed) of the current
-        lens in the DDE server. For the purpose of this function, "Sequential"
-        implies that there are no non-sequential surfaces in the LDE.
+        lens in the DDE server.
+
+        For the purpose of this function, "Sequential" implies that there are no
+        non-sequential surfaces in the LDE.
 
         `zGetMode()->zmxModeInformation`
 
@@ -1076,12 +1087,12 @@ class PyZDDE(object):
 
         Returns
         -------
-        zmxModeInformation is a 2-tuple, with the second element, `nscSurfNums`
-        also a tuple. I.e. zmxModeInformation = (mode,nscSurfNums)
-          mode : (integer) 0 = Sequential, 1 = Non-sequential, 2 = Mixed mode
-          nscSurfNums : (tuple of integers) the surfaces (in mixed mode) that
-                        are non-sequential. In Non-sequential mode and in purely
-                        sequential mode, this tuple is empty (of length 0).
+        zmxModeInformation : 2-tuple, with the second element, `nscSurfNums`
+                             also a tuple. i.e. zmxModeInformation = (mode, nscSurfNums)
+                              mode : (integer) 0 = Sequential, 1 = Non-sequential, 2 = Mixed mode
+                              nscSurfNums : (tuple of integers) the surfaces (in mixed mode) that
+                                            are non-sequential. In Non-sequential mode and in purely
+                                            sequential mode, this tuple is empty (of length 0).
 
         Note: This function is not specified in the Zemax manual
         """
@@ -2081,7 +2092,7 @@ class PyZDDE(object):
         solveData = _process_get_set_Solve(reply)
         return solveData
 
-    def zGetSurfaceData(self,surfaceNumber,code,arg2=None):
+    def zGetSurfaceData(self, surfaceNumber, code, arg2=None):
         """Gets surface data on a sequential lens surface.
 
         zGetSurfaceData(surfaceNum,code [, arg2])-> surfaceDatum
@@ -2147,7 +2158,7 @@ class PyZDDE(object):
                     number is defined by arg2.
         Other     - Reserved for future expansion of this feature.
         ------------------------------------------------------------------------
-        See also zSetSurfaceData, zGetSurfaceParameter and ZemaxSurfTypes
+        See also `zSetSurfaceData`, `zGetSurfaceParameter`.
         """
         if arg2== None:
             cmd = "GetSurfaceData,{sN:d},{c:d}".format(sN=surfaceNumber,c=code)
@@ -2161,7 +2172,7 @@ class PyZDDE(object):
             surfaceDatum = float(reply)
         return surfaceDatum
 
-    def zGetSurfaceDLL(self,surfaceNumber):
+    def zGetSurfaceDLL(self, surfaceNumber):
         """Return the name of the DLL if the surface is a user defined type.
 
         zGetSurfaceDLL(surfaceNumber)->(dllName,surfaceName)
@@ -2182,7 +2193,7 @@ class PyZDDE(object):
         rs = reply.split(',')
         return (rs[0],rs[1])
 
-    def zGetSurfaceParameter(self,surfaceNumber,parameter):
+    def zGetSurfaceParameter(self, surfaceNumber, parameter):
         """Return the surface parameter data for the surface associated with the
         given surfaceNumber
 
@@ -2191,7 +2202,7 @@ class PyZDDE(object):
         Parameters
         ----------
         surfaceNumber  : (integer) surface number of the surface
-        parameter      : (integer) parameter (Par in LDE) number being queried
+        parameter      : (integer) parameter number ('Par' in LDE) being queried
 
         Returns
         --------
@@ -2200,9 +2211,9 @@ class PyZDDE(object):
         Note
         ----
         To get thickness, radius, glass, semi-diameter, conic, etc, use
-        zGetSurfaceData()
+        `zGetSurfaceData`
 
-        See also zGetSurfaceData, ZSetSurfaceParameter.
+        See also `zGetSurfaceData`, `zSetSurfaceParameter`.
         """
         cmd = "GetSurfaceParameter,{sN:d},{p:d}".format(sN=surfaceNumber,p=parameter)
         reply = self._sendDDEcommand(cmd)
@@ -2268,7 +2279,7 @@ class PyZDDE(object):
         ----
         The returned tuple is the same as the returned tuple of zSetSystemAper()
 
-        See also, zGetSystem(), zSetSystemAper()
+        See also, `zGetSystem`, `zSetSystemAper`.
         """
         reply = self._sendDDEcommand("GetSystemAper")
         rs = reply.split(',')
@@ -6276,8 +6287,8 @@ class PyZDDE(object):
         if MPLimgLoad and retArr:
             return arr
 
-    def ipzGetTextWindow(self, analysisType, settingsFileName=None, flag=0,
-                        *args, **kwargs):
+    def ipzGetTextWindow(self, analysisType, sln=0, eln=None, settingsFileName=None,
+                         flag=0, *args, **kwargs):
         """Print the text output of a Zemax analysis type into a IPython cell.
 
         ipzGetTextWindow(analysisType [,settingsFile, flag, *args, **kwargs])->
@@ -6290,6 +6301,9 @@ class PyZDDE(object):
                        to those used for the button bar in Zemax. The labels
                        are case sensitive. If no label is provided or recognized,
                        a standard raytrace will be generated.
+        sln          : starting line number (integer) `default=0`
+        eln          : ending line number (integer) `default=None`. If `None` all
+                       lines in the file are printed.
         settingsFileName : If a valid file name is used for the "settingsFileName",
                            ZEMAX will use or save the settings used to compute the
                            text file, depending upon the value of the flag parameter.
@@ -6307,6 +6321,9 @@ class PyZDDE(object):
         -------
         None (the contents of the text file is dumped into an IPython cell)
         """
+        if not eln:
+            eln = 1e10  # Set a very high number
+        linePrintCount = 0
         global IPLoad
         if IPLoad:
             # Use the lens file path to store and process temporary images
@@ -6319,7 +6336,9 @@ class PyZDDE(object):
                 if stat==0:
                     tf = open(tmpTxtFile,'r')
                     for line in tf:
-                        print(line.rstrip('\n'))  # print in the execution cell
+                        if linePrintCount >= sln and linePrintCount <= eln:
+                            print(line.rstrip('\n'))  # print in the execution cell
+                        linePrintCount +=1
                     tf.close()
                     _deleteFile(tmpTxtFile)
                 else:
@@ -6329,6 +6348,76 @@ class PyZDDE(object):
         else:
             print("Couldn't import IPython modules.")
 
+    def ipzGetFirst(self):
+        """Return first order data in human readable form
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Dictionary containing first order data in human readable form that meant
+        to be used in interactive environment.
+        """
+        firstData = self.zGetFirst()
+        first = {}
+        first['EFL'] = firstData[0]
+        first['Paraxial working F/#'] = firstData[1]
+        first['Real working F/#'] = firstData[2]
+        first['Paraxial image height'] =  firstData[3]
+        first['Paraxial magnification'] = firstData[4]
+        return first
+
+    def ipzGetPupil(self):
+        """Return pupil data in human readable form
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Dictionary containing pupil information in human readable form that meant
+        to be used in interactive environment.
+        """
+        pupilData = self.zGetPupil()
+        pupil = {}
+        apo_type = {0 : 'None', 1: 'Gaussian', 2 : 'Tangential/Cosine cubed'}
+        pupil['Aperture Type'] = _system_aperture[pupilData[0]]
+        if pupilData[0]==3: # if float by stop
+            pupil['Value (stop surface semi-diameter)'] = pupilData[1]
+        else:
+            pupil['Value (system aperture)'] = pupilData[1]
+        pupil['ENPD'] = pupilData[2]
+        pupil['ENPP'] = pupilData[3]
+        pupil['EXPD'] = pupilData[4]
+        pupil['EXPP'] = pupilData[5]
+        pupil['Apodization type'] = apo_type[pupilData[6]]
+        pupil['Apodization factor'] = pupilData[7]
+        return pupil
+
+    def ipzGetSystemAper(self):
+        """Return system aperture data in human readable form
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        Dictionary containing system aperture information in human readable form
+        that meant to be used in interactive environment.
+        """
+        sysAperData = self.zGetSystemAper()
+        sysaper = {}
+        sysaper['Aperture Type'] = _system_aperture[sysAperData[0]]
+        sysaper['Stop surface'] = sysAperData[1]
+        if sysAperData[0]==3: # if float by stop
+            sysaper['Value (stop surface semi-diameter)'] = sysAperData[2]
+        else:
+            sysaper['Value (system aperture)'] = sysAperData[2]
+        return sysaper
 
 # ***********************************************************************
 #   OTHER HELPER FUNCTIONS THAT DO NOT REQUIRE A RUNNING ZEMAX SESSION
