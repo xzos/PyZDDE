@@ -18,7 +18,7 @@ import os
 import subprocess
 from os import path
 from math import pi, cos, sin
-from itertools import izip
+from itertools import izip, imap
 import time
 import datetime
 import warnings
@@ -2675,7 +2675,7 @@ class PyZDDE(object):
         """
         return int(self._sendDDEcommand("GetVersion"))
 
-    def zGetWave(self,n):
+    def zGetWave(self, n):
         """Extract wavelength data from ZEMAX DDE server.
 
         There are 2 ways of using this function:
@@ -2736,7 +2736,7 @@ class PyZDDE(object):
             waveDataTuple[1].append(float(rs[1])) # store the weight
         return (tuple(waveDataTuple[0]),tuple(waveDataTuple[1]))
 
-    def zHammer(self,numOfCycles,algorithm):
+    def zHammer(self, numOfCycles, algorithm, timeout=60):
         """Calls the Hammer optimizer.
 
         zHammer(numOfCycles,algorithm)->finalMeritFn
@@ -2749,6 +2749,7 @@ class PyZDDE(object):
                      and no optimization is performed.
         algorithm    : 0 = Damped Least Squares
                      1 = Orthogonal descent
+        timeout      : (integer) timeout in seconds (default=1min)
 
         Returns
         -------
@@ -2769,11 +2770,11 @@ class PyZDDE(object):
 
         See also zOptimize,  zLoadMerit, zsaveMerit
         """
-        cmd = "Hammer,{:1.2g},{:d}".format(numOfCycles,algorithm)
-        reply = self._sendDDEcommand(cmd)
+        cmd = "Hammer,{:1.2g},{:d}".format(numOfCycles, algorithm)
+        reply = self._sendDDEcommand(cmd, timeout)
         return float(reply.rstrip())
 
-    def zImportExtraData(self,surfaceNumber,fileName):
+    def zImportExtraData(self, surfaceNumber, fileName):
         """Imports extra data and grid surface data values into an existing sur-
         face.
 
@@ -2799,7 +2800,7 @@ class PyZDDE(object):
         # !!! FIX determine what is the currect return
 
 
-    def zInsertConfig(self,configNumber):
+    def zInsertConfig(self, configNumber):
         """Insert a new configuration (column) in the multi-configuration editor.
         The new configuration will be placed at the location (column) indicated
         by the parameter `configNumber`.
@@ -2864,7 +2865,7 @@ class PyZDDE(object):
         """
         return int(self._sendDDEcommand("InsertMFO,{:d}".format(operandNumber)))
 
-    def zInsertObject(self,surfaceNumber,objectNumber):
+    def zInsertObject(self, surfaceNumber, objectNumber):
         """
         Insert a new NSC object at the location indicated by the parameters
         `surfaceNumber` and `objectNumber`.
@@ -2946,7 +2947,7 @@ class PyZDDE(object):
         else:
             return -1
 
-    def zLoadFile(self,fileName,append=None):
+    def zLoadFile(self, fileName, append=None):
         """Loads a ZEMAX file into the server.
 
         zLoadFile(fileName[,append]) -> retVal
@@ -3053,7 +3054,7 @@ class PyZDDE(object):
         else:
             return -999
 
-    def zMakeGraphicWindow(self,fileName,moduleName,winTitle,textFlag,settingsData=None):
+    def zMakeGraphicWindow(self, fileName, moduleName, winTitle, textFlag, settingsData=None):
         """Notifies ZEMAX that graphic data has been written to a file and may now
         be displayed as a ZEMAX child window. The primary purpose of this item is
         to implement user defined features in a client application, that look and
@@ -6351,38 +6352,43 @@ class PyZDDE(object):
         else:
             print("Couldn't import IPython modules.")
 
-    def ipzGetFirst(self):
-        """Return first order data in human readable form
+    def ipzGetFirst(self, pprint=True):
+        """Print/ return first order data in human readable form
 
         Parameters
         ----------
-        None
+        pprint : boolean. If True (default), the parameters are printed, else
+                 a dictionary is returned.
 
         Returns
         -------
-        Dictionary containing first order data in human readable form that meant
-        to be used in interactive environment.
+        Print or return dictionary containing first order data in human readable
+        form that meant to be used in interactive environment.
         """
         firstData = self.zGetFirst()
         first = {}
-        first['EFL'] = firstData[0]
+        first['Effective focal length'] = firstData[0]
         first['Paraxial working F/#'] = firstData[1]
         first['Real working F/#'] = firstData[2]
         first['Paraxial image height'] =  firstData[3]
         first['Paraxial magnification'] = firstData[4]
-        return first
+        if pprint:
+            _print_dict(first)
+        else:
+            return first
 
-    def ipzGetPupil(self):
-        """Return pupil data in human readable form
+    def ipzGetPupil(self, pprint=True):
+        """Print/ return pupil data in human readable form
 
         Parameters
         ----------
-        None
+        pprint : boolean. If True (default), the parameters are printed, else
+                 a dictionary is returned.
 
         Returns
         -------
-        Dictionary containing pupil information in human readable form that meant
-        to be used in interactive environment.
+        Print or return dictionary containing pupil information in human readable
+        form that meant to be used in interactive environment.
         """
         pupilData = self.zGetPupil()
         pupil = {}
@@ -6392,25 +6398,29 @@ class PyZDDE(object):
             pupil['Value (stop surface semi-diameter)'] = pupilData[1]
         else:
             pupil['Value (system aperture)'] = pupilData[1]
-        pupil['ENPD'] = pupilData[2]
-        pupil['ENPP'] = pupilData[3]
-        pupil['EXPD'] = pupilData[4]
-        pupil['EXPP'] = pupilData[5]
+        pupil['Entrance pupil diameter'] = pupilData[2]
+        pupil['Entrance pupil position'] = pupilData[3]
+        pupil['Exit pupil diameter'] = pupilData[4]
+        pupil['Exit pupil position'] = pupilData[5]
         pupil['Apodization type'] = apo_type[pupilData[6]]
         pupil['Apodization factor'] = pupilData[7]
-        return pupil
+        if pprint:
+            _print_dict(pupil)
+        else:
+            return pupil
 
-    def ipzGetSystemAper(self):
-        """Return system aperture data in human readable form
+    def ipzGetSystemAper(self, pprint=True):
+        """Print or return system aperture data in human readable form
 
         Parameters
         ----------
-        None
+        pprint : boolean. If True (default), the parameters are printed, else
+                 a dictionary is returned.
 
         Returns
         -------
-        Dictionary containing system aperture information in human readable form
-        that meant to be used in interactive environment.
+        Print or return dictionary containing system aperture information in
+        human readable form that meant to be used in interactive environment.
         """
         sysAperData = self.zGetSystemAper()
         sysaper = {}
@@ -6420,7 +6430,37 @@ class PyZDDE(object):
             sysaper['Value (stop surface semi-diameter)'] = sysAperData[2]
         else:
             sysaper['Value (system aperture)'] = sysAperData[2]
-        return sysaper
+        if pprint:
+            _print_dict(sysaper)
+        else:
+            return sysaper
+
+    def ipzGetSurfaceData(self, surfaceNumber, pprint=True):
+        """Print or return basic (not all) surface data in human readable form
+
+        Parameters
+        ----------
+        surfaceNumber : integer. Surface number
+        pprint : boolean. If True (default), the parameters are printed, else
+                 a dictionary is returned.
+
+        Returns
+        -------
+        Print or return dictionary containing basic surface data (radius of curvature,
+        thickness, glass, semi-diameter, and conic) in human readable form that
+        meant to be used in interactive environment.
+        """
+        surfdata = {}
+        surfdata['Radius of curvature'] = 1.0/self.zGetSurfaceData(surfaceNumber, 2)
+        surfdata['Thickness'] = self.zGetSurfaceData(surfaceNumber, 3)
+        surfdata['Glass'] = self.zGetSurfaceData(surfaceNumber, 4)
+        surfdata['Semi-diameter'] = self.zGetSurfaceData(surfaceNumber, 5)
+        surfdata['Conic'] = self.zGetSurfaceData(surfaceNumber, 6)
+        if pprint:
+            _print_dict(surfdata)
+        else:
+            return surfdata
+
 
 # ***********************************************************************
 #   OTHER HELPER FUNCTIONS THAT DO NOT REQUIRE A RUNNING ZEMAX SESSION
@@ -6629,6 +6669,13 @@ def _process_get_set_Tol(operandNumber,reply):
     toleranceData = tuple(tolType + tolParam)
     return toleranceData
 
+def _print_dict(data):
+    """Helper function to print a dictionary so that the key and value are
+    arranged into nice rows and columns
+    """
+    leftColMaxWidth = max(imap(len, data))
+    for key, value in data.items():
+        print("{}: {}".format(key.ljust(leftColMaxWidth+1), value))
 
 # ***************************************************************************
 #                      TEST (SOME OF) THE FUNCTIONS
