@@ -17,7 +17,7 @@ import sys
 import os
 import subprocess
 from os import path
-from math import pi, cos, sin
+from math import pi, cos, sin, tan, atan, asin
 from itertools import izip, imap
 import time
 import datetime
@@ -6481,35 +6481,33 @@ def numAper(aperConeAngle, rIndex=1.0):
     """
     return rIndex*sin(aperConeAngle)
 
-def na2fn(na):
+def na2fn(na, ri=1.0):
     """Convert numerical aperture (NA) to F-number
 
-    This conversion is valid for small apertures.
-
     Parameters
     ----------
     na : (float) Numerical aperture value
+    ri : (float) Refractive index of the medium
 
     Returns
     -------
     fn : (float) F-number value
     """
-    return 1.0/(2.0*na)
+    return 1.0/(2.0*tan(asin(na/ri)))
 
-def fn2na(fn):
+def fn2na(fn, ri=1.0):
     """Convert F-number to numerical aperture (NA)
 
-    This conversion is valid for small apertures.
-
     Parameters
     ----------
     fn : (float) F-number value
+    ri : (float) Refractive index of the medium
 
     Returns
     -------
     na : (float) Numerical aperture value
     """
-    return 1.0/(2.0*fn)
+    return ri*sin(atan(1.0/(2.0*fn)))
 
 
 # ***************************************************************************
