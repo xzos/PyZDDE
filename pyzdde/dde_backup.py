@@ -27,7 +27,15 @@ ULONG_PTR = c_ulong
 # See windows/ddeml.h for declaration of struct CONVCONTEXT
 PCONVCONTEXT = c_void_p
 
-DMLERR_NO_ERROR = 0
+# DDEML errors
+# Ref: http://msdn.microsoft.com/en-us/library/windows/desktop/ms648755(v=vs.85).aspx
+DMLERR_NO_ERROR            = 0x0000
+DMLERR_ADVACKTIMEOUT       = 0x4000  # request for synchronous advise transaction timed out
+DMLERR_DATAACKTIMEOUT      = 0x4002  # request for synchronous data transaction timed out
+DMLERR_DLL_NOT_INITIALIZED = 0x4003  # DDEML functions called without iniatializing
+DMLERR_EXECACKTIMEOUT      = 0x4006  # request for synchronous execute transaction timed out
+DMLERR_NO_CONV_ESTABLISHED = 0x400a  # client's attempt to establish a conversation has failed
+DMLERR_SERVER_DIED         = 0x400e
 
 # Predefined Clipboard Formats
 CF_TEXT         =  1
@@ -63,6 +71,8 @@ DDE_FADVRESERVED  = (~(DDE_FACKREQ | DDE_FDEFERUPD))
 DDE_FDATRESERVED  = (~(DDE_FACKREQ | DDE_FRELEASE | DDE_FREQUESTED))
 DDE_FPOKRESERVED  = (~(DDE_FRELEASE))
 
+# DDEML Transaction class flags
+# See http://msdn.microsoft.com/en-us/library/windows/desktop/ff468835(v=vs.85).aspx
 XTYPF_NOBLOCK        = 0x0002
 XTYPF_NODATA         = 0x0004
 XTYPF_ACKREQ         = 0x0008
@@ -95,14 +105,20 @@ XTYP_SHIFT           = 4
 
 TIMEOUT_ASYNC        = 0xFFFFFFFF
 
+# DDE Initialization flag (afCmd)
+APPCMD_CLIENTONLY    = 0x00000010 # Prevents the application from becoming a server in a DDE conversation.
 
+# Code page for rendering string. For information about code page identifiers refer
+# to http://msdn.microsoft.com/en-us/library/dd317756(VS.85).aspx
+CP_WINUNICODE_UTF16   = 1200    # the name of this const is not the standard
 number_of_apps_communicating = 0  # to keep an account of the number of zemax
                                   # server objects --'ZEMAX', 'ZEMAX1' etc
 
 class CreateServer(object):
     """This is really just an interface class so that PyZDDE can use either the
     current dde code or the pywin32 transparently. This object is created only
-    once.
+    once. The class name cannot be anything else if compatibility has to be maintained
+    between pywin32 and this dde code.
     """
     def __init__(self):
         self.serverName = 'None'
@@ -162,15 +178,22 @@ class CreateConversation(object):
         self.ddetimeout = 50    # default dde timeout = 50 seconds
 
     def ConnectTo(self, appName, data=None):
+        """Exceptional error is handled in zdde Init() method, so the exception
+        must be re-raised"""
         global number_of_apps_communicating
         self.ddeServerName = appName
-        self.ddec = DDEClient(self.ddeServerName, self.ddeClientName) # establish conversation
-        number_of_apps_communicating +=1
+        try:
+            self.ddec = DDEClient(self.ddeServerName, self.ddeClientName) # establish conversation
+        except DDEError:
+            raise
+        else:
+            number_of_apps_communicating +=1
         #print("Number of apps communicating: ", number_of_apps_communicating) # for debugging
 
     def Request(self, item, timeout=None):
         """Request DDE client
         timeout in seconds
+        Note ... handle the exception within this function.
         """
         reply = '-998' # Timeout error value
         if not timeout:
@@ -178,9 +201,10 @@ class CreateConversation(object):
         try:
             reply = self.ddec.request(item, int(timeout*1000)) # convert timeout into milliseconds
         except DDEError:
-            print("DDE ERROR TYPE:", sys.exc_info()[1])
-            print("This could be a TIMEOUT issue. Use a higher timeout value if you suspect "
-                  "that the ZEMAX operation is taking a long time to complete.\n")
+            err_str = sys.exc_info()[1]
+            error =  err_str[err_str.find('err=')+4:err_str.find('err=')+10]
+            if error == hex(DMLERR_DATAACKTIMEOUT):
+                print("Timeout reached. Please use a higher timeout.\n")
         return reply
 
     def SetDDETimeout(self, timeout):
@@ -196,7 +220,7 @@ class CreateConversation(object):
 
 
 def get_winfunc(libname, funcname, restype=None, argtypes=(), _libcache={}):
-    """Retrieve a function from a library, and set the data types."""
+    """Retrieve a function from a library/DLL, and set the data types."""
     from ctypes import windll
 
     if libname not in _libcache:
@@ -212,7 +236,7 @@ DDECALLBACK = WINFUNCTYPE(HDDEDATA, UINT, UINT, HCONV, HSZ, HSZ, HDDEDATA,
                           ULONG_PTR, ULONG_PTR)
 
 class DDE(object):
-    """Object containing all the DDE functions"""
+    """Object containing all the DDEML functions"""
     AccessData         = get_winfunc("user32", "DdeAccessData",          LPBYTE,   (HDDEDATA, LPDWORD))
     ClientTransaction  = get_winfunc("user32", "DdeClientTransaction",   HDDEDATA, (LPBYTE, DWORD, HCONV, HSZ, UINT, UINT, DWORD, LPDWORD))
     Connect            = get_winfunc("user32", "DdeConnect",             HCONV,    (DWORD, HSZ, HSZ, PCONVCONTEXT))
@@ -244,24 +268,25 @@ class DDEClient(object):
         """Create a connection to a service/topic."""
         from ctypes import byref
 
-        self._idInst = DWORD(0)
+        self._idInst = DWORD(0) # application instance identifier. At initialization, this parameter should point to 0
         self._hConv = HCONV()
 
         self._callback = DDECALLBACK(self._callback)
-        res = DDE.Initialize(byref(self._idInst), self._callback, 0x00000010, 0)
+        # register application with the Dynamic Data Exchange Management Library
+        res = DDE.Initialize(byref(self._idInst), self._callback, APPCMD_CLIENTONLY, 0)
         if res != DMLERR_NO_ERROR:
             raise DDEError("Unable to register with DDEML (err=%s)" % hex(res))
 
-        hszService = DDE.CreateStringHandle(self._idInst, service, 1200)
-        hszTopic = DDE.CreateStringHandle(self._idInst, topic, 1200)
-        self._hConv = DDE.Connect(self._idInst, hszService, hszTopic, PCONVCONTEXT())
+        hszServName = DDE.CreateStringHandle(self._idInst, service, CP_WINUNICODE_UTF16)
+        hszTopic = DDE.CreateStringHandle(self._idInst, topic, CP_WINUNICODE_UTF16)
+        self._hConv = DDE.Connect(self._idInst, hszServName, hszTopic, PCONVCONTEXT())
         DDE.FreeStringHandle(self._idInst, hszTopic)
-        DDE.FreeStringHandle(self._idInst, hszService)
+        DDE.FreeStringHandle(self._idInst, hszServName)
         if not self._hConv:
             raise DDEError("Unable to establish a conversation with server", self._idInst)
 
     def __del__(self):
-        """Cleanup any active connections."""
+        """Cleanup any active connections and free all DDEML resources."""
         if self._hConv:
             DDE.Disconnect(self._hConv)
         if self._idInst:
@@ -271,7 +296,7 @@ class DDEClient(object):
         """Request updates when DDE data changes."""
         from ctypes import byref
 
-        hszItem = DDE.CreateStringHandle(self._idInst, item, 1200)
+        hszItem = DDE.CreateStringHandle(self._idInst, item, CP_WINUNICODE_UTF16)
         hDdeData = DDE.ClientTransaction(LPBYTE(), 0, self._hConv, hszItem, CF_TEXT, XTYP_ADVSTOP if stop else XTYP_ADVSTART, TIMEOUT_ASYNC, LPDWORD())
         DDE.FreeStringHandle(self._idInst, hszItem)
         if not hDdeData:
@@ -291,7 +316,7 @@ class DDEClient(object):
         """Request data from DDE service."""
         from ctypes import byref
 
-        hszItem = DDE.CreateStringHandle(self._idInst, item, 1200)
+        hszItem = DDE.CreateStringHandle(self._idInst, item, CP_WINUNICODE_UTF16)
         hDdeData = DDE.ClientTransaction(LPBYTE(), 0, self._hConv, hszItem, CF_TEXT, XTYP_REQUEST, timeout, LPDWORD())
         DDE.FreeStringHandle(self._idInst, hszItem)
         if not hDdeData:
@@ -315,6 +340,28 @@ class DDEClient(object):
         print("%s: %s" % (item, value))
 
     def _callback(self, wType, uFmt, hConv, hsz1, hsz2, hDdeData, dwData1, dwData2):
+        """DdeCallback callback function for processing Dynamic Data Exchange (DDE)
+        transactions sent by DDEML in response to DDE events
+
+        Parameters
+        ----------
+        wType    : transaction type (UINT)
+        uFmt     : clipboard data format (UINT)
+        hConv    : handle to conversation (HCONV)
+        hsz1     : handle to string (HSZ)
+        hsz2     : handle to string (HSZ)
+        hDDedata : handle to global memory object (HDDEDATA)
+        dwData1  : transaction-specific data (DWORD)
+        dwData2  : transaction-specific data (DWORD)
+
+        Returns
+        -------
+        ret      : specific to the type of transaction (HDDEDATA)
+
+        Note
+        See Transaction types at http://msdn.microsoft.com/en-us/library/windows/desktop/ms648773(v=vs.85).aspx
+        for more details. This callback processes transactions that the client may receive from DDEML
+        """
         # FIX IT! The indentation may be incorrect here ... to fix, if and when
         # a bug shows up.
         if wType == XTYP_ADVDATA:

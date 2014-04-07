@@ -40,6 +40,7 @@ if USE_PYWIN32DDE:
         USING_BACKUP_DDE = False
 else:
     import dde_backup as dde
+    reload(dde)    # Temporary for development purpose ... TO REMOVE LATER
     USING_BACKUP_DDE = True
 
 #Try to import IPython if it is available (for notebook helper functions)
@@ -81,6 +82,7 @@ from utils.pyzddeutils import cropImgBorders, imshow
 DEBUG_PRINT_LEVEL = 0 # 0=No debug prints, but allow all essential prints
                       # 1 to 2 levels of debug print, 2 = print all
 
+MAXIMUM_PARALLEL_CONV = 2  # Maximum number of simultaneous conversations possible with Zemax server
 _system_aperture = {0 : 'EPD',
                     1 : 'Image space F/#',
                     2 : 'Object space NA',
@@ -99,13 +101,13 @@ def _debugPrint(level, msg):
     """
     global DEBUG_PRINT_LEVEL
     if level <= DEBUG_PRINT_LEVEL:
-        print("DEBUG PRINT (Level " + str(level)+ "): " + msg)
+        print("DEBUG PRINT, module - zdde (Level " + str(level)+ "): " + msg)
     return
 
 class PyZDDE(object):
     """Create an instance of PyZDDE class"""
-    __chNum = -1          # channel Number
-    __liveCh = 0          # number of live channels.
+    __chNum = -1          # channel Number; there is no restriction on number of ch
+    __liveCh = 0          # number of live/ simultaneous channels; Can't be more than MAXIMUM_PARALLEL_CONV
     __server = 0
 
     def __init__(self):
@@ -134,8 +136,6 @@ class PyZDDE(object):
         status: 0 : DDE link to ZEMAX was successfully established.
                -1 : DDE link couldn't be established.
 
-        The function is supposed to sets the timeout value for all ZEMAX DDE
-        calls to 3 sec; however, the timeout is not implemented now.
 
         See also `zDDEClose`, `zDDEStart`, `zSetTimeout`
         """
@@ -155,8 +155,12 @@ class PyZDDE(object):
         try:
             self.conversation.ConnectTo(self.appName," ")
         except Exception, err2:
-            sys.stderr.write("ERROR: {err}. ZEMAX may not have been started!\n"
-                             .format(err=str(err2)))
+            if self.__liveCh >= MAXIMUM_PARALLEL_CONV:
+                sys.stderr.write("ERROR: {err}. \nMore than {liveConv} simultaneous conversations not allowed!\n"
+                                 .format(err=str(err2), liveConv=MAXIMUM_PARALLEL_CONV))
+            else:
+                sys.stderr.write("ERROR: {err}. \nZEMAX may not have been started!\n"
+                                 .format(err=str(err2)))
             # should close the DDE server if it exist
             self.zDDEClose()
             _debugPrint(2,"PyZDDE server: " + str(PyZDDE.__server))
