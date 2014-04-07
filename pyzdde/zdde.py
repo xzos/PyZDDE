@@ -40,7 +40,7 @@ if USE_PYWIN32DDE:
         USING_BACKUP_DDE = False
 else:
     import dde_backup as dde
-    reload(dde)    # Temporary for development purpose ... TO REMOVE LATER
+    #reload(dde)    # Temporary for development purpose ... To remove/Comment out before checkin to master
     USING_BACKUP_DDE = True
 
 #Try to import IPython if it is available (for notebook helper functions)
