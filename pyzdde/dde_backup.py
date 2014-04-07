@@ -1,6 +1,7 @@
 #-------------------------------------------------------------------------------
 # Name:        dde_backup.py
-# Purpose:     Send DDE command to ZEMAX
+# Purpose:     DDE Management Library (DDEML) client application for communicating
+#              with Zemax
 #
 # Notes:       This code has been adapted from David Naylor's dde-client code from
 #              ActiveState's Python recipes (Revision 1).
@@ -59,6 +60,7 @@ CF_LOCALE       = 16
 CF_DIBV5        = 17
 CF_MAX          = 18
 
+# DDE constants for wStatus field
 DDE_FACK          = 0x8000
 DDE_FBUSY         = 0x4000
 DDE_FDEFERUPD     = 0x4000
@@ -74,7 +76,6 @@ DDE_FDATRESERVED  = (~(DDE_FACKREQ | DDE_FRELEASE | DDE_FREQUESTED))
 DDE_FPOKRESERVED  = (~(DDE_FRELEASE))
 
 # DDEML Transaction class flags
-# See http://msdn.microsoft.com/en-us/library/windows/desktop/ff468835(v=vs.85).aspx
 XTYPF_NOBLOCK        = 0x0002
 XTYPF_NODATA         = 0x0004
 XTYPF_ACKREQ         = 0x0008
@@ -105,14 +106,20 @@ XTYP_MONITOR         = (0x00F0 | XCLASS_NOTIFICATION | XTYPF_NOBLOCK)
 XTYP_MASK            = 0x00F0
 XTYP_SHIFT           = 4
 
+# DDE Timeout constants
 TIMEOUT_ASYNC        = 0xFFFFFFFF
 
-# DDE Initialization flag (afCmd)
-APPCMD_CLIENTONLY    = 0x00000010 # Prevents the application from becoming a server in a DDE conversation.
+# DDE Application command flags / Initialization flag (afCmd)
+APPCMD_CLIENTONLY    = 0x00000010
 
-# Code page for rendering string. For information about code page identifiers refer
-# to http://msdn.microsoft.com/en-us/library/dd317756(VS.85).aspx
-CP_WINUNICODE_UTF16   = 1200    # the name of this const is not the standard
+# Code page for rendering string.
+CP_WINANSI      = 1004    # default codepage for windows & old DDE convs.
+CP_WINUNICODE   = 1200
+
+# Declaration
+DDECALLBACK = WINFUNCTYPE(HDDEDATA, UINT, UINT, HCONV, HSZ, HSZ, HDDEDATA,  ULONG_PTR, ULONG_PTR)
+
+# PyZDDE specific globals
 number_of_apps_communicating = 0  # to keep an account of the number of zemax
                                   # server objects --'ZEMAX', 'ZEMAX1' etc
 
@@ -209,6 +216,21 @@ class CreateConversation(object):
                 print("Timeout reached. Please use a higher timeout.\n")
         return reply
 
+    def RequestArrayTrace(self, ddeRayData, timeout=None):
+        """Request bulk ray tracing
+
+        Parameters
+        ----------
+        ddeRayData : the ray data for array trace
+        """
+        pass
+        # TO DO!!!
+        # 1. Assign proper timeout as in Request() function
+        # 2. Create the rayData structure conforming to ctypes structure
+        # 3. Process the reply and return ray trace data
+        # 4. Handle errors
+        #reply = self.ddec.poke("RayArrayData", rayData, timeout)
+
     def SetDDETimeout(self, timeout):
         """Set DDE timeout
         timeout : timeout in seconds
@@ -230,22 +252,19 @@ def get_winfunc(libname, funcname, restype=None, argtypes=(), _libcache={}):
     func.restype = restype
     return func
 
-
-DDECALLBACK = WINFUNCTYPE(HDDEDATA, UINT, UINT, HCONV, HSZ, HSZ, HDDEDATA,  ULONG_PTR, ULONG_PTR)
-
 class DDE(object):
     """Object containing all the DDEML functions"""
     AccessData         = get_winfunc("user32", "DdeAccessData",          LPBYTE,   (HDDEDATA, LPDWORD))
     ClientTransaction  = get_winfunc("user32", "DdeClientTransaction",   HDDEDATA, (LPBYTE, DWORD, HCONV, HSZ, UINT, UINT, DWORD, LPDWORD))
     Connect            = get_winfunc("user32", "DdeConnect",             HCONV,    (DWORD, HSZ, HSZ, PCONVCONTEXT))
     CreateDataHandle   = get_winfunc("user32", "DdeCreateDataHandle",    HDDEDATA, (DWORD, LPBYTE, DWORD, DWORD, HSZ, UINT, UINT))
-    CreateStringHandle = get_winfunc("user32", "DdeCreateStringHandleW", HSZ,      (DWORD, LPCWSTR, UINT))
+    CreateStringHandle = get_winfunc("user32", "DdeCreateStringHandleW", HSZ,      (DWORD, LPCWSTR, UINT))  # Unicode version
     Disconnect         = get_winfunc("user32", "DdeDisconnect",          BOOL,     (HCONV,))
     GetLastError       = get_winfunc("user32", "DdeGetLastError",        UINT,     (DWORD,))
-    Initialize         = get_winfunc("user32", "DdeInitializeW",         UINT,     (LPDWORD, DDECALLBACK, DWORD, DWORD))
+    Initialize         = get_winfunc("user32", "DdeInitializeW",         UINT,     (LPDWORD, DDECALLBACK, DWORD, DWORD)) # Unicode version of DDE initialize
     FreeDataHandle     = get_winfunc("user32", "DdeFreeDataHandle",      BOOL,     (HDDEDATA,))
     FreeStringHandle   = get_winfunc("user32", "DdeFreeStringHandle",    BOOL,     (DWORD, HSZ))
-    QueryString        = get_winfunc("user32", "DdeQueryStringA",        DWORD,    (DWORD, HSZ, LPSTR, DWORD, c_int))
+    QueryString        = get_winfunc("user32", "DdeQueryStringA",        DWORD,    (DWORD, HSZ, LPSTR, DWORD, c_int)) # ANSI version of QueryString
     UnaccessData       = get_winfunc("user32", "DdeUnaccessData",        BOOL,     (HDDEDATA,))
     Uninitialize       = get_winfunc("user32", "DdeUninitialize",        BOOL,     (DWORD,))
 
@@ -274,8 +293,8 @@ class DDEClient(object):
         if res != DMLERR_NO_ERROR:
             raise DDEError("Unable to register with DDEML (err=%s)" % hex(res))
 
-        hszServName = DDE.CreateStringHandle(self._idInst, service, CP_WINUNICODE_UTF16)
-        hszTopic = DDE.CreateStringHandle(self._idInst, topic, CP_WINUNICODE_UTF16)
+        hszServName = DDE.CreateStringHandle(self._idInst, service, CP_WINUNICODE)
+        hszTopic = DDE.CreateStringHandle(self._idInst, topic, CP_WINUNICODE)
         # Try to establish conversation with the Zemax server
         self._hConv = DDE.Connect(self._idInst, hszServName, hszTopic, PCONVCONTEXT())
         DDE.FreeStringHandle(self._idInst, hszTopic)
@@ -292,26 +311,28 @@ class DDEClient(object):
 
     def advise(self, item, stop=False):
         """Request updates when DDE data changes."""
-        hszItem = DDE.CreateStringHandle(self._idInst, item, CP_WINUNICODE_UTF16)
+        hszItem = DDE.CreateStringHandle(self._idInst, item, CP_WINUNICODE)
         hDdeData = DDE.ClientTransaction(LPBYTE(), 0, self._hConv, hszItem, CF_TEXT, XTYP_ADVSTOP if stop else XTYP_ADVSTART, TIMEOUT_ASYNC, LPDWORD())
         DDE.FreeStringHandle(self._idInst, hszItem)
         if not hDdeData:
             raise DDEError("Unable to %s advise" % ("stop" if stop else "start"), self._idInst)
         DDE.FreeDataHandle(hDdeData)
 
-    def execute(self, command, timeout=5000):
+    def execute(self, command):
         """Execute a DDE command."""
         pData = c_char_p(command)
         cbData = DWORD(len(command) + 1)
-        hDdeData = DDE.ClientTransaction(pData, cbData, self._hConv, HSZ(), CF_TEXT, XTYP_EXECUTE, timeout, LPDWORD())
+        hDdeData = DDE.ClientTransaction(pData, cbData, self._hConv, HSZ(), CF_TEXT, XTYP_EXECUTE, TIMEOUT_ASYNC, LPDWORD())
         if not hDdeData:
             raise DDEError("Unable to send command", self._idInst)
         DDE.FreeDataHandle(hDdeData)
 
     def request(self, item, timeout=5000):
         """Request data from DDE service."""
-        hszItem = DDE.CreateStringHandle(self._idInst, item, CP_WINUNICODE_UTF16)
-        hDdeData = DDE.ClientTransaction(LPBYTE(), 0, self._hConv, hszItem, CF_TEXT, XTYP_REQUEST, timeout, LPDWORD())
+        hszItem = DDE.CreateStringHandle(self._idInst, item, CP_WINUNICODE)
+        #hDdeData = DDE.ClientTransaction(LPBYTE(), 0, self._hConv, hszItem, CF_TEXT, XTYP_REQUEST, timeout, LPDWORD())
+        pdwResult = DWORD(0)
+        hDdeData = DDE.ClientTransaction(LPBYTE(), 0, self._hConv, hszItem, CF_TEXT, XTYP_REQUEST, timeout, byref(pdwResult))
         DDE.FreeStringHandle(self._idInst, hszItem)
         if not hDdeData:
             raise DDEError("Unable to request item", self._idInst)
@@ -321,7 +342,35 @@ class DDEClient(object):
             pData = DDE.AccessData(hDdeData, byref(pdwSize))
             if not pData:
                 DDE.FreeDataHandle(hDdeData)
-                raise DDEError("Unable to access data", self._idInst)
+                raise DDEError("Unable to access data in request function", self._idInst)
+            DDE.UnaccessData(hDdeData)
+        else:
+            pData = None
+        DDE.FreeDataHandle(hDdeData)
+        return pData
+
+    def poke(self, item, data, timeout=5000):
+        """Poke (unsolicited) data to DDE server"""
+        hszItem = DDE.CreateStringHandle(self._idInst, item, CP_WINUNICODE)
+        pData = c_char_p(data)
+        cbData = DWORD(len(data) + 1)
+        pdwResult = DWORD(0)
+        #hData = DDE.CreateDataHandle(self._idInst, data, cbData, 0, hszItem, CP_WINUNICODE, 0)
+        #hDdeData = DDE.ClientTransaction(hData, -1, self._hConv, hszItem, CF_TEXT, XTYP_POKE, timeout, LPDWORD())
+        hDdeData = DDE.ClientTransaction(pData, cbData, self._hConv, hszItem, CF_TEXT, XTYP_POKE, timeout, byref(pdwResult))
+        DDE.FreeStringHandle(self._idInst, hszItem)
+        #DDE.FreeDataHandle(dData)
+        if not hDdeData:
+            print("Value of pdwResult: ", pdwResult)
+            raise DDEError("Unable to poke to server", self._idInst)
+
+        if timeout != TIMEOUT_ASYNC:
+            pdwSize = DWORD(0)
+            pData = DDE.AccessData(hDdeData, byref(pdwSize))
+            if not pData:
+                DDE.FreeDataHandle(hDdeData)
+                raise DDEError("Unable to access data in poke function", self._idInst)
+            # TODO: use pdwSize
             DDE.UnaccessData(hDdeData)
         else:
             pData = None
@@ -350,20 +399,19 @@ class DDEClient(object):
         Returns
         -------
         ret      : specific to the type of transaction (HDDEDATA)
-
-        Note
-        See Transaction types at http://msdn.microsoft.com/en-us/library/windows/desktop/ms648773(v=vs.85).aspx
-        for more details. This callback processes transactions that the client may receive from DDEML
         """
-        if wType == XTYP_ADVDATA:
+        if wType == XTYP_ADVDATA:  # value of the data item has changed [hsz1 = topic; hsz2 = item; hDdeData = data]
             dwSize = DWORD(0)
             pData = DDE.AccessData(hDdeData, byref(dwSize))
             if pData:
                 item = create_string_buffer('\000' * 128)
-                DDE.QueryString(self._idInst, hsz2, item, 128, 1004)
+                DDE.QueryString(self._idInst, hsz2, item, 128, CP_WINANSI)
                 self.callback(pData, item.value)
                 DDE.UnaccessData(hDdeData)
                 return DDE_FACK
+            else:
+                raise DDEError("Unable to access advice data", self._idInst)
+
         return 0
 
 def WinMSGLoop():
