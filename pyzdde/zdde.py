@@ -19,10 +19,24 @@ import imp
 import subprocess
 from os import path
 from math import pi, cos, sin, tan, atan, asin
-from itertools import izip, imap
 import time
 import datetime
 import warnings
+
+# Check Python version and report if Python version 3
+PYVER3 = True
+if sys.version_info[0] < 3:
+    PYVER3 = False
+
+if PYVER3:
+    print("PyZDDE is not supported in Python 3.x currently.")
+    sys.exit(0)
+    
+if PYVER3:
+   izip = zip
+   imap = map
+else:
+    from itertools import izip, imap
 
 # By default, PyZDDE uses the DDE module called dde_backup. However, if for any reason
 # one wants to use the DDE module from PyWin32 package, make the following flag
