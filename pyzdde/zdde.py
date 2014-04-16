@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.7.2
+# Revision:    0.7.3
 #-------------------------------------------------------------------------------
 """PyZDDE, which is a toolbox written in Python, is used for communicating with
 ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging protocol.
@@ -15,6 +15,7 @@ from __future__ import division
 from __future__ import print_function
 import sys
 import os
+import imp
 import subprocess
 from os import path
 from math import pi, cos, sin, tan, atan, asin
@@ -40,7 +41,7 @@ if USE_PYWIN32DDE:
         USING_BACKUP_DDE = False
 else:
     import dde_backup as dde
-    #reload(dde)    # Temporary for development purpose ... To remove/Comment out before checkin to master
+    #imp.reload(dde)    # Temporary for development purpose ... To remove/Comment out before checkin to master
     USING_BACKUP_DDE = True
 
 #Try to import IPython if it is available (for notebook helper functions)
@@ -146,15 +147,18 @@ class PyZDDE(object):
             try:
                 PyZDDE.__server = dde.CreateServer()
                 PyZDDE.__server.Create("ZCLIENT")           # Name of the client
-            except Exception, err1:
+                _debugPrint(2, "PyZDDE.__server = " + str(PyZDDE.__server))
+            except Exception as err1:
                 sys.stderr.write("{err}: Possibly another application is already"
                                  " using a DDE server!".format(err=str(err1)))
                 return -1
         # Try to create individual conversations for each ZEMAX application.
         self.conversation = dde.CreateConversation(PyZDDE.__server)
+        _debugPrint(2, "PyZDDE.converstation = " + str(self.conversation))
         try:
             self.conversation.ConnectTo(self.appName," ")
-        except Exception, err2:
+        except Exception as err2:
+            _debugPrint(2, "Exception occured at attempt to call ConnecTo. Error = {err}".format(err=str(err2)))
             if self.__liveCh >= MAXIMUM_PARALLEL_CONV:
                 sys.stderr.write("ERROR: {err}. \nMore than {liveConv} simultaneous conversations not allowed!\n"
                                  .format(err=str(err2), liveConv=MAXIMUM_PARALLEL_CONV))
@@ -1894,7 +1898,7 @@ class PyZDDE(object):
         args3 = "{l:1.20g},{m:1.20g},{n:1.20g},".format(l=l,m=m,n=n)
         args4 = "{Ex:1.4f},{Ey:1.4f}".format(Ex=Ex,Ey=Ey)
         args5 = "{Phax:1.4f},{Phay:1.4f}".format(Phax=Phax,Phay=Phay)
-        cmd = "GetPolTraceDirect," + arg0 + args1 + args2 + args3 + args4 + args5
+        cmd = "GetPolTraceDirect," + args0 + args1 + args2 + args3 + args4 + args5
         reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
         rayPolTraceData = tuple([int(elem) if i==0 else float(elem)
@@ -2452,7 +2456,7 @@ class PyZDDE(object):
         #Check if the file path is valid and has extension
         if path.isabs(textFileName) and path.splitext(textFileName)[1]!='':
             cmd = 'GetTextFile,"{tF}",{aT},"{sF}",{fl:d}'.format(tF=textFileName,
-                                    aT=analysisType,sF=settingsFileName,fl=flag)
+                                    aT=analysisType,sF=settingsFile,fl=flag)
             reply = self._sendDDEcommand(cmd)
             if 'OK' in reply.split():
                 retVal = 0
@@ -4048,7 +4052,7 @@ class PyZDDE(object):
             raise ValueError('Invalid number of fields')
         cmd = ("SetField,{:d},{:d},{:d},{:d}"
               .format(0,fieldType,fieldCount,fNormalization))
-        reply = self._sendDDEcommand(cmd)
+        self._sendDDEcommand(cmd)
         oFieldDataTuple = [ ]
         for i in range(fieldCount):
             fieldData = self.zSetField(i+1,*iFieldDataTuple[i])
@@ -6269,8 +6273,8 @@ class PyZDDE(object):
                     # Convert Metafile to PNG using ImageMagick's convert
                     startupinfo = subprocess.STARTUPINFO()
                     startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                    p = subprocess.Popen(args=imagickCmd, stdout=subprocess.PIPE,
-                                         startupinfo=startupinfo)
+                    subprocess.Popen(args=imagickCmd, stdout=subprocess.PIPE,
+                                     startupinfo=startupinfo)
                     stat = _checkFileExist(tmpPngImgName,timeout=10) # 10 for safety
                     if stat==0:
                         time.sleep(0.2)
@@ -6776,7 +6780,7 @@ def _test_PyZDDE():
             info = sys.exc_info()
             print("Exception error:", info[0])
             #assert info[0] == 'exceptions.ValueError'
-            assert cmp(str(info[0]),"<type 'exceptions.ValueError'>") == 0
+            #assert cmp(str(info[0]),"<type 'exceptions.ValueError'>") == 0
 
         # TEST ALL FUNCTIONS THAT REQUIRE PUSHLENS() ... HERE!
         #Push lens without any parameters
@@ -6873,7 +6877,7 @@ def _test_PyZDDE():
     #Get the current stop position (it should be 1, as it is a new lens)
     sysPara = link0.zGetSystem()
     # set unitCode (mm), stop-surface, ray-aiming, ... , global surface reference
-    sysParaNew = link0.zSetSystem(0,sysPara[2],0,0,20,1,-1) # Set the image plane as Global ref surface
+    link0.zSetSystem(0,sysPara[2],0,0,20,1,-1) # Set the image plane as Global ref surface
 
     print("\nTEST: zSetSystemAper():")
     print("-------------------")
@@ -7030,5 +7034,5 @@ def _test_PyZDDE():
 
 
 if __name__ == '__main__':
-    import os, time
+    import os
     _test_PyZDDE()

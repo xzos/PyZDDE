@@ -10,13 +10,14 @@
 # Copyright:   (c) David Naylor
 # Licence:     New BSD license (Please see the file Notice.txt for further details)
 # Website:     http://code.activestate.com/recipes/577654-dde-client/
+# Revision:    0.7.3
 #-------------------------------------------------------------------------------
 from __future__ import print_function
 import sys
-from ctypes import c_char_p, c_void_p, c_int, c_ulong, c_char_p
-from ctypes import windll, byref, create_string_buffer
+from ctypes import c_int, c_double, c_char_p, c_void_p, c_ulong, c_char, pointer, cast
+from ctypes import windll, byref, create_string_buffer, Structure, sizeof
 from ctypes import POINTER, WINFUNCTYPE
-from ctypes.wintypes import BOOL, HWND, MSG, DWORD, BYTE, INT, LPCWSTR, UINT, ULONG
+from ctypes.wintypes import BOOL, HWND, MSG, DWORD, BYTE, INT, LPCWSTR, UINT, ULONG, LPCSTR
 
 # DECLARE_HANDLE(name) typedef void *name;
 HCONV     = c_void_p  # = DECLARE_HANDLE(HCONV)
@@ -31,13 +32,14 @@ ULONG_PTR = c_ulong
 PCONVCONTEXT = c_void_p
 
 # DDEML errors
-# Ref: http://msdn.microsoft.com/en-us/library/windows/desktop/ms648755(v=vs.85).aspx
 DMLERR_NO_ERROR            = 0x0000  # No error
 DMLERR_ADVACKTIMEOUT       = 0x4000  # request for synchronous advise transaction timed out
 DMLERR_DATAACKTIMEOUT      = 0x4002  # request for synchronous data transaction timed out
 DMLERR_DLL_NOT_INITIALIZED = 0x4003  # DDEML functions called without iniatializing
 DMLERR_EXECACKTIMEOUT      = 0x4006  # request for synchronous execute transaction timed out
 DMLERR_NO_CONV_ESTABLISHED = 0x400a  # client's attempt to establish a conversation has failed (can happen during DdeConnect)
+DMLERR_POKEACKTIMEOUT      = 0x400b  # A request for a synchronous poke transaction has timed out.
+DMLERR_POSTMSG_FAILED      = 0x400c  # An internal call to the PostMessage function has failed.
 DMLERR_SERVER_DIED         = 0x400e
 
 # Predefined Clipboard Formats
@@ -259,9 +261,11 @@ class DDE(object):
     Connect            = get_winfunc("user32", "DdeConnect",             HCONV,    (DWORD, HSZ, HSZ, PCONVCONTEXT))
     CreateDataHandle   = get_winfunc("user32", "DdeCreateDataHandle",    HDDEDATA, (DWORD, LPBYTE, DWORD, DWORD, HSZ, UINT, UINT))
     CreateStringHandle = get_winfunc("user32", "DdeCreateStringHandleW", HSZ,      (DWORD, LPCWSTR, UINT))  # Unicode version
+    #CreateStringHandle = get_winfunc("user32", "DdeCreateStringHandleA", HSZ,      (DWORD, LPCSTR, UINT))  # ANSI version
     Disconnect         = get_winfunc("user32", "DdeDisconnect",          BOOL,     (HCONV,))
     GetLastError       = get_winfunc("user32", "DdeGetLastError",        UINT,     (DWORD,))
     Initialize         = get_winfunc("user32", "DdeInitializeW",         UINT,     (LPDWORD, DDECALLBACK, DWORD, DWORD)) # Unicode version of DDE initialize
+    #Initialize         = get_winfunc("user32", "DdeInitializeA",         UINT,     (LPDWORD, DDECALLBACK, DWORD, DWORD)) # ANSI version of DDE initialize
     FreeDataHandle     = get_winfunc("user32", "DdeFreeDataHandle",      BOOL,     (HDDEDATA,))
     FreeStringHandle   = get_winfunc("user32", "DdeFreeStringHandle",    BOOL,     (DWORD, HSZ))
     QueryString        = get_winfunc("user32", "DdeQueryStringA",        DWORD,    (DWORD, HSZ, LPSTR, DWORD, c_int)) # ANSI version of QueryString
@@ -379,7 +383,7 @@ class DDEClient(object):
 
     def callback(self, value, item=None):
         """Callback function for advice."""
-        print("%s: %s" % (item, value))
+        print("callback: %s: %s" % (item, value))
 
     def _callback(self, wType, uFmt, hConv, hsz1, hsz2, hDdeData, dwData1, dwData2):
         """DdeCallback callback function for processing Dynamic Data Exchange (DDE)
@@ -410,7 +414,9 @@ class DDEClient(object):
                 DDE.UnaccessData(hDdeData)
                 return DDE_FACK
             else:
-                raise DDEError("Unable to access advice data", self._idInst)
+                print("Error: AccessData returned NULL! (err = %s)"% (hex(DDE.GetLastError(self._idInst))))
+        if wType == XTYP_DISCONNECT:
+            print("Disconnect notification received from server")
 
         return 0
 

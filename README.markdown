@@ -2,9 +2,17 @@
 
 ##### Current revision:
 
-0.7.2 (Last significant update on 03/21/2014)
+0.7.3 (Last significant update on 04/16/2014)
 
 Brief change log is available in the [News and Updates](https://github.com/indranilsinharoy/PyZDDE/wiki/News-and-updates) page. 
+
+##### Issues and how you can help
+
+The page [Issues and how you can help](https://github.com/indranilsinharoy/PyZDDE/wiki/Issues-and-how-you-can-help) enlists some issues that are not necessarily bugs.  Instead, they are features or functionalities that need to be implemented and you can help.
+
+If you find any bug, or would like to suggest any improvement please consider reporting at the [issues page](https://github.com/indranilsinharoy/PyZDDE/issues?state=open). 
+
+Thank you very much.
 
 #### Overview
 
@@ -58,12 +66,9 @@ Please refer to the [Wiki page] (https://github.com/indranilsinharoy/PyZDDE/wiki
 
 #### Dependencies:
 
-1.   Python 2.7 and above, 32/64 bit version (I haven't tested on Python 3.x)
+1.   Python 2.7 and above, 32/64 bit version (Currently Python 3.x is not supported)
 2.   PyWin32, build 218.4 or later (optional)
 3.   Matplotlib (optional, used in some of the example programs)
-
-#### Issues and Bugs:
-Please report any issues or bugs at the [issues page](https://github.com/indranilsinharoy/PyZDDE/issues?state=open). 
 
 #### License:
 The code is under the [MIT License] (http://opensource.org/licenses/MIT). 
