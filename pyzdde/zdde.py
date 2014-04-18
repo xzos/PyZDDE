@@ -27,15 +27,13 @@ import warnings
 PYVER3 = True
 if sys.version_info[0] < 3:
     PYVER3 = False
-
+  
 if PYVER3:
-    print("PyZDDE is not supported in Python 3.x currently.")
-    sys.exit(0)
-    
-if PYVER3:
+    # Python 3.x
    izip = zip
    imap = map
 else:
+    # Python 2.x
     from itertools import izip, imap
 
 # By default, PyZDDE uses the DDE module called dde_backup. However, if for any reason
@@ -49,12 +47,18 @@ if USE_PYWIN32DDE:
         import dde
     except ImportError:
         print("The DDE module from PyWin32 failed to be imported. Using dde_backup module instead.")
-        import dde_backup as dde
+        if PYVER3:
+            import pyzdde.dde_backup as dde
+        else:
+            import dde_backup as dde
         USING_BACKUP_DDE = True
     else:
         USING_BACKUP_DDE = False
 else:
-    import dde_backup as dde
+    if PYVER3:
+        import pyzdde.dde_backup as dde
+    else:
+        import dde_backup as dde
     #imp.reload(dde)    # Temporary for development purpose ... To remove/Comment out before checkin to master
     USING_BACKUP_DDE = True
 
@@ -90,9 +94,14 @@ pDir = currDir[0:index-1]
 if pDir not in sys.path:
     sys.path.append(pDir)
 
-import zcodes.zemaxbuttons as zb
-import zcodes.zemaxoperands as zo
-from utils.pyzddeutils import cropImgBorders, imshow
+if PYVER3:
+    import pyzdde.zcodes.zemaxbuttons as zb
+    import pyzdde.zcodes.zemaxoperands as zo
+    from pyzdde.utils.pyzddeutils import cropImgBorders, imshow
+else:
+    import zcodes.zemaxbuttons as zb
+    import zcodes.zemaxoperands as zo
+    from utils.pyzddeutils import cropImgBorders, imshow
 
 DEBUG_PRINT_LEVEL = 0 # 0=No debug prints, but allow all essential prints
                       # 1 to 2 levels of debug print, 2 = print all
@@ -280,6 +289,8 @@ class PyZDDE(object):
             reply = self.conversation.Request(cmd)
         else:
             reply = self.conversation.Request(cmd, timeout)
+        if PYVER3:
+            reply = reply.decode('ascii').rstrip()
         return reply
 
     def __del__(self):
