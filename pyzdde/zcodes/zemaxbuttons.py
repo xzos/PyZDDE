@@ -270,7 +270,7 @@ def isZButtonCode(buttonCode):
     -------
     bool        : True if valid button code, False otherwise
     """
-    return str(buttonCode) in _Buttons.button_code.viewkeys()
+    return str(buttonCode) in _Buttons.button_code.keys()
 
 def showZButtonDescription(buttonCode):
     """Get a short description about a button code.

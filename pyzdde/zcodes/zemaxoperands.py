@@ -734,15 +734,15 @@ def isZOperand(operand, operandType=0):
       bool : True if valid operand, else False.
     """
     if operandType == 1:
-        return str(operand) in _Operands.opt_operands.viewkeys()
+        return str(operand) in _Operands.opt_operands.keys()
     elif operandType == 2:
-        return str(operand) in _Operands.tol_operands.viewkeys()
+        return str(operand) in _Operands.tol_operands.keys()
     elif operandType == 3:
-        return str(operand) in _Operands.mco_operands.viewkeys()
+        return str(operand) in _Operands.mco_operands.keys()
     elif operandType == 0:
-        return ((str(operand) in _Operands.opt_operands.viewkeys()) or
-                (str(operand) in _Operands.tol_operands.viewkeys()) or
-                (str(operand) in _Operands.mco_operands.viewkeys()))
+        return ((str(operand) in _Operands.opt_operands.keys()) or
+                (str(operand) in _Operands.tol_operands.keys()) or
+                (str(operand) in _Operands.mco_operands.keys()))
     else:
         return False
 

@@ -15,7 +15,7 @@ from __future__ import division
 from __future__ import print_function
 import sys
 import os
-import imp
+#import imp
 import subprocess
 from os import path
 from math import pi, cos, sin, tan, atan, asin
@@ -23,19 +23,23 @@ import time
 import datetime
 import warnings
 
-# Check Python version and report if Python version 3
-PYVER3 = True
+try:
+    from . config import PYVER3
+except ImportError:
+    from config import PYVER3
+
+# Check Python version and set the version variable
 if sys.version_info[0] < 3:
     PYVER3 = False
+else:
+    PYVER3 = True
 
 if PYVER3:
-    print("PyZDDE is not supported in Python 3.x currently.")
-    sys.exit(0)
-    
-if PYVER3:
+    # Python 3.x
    izip = zip
    imap = map
 else:
+    # Python 2.x
     from itertools import izip, imap
 
 # By default, PyZDDE uses the DDE module called dde_backup. However, if for any reason
@@ -49,12 +53,18 @@ if USE_PYWIN32DDE:
         import dde
     except ImportError:
         print("The DDE module from PyWin32 failed to be imported. Using dde_backup module instead.")
-        import dde_backup as dde
+        if PYVER3:
+            from . import dde_backup as dde
+        else:
+            import dde_backup as dde
         USING_BACKUP_DDE = True
     else:
         USING_BACKUP_DDE = False
 else:
-    import dde_backup as dde
+    if PYVER3:
+        from . import dde_backup as dde
+    else:
+        import dde_backup as dde
     #imp.reload(dde)    # Temporary for development purpose ... To remove/Comment out before checkin to master
     USING_BACKUP_DDE = True
 
@@ -90,9 +100,14 @@ pDir = currDir[0:index-1]
 if pDir not in sys.path:
     sys.path.append(pDir)
 
-import zcodes.zemaxbuttons as zb
-import zcodes.zemaxoperands as zo
-from utils.pyzddeutils import cropImgBorders, imshow
+if PYVER3:
+    from . zcodes import zemaxbuttons as zb
+    from . zcodes import zemaxoperands as zo
+    from . utils.pyzddeutils import cropImgBorders, imshow
+else:
+    import zcodes.zemaxbuttons as zb
+    import zcodes.zemaxoperands as zo
+    from utils.pyzddeutils import cropImgBorders, imshow
 
 DEBUG_PRINT_LEVEL = 0 # 0=No debug prints, but allow all essential prints
                       # 1 to 2 levels of debug print, 2 = print all
@@ -276,10 +291,13 @@ class PyZDDE(object):
     def _sendDDEcommand(self, cmd, timeout=None):
         """Method to send command to DDE client
         """
+        global PYVER3
         if USE_PYWIN32DDE: # can't set timeout in pywin32 ddi request
             reply = self.conversation.Request(cmd)
         else:
             reply = self.conversation.Request(cmd, timeout)
+        if PYVER3:
+            reply = reply.decode('ascii').rstrip()
         return reply
 
     def __del__(self):
