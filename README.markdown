@@ -2,17 +2,23 @@
 
 ##### Current revision:
 
-0.7.3 (Last significant update on 04/16/2014)
+0.7.4 (Last significant update on 04/19/2014)
 
 Brief change log is available in the [News and Updates](https://github.com/indranilsinharoy/PyZDDE/wiki/News-and-updates) page. 
 
 ##### Issues and how you can help
 
-The page [Issues and how you can help](https://github.com/indranilsinharoy/PyZDDE/wiki/Issues-and-how-you-can-help) enlists some issues that are not necessarily bugs.  Instead, they are features or functionalities that need to be implemented and you can help.
+The page [issues and how you can help](https://github.com/indranilsinharoy/PyZDDE/wiki/Issues-and-how-you-can-help) enlists some issues that are not necessarily bugs.  Instead, they are features or functionalities that need to be implemented and you can help.
 
-If you find any bug, or would like to suggest any improvement please consider reporting at the [issues page](https://github.com/indranilsinharoy/PyZDDE/issues?state=open). 
+If you find any bug, or would like to suggest any improvement to the current PyZDDE library please consider reporting at the [issues page](https://github.com/indranilsinharoy/PyZDDE/issues?state=open). 
 
 Thank you very much.
+
+##### Contributions and credits
+
+The generous people who have contributed to PyZDDE are in [Contributors](https://github.com/indranilsinharoy/PyZDDE/wiki/Contributors). Thanks a lot to all of you. 
+
+Other projects that are using PyZDDE are listed [here](https://github.com/indranilsinharoy/PyZDDE/wiki/Projects-using-PyZDDE).
 
 #### Overview
 
@@ -66,9 +72,8 @@ Please refer to the [Wiki page] (https://github.com/indranilsinharoy/PyZDDE/wiki
 
 #### Dependencies:
 
-1.   Python 2.7 and above, 32/64 bit version (Currently Python 3.x is not supported)
-2.   PyWin32, build 218.4 or later (optional)
-3.   Matplotlib (optional, used in some of the example programs)
+1.   Python 2.7 / Python 3.3 and above; 32/64 bit version 
+2.   Matplotlib (optional, used in some of the example programs)
 
 #### License:
 The code is under the [MIT License] (http://opensource.org/licenses/MIT). 

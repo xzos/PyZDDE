@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Name:        dde_backup.py
+# Name:        ddeclient.py
 # Purpose:     DDE Management Library (DDEML) client application for communicating
 #              with Zemax
 #
@@ -10,7 +10,7 @@
 # Copyright:   (c) David Naylor
 # Licence:     New BSD license (Please see the file Notice.txt for further details)
 # Website:     http://code.activestate.com/recipes/577654-dde-client/
-# Revision:    0.7.3
+# Revision:    0.7.4
 #-------------------------------------------------------------------------------
 from __future__ import print_function
 import sys

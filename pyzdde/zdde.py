@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.7.3
+# Revision:    0.7.4
 #-------------------------------------------------------------------------------
 """PyZDDE, which is a toolbox written in Python, is used for communicating with
 ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging protocol.
@@ -15,7 +15,6 @@ from __future__ import division
 from __future__ import print_function
 import sys
 import os
-#import imp
 import subprocess
 from os import path
 from math import pi, cos, sin, tan, atan, asin
@@ -28,7 +27,7 @@ try:
 except ImportError:
     from config import PYVER3
 
-# Check Python version and set the version variable
+# Check Python version and set the global version variable
 if sys.version_info[0] < 3:
     PYVER3 = False
 else:
@@ -38,35 +37,12 @@ if PYVER3:
     # Python 3.x
    izip = zip
    imap = map
+   from . import ddeclient as dde
 else:
     # Python 2.x
     from itertools import izip, imap
+    import ddeclient as dde
 
-# By default, PyZDDE uses the DDE module called dde_backup. However, if for any reason
-# one wants to use the DDE module from PyWin32 package, make the following flag
-# true. Note that you cannot set timeout if using PyWin32
-USE_PYWIN32DDE = False
-
-if USE_PYWIN32DDE:
-    try:
-        import win32ui
-        import dde
-    except ImportError:
-        print("The DDE module from PyWin32 failed to be imported. Using dde_backup module instead.")
-        if PYVER3:
-            from . import dde_backup as dde
-        else:
-            import dde_backup as dde
-        USING_BACKUP_DDE = True
-    else:
-        USING_BACKUP_DDE = False
-else:
-    if PYVER3:
-        from . import dde_backup as dde
-    else:
-        import dde_backup as dde
-    #imp.reload(dde)    # Temporary for development purpose ... To remove/Comment out before checkin to master
-    USING_BACKUP_DDE = True
 
 #Try to import IPython if it is available (for notebook helper functions)
 try:
@@ -86,7 +62,7 @@ else:
     MPLimgLoad = True
 
 
-# Import zemaxOperands
+# Import zemaxOperands and other pyzdde utilities
 #TODO!!!
 # Generally most python installations will add the current directory or the
 # directory of the __main__ module to the path; however, it is not guaranteed. To ensure
@@ -109,6 +85,7 @@ else:
     import zcodes.zemaxoperands as zo
     from utils.pyzddeutils import cropImgBorders, imshow
 
+# Constants
 DEBUG_PRINT_LEVEL = 0 # 0=No debug prints, but allow all essential prints
                       # 1 to 2 levels of debug print, 2 = print all
 
@@ -134,6 +111,9 @@ def _debugPrint(level, msg):
         print("DEBUG PRINT, module - zdde (Level " + str(level)+ "): " + msg)
     return
 
+# ----------------
+# PyZDDE class
+# ----------------
 class PyZDDE(object):
     """Create an instance of PyZDDE class"""
     __chNum = -1          # channel Number; there is no restriction on number of ch
@@ -218,28 +198,18 @@ class PyZDDE(object):
         Status = 0 on success.
         """
         if PyZDDE.__server and PyZDDE.__liveCh ==0:
-            # Special case, when the user is trying to init DDE without Zemax running
-            if USING_BACKUP_DDE:
-                PyZDDE.__server.Shutdown(self.conversation) # dde_backup's shutdown function
-            else:
-                PyZDDE.__server.Shutdown() # pywin32.dde's shutdown function
+            PyZDDE.__server.Shutdown(self.conversation) # dde_backup's shutdown function
             PyZDDE.__server = 0
             _debugPrint(2,"server shutdown as ZEMAX is not running!")
         elif PyZDDE.__server and self.connection and PyZDDE.__liveCh ==1:
-            # In case of pywin32's dde, close the server only if a channel was truly
-            # established and it is the last one.
-            if USING_BACKUP_DDE:
-                PyZDDE.__server.Shutdown(self.conversation) # dde_backup's shutdown function
-            else:
-                PyZDDE.__server.Shutdown() # pywin32.dde's shutdown function
+            PyZDDE.__server.Shutdown(self.conversation) # dde_backup's shutdown function
             self.connection = False
             PyZDDE.__liveCh -=1  # This will become zero now. (reset)
             PyZDDE.__chNum = -1  # Reset the chNum ...
             PyZDDE.__server = 0  # the previous server object should be garbage collected
             _debugPrint(2,"server shutdown")
         elif self.connection:  # if additional channels were successfully created.
-            if USING_BACKUP_DDE:
-                PyZDDE.__server.Shutdown(self.conversation)
+            PyZDDE.__server.Shutdown(self.conversation)
             self.connection = False
             PyZDDE.__liveCh -=1
             _debugPrint(2,"liveCh decremented without shutting down DDE channel")
@@ -260,16 +230,12 @@ class PyZDDE(object):
         Returns
         -------
         timeout : set timeout value in seconds
-        -999    : if timeout cannot be set (if using PyWin32ui)
 
         See also `zDDEInit`, `zDDEStart`
         """
-        if USING_BACKUP_DDE:
-            self.conversation.SetDDETimeout(round(time))
-            return self.conversation.GetDDETimeout()
-        else:
-            print("Cannot set timeout using PyWin32 DDE")
-            return -999
+        self.conversation.SetDDETimeout(round(time))
+        return self.conversation.GetDDETimeout()
+
 
     def zGetTimeout(self):
         """Returns the value of the currently set timeout in seconds
@@ -282,20 +248,13 @@ class PyZDDE(object):
         -------
         timeout in seconds
         """
-        if USING_BACKUP_DDE:
-            return self.conversation.GetDDETimeout()
-        else:
-            print("Warning: PyZDDE is using PyWin32. Default timeout = 60 sec.")
-        return -999
+        return self.conversation.GetDDETimeout()
 
     def _sendDDEcommand(self, cmd, timeout=None):
         """Method to send command to DDE client
         """
         global PYVER3
-        if USE_PYWIN32DDE: # can't set timeout in pywin32 ddi request
-            reply = self.conversation.Request(cmd)
-        else:
-            reply = self.conversation.Request(cmd, timeout)
+        reply = self.conversation.Request(cmd, timeout)
         if PYVER3:
             reply = reply.decode('ascii').rstrip()
         return reply
