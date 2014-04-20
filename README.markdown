@@ -8,9 +8,7 @@ Brief change log is available in the [News and Updates](https://github.com/indra
 
 ##### Issues and how you can help
 
-The page [issues and how you can help](https://github.com/indranilsinharoy/PyZDDE/wiki/Issues-and-how-you-can-help) enlists some issues that are not necessarily bugs.  Instead, they are features or functionalities that need to be implemented and you can help.
-
-If you find any bug, or would like to suggest any improvement to the current PyZDDE library please consider reporting at the [issues page](https://github.com/indranilsinharoy/PyZDDE/issues?state=open). 
+The  [issues page](https://github.com/indranilsinharoy/PyZDDE/issues?state=open) lists current open issues, bugs, and feature request. If you find any bug, or would like to suggest any improvement to the current PyZDDE library please add them to the issues page. Your ideas, feedback and suggestions are more then welcome.
 
 Thank you very much.
 
