@@ -111,6 +111,7 @@ def _debugPrint(level, msg):
         print("DEBUG PRINT, module - zdde (Level " + str(level)+ "): " + msg)
     return
 
+#%%
 # ----------------
 # PyZDDE class
 # ----------------
@@ -4567,7 +4568,7 @@ class PyZDDE(object):
               2 = Trace only reflected rays)
         174-176 - Sets the Ax, Ay, and Az values. (float)
         177 - Sets the Axis Length. (float)
-        ------------------------------------------------------------------------
+        
         See also zGetNSCProperty
         """
         cmd = ("SetNSCProperty,{:d},{:d},{:d},{:d},"
@@ -5088,7 +5089,7 @@ class PyZDDE(object):
                     variable, or n+1 for pickup from layer n. The coating layer
                     number is defined by arg2.
         Other     - Reserved for future expansion of this feature.
-        ------------------------------------------------------------------------
+        
         See also `zGetSurfaceData` and `ZemaxSurfTypes`
         """
         cmd = "SetSurfaceData,{:d},{:d}".format(surfaceNumber,code)
@@ -5626,7 +5627,7 @@ class PyZDDE(object):
             retVal = 0
         return retVal
 
-
+#%%
 # ****************************************************************
 #                      EXTRA FUNCTIONS
 # ****************************************************************
@@ -5653,15 +5654,15 @@ class PyZDDE(object):
         # Calculate the ray pattern on the pupil plane
         finishAngle = spirals*2*pi
         dTheta = finishAngle/(rays-1)
-        theta = [i*dTheta for i in range(rays)]
-        r = [i/finishAngle for i in theta]
-        pXY = [(ri*cos(thetai), ri*sin(thetai)) for ri, thetai in izip(r,theta)]
+        theta = (i*dTheta for i in range(rays))
+        r = (i/finishAngle for i in theta)
+        pXY = ((ri*cos(thetai), ri*sin(thetai)) for ri, thetai in izip(r,theta))
         x = [] # x-coordinate of the image surface
         y = [] # y-coordinate of the image surface
         z = [] # z-coordinate of the image surface
         intensity = [] # the relative transmitted intensity of the ray
-        for px,py in pXY:
-            rayTraceData = self.zGetTrace(waveNum,mode,-1,hx,hy,px,py)
+        for px, py in pXY:
+            rayTraceData = self.zGetTrace(waveNum, mode, -1, hx, hy, px, py)
             if rayTraceData[0] == 0:
                 x.append(rayTraceData[2])
                 y.append(rayTraceData[3])
@@ -6035,13 +6036,13 @@ class PyZDDE(object):
                 sac_keys_tmp = line_list[line_num + 2].rstrip()[7:] # remove "Surf" and "\n" from start and end
                 sac_keys = sac_keys_tmp.split('    ')
                 sac_vals = line_list[line_num + numSurf+3].split()[1:]
-            # Get the Wavefront aberration Coefficients
+            # Get the Seidel Wavefront Aberration Coefficients (swac)
             sectionString2 = ("Wavefront Aberration Coefficient Summary:")
             if line.rstrip()== sectionString2:
-                swac_keys01 = line_list[line_num + 2].split()     # Seidel wave aberration coefficient names
-                swac_vals01 = line_list[line_num + 3].split()[1:] # Seidel wave aberration coefficient values
-                swac_keys02 = line_list[line_num + 5].split()     # Seidel wave aberration coefficient names
-                swac_vals02 = line_list[line_num + 6].split()[1:] # Seidel wave aberration coefficient values
+                swac_keys01 = line_list[line_num + 2].split()     # names
+                swac_vals01 = line_list[line_num + 3].split()[1:] # values
+                swac_keys02 = line_list[line_num + 5].split()     # names
+                swac_vals02 = line_list[line_num + 6].split()[1:] # values
         # Assert if the lengths of key-value lists are not equal
         assert len(sac_keys) == len(sac_vals)
         assert len(swac_keys01) == len(swac_vals01)
@@ -6131,7 +6132,7 @@ class PyZDDE(object):
             tCycles = count*numCycle
         return (finalMerit,tCycles)
 
-
+#%%
 # ***************************************************************
 #              IPYTHON NOTEBOOK UTILITY FUNCTIONS
 # ***************************************************************
@@ -6460,7 +6461,7 @@ class PyZDDE(object):
         else:
             return surfdata
 
-
+#%%
 # ***********************************************************************
 #   OTHER HELPER FUNCTIONS THAT DO NOT REQUIRE A RUNNING ZEMAX SESSION
 # ***********************************************************************
@@ -6508,11 +6509,11 @@ def fn2na(fn, ri=1.0):
     """
     return ri*sin(atan(1.0/(2.0*fn)))
 
-
+#%%
 # ***************************************************************************
 # Helper functions to process data from ZEMAX DDE server. This is especially
 # convenient for processing replies from Zemax for those function calls that
-# output exactly same reply structure. These functions are mainly used intenally
+# a known data structure. These functions are mainly used intenally
 # and may not be exposed directly.
 # ***************************************************************************
 
@@ -6533,7 +6534,7 @@ def _regressLiteralType(x):
         lit = str(x)
     return lit
 
-def _checkFileExist(filename,timeout=.25):
+def _checkFileExist(filename, timeout=.25):
     """This function checks if a file exist.
 
     If the file exist then it is ready to be read, written to, or deleted.
@@ -6674,356 +6675,7 @@ def _print_dict(data):
     for key, value in data.items():
         print("{}: {}".format(key.ljust(leftColMaxWidth+1), value))
 
-# ***************************************************************************
-#                      TEST (SOME OF) THE FUNCTIONS
-# ***************************************************************************
-# Initial code testing used to be done using the following lines of code.
-# Currently all functionality are being tested using the unit test module.
-# The _test_PyZDDE() function are left for quick test. The _test_PyZDDE()
-# function will not be executed if the module is imported! In order to execute
-# the _test_PyZDDE() function, execute this (zdde.py) module. It may prove
-# to be useful to quickly test your system.
 
-def _test_PyZDDE():
-    """Test the pyzdde module functions"""
-    currDir = os.path.dirname(os.path.realpath(__file__))
-    index = currDir.find('pyzdde')
-    pDir = currDir[0:index-1]
-    zmxfp = pDir+'\\ZMXFILES\\'
-    # Create PyZDDE object(s)
-    link0 = PyZDDE()
-    link1 = PyZDDE()
-    link2 = PyZDDE()  # this object shall be deleted randomly
-
-    print("\nTEST: zDDEInit()")
-    print("---------------")
-    status = link0.zDDEInit()
-    print("Status for link 0:", status)
-    assert status == 0
-    print("App Name for Link 0:", link0.appName)
-    print("Connection status for Link 0:", link0.connection)
-    time.sleep(0.1)   # Not required, but just for observation
-
-    #link1 = PyZDDE()
-    status = link1.zDDEInit()
-    print("Status for link 1:",status)
-    #assert status == 0   # In older versions of Zemax, unable to create second
-                          # communication link.
-    if status != 0:
-        warnings.warn("Couldn't create second channel.\n")
-    else:
-        print("App Name for Link 1:", link1.appName)
-        print("Connection status for Link 1:", link1.connection)
-    time.sleep(0.1)   # Not required, but just for observation
-
-    print("\nTEST: zGetDate()")
-    print("----------------")
-    print("Date: ", link0.zGetDate().rstrip())  # strip off the newline char
-
-    print("\nTEST: zGetSerial()")
-    print("------------------")
-    ser = link0.zGetSerial()
-    print("Serial #:", ser)
-
-    print("\nTEST: zGetVersion()")
-    print("----------------")
-    print("version number: ", link0.zGetVersion())
-
-    print("\nTEST: zSetTimeout()")
-    print("------------------")
-    link0.zSetTimeout(3)
-
-    #Delete link2 randomly
-    print("\nTEST: Random deletion of object")
-    print("--------------------------------")
-    print("Deleting object link2")
-    del link2
-
-    print("\nTEST: zLoadFile()")
-    print("-------------------")
-    filename = zmxfp+"nonExistantFile.zmx"
-    ret = link0.zLoadFile(filename)
-    assert ret == -999
-    filename = zmxfp+"Cooke 40 degree field.zmx"
-    ret = link0.zLoadFile(filename)
-    assert ret == 0
-    print("zLoadFile test successful")
-
-    if link1.connection:
-        print("\nTEST: zLoadFile() @ link 1 (second channel)")
-        print("-------------------")
-        filename = zmxfp+"Double Gauss 5 degree field.zmx"
-        assert ret == 0
-        print("zLoadFile test @ link 1 successful")
-
-    print("\nTEST: zPushLensPermission()")
-    print("---------------------------")
-    status = link0.zPushLensPermission()
-    if status:
-        print("Extensions are allowed to push lens.")
-
-        print("\nTEST: zPushLens()")
-        print("-----------------")
-        # First try to push a lens with invalid flag argument
-        try:
-            ret = link0.zPushLens(updateFlag=10)
-        except:
-            info = sys.exc_info()
-            print("Exception error:", info[0])
-            #assert info[0] == 'exceptions.ValueError'
-            #assert cmp(str(info[0]),"<type 'exceptions.ValueError'>") == 0
-
-        # TEST ALL FUNCTIONS THAT REQUIRE PUSHLENS() ... HERE!
-        #Push lens without any parameters
-        ret = link0.zPushLens()
-        if ret ==0:
-            print("Lens update without any arguments suceeded. ret value = ", ret)
-        else:
-            print("Lens update without any arguments FAILED. ret value = ", ret)
-        #Push lens with some valid parameters
-        ret = link0.zPushLens(updateFlag=1)
-        if ret == 0:
-            print("Lens update with flag=1 suceeded. ret value = ", ret)
-        else:
-            print("Lens update with flag=1 FAILED. ret value = ", ret)
-
-    else: # client do not have permission to push lens
-        print("Extensions are not allowed to push lens. Please enable it.")
-
-    #Continue with other tests
-    print("\nTEST: zGetTrace()")
-    print("------------------")
-    rayTraceData = link0.zGetTrace(3,0,5,0.0,1.0,0.0,0.0)
-    (errorCode,vigCode,x,y,z,l,m,n,l2,m2,n2,intensity) = link0.zGetTrace(3,0,5,
-                                                               0.0,1.0,0.0,0.0)
-    assert rayTraceData[0]  == errorCode
-    assert rayTraceData[1]  == vigCode
-    assert rayTraceData[2]  == x
-    assert rayTraceData[3]  == y
-    assert rayTraceData[4]  == z
-    assert rayTraceData[5]  == l
-    assert rayTraceData[6]  == m
-    assert rayTraceData[7]  == n
-    assert rayTraceData[8]  == l2
-    assert rayTraceData[9]  == m2
-    assert rayTraceData[10] == n2
-    assert rayTraceData[11] == intensity
-    print("zGetTrace test successful")
-
-    print("\nTEST: zGetRefresh()")
-    print("------------------")
-    status = link0.zGetRefresh()
-    if status == 0:
-        print("Refresh successful")
-    else:
-        print("Refresh FAILED")
-
-    print("\nTEST: zSetSystem()")
-    print("-----------------")
-    unitCode,stopSurf,rayAimingType = 0,4,0  # mm, 4th,off
-    useEnvData,temp,pressure,globalRefSurf = 0,20,1,1 # off, 20C,1ATM,ref=1st surf
-    systemData_s = link0.zSetSystem(unitCode,stopSurf,rayAimingType,useEnvData,
-                                              temp,pressure,globalRefSurf)
-    print(systemData_s)
-
-    print("\nTEST: zGetSystem()")
-    print("-----------------")
-    systemData_g = link0.zGetSystem()
-    print(systemData_g)
-
-    assert systemData_s == systemData_g
-    print("zSetSystem() and zGetSystem() test successful")
-
-    print("\nTEST: zGetPupil()")
-    print("------------------")
-    pupil_data = dict(zip((0,1,2,3,4,5,6,7),('type','value','ENPD','ENPP',
-                   'EXPD','EXPP','apodization_type','apodization_factor')))
-    pupil_type = dict(zip((0,1,2,3,4,5),
-            ('entrance pupil diameter','image space F/#','object space NA',
-              'float by stop','paraxial working F/#','object cone angle')))
-    pupil_value_type = dict(zip((0,1),("stop surface semi-diameter",
-                                         "system aperture")))
-    apodization_type = dict(zip((0,1,2),('none','Gaussian','Tangential')))
-    # Get the pupil data
-    pupilData = link0.zGetPupil()
-    print("Pupil data:")
-    print("{pT} : {pD}".format(pT=pupil_data[0],pD=pupil_type[pupilData[0]]))
-    print("{pT} : {pD} {pV}".format(pT = pupil_data[1], pD=pupilData[1],
-                                    pV = (pupil_value_type[0]
-                                    if pupilData[0]==3 else
-                                    pupil_value_type[1])))
-    for i in range(2,6):
-        print("{pd} : {pD:2.4f}".format(pd=pupil_data[i],pD=pupilData[i]))
-    print("{pd} : {pD}".format(pd=pupil_data[6],pD=apodization_type[pupilData[6]]))
-    print("{pd} : {pD:2.4f}".format(pd=pupil_data[7],pD=pupilData[7]))
-
-    # Start a basic design with a new lens
-    print("\nTEST: zNewLens()")
-    print("----------------")
-    retVal = link0.zNewLens()
-    assert retVal == 0
-    print("zNewLens() test successful")
-
-    #Set (new) system parameters:
-    #Get the current stop position (it should be 1, as it is a new lens)
-    sysPara = link0.zGetSystem()
-    # set unitCode (mm), stop-surface, ray-aiming, ... , global surface reference
-    link0.zSetSystem(0,sysPara[2],0,0,20,1,-1) # Set the image plane as Global ref surface
-
-    print("\nTEST: zSetSystemAper():")
-    print("-------------------")
-    systemAperData_s = link0.zSetSystemAper(0,sysPara[2],25) # sysAper = 25 mm, EPD
-    assert systemAperData_s[0] == 0  # Confirm aperType = EPD
-    assert systemAperData_s[1] == sysPara[2]  # confirm stop surface number
-    assert systemAperData_s[2] == 25  # confirm EPD value is 25 mm
-    print("zSetSystemAper() test successful")
-
-    print("\nTEST: zGetSystemAper():")
-    print("-----------------------")
-    systemAperData_g = link0.zGetSystemAper()
-    assert systemAperData_s == systemAperData_g
-    print("zGetSystemAper() test successful")
-
-    print("\nTEST: zInsertSurface()")
-    print("--------------------")
-    retVal = link0.zInsertSurface(1)
-    assert retVal == 0
-    print("zInsertSurface() successful")
-
-    print("\nTEST: zSetAperture()")
-    print("---------------------")
-    #aptInfo = link0.zSetAperture()
-    pass
-    #ToDo
-
-    print("\nTEST: zGetAperture()")
-    print("---------------------")
-    #aptInfo = link0.zGetAperture()
-    pass
-    #ToDo
-
-    print("\nTEST: zSetField()")
-    print("---------------------")
-    fieldData = link0.zSetField(0,0,2) # type = angle; 2 fields; rect normalization (default)
-    print("fieldData: ",fieldData)
-    assert fieldData[0]==0; assert fieldData[1]==2;
-    #assert fieldData[4]== 1; (normalization)
-    fieldData = link0.zSetField(0,0,3,1)
-    print("fieldData: ",fieldData)
-    assert fieldData[0]==0; assert fieldData[1]==3;
-    #assert fieldData[4]== 1; (normalization)
-    fieldData = link0.zSetField(1,0,0) # 1st field, on-axis x, on-axis y, weight = 1 (default)
-    print("fieldData: ",fieldData)
-    assert fieldData==(0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-    fieldData = link0.zSetField(2,0,5,2.0,0.5,0.5,0.5,0.5,0.5)
-    print("fieldData: ",fieldData)
-    assert fieldData==(0.0, 5.0, 2.0, 0.5, 0.5, 0.5, 0.5, 0.5)
-    fieldData = link0.zSetField(3,0,10,1.0,0.0,0.0,0.0)
-    print("fieldData: ",fieldData)
-    assert fieldData==(0.0, 10.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-    print("zSetField() test successful")
-
-    print("\nTEST: zGetField()")
-    print("---------------------")
-    fieldData = link0.zGetField(0)
-    print("fieldData: ",fieldData)
-    assert fieldData[0]==0; assert fieldData[1]==3;
-    #assert fieldData[4]== 1; (normalization)
-    fieldData = link0.zGetField(2)
-    print("fieldData: ",fieldData)
-    assert fieldData==(0.0, 5.0, 2.0, 0.5, 0.5, 0.5, 0.5, 0.5)
-    print("zGetField() successful")
-
-    print("\nTEST: zSetFieldTuple()")
-    print("---------------------")
-    iFieldDataTuple = ((0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0), # field1: xf=0.0,yf=0.0,wgt=1.0,
-                                                          # vdx=vdy=vcx=vcy=van=0.0
-                       (0.0,5.0,1.0),                     # field2: xf=0.0,yf=5.0,wgt=1.0
-                       (0.0,10.0))                        # field3: xf=0.0,yf=10.0
-    oFieldDataTuple = link0.zSetFieldTuple(0,1,iFieldDataTuple)
-    for i in range(len(iFieldDataTuple)):
-        print("oFieldDataTuple, field {} : {}".format(i,oFieldDataTuple[i]))
-        assert oFieldDataTuple[i][:len(iFieldDataTuple[i])]==iFieldDataTuple[i]
-    print("zSetFieldTuple() test successful")
-
-    print("\nTEST: zGetFieldTuple()")
-    print("----------------------")
-    fieldDataTuple = link0.zGetFieldTuple()
-    assert fieldDataTuple==oFieldDataTuple
-    print("zGetFieldTuple() test successful")
-
-    print("\nTEST: zSetWave()")
-    print("-----------------")
-    wavelength1 = 0.48613270
-    wavelength2 = 0.58756180
-    waveData = link0.zSetWave(0,1,2)
-    print("Primary wavelength number = ", waveData[0])
-    print("Total number of wavelengths set = ",waveData[1])
-    assert waveData[0]==1; assert waveData[1]==2
-    waveData = link0.zSetWave(1,wavelength1,0.5)
-    print("Wavelength 1: ",waveData[0])
-    assert waveData[0]==wavelength1;assert waveData[1]==0.5
-    waveData = link0.zSetWave(2,wavelength2,0.5)
-    print("Wavelength 2: ",waveData[0])
-    assert waveData[0]==wavelength2;assert waveData[1]==0.5
-    print("zSetWave test successful")
-
-    print("\nTEST: zGetWave()")
-    print("-----------------")
-    waveData = link0.zGetWave(0)
-    assert waveData[0]==1;assert waveData[1]==2
-    print(waveData)
-    waveData = link0.zGetWave(1)
-    assert waveData[0]==wavelength1;assert waveData[1]==0.5
-    print(waveData)
-    waveData = link0.zGetWave(2)
-    assert waveData[0]==wavelength2;assert waveData[1]==0.5
-    print(waveData)
-    print("zGetWave test successful")
-
-    print("\nTEST:zSetWaveTuple()")
-    print("-------------------------")
-    wavelengths = (0.48613270,0.58756180,0.65627250)
-    weights = (1.0,1.0,1.0)
-    iWaveDataTuple = (wavelengths,weights)
-    oWaveDataTuple = link0.zSetWaveTuple(iWaveDataTuple)
-    print("Output wave data tuple",oWaveDataTuple)
-    assert oWaveDataTuple==iWaveDataTuple
-    print("zSetWaveTuple() test successful")
-
-    print("\nTEST:zGetWaveTuple()")
-    print("-------------------------")
-    waveData = link0.zGetWaveTuple()
-    print("Wave data tuple =",waveData)
-    assert oWaveDataTuple==waveData
-    print("zGetWaveTuple() test successful")
-
-    print("\nTEST: zSetPrimaryWave()")
-    print("-----------------------")
-    primaryWaveNumber = 2
-    waveData = link0.zSetPrimaryWave(primaryWaveNumber)
-    print("Primary wavelength number =", waveData[0])
-    print("Total number of wavelengths =", waveData[1])
-    assert waveData[0]==primaryWaveNumber
-    assert waveData[1]==len(wavelengths)
-    print("zSetPrimaryWave() test successful")
-
-    print("\nTEST: zQuickFocus()")
-    print("---------------------")
-    retVal = link0.zQuickFocus()
-    print("zQuickFocus() test retVal = ", retVal)
-    assert retVal == 0
-    print("zQuickFocus() test successful")
-
-    # Finished all tests. Perform the last test and done!
-    print("\nTEST: zDDEClose()")
-    print("----------------")
-    status = link0.zDDEClose()
-    print("Communication link 0 with ZEMAX terminated")
-    status = link1.zDDEClose()
-    print("Communication link 1 with ZEMAX terminated")
-
-
+#%%
 if __name__ == '__main__':
-    import os
-    _test_PyZDDE()
+    pass
