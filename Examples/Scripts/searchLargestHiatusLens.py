@@ -31,8 +31,18 @@ from __future__ import division
 from __future__ import print_function
 import os, glob, sys, fnmatch
 from operator import itemgetter
-import Tkinter, tkFileDialog, Tkconstants
 import datetime
+
+import Tkinter, tkFileDialog, Tkconstants
+
+# The current Tkinter implementation is not working as expected in Python 3.x
+
+#try:   # Python 2
+#    import Tkinter, tkFileDialog, Tkconstants
+#except: # Python 3
+#    import tkinter as Tkinter
+#    import tkinter.filedialog as tkFileDialog
+#    import tkinter.constants as Tkconstants
 
 # Put both the "Examples" and the "PyZDDE" directory in the python search path.
 exampleDirectory = os.path.dirname(os.path.realpath(__file__))
@@ -54,9 +64,11 @@ HIATUS_UPPER_LIMIT = 20000.00        # Ignore lenses for which hiatus is greater
 fDBG_PRINT = False                   # Turn off/on the debug prints
 
 # ZEMAX file DIRECTORY to search (can have sub-directories)
-zmxfp = pyzddedirectory+"\\ZMXFILES"
+zmxfp = pyzddedirectory + "\\ZMXFILES"
+
 #A simple Tkinter GUI prompting for directory
 root = Tkinter.Tk()
+
 class TkFileDialog(Tkinter.Frame):
     def __init__(self, root):
         Tkinter.Frame.__init__(self, root, borderwidth=20,height=32,width=42)
@@ -89,7 +101,7 @@ class TkFileDialog(Tkinter.Frame):
         self.normEFLVar = Tkinter.StringVar()
         self.normEFLentry = Tkinter.Entry(self,text="test",textvariable=self.normEFLVar)
         self.normEFLentry.pack()
-        self.normEFLentry.insert(0,str(NORMALIZATION_EFL))
+        self.normEFLentry.insert(0, str(NORMALIZATION_EFL))
 
         #Add another label
         self.label2 = Tkinter.Label(self,text = "Ignore values above:", justify=Tkinter.LEFT)
@@ -99,7 +111,7 @@ class TkFileDialog(Tkinter.Frame):
         self.maxHiatusVar = Tkinter.StringVar()
         self.maxHiatusEntry = Tkinter.Entry(self,text="test",textvariable=self.maxHiatusVar)
         self.maxHiatusEntry.pack()
-        self.maxHiatusEntry.insert(0,str(HIATUS_UPPER_LIMIT))
+        self.maxHiatusEntry.insert(0, str(HIATUS_UPPER_LIMIT))
 
         # checkbox button 2 (For text dump option)
         self.txtFileDumpVar = Tkinter.IntVar(value=0)

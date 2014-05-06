@@ -21,19 +21,16 @@ from math import pi, cos, sin, tan, atan, asin
 import time
 import datetime
 import warnings
+from codecs import EncodedFile
 
+# The first module to import that is not one of the standard modules MUST
+# be the config module as it sets up the different global and settings variables
 try:
-    from . config import PYVER3
+    from . config import _PYVER3, _USE_UNICODE_TEXT, _setTextEncoding, _getTextEncoding
 except ImportError:
-    from config import PYVER3
+    from config import _PYVER3, _USE_UNICODE_TEXT, _setTextEncoding, _getTextEncoding
 
-# Check Python version and set the global version variable
-if sys.version_info[0] < 3:
-    PYVER3 = False
-else:
-    PYVER3 = True
-
-if PYVER3:
+if _PYVER3:
     # Python 3.x
    izip = zip
    imap = map
@@ -44,14 +41,27 @@ else:
     import ddeclient as dde
 
 
-#Try to import IPython if it is available (for notebook helper functions)
+# Try to import IPython if it is available (for notebook helper functions)
 try:
-    from IPython.core.display import display, Image
+    from IPython.core.display import display as _display
+    from IPython.core.display import Image as _Image
 except ImportError:
     #print("Couldn't import Image/display from IPython.core.display")
-    IPLoad = False
+    _IPLoad = False
 else:
-    IPLoad = True
+    _IPLoad = True
+
+# Determine if in IPython Environment
+try: # get_ipytho() method is not available in IPython versions prior to 2.0
+    from IPython import get_ipython as _get_ipython
+except:
+    _IS_IN_IPYTHON_ENV = False
+else:
+    if _get_ipython(): # if global interactive shell instance is available
+        _IS_IN_IPYTHON_ENV = True
+    else:
+        _IS_IN_IPYTHON_ENV = False
+
 
 # Try to import Matplotlib's imread
 try:
@@ -76,7 +86,7 @@ pDir = currDir[0:index-1]
 if pDir not in sys.path:
     sys.path.append(pDir)
 
-if PYVER3:
+if _PYVER3:
     from . zcodes import zemaxbuttons as zb
     from . zcodes import zemaxoperands as zo
     from . utils.pyzddeutils import cropImgBorders, imshow
@@ -86,10 +96,10 @@ else:
     from utils.pyzddeutils import cropImgBorders, imshow
 
 # Constants
-DEBUG_PRINT_LEVEL = 0 # 0=No debug prints, but allow all essential prints
+_DEBUG_PRINT_LEVEL = 0 # 0=No debug prints, but allow all essential prints
                       # 1 to 2 levels of debug print, 2 = print all
 
-MAXIMUM_PARALLEL_CONV = 2  # Maximum number of simultaneous conversations possible with Zemax server
+_MAXIMUM_PARALLEL_CONV = 2  # Maximum number of simultaneous conversations possible with Zemax server
 _system_aperture = {0 : 'EPD',
                     1 : 'Image space F/#',
                     2 : 'Object space NA',
@@ -103,22 +113,72 @@ def _debugPrint(level, msg):
     Parameters
     ----------
     level = 0, message will definitely be printed
-            1 or 2, message will be printed if level >= DEBUG_PRINT_LEVEL
+            1 or 2, message will be printed if level >= _DEBUG_PRINT_LEVEL
     msg = string message to print
     """
-    global DEBUG_PRINT_LEVEL
-    if level <= DEBUG_PRINT_LEVEL:
+    global _DEBUG_PRINT_LEVEL
+    if level <= _DEBUG_PRINT_LEVEL:
         print("DEBUG PRINT, module - zdde (Level " + str(level)+ "): " + msg)
-    return
 
-#%%
+# ***************
+# Module methods
+# ***************
+def setTextEncoding(txt_encoding=0):
+    """sets the text encoding to match the TXT encoding in Zemax
+
+    Parameters
+    ----------
+    txt_encoding (integer) : 0 = ASCII
+                             1 = UNICODE
+
+    Returns
+    -------
+    status : current setting (and information if the setting was changed or not)
+
+    Note
+    ----
+    There is no need to set the encoding for every new session as the PyZDDE
+    remembers the setting.
+    """
+    global _USE_UNICODE_TEXT
+    if _USE_UNICODE_TEXT and txt_encoding:
+        print('TXT encoding is UNICODE; no change required')
+    elif not _USE_UNICODE_TEXT and not txt_encoding:
+        print('TXT encoding is ASCII; no change required')
+    elif not _USE_UNICODE_TEXT and txt_encoding:
+        if _setTextEncoding(txt_encoding=1):
+            _USE_UNICODE_TEXT = True
+            print('Successfully changed to UNICODE')
+        else:
+            print("ERROR: Couldn't change settings")
+    elif _USE_UNICODE_TEXT and not txt_encoding:
+        if _setTextEncoding(txt_encoding=0):
+            _USE_UNICODE_TEXT = False
+            print('Successfully changed to ASCII')
+        else:
+            print("ERROR: Couldn't change settings")
+
+def getTextEncoding():
+    """returns the current text encoding set in PyZDDE
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    encoding (string): 'ascii' or 'unicode'
+    """
+    return _getTextEncoding()
+
+
 # ----------------
 # PyZDDE class
 # ----------------
 class PyZDDE(object):
     """Create an instance of PyZDDE class"""
     __chNum = -1          # channel Number; there is no restriction on number of ch
-    __liveCh = 0          # number of live/ simultaneous channels; Can't be more than MAXIMUM_PARALLEL_CONV
+    __liveCh = 0          # number of live/ simultaneous channels; Can't be more than _MAXIMUM_PARALLEL_CONV
     __server = 0
 
     def __init__(self):
@@ -169,9 +229,9 @@ class PyZDDE(object):
             self.conversation.ConnectTo(self.appName," ")
         except Exception as err2:
             _debugPrint(2, "Exception occured at attempt to call ConnecTo. Error = {err}".format(err=str(err2)))
-            if self.__liveCh >= MAXIMUM_PARALLEL_CONV:
+            if self.__liveCh >= _MAXIMUM_PARALLEL_CONV:
                 sys.stderr.write("ERROR: {err}. \nMore than {liveConv} simultaneous conversations not allowed!\n"
-                                 .format(err=str(err2), liveConv=MAXIMUM_PARALLEL_CONV))
+                                 .format(err=str(err2), liveConv =_MAXIMUM_PARALLEL_CONV))
             else:
                 sys.stderr.write("ERROR: {err}. \nZEMAX may not have been started!\n"
                                  .format(err=str(err2)))
@@ -254,9 +314,9 @@ class PyZDDE(object):
     def _sendDDEcommand(self, cmd, timeout=None):
         """Method to send command to DDE client
         """
-        global PYVER3
+        global _PYVER3
         reply = self.conversation.Request(cmd, timeout)
-        if PYVER3:
+        if _PYVER3:
             reply = reply.decode('ascii').rstrip()
         return reply
 
@@ -3545,7 +3605,7 @@ class PyZDDE(object):
         reply = self._sendDDEcommand(cmd, timeout)
         return float(reply.rstrip())
 
-    def zPushLens(self, updateFlag=None, timeout=None):
+    def zPushLens(self, update=None, timeout=None):
         """Copy lens in the ZEMAX DDE server into the Lens Data Editor (LDE).
 
         `zPushLens([updateFlag, timeout]) -> retVal`
@@ -3576,9 +3636,9 @@ class PyZDDE(object):
         `zGetRefresh`, `zSaveFile`.
         """
         reply = None
-        if updateFlag==1:
+        if update == 1:
             reply = self._sendDDEcommand('PushLens,1', timeout)
-        elif updateFlag == 0 or updateFlag == None:
+        elif update == 0 or update == None:
             reply = self._sendDDEcommand('PushLens', timeout)
         else:
             raise ValueError('Invalid value for flag')
@@ -4568,7 +4628,7 @@ class PyZDDE(object):
               2 = Trace only reflected rays)
         174-176 - Sets the Ax, Ay, and Az values. (float)
         177 - Sets the Axis Length. (float)
-        
+
         See also zGetNSCProperty
         """
         cmd = ("SetNSCProperty,{:d},{:d},{:d},{:d},"
@@ -5089,7 +5149,7 @@ class PyZDDE(object):
                     variable, or n+1 for pickup from layer n. The coating layer
                     number is defined by arg2.
         Other     - Reserved for future expansion of this feature.
-        
+
         See also `zGetSurfaceData` and `ZemaxSurfTypes`
         """
         cmd = "SetSurfaceData,{:d},{:d}".format(surfaceNumber,code)
@@ -5627,18 +5687,18 @@ class PyZDDE(object):
             retVal = 0
         return retVal
 
-#%%
 # ****************************************************************
 #                      EXTRA FUNCTIONS
 # ****************************************************************
-    def zSpiralSpot(self,hx,hy,waveNum,spirals,rays,mode=0):
-        """Convenience function to produce a series of x,y values of rays traced
-        in a spiral over the entrance pupil to the image surface. i.e. the final
-        destination of the rays is the image surface. This function imitates its
-        namesake from MZDDE toolbox (Note: unlike the spiralSpot of MZDDE, you
-        are not required to call zLoadLens() before calling zSpiralSpot()).
+    def zSpiralSpot(self, hx, hy, waveNum, spirals, rays, mode=0):
+        """returns positions and intensity of rays traced in a spiral over the
+        entrance pupil to the image surface.
 
         zSpiralSpot(hx,hy,waveNum,spirals,rays[,mode])->(x,y,z,intensity)
+
+        The final destination of the rays is the image surface. This function
+        imitates its namesake from MZDDE toolbox. (Note: unlike the spiralSpot
+        of MZDDE, there is no need to call zLoadLens() before calling zSpiralSpot()).
 
         Parameters
         ----------
@@ -5672,7 +5732,7 @@ class PyZDDE(object):
                 print("Raytrace Error")
                 exit()
                 # !!! FIX raise an error here
-        return (x,y,z,intensity)
+        return (x, y, z, intensity)
 
     def zLensScale(self,factor=2.0,ignoreSurfaces=None):
         """Scale the lens design by factor specified.
@@ -5903,11 +5963,11 @@ class PyZDDE(object):
         return ret
 
 
-    def zCalculateHiatus(self,txtFileName2Use=None,keepFile=False):
+    def zCalculateHiatus(self, txtFileName2Use=None, keepFile=False):
         """Calculate the Hiatus.
 
-        The hiatus, also known as the Null space, or nodal space, or the interstitium
-        is the distance between the two principal planes.
+        The hiatus, also known as the Null space, or nodal space, or the
+        interstitium is the distance between the two principal planes.
 
         zCalculateHiatus([txtFileName2Use,keepFile])-> hiatus
 
@@ -5928,35 +5988,35 @@ class PyZDDE(object):
         else:
             cd = os.path.dirname(os.path.realpath(__file__))
             textFileName = cd +"\\"+"prescriptionFile.txt"
-        ret = self.zGetTextFile(textFileName,'Pre',"None",0)
+        ret = self.zGetTextFile(textFileName, 'Pre', "None", 0)
         assert ret == 0
-        recSystemData_g = self.zGetSystem() #Get the current system parameters
-        numSurf = recSystemData_g[0]
-        #Open the text file in read mode to read
-        fileref = open(textFileName,"r")
-        principalPlane_objSpace = 0.0; principalPlane_imgSpace = 0.0; hiatus = 0.0
-        count = 0
-        #The number of expected Principal planes in each Pre file is equal to the
-        #number of wavelengths in the general settings of the lens design
-        #We are creating a list of lines by purpose, see note 2 (decisions for this fn)
-        line_list = fileref.readlines()
-        fileref.close()
+        recSystemData = self.zGetSystem()
+        numSurf = recSystemData[0]
 
-        for line_num,line in enumerate(line_list):
-            #Extract the image surface distance from the global ref sur (surface 1)
+        # The number of expected Principal planes in each Pre file is equal to the
+        # number of wavelengths in the general settings of the lens design
+        line_list = _readLinesFromFile(_openFile(textFileName))
+
+        principalPlane_objSpace = 0.0
+        principalPlane_imgSpace = 0.0
+        hiatus = 0.0
+        count = 0
+
+        for line_num, line in enumerate(line_list):
+            # Extract the image surface distance from the global ref sur (surface 1)
             sectionString = ("GLOBAL VERTEX COORDINATES, ORIENTATIONS,"
                              " AND ROTATION/OFFSET MATRICES:")
-            if line.rstrip()== sectionString:
+            if line.rstrip() == sectionString:
                 ima_3 = line_list[line_num + numSurf*4 + 6]
                 ima_z = float(ima_3.split()[3])
 
-            #Extract the Principal plane distances.
+            # Extract the Principal plane distances.
             if "Principal Planes" in line and "Anti" not in line:
                 principalPlane_objSpace += float(line.split()[3])
                 principalPlane_imgSpace += float(line.split()[4])
                 count +=1  #Increment (wavelength) counter for averaging
 
-        #Calculate the average (for all wavelengths) of the principal plane distances
+        # Calculate the average (for all wavelengths) of the principal plane distances
         if count > 0:
             principalPlane_objSpace = principalPlane_objSpace/count
             principalPlane_imgSpace = principalPlane_imgSpace/count
@@ -5965,7 +6025,7 @@ class PyZDDE(object):
             hiatus = abs(ima_z + principalPlane_imgSpace - principalPlane_objSpace)
 
         if not keepFile:
-            #Delete the prescription file (the directory remains clean)
+            # Delete the prescription file (the directory remains clean)
             _deleteFile(textFileName)
         return hiatus
 
@@ -6019,17 +6079,14 @@ class PyZDDE(object):
         else:
             cd = os.path.dirname(os.path.realpath(__file__))
             textFileName = cd +"\\"+"seidelAberrationFile.txt"
-        ret = self.zGetTextFile(textFileName,'Sei',"None",0)
+        ret = self.zGetTextFile(textFileName,'Sei', "None", 0)
         assert ret == 0
-        recSystemData_g = self.zGetSystem() #Get the current system parameters
-        numSurf = recSystemData_g[0]
-        #We are creating a list of lines by purpose, see note 2 (decisions for this fn)
-        fp = open(textFileName, 'r')
-        line_list = fp.readlines()
-        fp.close()
+        recSystemData = self.zGetSystem() # Get the current system parameters
+        numSurf = recSystemData[0]
+        line_list = _readLinesFromFile(_openFile(textFileName))
         seidelAberrationCoefficients = {}         # Aberration Coefficients
         seidelWaveAberrationCoefficients = {}     # Wavefront Aberration Coefficients
-        for line_num,line in enumerate(line_list):
+        for line_num, line in enumerate(line_list):
             # Get the Seidel aberration coefficients
             sectionString1 = ("Seidel Aberration Coefficients:")
             if line.rstrip()== sectionString1:
@@ -6043,6 +6100,12 @@ class PyZDDE(object):
                 swac_vals01 = line_list[line_num + 3].split()[1:] # values
                 swac_keys02 = line_list[line_num + 5].split()     # names
                 swac_vals02 = line_list[line_num + 6].split()[1:] # values
+                break
+        else:
+            raise Exception("Could not find section strings '{}'"
+            " and '{}' in seidel aberrations file. "
+            " \n\nPlease check if there is a mismatch in text encoding between"
+            " Zemax and PyZDDE.".format(sectionString1, sectionString2))
         # Assert if the lengths of key-value lists are not equal
         assert len(sac_keys) == len(sac_vals)
         assert len(swac_keys01) == len(swac_vals01)
@@ -6132,7 +6195,7 @@ class PyZDDE(object):
             tCycles = count*numCycle
         return (finalMerit,tCycles)
 
-#%%
+
 # ***************************************************************
 #              IPYTHON NOTEBOOK UTILITY FUNCTIONS
 # ***************************************************************
@@ -6157,8 +6220,8 @@ class PyZDDE(object):
 
         For earlier versions (before 2010) please use ipzCaptureWindow2().
         """
-        global IPLoad
-        if IPLoad:
+        global _IPLoad
+        if _IPLoad:
             macroCode = "W{n}".format(n=str(num).zfill(2))
             dataPath = self.zGetPath()[0]
             imgPath = (r"{dp}\IMAFiles\{mc}_Win{n}.jpg"
@@ -6168,7 +6231,7 @@ class PyZDDE(object):
                 stat = _checkFileExist(imgPath)
                 if stat==0:
                     #Display the image
-                    display(Image(filename=imgPath))
+                    _display(_Image(filename=imgPath))
                     #Delete the image file
                     _deleteFile(imgPath)
                 elif stat==-999:
@@ -6224,8 +6287,8 @@ class PyZDDE(object):
         None if `retArr` is False (default). The graphic is embedded into the notebook,
         else `pixel_array` (ndarray) if `retArr` is True.
         """
-        global IPLoad
-        if IPLoad:
+        global _IPLoad
+        if _IPLoad:
             # Use the lens file path to store and process temporary images
             #tmpImgPath = self.zGetPath()[1]  # lens file path (default) ...
             # don't use the default lens path, as in earlier versions (before 2009)
@@ -6276,7 +6339,7 @@ class PyZDDE(object):
                             else:
                                 print("Couldn't import Matplotlib")
                         else: # Display the image
-                            display(Image(filename=tmpPngImgName))
+                            _display(_Image(filename=tmpPngImgName))
                         # Delete the image files
                         _deleteFile(tmpMetaImgName)
                         _deleteFile(tmpPngImgName)
@@ -6328,22 +6391,21 @@ class PyZDDE(object):
         if not eln:
             eln = 1e10  # Set a very high number
         linePrintCount = 0
-        global IPLoad
-        if IPLoad:
+        global _IPLoad
+        if _IPLoad:
             # Use the lens file path to store and process temporary images
             tmpTxtPath = self.zGetPath()[1]  # lens file path
             tmpTxtFile = "{ttp}\\TEMPTXT.txt".format(ttp=tmpTxtPath)
-            #print(tmpTxtFile) # for debugging
             ret = self.zGetTextFile(tmpTxtFile,analysisType,settingsFileName,flag)
             if ~ret:
                 stat = _checkFileExist(tmpTxtFile)
                 if stat==0:
-                    tf = open(tmpTxtFile,'r')
-                    for line in tf:
+                    #tf = _openFile(tmpTxtFile)
+                    for line in _getDecodedLineFromFile(_openFile(tmpTxtFile)):
                         if linePrintCount >= sln and linePrintCount <= eln:
-                            print(line.rstrip('\n'))  # print in the execution cell
+                            print(line)  # print in the execution cell
                         linePrintCount +=1
-                    tf.close()
+                    #tf.close()
                     _deleteFile(tmpTxtFile)
                 else:
                     print("Text file of analysis window not created")
@@ -6461,7 +6523,6 @@ class PyZDDE(object):
         else:
             return surfdata
 
-#%%
 # ***********************************************************************
 #   OTHER HELPER FUNCTIONS THAT DO NOT REQUIRE A RUNNING ZEMAX SESSION
 # ***********************************************************************
@@ -6509,7 +6570,6 @@ def fn2na(fn, ri=1.0):
     """
     return ri*sin(atan(1.0/(2.0*fn)))
 
-#%%
 # ***************************************************************************
 # Helper functions to process data from ZEMAX DDE server. This is especially
 # convenient for processing replies from Zemax for those function calls that
@@ -6647,7 +6707,7 @@ def _process_get_set_Solve(reply):
 
 def _process_get_set_SystemProperty(code,reply):
     """Process reply for functions zGetSystemProperty and zSetSystemProperty"""
-    #Convert reply to proper type
+    # Convert reply to proper type
     if code in  (102,103, 104,105,106,107,108,109,110): # unexpected cases
         sysPropData = reply
     elif code in (16,17,23,40,41,42,43): # string
@@ -6675,7 +6735,91 @@ def _print_dict(data):
     for key, value in data.items():
         print("{}: {}".format(key.ljust(leftColMaxWidth+1), value))
 
+def _openFile(fileName):
+    """opens the file in the appropriate mode and returns the file object
 
-#%%
-if __name__ == '__main__':
-    pass
+    Parameters
+    ----------
+    fileName (string) : name of the file to open
+
+    Returns
+    -------
+    f (file object)
+
+    Note
+    ----
+    This is just a wrapper around the open function.
+    It is the responsibility of the calling function to close the file by
+    calling the close() method of the file object. Alternatively use either use
+    a with/as context to close automatically or use _readLinesFromFile() or
+    _getDecodedLineFromFile() that uses a with context manager to handle
+    exceptions and file close.
+    """
+    global _USE_UNICODE_TEXT
+    if _USE_UNICODE_TEXT:
+        f = open(fileName, u'rb')
+    else:
+        f = open(fileName, 'r')
+    return f
+
+def _getDecodedLineFromFile(fileObj):
+    """generator function; yields a decoded (ascii/Unicode) line
+    The file is automatically closed when after reading the file or if any
+    exception occurs while reading the file.
+    """
+    global _PYVER3
+    global _USE_UNICODE_TEXT
+    global _IS_IN_IPYTHON_ENV
+
+    # I am not exactly sure why there is a difference in behavior
+    # between IPython environmnet and normal Python shell, but it is there!
+    if _IS_IN_IPYTHON_ENV:
+        unicode_type = 'utf-16-le'
+    else:
+        unicode_type = 'utf-16'
+
+    if _USE_UNICODE_TEXT:
+        fenc = EncodedFile(fileObj, unicode_type)
+        with fenc as f:
+            for line in f:
+                decodedLine = line.decode(unicode_type)
+                yield decodedLine.rstrip()
+    else: # ascii
+        with fileObj as f:
+            for line in f:
+                if _PYVER3: # ascii and Python 3.x
+                    yield line.rstrip()
+                else:      # ascii and Python 2.x
+                    try:
+                        decodedLine = line.decode('raw-unicode-escape')
+                    except:
+                        decodedLine = line.decode('ascii', 'replace')
+                    yield decodedLine.rstrip()
+
+def _readLinesFromFile(fileObj):
+    """returns a list of lines (as unicode literals) in the file
+
+    This function emulates the functionality of readlines() method of file
+    objects. The caller doesn't have to explicitly close the file as it is
+    handled in _getDecodedLineFromFile() function.
+
+    Parameters
+    ----------
+    fileObj : file object returned by open() method
+
+    Returns
+    -------
+    lines (list) : list of lines (as unicode literals with u'string' notation)
+                   from the file
+    """
+    lines = list(_getDecodedLineFromFile(fileObj))
+    return lines
+
+
+if __name__ == "__main__":
+    """If this module is executed directly, the Python interpreter will most
+    likely throw an error because of the relative imports in this file.
+    """
+    print("Please import this module as 'import pyzdde.zdde as pyz' ")
+    sys.exit(0)
+
