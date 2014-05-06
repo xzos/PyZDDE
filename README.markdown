@@ -2,9 +2,9 @@
 
 ##### Current revision:
 
-0.7.4 (Last significant update on 04/19/2014)
+0.7.5 (Last significant update on 05/05/2014)
 
-Brief change log is available in the [News and Updates](https://github.com/indranilsinharoy/PyZDDE/wiki/News-and-updates) page. 
+Brief change log is available in the [News and Updates](https://github.com/indranilsinharoy/PyZDDE/wiki/News-and-updates) page.
 
 ##### Issues and how you can help
 
@@ -14,7 +14,7 @@ Thank you very much.
 
 ##### Contributions and credits
 
-The generous people who have contributed to PyZDDE are in [Contributors](https://github.com/indranilsinharoy/PyZDDE/wiki/Contributors). Thanks a lot to all of you. 
+The generous people who have contributed to PyZDDE are in [Contributors](https://github.com/indranilsinharoy/PyZDDE/wiki/Contributors). Thanks a lot to all of you.
 
 Other projects that are using PyZDDE are listed [here](https://github.com/indranilsinharoy/PyZDDE/wiki/Projects-using-PyZDDE).
 
@@ -29,16 +29,16 @@ Currently, PyZDDE is a work in progress. All the functions (125 in total) for ac
 
 A complete list of helper functions is available [here](https://github.com/indranilsinharoy/PyZDDE/wiki/List-of-helper-functions-in-PyZDDE).
 
-At this point in time, a distribution version is not available as the tool box is being updated regularly. 
+At this point in time, a distribution version is not available as the tool box is being updated regularly.
 
 Please download the code to a local directory in your computer and add that directory to python search path in order to use it. For detailed instructions on using PyZDDE, please refer to the [Wiki page] (https://github.com/indranilsinharoy/PyZDDE/wiki)
 
 
 There are 4 types of functions in the toolbox:
 
-1.  Functions for accessing ZEMAX using the data items defined in the "ZEMAX EXTENSIONS" chapter of the ZEMAX manual. These functions' names start with "z" and the rest of the function names matches the data item defined by Zemax. For example `zGetSolve` for the data item GetSolve, `zSetSolve` for the data item SetSolve, etc. 
+1.  Functions for accessing ZEMAX using the data items defined in the "ZEMAX EXTENSIONS" chapter of the ZEMAX manual. These functions' names start with "z" and the rest of the function names matches the data item defined by Zemax. For example `zGetSolve` for the data item GetSolve, `zSetSolve` for the data item SetSolve, etc.
 2.  Helper functions to enhance the toolbox functionality beyond just the data items, such as `zLensScale`, `zCalculateHiatus`, `zSpiralSpot`. Also, there are other utilities which increase the capability of the toolbox such as `zOptimize2`, `zSetWaveTuple`, `zExecuteZPLMacro`, etc. More functions are expected to be added over time.
-3.  Few functions such as `ipzCaptureWindow`, `ipzGetTextWindow` can be used to embed analysis/graphic windows and text files from Zemax into an IPython Notebook or IPython QtConsole. 
+3.  Few functions such as `ipzCaptureWindow`, `ipzGetTextWindow` can be used to embed analysis/graphic windows and text files from Zemax into an IPython Notebook or IPython QtConsole.
 4.  There are several other functions which can be used independent of a running Zemax session.. Examples include `showZOperandList`, `findZOperand`, `findZButtonCode`, etc. Also, more functions are expected to be added over time.
 
 
@@ -55,7 +55,7 @@ ln.zExecuteZPLMacro('CEN')  # method of type 2
 ln.ipzCaptureWindow2('Lay') # method of type 3
 ```
 
-Helper functions of type 4 can be accessed the the `zdde` module directly. 
+Helper functions of type 4 can be accessed the the `zdde` module directly.
 
 For example:
 
@@ -70,11 +70,11 @@ Please refer to the [Wiki page] (https://github.com/indranilsinharoy/PyZDDE/wiki
 
 #### Dependencies:
 
-1.   Python 2.7 / Python 3.3 and above; 32/64 bit version 
+1.   Python 2.7 / Python 3.3 and above; 32/64 bit version
 2.   Matplotlib (optional, used in some of the example programs)
 
 #### License:
-The code is under the [MIT License] (http://opensource.org/licenses/MIT). 
+The code is under the [MIT License] (http://opensource.org/licenses/MIT).
 
 
 

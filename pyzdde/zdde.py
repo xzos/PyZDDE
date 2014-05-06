@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.7.4
+# Revision:    0.7.5
 #-------------------------------------------------------------------------------
 """PyZDDE, which is a toolbox written in Python, is used for communicating with
 ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging protocol.
@@ -1628,7 +1628,7 @@ class PyZDDE(object):
         200 - Gets the index of refraction of an object.
         201-203 - Gets the nd (201), vd (202), and dpgf (203) parameters of an
                   object using a model glass.
-        ------------------------------------------------------------------------
+
         See also `zSetNSCProperty`
         """
         cmd = ("GetNSCProperty,{:d},{:d},{:d},{:d}"
@@ -2220,7 +2220,7 @@ class PyZDDE(object):
                     variable, or n+1 for pickup from layer n. The coating layer
                     number is defined by arg2.
         Other     - Reserved for future expansion of this feature.
-        ------------------------------------------------------------------------
+
         See also `zSetSurfaceData`, `zGetSurfaceParameter`.
         """
         if arg2== None:
@@ -2449,7 +2449,7 @@ class PyZDDE(object):
         NOTE: Currently Zemax returns just "0" for the codes: 102,103, 104,105,
               106,107,108,109, and 110. This is unexpected! So, PyZDDE will return
               the reply (string) as is for the user to handle.
-        ------------------------------------------------------------------------
+
         See also zSetSystemProperty, zGetFirt
         """
         cmd = "GetSystemProperty,{c}".format(c=code)
@@ -4323,7 +4323,7 @@ class PyZDDE(object):
         202  - Sets the Mean Path value.
         203  - Sets the Angle value.
         211-226 - Sets the DLL parameter 1-16, respectively.
-        ------------------------------------------------------------------------
+
         See also zSetNSCObjectFaceData
         """
         str_codes = (0,1,4)
@@ -4385,7 +4385,7 @@ class PyZDDE(object):
          40   -  User Defined Scatter DLL name. (string)
          41-46 - User Defined Scatter Parameter 1 - 6. (double)
          60   -  User Defined Scatter data file name. (string)
-        ------------------------------------------------------------------------
+
         See also zGetNSCObjectFaceData
         """
         str_codes = (10,30,31,40,60)
@@ -5388,7 +5388,7 @@ class PyZDDE(object):
          203  - The wavelength number is value1, value 2 is the wavelength weight
          901  - The number of CPU's to use in multi-threaded computations, such as
                 optimization. (0=default). See the manual for details.
-        ------------------------------------------------------------------------
+
         NOTE: Currently Zemax returns just "0" for the codes: 102,103, 104,105,
               106,107,108,109, and 110. This is unexpected! So, PyZDDE will return
               the reply (string) as is for the user to handle. The zSetSystemProperty
