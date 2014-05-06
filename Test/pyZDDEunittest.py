@@ -769,7 +769,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         filename = zmxfp+lensFileName
         ret = self.link0.zLoadFile(filename)
         # Push the lens in the Zemax DDE server into the LDE
-        ret = self.link0.zPushLens(updateFlag=1)
+        ret = self.link0.zPushLens(update=1)
         # Update the lens to recompute
         ret = self.link0.zGetUpdate()
         self.assertIn(ret,(-998,-1,0))
@@ -1012,11 +1012,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zPushLens(self):
         print("\nTEST: zPushLens()")
         # push a lens with an invalid flag, should rise ValueError exception
-        self.assertRaises(ValueError,self.link0.zPushLens,updateFlag=10)
+        self.assertRaises(ValueError,self.link0.zPushLens,update=10)
         # push a lens with valid flag.
         ret = self.link0.zPushLens()
         self.assertIn(ret,(0,-999,-998))
-        ret = self.link0.zPushLens(updateFlag=1)
+        ret = self.link0.zPushLens(update=1)
         self.assertIn(ret,(0,-999,-998))
         #Notify depending on return type
         # Note that the test as such should not "fail" if ZEMAX server returned

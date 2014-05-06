@@ -41,7 +41,7 @@ else:
     import ddeclient as dde
 
 
-#Try to import IPython if it is available (for notebook helper functions)
+# Try to import IPython if it is available (for notebook helper functions)
 try:
     from IPython.core.display import display as _display
     from IPython.core.display import Image as _Image
@@ -120,7 +120,9 @@ def _debugPrint(level, msg):
     if level <= _DEBUG_PRINT_LEVEL:
         print("DEBUG PRINT, module - zdde (Level " + str(level)+ "): " + msg)
 
-#%% Module methods
+# ***************
+# Module methods
+# ***************
 def setTextEncoding(txt_encoding=0):
     """sets the text encoding to match the TXT encoding in Zemax
 
@@ -169,7 +171,7 @@ def getTextEncoding():
     """
     return _getTextEncoding()
 
-#%%
+
 # ----------------
 # PyZDDE class
 # ----------------
@@ -5685,7 +5687,6 @@ class PyZDDE(object):
             retVal = 0
         return retVal
 
-#%%
 # ****************************************************************
 #                      EXTRA FUNCTIONS
 # ****************************************************************
@@ -5992,12 +5993,9 @@ class PyZDDE(object):
         recSystemData = self.zGetSystem()
         numSurf = recSystemData[0]
 
-        # Open the text file in read mode to read
-        f = _openFile(textFileName)
-        #The number of expected Principal planes in each Pre file is equal to the
-        #number of wavelengths in the general settings of the lens design
-        line_list = _readLinesFromFile(f)
-        f.close()
+        # The number of expected Principal planes in each Pre file is equal to the
+        # number of wavelengths in the general settings of the lens design
+        line_list = _readLinesFromFile(_openFile(textFileName))
 
         principalPlane_objSpace = 0.0
         principalPlane_imgSpace = 0.0
@@ -6005,20 +6003,20 @@ class PyZDDE(object):
         count = 0
 
         for line_num, line in enumerate(line_list):
-            #Extract the image surface distance from the global ref sur (surface 1)
+            # Extract the image surface distance from the global ref sur (surface 1)
             sectionString = ("GLOBAL VERTEX COORDINATES, ORIENTATIONS,"
                              " AND ROTATION/OFFSET MATRICES:")
             if line.rstrip() == sectionString:
                 ima_3 = line_list[line_num + numSurf*4 + 6]
                 ima_z = float(ima_3.split()[3])
 
-            #Extract the Principal plane distances.
+            # Extract the Principal plane distances.
             if "Principal Planes" in line and "Anti" not in line:
                 principalPlane_objSpace += float(line.split()[3])
                 principalPlane_imgSpace += float(line.split()[4])
                 count +=1  #Increment (wavelength) counter for averaging
 
-        #Calculate the average (for all wavelengths) of the principal plane distances
+        # Calculate the average (for all wavelengths) of the principal plane distances
         if count > 0:
             principalPlane_objSpace = principalPlane_objSpace/count
             principalPlane_imgSpace = principalPlane_imgSpace/count
@@ -6027,7 +6025,7 @@ class PyZDDE(object):
             hiatus = abs(ima_z + principalPlane_imgSpace - principalPlane_objSpace)
 
         if not keepFile:
-            #Delete the prescription file (the directory remains clean)
+            # Delete the prescription file (the directory remains clean)
             _deleteFile(textFileName)
         return hiatus
 
@@ -6085,9 +6083,7 @@ class PyZDDE(object):
         assert ret == 0
         recSystemData = self.zGetSystem() # Get the current system parameters
         numSurf = recSystemData[0]
-        fp = _openFile(textFileName)
-        line_list = _readLinesFromFile(fp)
-        fp.close()
+        line_list = _readLinesFromFile(_openFile(textFileName))
         seidelAberrationCoefficients = {}         # Aberration Coefficients
         seidelWaveAberrationCoefficients = {}     # Wavefront Aberration Coefficients
         for line_num, line in enumerate(line_list):
@@ -6199,7 +6195,7 @@ class PyZDDE(object):
             tCycles = count*numCycle
         return (finalMerit,tCycles)
 
-#%%
+
 # ***************************************************************
 #              IPYTHON NOTEBOOK UTILITY FUNCTIONS
 # ***************************************************************
@@ -6404,12 +6400,12 @@ class PyZDDE(object):
             if ~ret:
                 stat = _checkFileExist(tmpTxtFile)
                 if stat==0:
-                    tf = _openFile(tmpTxtFile)
-                    for line in _getDecodedLineFromFile(tf):
+                    #tf = _openFile(tmpTxtFile)
+                    for line in _getDecodedLineFromFile(_openFile(tmpTxtFile)):
                         if linePrintCount >= sln and linePrintCount <= eln:
                             print(line)  # print in the execution cell
                         linePrintCount +=1
-                    tf.close()
+                    #tf.close()
                     _deleteFile(tmpTxtFile)
                 else:
                     print("Text file of analysis window not created")
@@ -6527,7 +6523,6 @@ class PyZDDE(object):
         else:
             return surfdata
 
-#%%
 # ***********************************************************************
 #   OTHER HELPER FUNCTIONS THAT DO NOT REQUIRE A RUNNING ZEMAX SESSION
 # ***********************************************************************
@@ -6575,7 +6570,6 @@ def fn2na(fn, ri=1.0):
     """
     return ri*sin(atan(1.0/(2.0*fn)))
 
-#%%
 # ***************************************************************************
 # Helper functions to process data from ZEMAX DDE server. This is especially
 # convenient for processing replies from Zemax for those function calls that
@@ -6713,7 +6707,7 @@ def _process_get_set_Solve(reply):
 
 def _process_get_set_SystemProperty(code,reply):
     """Process reply for functions zGetSystemProperty and zSetSystemProperty"""
-    #Convert reply to proper type
+    # Convert reply to proper type
     if code in  (102,103, 104,105,106,107,108,109,110): # unexpected cases
         sysPropData = reply
     elif code in (16,17,23,40,41,42,43): # string
@@ -6754,8 +6748,12 @@ def _openFile(fileName):
 
     Note
     ----
-    It is the responsibility of the calling function to close the file by calling
-    the close() method of the file object.
+    This is just a wrapper around the open function.
+    It is the responsibility of the calling function to close the file by
+    calling the close() method of the file object. Alternatively use either use
+    a with/as context to close automatically or use _readLinesFromFile() or
+    _getDecodedLineFromFile() that uses a with context manager to handle
+    exceptions and file close.
     """
     global _USE_UNICODE_TEXT
     if _USE_UNICODE_TEXT:
@@ -6766,7 +6764,8 @@ def _openFile(fileName):
 
 def _getDecodedLineFromFile(fileObj):
     """generator function; yields a decoded (ascii/Unicode) line
-
+    The file is automatically closed when after reading the file or if any
+    exception occurs while reading the file.
     """
     global _PYVER3
     global _USE_UNICODE_TEXT
@@ -6781,25 +6780,28 @@ def _getDecodedLineFromFile(fileObj):
 
     if _USE_UNICODE_TEXT:
         fenc = EncodedFile(fileObj, unicode_type)
-        for line in fenc:
-            decodedLine = line.decode(unicode_type)
-            yield decodedLine.rstrip()
-    else: # ascii
-        if _PYVER3:
-            for line in fileObj:
-                yield line.rstrip()
-        else: # ascii and Python 2.x
-            for line in fileObj:
-                try:
-                    decodedLine = line.decode('raw-unicode-escape')
-                except:
-                    decodedLine = line.decode('ascii', 'replace')
+        with fenc as f:
+            for line in f:
+                decodedLine = line.decode(unicode_type)
                 yield decodedLine.rstrip()
+    else: # ascii
+        with fileObj as f:
+            for line in f:
+                if _PYVER3: # ascii and Python 3.x
+                    yield line.rstrip()
+                else:      # ascii and Python 2.x
+                    try:
+                        decodedLine = line.decode('raw-unicode-escape')
+                    except:
+                        decodedLine = line.decode('ascii', 'replace')
+                    yield decodedLine.rstrip()
 
 def _readLinesFromFile(fileObj):
     """returns a list of lines (as unicode literals) in the file
 
-    This function emulates the behavior of readlines() method of file objects.
+    This function emulates the functionality of readlines() method of file
+    objects. The caller doesn't have to explicitly close the file as it is
+    handled in _getDecodedLineFromFile() function.
 
     Parameters
     ----------
@@ -6813,6 +6815,11 @@ def _readLinesFromFile(fileObj):
     lines = list(_getDecodedLineFromFile(fileObj))
     return lines
 
-#%%
-if __name__ == '__main__':
-    pass
+
+if __name__ == "__main__":
+    """If this module is executed directly, the Python interpreter will most
+    likely throw an error because of the relative imports in this file.
+    """
+    print("Please import this module as 'import pyzdde.zdde as pyz' ")
+    sys.exit(0)
+
