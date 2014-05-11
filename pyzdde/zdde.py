@@ -140,10 +140,14 @@ def createLink():
     dlen = len(_global_dde_linkObj)
     if dlen < _MAX_PARALLEL_CONV:
         link = PyZDDE()
-        link.zDDEInit()
-        _global_dde_linkObj[link] = link.appName  # This can be something more useful later
-        _debugPrint(1,"Link created. Link Dict = {}".format(_global_dde_linkObj))
-        return link
+        status = link.zDDEInit()
+        if not status:
+            _global_dde_linkObj[link] = link.appName  # This can be something more useful later
+            _debugPrint(1,"Link created. Link Dict = {}".format(_global_dde_linkObj))
+            return link
+        else:
+            print("Could not initiate instance.")
+            return None
     else:
         print("Link not created. Reached maximum allowable live link of ",
               _MAX_PARALLEL_CONV)
@@ -174,7 +178,6 @@ def closeLink(link=None):
             dde_closedLinkObj.append(link)
     for item in dde_closedLinkObj:
         _global_dde_linkObj.pop(item)
-
 
 def setTextEncoding(txt_encoding=0):
     """sets the text encoding to match the TXT encoding in Zemax
@@ -266,7 +269,7 @@ class PyZDDE(object):
 
     def __init__(self):
         self.appName = _getAppName(PyZDDE.__appNameDict)
-        self.appNum = PyZDDE.__chNum
+        self.appNum = None       # will be assigned after successful connection
         self.connection = False  # 1/0 depending on successful connection or not
         self.macroPath = None    # variable to store macro path
 
@@ -300,7 +303,7 @@ class PyZDDE(object):
         _debugPrint(1,"appName = " + self.appName)
         _debugPrint(1,"liveCh = " + str(PyZDDE.__liveCh))
         # do this only one time or when there is no channel
-        if self.appName=="ZEMAX" or PyZDDE.__liveCh==0:
+        if PyZDDE.__liveCh==0:
             try:
                 PyZDDE.__server = _dde.CreateServer()
                 PyZDDE.__server.Create("ZCLIENT")           # Name of the client
@@ -330,6 +333,7 @@ class PyZDDE(object):
             return -1
         else:
             _debugPrint(1,"Zemax instance successfully connected")
+            self.appNum = PyZDDE.__chNum # unique and immutable identity of each instance
             PyZDDE.__liveCh += 1 # increment the number of live channels
             PyZDDE.__chNum +=1   # increment channel count
             self.connection = True

@@ -14,7 +14,7 @@ Thank you very much.
 
 ##### Contributions and credits
 
-The generous people who have contributed to PyZDDE are in [Contributors](https://github.com/indranilsinharoy/PyZDDE/wiki/Contributors). Thanks a lot to all of you.
+You are encouraged to use, provide feedbacks and contribute to the PyZDDE project. The generous people who have contributed to PyZDDE are in [Contributors](https://github.com/indranilsinharoy/PyZDDE/wiki/Contributors). Thanks a lot to all of you.
 
 Other projects that are using PyZDDE are listed [here](https://github.com/indranilsinharoy/PyZDDE/wiki/Projects-using-PyZDDE).
 
@@ -31,12 +31,12 @@ link.close()
 
 #### Overview
 
-PyZDDE is a standalone ZEMAX extension written in Python for communicating with [ZEMAX] (http://www.radiantzemax.com/)  using the Microsoft's Dynamic Data Exchange (DDE) messaging protocol. ZEMAX (now OpticStudio) is a leading software tool for design and analysis of optical systems. This toolbox, which implements all of the data items listed in the ZEMAX Extensions chapter of the ZEMAX manual, provides access to ZEMAX from Python. It is similar to and very much inspired by the [MZDDE toolbox] (http://kb-en.radiantzemax.com/KnowledgebaseArticle50204.aspx) in Matlab which was developed by Derek Griffith at CSIR. However, at this point, it is not as extensive as MZDDE. PyZDDE can be used with regular Python scripts and also in an interactive environment such as an IPython shell, [QtConsole] (http://ipython.org/ipython-doc/dev/interactive/qtconsole.html) or [IPython Notebook] (http://ipython.org/ipython-doc/dev/interactive/htmlnotebook.html). The ability to interact with ZEMAX from an IPython Notebook using PyZDDE can be a useful tool for both teaching and documentation.
+PyZDDE is a Python based standalone ZEMAX extension for communicating with [ZEMAX] (http://www.radiantzemax.com/) using the DDE protocol. ZEMAX (now OpticStudio) is a leading software for design and analysis of optical systems. PyZDDE is similar to and very much inspired by the [MZDDE toolbox] (http://kb-en.radiantzemax.com/KnowledgebaseArticle50204.aspx) in Matlab that was developed by Derek Griffith at CSIR. At this point in time PyZDDE is not as extensive as MZDDE. PyZDDE can be used with regular Python scripts and also in an interactive environment such as an IPython shell, [QtConsole] (http://ipython.org/ipython-doc/dev/interactive/qtconsole.html) or [IPython Notebook] (http://ipython.org/ipython-doc/dev/interactive/htmlnotebook.html). The ability to interact with ZEMAX from an IPython Notebook using PyZDDE can be a useful tool for teaching, recording thought process during an optical design, design documentation and design presentation/ sharing. PyZDDE is supported on both Python 2.7 and Python 3.3/3.4. It also supports both Unicode and ascii text. 
 
 
 Currently, PyZDDE is a work in progress. All the functions (125 in total) for accessing the ZEMAX "data items" for extensions have been implemented. In addition, there are more than15 helper functions. The following is a sample of the extra helper functions in PyZDDE (more will be added in future):
 
- `zSetTimeout`, `zExecuteZPLMacro`, `zSpiralSpot`, `zGetSeidelAberration`, `zSetFieldTuple`, `zGetFieldTuple`, `zSetWaveTuple`, `zGetWaveTuple`, `zCalculateHiatus`, `zGetPupilMagnification`, `ipzCaptureWindow2`, `ipzGetFirst`, `ipzGetPupil`, `ipzGetSystemAper`, `ipzGetTextWindow`.
+ `zSetTimeout`, `zExecuteZPLMacro`, `zSpiralSpot`, `zGetSeidelAberration`, `zSetFieldTuple`, `zGetFieldTuple`, `zSetWaveTuple`, `zGetWaveTuple`, `zCalculateHiatus`, `zGetPupilMagnification`, `ipzCaptureWindow`, `ipzGetFirst`, `ipzGetPupil`, `ipzGetSystemAper`, `ipzGetTextWindow`.
 
 A complete list of helper functions is available [here](https://github.com/indranilsinharoy/PyZDDE/wiki/List-of-helper-functions-in-PyZDDE).
 

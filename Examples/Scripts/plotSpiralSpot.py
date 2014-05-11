@@ -33,8 +33,8 @@ ln = pyz.createLink()
 ln.zLoadFile(filename)
 hx = 0.0
 hy = 0.4
-spirals = 100 #100
-rays = 6000   #6000
+spirals = 10 #100
+rays = 600   #6000
 (xb,yb,zb,intensityb) = ln.zSpiralSpot(hx,hy,1,spirals,rays)
 (xg,yg,zg,intensityg) = ln.zSpiralSpot(hx,hy,2,spirals,rays)
 (xr,yr,zr,intensityr) = ln.zSpiralSpot(hx,hy,3,spirals,rays)
