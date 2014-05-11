@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.7.5
+# Revision:    0.7.6
 #-------------------------------------------------------------------------------
 from __future__ import division
 from __future__ import print_function
@@ -321,10 +321,19 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.link0.zSetSurfaceData(1,4,'GRINSUR1')
         self.assertEqual(glass, None)
 
-    @unittest.skip("To implement")
     def test_zGlobalMatrix(self):
         print("\nTEST: zGetGlobalMatrix()")
-        pass
+        global zmxfp
+        filename = zmxfp+lensFileName
+        ret = self.link0.zLoadFile(filename)
+        assert ret == 0   # This is not a unit-test assert.
+        gmd = self.link0.zGetGlobalMatrix(2)
+        expGmd = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 3.25895583)
+        for x, y in zip(gmd, expGmd):
+            self.assertAlmostEqual(x, y, places=4)
+        if TestPyZDDEFunctions.pRetVar:
+            print("Global Matrix:", gmd)
+            print('zGetGlobalMatrix test successful')
 
     @unittest.skip("To implement")
     def test_zGetIndex(self):

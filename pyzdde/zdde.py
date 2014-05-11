@@ -6,100 +6,81 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.7.5
+# Revision:    0.7.6
 #-------------------------------------------------------------------------------
 """PyZDDE, which is a toolbox written in Python, is used for communicating with
 ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging protocol.
 """
 from __future__ import division
 from __future__ import print_function
-import sys
-import os
-import subprocess
-from os import path
-from math import pi, cos, sin, tan, atan, asin
-import time
-import datetime
-import warnings
-from codecs import EncodedFile
-
-# The first module to import that is not one of the standard modules MUST
-# be the config module as it sets up the different global and settings variables
-try:
-    from . config import _PYVER3, _USE_UNICODE_TEXT, _setTextEncoding, _getTextEncoding
-except ImportError:
-    from config import _PYVER3, _USE_UNICODE_TEXT, _setTextEncoding, _getTextEncoding
-
-if _PYVER3:
-    # Python 3.x
-   izip = zip
-   imap = map
-   from . import ddeclient as dde
-else:
-    # Python 2.x
-    from itertools import izip, imap
-    import ddeclient as dde
-
-
+import sys as _sys
+import os as _os
+import collections as _co
+import subprocess as _subprocess
+import math as _math
+import time as _time
+import datetime as _datetime
+#import warnings as _warnings
+import codecs as _codecs
 # Try to import IPython if it is available (for notebook helper functions)
 try:
     from IPython.core.display import display as _display
     from IPython.core.display import Image as _Image
 except ImportError:
-    #print("Couldn't import Image/display from IPython.core.display")
-    _IPLoad = False
+    _global_IPLoad = False
 else:
-    _IPLoad = True
+    _global_IPLoad = True
 
 # Determine if in IPython Environment
-try: # get_ipytho() method is not available in IPython versions prior to 2.0
+try: # get_ipython() method is not available in IPython versions prior to 2.0
     from IPython import get_ipython as _get_ipython
 except:
-    _IS_IN_IPYTHON_ENV = False
+    _global_in_IPython_env = False
 else:
     if _get_ipython(): # if global interactive shell instance is available
-        _IS_IN_IPYTHON_ENV = True
+        _global_in_IPython_env = True
     else:
-        _IS_IN_IPYTHON_ENV = False
-
-
+        _global_in_IPython_env = False
 # Try to import Matplotlib's imread
 try:
-    import matplotlib.image as matimg
+    import matplotlib.image as _matimg
 except ImportError:
-    MPLimgLoad = False
+    _global_mpl_img_load = False
 else:
-    MPLimgLoad = True
+    _global_mpl_img_load = True
 
+# Import intra-package modules
+# TODO!!! Appending current dir trick should be removed once packaging is used
+_currDir = _os.path.dirname(_os.path.realpath(__file__))
+_index = _currDir.find('pyzdde')
+_pDir = _currDir[0:_index-1]
+if _pDir not in _sys.path:
+    _sys.path.append(_pDir)
 
-# Import zemaxOperands and other pyzdde utilities
-#TODO!!!
-# Generally most python installations will add the current directory or the
-# directory of the __main__ module to the path; however, it is not guaranteed. To ensure
-# that the required paths are available during python search path, we add it
-# explicitly. The following method of adding the path-to-the-file to python search
-# path and importing the modules should be removed once something like distutils
-# is used to install the module's package into the python site-packages directory.
-currDir = os.path.dirname(os.path.realpath(__file__))
-index = currDir.find('pyzdde')
-pDir = currDir[0:index-1]
-if pDir not in sys.path:
-    sys.path.append(pDir)
+# The first module to import that is not one of the standard modules MUST
+# be the config module as it sets up the different global and settings variables
+import pyzdde.config as _config
+_global_pyver3 = _config._global_pyver3
+_global_use_unicode_text = _config._global_use_unicode_text
 
-if _PYVER3:
-    from . zcodes import zemaxbuttons as zb
-    from . zcodes import zemaxoperands as zo
-    from . utils.pyzddeutils import cropImgBorders, imshow
+# DDEML communication module
+import pyzdde.ddeclient as _dde
+
+if _global_pyver3:
+   _izip = zip
+   _imap = map
 else:
-    import zcodes.zemaxbuttons as zb
-    import zcodes.zemaxoperands as zo
-    from utils.pyzddeutils import cropImgBorders, imshow
+    from itertools import izip as _izip, imap as _imap
+
+import pyzdde.zcodes.zemaxbuttons as zb
+import pyzdde.zcodes.zemaxoperands as zo
+import pyzdde.utils.pyzddeutils as _putils
 
 # Constants
 _DEBUG_PRINT_LEVEL = 0 # 0=No debug prints, but allow all essential prints
-                      # 1 to 2 levels of debug print, 2 = print all
+                       # 1 to 2 levels of debug print, 2 = print all
 
-_MAXIMUM_PARALLEL_CONV = 2  # Maximum number of simultaneous conversations possible with Zemax server
+_MAX_PARALLEL_CONV = 2  # Max no of simul. conversations possible with Zemax
 _system_aperture = {0 : 'EPD',
                     1 : 'Image space F/#',
                     2 : 'Object space NA',
@@ -123,6 +104,78 @@ def _debugPrint(level, msg):
 # ***************
 # Module methods
 # ***************
+# bind functions from utils module
+cropImgBorders = _putils.cropImgBorders
+imshow = _putils.imshow
+# bind functions from zemax buttons module
+findZButtonCode = zb.findZButtonCode
+getZButtonCount = zb.getZButtonCount
+isZButtonCode   = zb.isZButtonCode
+showZButtonList = zb.showZButtonList
+showZButtonDescription = zb.showZButtonDescription
+# bind functions from zemax operand module
+findZOperand = zo.findZOperand
+getZOperandCount = zo.getZOperandCount
+isZOperand = zo.isZOperand
+showZOperandList = zo.showZOperandList
+showZOperandDescription = zo.showZOperandDescription
+
+_global_dde_linkObj = {}
+def createLink():
+    """create a DDE communication link with Zemax
+
+    Helper function, creates a PyZDDE object, initializes it and returns the
+    communication object.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    link : a DDE communication object
+    """
+    global _global_dde_linkObj
+    global _MAX_PARALLEL_CONV
+    dlen = len(_global_dde_linkObj)
+    if dlen < _MAX_PARALLEL_CONV:
+        link = PyZDDE()
+        link.zDDEInit()
+        _global_dde_linkObj[link] = link.appName  # This can be something more useful later
+        _debugPrint(1,"Link created. Link Dict = {}".format(_global_dde_linkObj))
+        return link
+    else:
+        print("Link not created. Reached maximum allowable live link of ",
+              _MAX_PARALLEL_CONV)
+        return None
+
+def closeLink(link=None):
+    """close DDE communication link with Zemax
+
+    Helper function, for closing DDE communication.
+
+    Parameters
+    ----------
+    link (optional): PyzDDE link object to remove.
+        If None (default), all existing links are closed.
+
+    Returns
+    -------
+    None
+    """
+    global _global_dde_linkObj
+    dde_closedLinkObj = []
+    if link:
+        link.zDDEClose()
+        dde_closedLinkObj.append(link)
+    else:
+        for link in _global_dde_linkObj:
+            link.zDDEClose()
+            dde_closedLinkObj.append(link)
+    for item in dde_closedLinkObj:
+        _global_dde_linkObj.pop(item)
+
+
 def setTextEncoding(txt_encoding=0):
     """sets the text encoding to match the TXT encoding in Zemax
 
@@ -140,20 +193,20 @@ def setTextEncoding(txt_encoding=0):
     There is no need to set the encoding for every new session as the PyZDDE
     remembers the setting.
     """
-    global _USE_UNICODE_TEXT
-    if _USE_UNICODE_TEXT and txt_encoding:
+    global _global_use_unicode_text
+    if _global_use_unicode_text and txt_encoding:
         print('TXT encoding is UNICODE; no change required')
-    elif not _USE_UNICODE_TEXT and not txt_encoding:
+    elif not _global_use_unicode_text and not txt_encoding:
         print('TXT encoding is ASCII; no change required')
-    elif not _USE_UNICODE_TEXT and txt_encoding:
-        if _setTextEncoding(txt_encoding=1):
-            _USE_UNICODE_TEXT = True
+    elif not _global_use_unicode_text and txt_encoding:
+        if _config.setTextEncoding(txt_encoding=1):
+            _global_use_unicode_text = True
             print('Successfully changed to UNICODE')
         else:
             print("ERROR: Couldn't change settings")
-    elif _USE_UNICODE_TEXT and not txt_encoding:
-        if _setTextEncoding(txt_encoding=0):
-            _USE_UNICODE_TEXT = False
+    elif _global_use_unicode_text and not txt_encoding:
+        if _config.setTextEncoding(txt_encoding=0):
+            _global_use_unicode_text = False
             print('Successfully changed to ASCII')
         else:
             print("ERROR: Couldn't change settings")
@@ -169,27 +222,61 @@ def getTextEncoding():
     -------
     encoding (string): 'ascii' or 'unicode'
     """
-    return _getTextEncoding()
+    return _config.getTextEncoding()
+
+# PyZDDE class' utility function (for internal use)
+def _createAppNameDict(maxElements):
+    """function to create a dictionary (pool) of possible app-names (keys).
+    values, set to False, indicate name hasn't been taken
+    """
+    appNameDict = {}
+    appNameDict['ZEMAX'] = False
+    for i in range(1, maxElements):
+        appNameDict['ZEMAX'+str(i)] = False
+    return appNameDict
+
+def _getAppName(appNameDict):
+    """return available name from the pool of app-names.
+    """
+    if not appNameDict['ZEMAX']:
+        appNameDict['ZEMAX'] = True
+        return 'ZEMAX'
+    else:
+        k_available = None
+        for k, v in appNameDict.items():
+            if not v:
+                k_available = k
+                break
+        if k_available:
+            appNameDict[k_available] = True
+            return k_available
+        else:
+            return None
 
 
-# ----------------
+# ******************
 # PyZDDE class
-# ----------------
+# ******************
 class PyZDDE(object):
     """Create an instance of PyZDDE class"""
-    __chNum = -1          # channel Number; there is no restriction on number of ch
-    __liveCh = 0          # number of live/ simultaneous channels; Can't be more than _MAXIMUM_PARALLEL_CONV
+    __chNum =  0  # channel Number; there is no restriction on number of ch
+    __liveCh = 0  # no. of live/ simul channels; Can't be > _MAX_PARALLEL_CONV
     __server = 0
+    __appNameDict = _createAppNameDict(_MAX_PARALLEL_CONV)  # {'ZEMAX': False, 'ZEMAX1': False}
 
     def __init__(self):
-        PyZDDE.__chNum +=1   # increment ch. count when DDE ch. is instantiated.
-        self.appName = "ZEMAX"+str(PyZDDE.__chNum) if PyZDDE.__chNum > 0 else "ZEMAX"
+        self.appName = _getAppName(PyZDDE.__appNameDict)
+        self.appNum = PyZDDE.__chNum
         self.connection = False  # 1/0 depending on successful connection or not
         self.macroPath = None    # variable to store macro path
 
     def __repr__(self):
         return ("PyZDDE(appName=%r, connection=%r, macroPath=%r)" %
                 (self.appName,self.connection,self.macroPath))
+
+    def __hash__(self):
+        # for storing in dictionary
+        return hash(self.appNum)
 
     # ZEMAX <--> PyZDDE client connection methods
     #--------------------------------------------
@@ -215,25 +302,27 @@ class PyZDDE(object):
         # do this only one time or when there is no channel
         if self.appName=="ZEMAX" or PyZDDE.__liveCh==0:
             try:
-                PyZDDE.__server = dde.CreateServer()
+                PyZDDE.__server = _dde.CreateServer()
                 PyZDDE.__server.Create("ZCLIENT")           # Name of the client
                 _debugPrint(2, "PyZDDE.__server = " + str(PyZDDE.__server))
             except Exception as err1:
-                sys.stderr.write("{err}: Possibly another application is already"
+                _sys.stderr.write("{err}: Another application may be"
                                  " using a DDE server!".format(err=str(err1)))
                 return -1
         # Try to create individual conversations for each ZEMAX application.
-        self.conversation = dde.CreateConversation(PyZDDE.__server)
+        self.conversation = _dde.CreateConversation(PyZDDE.__server)
         _debugPrint(2, "PyZDDE.converstation = " + str(self.conversation))
         try:
             self.conversation.ConnectTo(self.appName," ")
         except Exception as err2:
-            _debugPrint(2, "Exception occured at attempt to call ConnecTo. Error = {err}".format(err=str(err2)))
-            if self.__liveCh >= _MAXIMUM_PARALLEL_CONV:
-                sys.stderr.write("ERROR: {err}. \nMore than {liveConv} simultaneous conversations not allowed!\n"
-                                 .format(err=str(err2), liveConv =_MAXIMUM_PARALLEL_CONV))
+            _debugPrint(2, "Exception occured at attempt to call ConnecTo."
+                        " Error = {err}".format(err=str(err2)))
+            if self.__liveCh >= _MAX_PARALLEL_CONV:
+                _sys.stderr.write("ERROR: {err}. \nMore than {liveConv} "
+                "simultaneous conversations not allowed!\n"
+                .format(err=str(err2), liveConv =_MAX_PARALLEL_CONV))
             else:
-                sys.stderr.write("ERROR: {err}. \nZEMAX may not have been started!\n"
+                _sys.stderr.write("ERROR: {err}.\nZEMAX may not be running!\n"
                                  .format(err=str(err2)))
             # should close the DDE server if it exist
             self.zDDEClose()
@@ -242,8 +331,17 @@ class PyZDDE(object):
         else:
             _debugPrint(1,"Zemax instance successfully connected")
             PyZDDE.__liveCh += 1 # increment the number of live channels
+            PyZDDE.__chNum +=1   # increment channel count
             self.connection = True
             return 0
+
+    def close(self):
+        """helper function to close current communication link
+
+        This bounded method provides a quick alternative way to close link than
+        calling the module function pyz.closeLink().
+        """
+        closeLink(self)
 
     def zDDEClose(self):
         """Close the DDE link with Zemax server.
@@ -259,19 +357,22 @@ class PyZDDE(object):
         Status = 0 on success.
         """
         if PyZDDE.__server and PyZDDE.__liveCh ==0:
-            PyZDDE.__server.Shutdown(self.conversation) # dde_backup's shutdown function
+            PyZDDE.__server.Shutdown(self.conversation) # ddeclient's shutdown function
             PyZDDE.__server = 0
             _debugPrint(2,"server shutdown as ZEMAX is not running!")
         elif PyZDDE.__server and self.connection and PyZDDE.__liveCh ==1:
-            PyZDDE.__server.Shutdown(self.conversation) # dde_backup's shutdown function
+            PyZDDE.__server.Shutdown(self.conversation) # ddeclient's shutdown function
             self.connection = False
+            PyZDDE.__appNameDict[self.appName] = False # make the name available
+            self.appName = ''
             PyZDDE.__liveCh -=1  # This will become zero now. (reset)
-            PyZDDE.__chNum = -1  # Reset the chNum ...
             PyZDDE.__server = 0  # the previous server object should be garbage collected
             _debugPrint(2,"server shutdown")
         elif self.connection:  # if additional channels were successfully created.
             PyZDDE.__server.Shutdown(self.conversation)
             self.connection = False
+            PyZDDE.__appNameDict[self.appName] = False # make the name available
+            self.appName = ''
             PyZDDE.__liveCh -=1
             _debugPrint(2,"liveCh decremented without shutting down DDE channel")
         else:   # if zDDEClose is called by an object which didn't have a channel
@@ -314,9 +415,9 @@ class PyZDDE(object):
     def _sendDDEcommand(self, cmd, timeout=None):
         """Method to send command to DDE client
         """
-        global _PYVER3
+        global _global_pyver3
         reply = self.conversation.Request(cmd, timeout)
-        if _PYVER3:
+        if _global_pyver3:
             reply = reply.decode('ascii').rstrip()
         return reply
 
@@ -495,8 +596,8 @@ class PyZDDE(object):
         if self.macroPath:
             zplMpath = self.macroPath
         else:
-            zplMpath = path.join(self.zGetPath()[0], 'Macros')
-        macroList = [f for f in os.listdir(zplMpath)
+            zplMpath = _os.path.join(self.zGetPath()[0], 'Macros')
+        macroList = [f for f in _os.listdir(zplMpath)
                      if f.endswith(('.zpl','.ZPL')) and f.startswith(zplMacroCode)]
         if macroList:
             zplCode = macroList[0][:3]
@@ -568,7 +669,7 @@ class PyZDDE(object):
         still_working = True
         while(still_working):
             # Delay for 200 milliseconds
-            time.sleep(.2)
+            _time.sleep(.2)
             status = ddelink.zExportCheck()
             if status == 1:  # still running
                 pass
@@ -645,7 +746,7 @@ class PyZDDE(object):
         addressLine : (string) address line
         """
         reply = self._sendDDEcommand("GetAddress,{:d}"
-                                          .format(addressLineNumber))
+                                    .format(addressLineNumber))
         return str(reply)
 
     def zGetAperture(self, surfNum):
@@ -727,13 +828,14 @@ class PyZDDE(object):
         aspect : aspect ratio (height/width)
         side   : width if aspect <= 1; height if aspect > 1. (in lens units)
         """
-        if filename == None:
+        asd = _co.namedtuple('aspectData', ['aspect', 'side'])
+        if filename is None:
             cmd = "GetAspect"
         else:
             cmd = "GetAspect,{}".format(filename)
         reply = self._sendDDEcommand(cmd)
         rs = reply.split(",")
-        aspectSide = tuple([float(elem) for elem in rs])
+        aspectSide = asd._make([float(elem) for elem in rs])
         return aspectSide
 
     def zGetBuffer(self, n, tempFileName):
@@ -831,7 +933,7 @@ class PyZDDE(object):
         """
         return self._sendDDEcommand('GetDate')
 
-    def zGetExtra(self,surfaceNumber,columnNumber):
+    def zGetExtra(self, surfaceNumber, columnNumber):
         """Returns extra surface data from the Extra Data Editor
 
         `zGetExtra(surfaceNumber,columnNumber)->value`
@@ -867,35 +969,43 @@ class PyZDDE(object):
         Returns
         -------
         [if n=0]: fieldData is a tuple containing the following
-          type                 : integer (0=angles in degrees, 1=object height
+          type                 : integer (0=angles in degrees,
+                                          1=object height
                                           2=paraxial image height,
                                           3=real image height)
-          number               : number of fields currently defined
+          numFields            : number of fields currently defined
           max_x_field          : values used to normalize x field coordinate
           max_y_field          : values used to normalize y field coordinate
           normalization_method : field normalization method (0=radial, 1=rectangular)
 
         [if 0 < n <= number of fields]: fieldData is a tuple containing the following
-          xf     : the field x value
-          yf     : the field y value
-          wgt    : field weight
-          vdx    : decenter x vignetting factor
-          vdy    : decenter y vignetting factor
-          vcx    : compression x vignetting factor
-          vcy    : compression y vignetting factor
-          van    : angle vignetting factor
+          x   : the field x value
+          y   : the field y value
+          wt  : field weight
+          vdx : decenter x vignetting factor
+          vdy : decenter y vignetting factor
+          vcx : compression x vignetting factor
+          vcy : compression y vignetting factor
+          van : angle vignetting factor
 
         Note: the returned tuple's content and structure is exactly same as that
         of `zSetField`
 
         See also `zSetField`
         """
+        if n: # n > 0
+            fd = _co.namedtuple('fieldData', ['X', 'Y', 'wt',
+                                              'vdx', 'vdy',
+                                              'vcx', 'vcy', 'van'])
+        else: # n = 0
+            fd = _co.namedtuple('fieldData', ['type', 'numFields',
+                                              'Xmax', 'Ymax', 'normMethod'])
         reply = self._sendDDEcommand('GetField,'+str(n))
         rs = reply.split(',')
         if n: # n > 0
-            fieldData = tuple([float(elem) for elem in rs])
+            fieldData = fd._make([float(elem) for elem in rs])
         else: # n = 0
-            fieldData = tuple([int(elem) if (i==0 or i==1)
+            fieldData = fd._make([int(elem) if (i==0 or i==1)
                                  else float(elem) for i,elem in enumerate(rs)])
         return fieldData
 
@@ -969,11 +1079,14 @@ class PyZDDE(object):
         See also `zGetSystem`, `zGetSystemProperty`
         Use `zGetSystem` to get General Lens System Data.
         """
+        fd = _co.namedtuple('firstOrderData',
+                            ['EFL', 'paraWorkFNum', 'realWorkFNum',
+                             'paraImgHeight', 'paraMag'])
         reply = self._sendDDEcommand('GetFirst')
         rs = reply.split(',')
-        return tuple([float(elem) for elem in rs])
+        return fd._make([float(elem) for elem in rs])
 
-    def zGetGlass(self,surfaceNumber):
+    def zGetGlass(self, surfaceNumber):
         """Returns some data about the glass on any surface.
 
         `zGetGlass(surfaceNumber)->glassInfo`
@@ -984,7 +1097,7 @@ class PyZDDE(object):
 
         Returns
         -------
-        glassInfo : 3-tuple containing the `name`, `nd`, `vd`, `dpgf` if there is a
+        glassInfo : 4-tuple containing the `name`, `nd`, `vd`, `dpgf` if there is a
                      valid glass associated with the surface, else `None`
 
         Note
@@ -993,16 +1106,17 @@ class PyZDDE(object):
         gradient index, the returned string is empty. This data may be meaningless
         for glasses defined only outside of the FdC band.
         """
+        gd = _co.namedtuple('glassData', ['name', 'nd', 'vd', 'dpgf'])
         reply = self._sendDDEcommand("GetGlass,{:d}".format(surfaceNumber))
         rs = reply.split(',')
         if len(rs) > 1:
-            glassInfo = tuple([str(rs[i]) if i == 0 else float(rs[i])
+            glassInfo = gd._make([str(rs[i]) if i == 0 else float(rs[i])
                                                       for i in range(len(rs))])
         else:
             glassInfo = None
         return glassInfo
 
-    def zGetGlobalMatrix(self,surfaceNumber):
+    def zGetGlobalMatrix(self, surfaceNumber):
         """Returns the the matrix required to convert any local coordinates (such
         as from a ray trace) into global coordinates.
 
@@ -1015,18 +1129,22 @@ class PyZDDE(object):
         Returns
         -------
         globalMatrix  : is a 9-tuple, if successful  = (R11,R12,R13,
-                                                          R21,R22,R23,
-                                                          R31,R32,R33,
-                                                          Xo, Yo , Zo)
+                                                        R21,R22,R23,
+                                                        R31,R32,R33,
+                                                        Xo, Yo , Zo)
                           it returns -1, if bad command.
 
         For details on the global coordinate matrix, see "Global Coordinate Reference
         Surface" in the Zemax manual.
         """
+        gmd = _co.namedtuple('globalMatrix', ['R11', 'R12', 'R13',
+                                              'R21', 'R22', 'R23',
+                                              'R31', 'R32', 'R33',
+                                              'Xo' ,  'Yo', 'Zo'])
         cmd = "GetGlobalMatrix,{:d}".format(surfaceNumber)
         reply = self._sendDDEcommand(cmd)
         rs = reply.rstrip()
-        globalMatrix = tuple([float(elem) for elem in rs.split(',')])
+        globalMatrix = gmd._make([float(elem) for elem in rs.split(',')])
         return globalMatrix
 
     def zGetIndex(self,surfaceNumber):
@@ -1047,7 +1165,6 @@ class PyZDDE(object):
         rs = reply.split(",")
         indexTuple = [float(rs[i]) for i in range(len(rs))]
         return tuple(indexTuple)
-
 
     def zGetLabel(self,surfaceNumber):
         """This command retrieves the integer label assicuated with the specified
@@ -1121,7 +1238,7 @@ class PyZDDE(object):
         # Check if Valid analysis type
         if zb.isZButtonCode(analysisType):
             # Check if the file path is valid and has extension
-            if path.isabs(metaFileName) and path.splitext(metaFileName)[1]!='':
+            if _os.path.isabs(metaFileName) and _os.path.splitext(metaFileName)[1]!='':
                 cmd = 'GetMetaFile,"{tF}",{aT},"{sF}",{fl:d}'.format(tF=metaFileName,
                                     aT=analysisType,sF=settingsFile,fl=flag)
                 reply = self._sendDDEcommand(cmd)
@@ -1157,16 +1274,18 @@ class PyZDDE(object):
                                             are non-sequential. In Non-sequential mode and in purely
                                             sequential mode, this tuple is empty (of length 0).
 
-        Note: This function is not specified in the Zemax manual
+        Note
+        -----
+        This function is not specified in the Zemax manual
         """
         nscSurfNums = []
-        nscData = self.zGetNSCData(1,0)
+        nscData = self.zGetNSCData(1, 0)
         if nscData > 0: # Non-sequential mode
             mode = 1
         else:          # Not Non-sequential mode
             numSurf = self.zGetSystem()[0]
             for i in range(1,numSurf+1):
-                surfType = self.zGetSurfaceData(i,0)
+                surfType = self.zGetSurfaceData(i, 0)
                 if surfType == 'NONSEQCO':
                     nscSurfNums.append(i)
             if len(nscSurfNums) > 0:
@@ -1291,13 +1410,17 @@ class PyZDDE(object):
                                                         Xo, Yo , Zo)
                         it returns -1, if bad command.
         """
+        nscmat = _co.namedtuple('NSCMatrix', ['R11', 'R12', 'R13',
+                                              'R21', 'R22', 'R23',
+                                              'R31', 'R32', 'R33',
+                                              'Xo' ,  'Yo', 'Zo'])
         cmd = "GetNSCMatrix,{:d},{:d}".format(surfaceNumber,objectNumber)
         reply = self._sendDDEcommand(cmd)
         rs = reply.rstrip()
         if rs == 'BAD COMMAND':
             nscMatrix = -1
         else:
-            nscMatrix = tuple([float(elem) for elem in rs.split(',')])
+            nscMatrix = nscmat._make([float(elem) for elem in rs.split(',')])
         return nscMatrix
 
     def zGetNSCObjectData(self, surfaceNumber, objectNumber, code):
@@ -1346,7 +1469,7 @@ class PyZDDE(object):
         202  - Gets the Mean Path value.
         203  - Gets the Angle value.
         211-226 - Gets the DLL parameter 1-16, respectively.
-        ------------------------------------------------------------------------
+
         """
         str_codes = (0,1,4)
         int_codes = (2,3,5,6,29,101,102,110,111)
@@ -1398,7 +1521,7 @@ class PyZDDE(object):
          40   -  User Defined Scatter DLL name. (string)
          41-46 - User Defined Scatter Parameter 1 - 6. (double)
          60   -  User Defined Scatter data file name. (string)
-        ------------------------------------------------------------------------
+
         See also `zSetNSCObjectFaceData`
         """
         str_codes = (10,30,31,40,60)
@@ -1449,7 +1572,7 @@ class PyZDDE(object):
     def zGetNSCPosition(self, surfNumber, objectNumber):
         """Returns the position data for NSC objects.
 
-        `zGetNSCPosition(surfNumber,objectNumber)->nscPosData`
+        `zGetNSCPosition(surfNumber,objectNumber)->nscPos`
 
         Parameters
         ----------
@@ -1459,19 +1582,22 @@ class PyZDDE(object):
 
         Returns
         -------
-        nscPosData is a 7-tuple containing x,y,z,tilt-x,tilt-y,tilt-z,material
+        nscPos :  7-tuple (x, y, z, tilt-x, tilt-y, tilt-z, material)
 
         See also `zSetNSCPosition`
         """
+        nscpd = _co.namedtuple('NSCPosition', ['x', 'y', 'z',
+                                               'tiltX', 'tiltY', 'tiltZ',
+                                               'material'])
         cmd = ("GetNSCPosition,{:d},{:d}".format(surfNumber,objectNumber))
         reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
         if rs[0].rstrip() == 'BAD COMMAND':
-            nscPosData = -1
+            nscPos = -1
         else:
-            nscPosData = tuple([str(rs[i].rstrip()) if i==6 else float(rs[i])
-                                                    for i in range(len(rs))])
-        return nscPosData
+            nscPos = nscpd._make([str(rs[i].rstrip()) if i==6 else float(rs[i])
+                                                      for i in range(len(rs))])
+        return nscPos
 
     def zGetNSCProperty(self, surfaceNumber, objectNumber, faceNumber, code):
         """Returns a numeric or string value from the property pages of objects
@@ -2223,7 +2349,7 @@ class PyZDDE(object):
 
         See also `zSetSurfaceData`, `zGetSurfaceParameter`.
         """
-        if arg2== None:
+        if arg2 is None:
             cmd = "GetSurfaceData,{sN:d},{c:d}".format(sN=surfaceNumber,c=code)
         else:
             cmd = "GetSurfaceData,{sN:d},{c:d},{a:d}".format(sN=surfaceNumber,
@@ -2344,13 +2470,14 @@ class PyZDDE(object):
 
         See also, `zGetSystem`, `zSetSystemAper`.
         """
+        sad = _co.namedtuple('systemAper', ['aType', 'stopSurf', 'value'])
         reply = self._sendDDEcommand("GetSystemAper")
         rs = reply.split(',')
-        systemAperData = tuple([float(elem) if i==2 else int(float(elem))
-                                for i, elem in enumerate(rs)])
+        systemAperData = sad._make([float(elem) if i==2 else int(float(elem))
+                                    for i, elem in enumerate(rs)])
         return systemAperData
 
-    def zGetSystemProperty(self,code):
+    def zGetSystemProperty(self, code):
         """Returns properties of the system, such as system aperture, field,
         wavelength, and other data, based on the integer `code` passed.
 
@@ -2506,7 +2633,7 @@ class PyZDDE(object):
         else:
             settingsFile = ''
         #Check if the file path is valid and has extension
-        if path.isabs(textFileName) and path.splitext(textFileName)[1]!='':
+        if _os.path.isabs(textFileName) and _os.path.splitext(textFileName)[1]!='':
             cmd = 'GetTextFile,"{tF}",{aT},"{sF}",{fl:d}'.format(tF=textFileName,
                                     aT=analysisType,sF=settingsFile,fl=flag)
             reply = self._sendDDEcommand(cmd)
@@ -2548,7 +2675,7 @@ class PyZDDE(object):
     def zGetTrace(self, waveNum, mode, surf, hx, hy, px, py):
         """Trace a (single) ray through the current lens in the ZEMAX DDE server.
 
-        zGetTrace(waveNum,mode,surf,hx,hy,px,py) -> rayTraceData
+        zGetTrace(waveNum,mode,surf,hx,hy,px,py[,retNamedTuple]) -> rayTraceData
 
         Parameters
         ----------
@@ -2608,8 +2735,14 @@ class PyZDDE(object):
         cmd = "GetTrace," + args1 + args2 + args3
         reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
-        rayTraceData = tuple([int(elem) if (i==0 or i==1)
-                                 else float(elem) for i,elem in enumerate(rs)])
+        rayData = [int(elem) if (i==0 or i==1)
+                                  else float(elem) for i,elem in enumerate(rs)]
+        rtd = _co.namedtuple('rayTraceData', ['errCode', 'vigCode',
+                                              'x', 'y', 'z',
+                                              'dcos_l', 'dcos_m', 'dcos_n',
+                                              'dnorm_l2', 'dnorm_m2', 'dnorm_n2',
+                                              'intensity'])
+        rayTraceData = rtd._make(rayData)
         return rayTraceData
 
     def zGetTraceDirect(self, waveNum, mode, startSurf, stopSurf, x, y, z, l, m, n):
@@ -2665,11 +2798,16 @@ class PyZDDE(object):
         cmd = "GetTraceDirect," + args1 + args2 + args3 + args4
         reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
-        rayTraceData = tuple([int(elem) if (i==0 or i==1)
-                                 else float(elem) for i,elem in enumerate(rs)])
+        rtd = _co.namedtuple('rayTraceData', ['errCode', 'vigCode',
+                                              'x', 'y', 'z',
+                                              'dcos_l', 'dcos_m', 'dcos_n',
+                                              'dnorm_l2', 'dnorm_m2', 'dnorm_n2',
+                                              'intensity'])
+        rayTraceData = rtd._make([int(elem) if (i==0 or i==1)
+                                  else float(elem) for i,elem in enumerate(rs)])
         return rayTraceData
 
-    def zGetUDOSystem(self,bufferCode):
+    def zGetUDOSystem(self, bufferCode):
         """Load a particular lens from the optimization function memory into the
         ZEMAX server's memory. This will cause ZEMAX to retrieve the correct lens
         from system memory, and all subsequent DDE calls will be for actions
@@ -2994,11 +3132,11 @@ class PyZDDE(object):
         status       : 0 if load was successful
                        Error code (such as -1,-2) if failed.
         """
-        isRightExt = path.splitext(fileName)[1] in ('.ddr','.DDR','.ddc','.DDC',
+        isRightExt = _os.path.splitext(fileName)[1] in ('.ddr','.DDR','.ddc','.DDC',
                                                     '.ddp','.DDP','.ddv','.DDV')
-        if not path.isabs(fileName): # full path is not provided
+        if not _os.path.isabs(fileName): # full path is not provided
             fileName = self.zGetPath()[0] + fileName
-        isFile = path.isfile(fileName)  # check if file exist
+        isFile = _os.path.isfile(fileName)  # check if file exist
         if isRightExt and isFile:
             cmd = ("LoadDetector,{:d},{:d},{}"
                    .format(surfaceNumber,objectNumber,fileName))
@@ -3031,9 +3169,9 @@ class PyZDDE(object):
         See also zSaveFile, zGetPath, zPushLens, zuiLoadFile
         """
         reply = None
-        isAbsPath = path.isabs(fileName)
-        isRightExt = path.splitext(fileName)[1] in ('.zmx','.ZMX')
-        isFile = path.isfile(fileName)
+        isAbsPath = _os.path.isabs(fileName)
+        isRightExt = _os.path.splitext(fileName)[1] in ('.zmx','.ZMX')
+        isFile = _os.path.isfile(fileName)
         if isAbsPath and isRightExt and isFile:
             if append:
                 cmd = "LoadFile,{},{}".format(fileName,append)
@@ -3075,9 +3213,9 @@ class PyZDDE(object):
 
         See also: zOptimize, zSaveMerit
         """
-        isAbsPath = path.isabs(fileName)
-        isRightExt = path.splitext(fileName)[1] in ('.mf','.MF','.zmx','.ZMX')
-        isFile = path.isfile(fileName)
+        isAbsPath = _os.path.isabs(fileName)
+        isRightExt = _os.path.splitext(fileName)[1] in ('.mf','.MF','.zmx','.ZMX')
+        isFile = _os.path.isfile(fileName)
         if isAbsPath and isRightExt and isFile:
             reply = self._sendDDEcommand('LoadMerit,'+fileName)
             rs = reply.rsplit(",")
@@ -3103,11 +3241,11 @@ class PyZDDE(object):
         numTolOperands : number of tolerance operands loaded.
                          -999 if file doesnot exist
         """
-        if path.isabs(fileName): # full path is provided
+        if _os.path.isabs(fileName): # full path is provided
             fullFilePathName = fileName
         else:                    # full path not provided
             fullFilePathName = self.zGetPath()[0] + "\\Tolerance\\" + fileName
-        if path.isfile(fullFilePathName):
+        if _os.path.isfile(fullFilePathName):
             cmd = "LoadTolerance,{}".format(fileName)
             reply = self._sendDDEcommand(cmd)
             return int(float(reply.rstrip()))
@@ -3475,8 +3613,8 @@ class PyZDDE(object):
         requiredArgs = ("{:d},{:d},{:d},{:d},{:d},{:d},{:d},{:d}"
         .format(surfNum,objNumSrc,split,scatter,usePolar,ignoreErrors,randomSeed,save))
         if save:
-            isAbsPath = path.isabs(saveFilename)
-            isRightExt = path.splitext(saveFilename)[1] in ('.ZRD',)
+            isAbsPath = _os.path.isabs(saveFilename)
+            isRightExt = _os.path.splitext(saveFilename)[1] in ('.ZRD',)
             if isRightExt and not isAbsPath:
                 if oFilter:
                     optionalArgs = ",{},{}".format(saveFilename,oFilter)
@@ -3567,7 +3705,7 @@ class PyZDDE(object):
             return -1
 
     def zOptimize(self, numOfCycles, algorithm, timeout=None):
-        """Calls the Zemax Damped Least Squares (DLS) optimizer.
+        """Calls the Zemax Damped Least Squares/ Orthogonal Descent optimizer.
 
         `zOptimize(numOfCycles,algorithm)->finalMeritFn`
 
@@ -3608,7 +3746,7 @@ class PyZDDE(object):
     def zPushLens(self, update=None, timeout=None):
         """Copy lens in the ZEMAX DDE server into the Lens Data Editor (LDE).
 
-        `zPushLens([updateFlag, timeout]) -> retVal`
+        `zPushLens([update, timeout]) -> retVal`
 
         Parameters
         ---------
@@ -3638,15 +3776,14 @@ class PyZDDE(object):
         reply = None
         if update == 1:
             reply = self._sendDDEcommand('PushLens,1', timeout)
-        elif update == 0 or update == None:
+        elif update == 0 or update is None:
             reply = self._sendDDEcommand('PushLens', timeout)
         else:
             raise ValueError('Invalid value for flag')
-
         if reply:
-            return int(reply)   #Note, Zemax itself returns -999 if the push lens failed.
+            return int(reply)   # Note: Zemax returns -999 if push lens fails
         else:
-            return -998   #if timeout reached
+            return -998         # if timeout reached (assumption!!)
 
     def zPushLensPermission(self):
         """Establish if ZEMAX extensions are allowed to push lenses in the LDE.
@@ -3770,9 +3907,9 @@ class PyZDDE(object):
         status       : 0 if save was successful
                        Error code (such as -1,-2) if failed.
         """
-        isRightExt = path.splitext(fileName)[1] in ('.ddr','.DDR','.ddc','.DDC',
+        isRightExt = _os.path.splitext(fileName)[1] in ('.ddr','.DDR','.ddc','.DDC',
                                                     '.ddp','.DDP','.ddv','.DDV')
-        if not path.isabs(fileName): # full path is not provided
+        if not _os.path.isabs(fileName): # full path is not provided
             fileName = self.zGetPath()[0] + fileName
         if isRightExt:
             cmd = ("SaveDetector,{:d},{:d},{}"
@@ -3801,8 +3938,8 @@ class PyZDDE(object):
 
         See also zGetPath, zGetRefresh, zLoadFile, zPushLens.
         """
-        isAbsPath = path.isabs(fileName)
-        isRightExt = path.splitext(fileName)[1] in ('.zmx','.ZMX')
+        isAbsPath = _os.path.isabs(fileName)
+        isRightExt = _os.path.splitext(fileName)[1] in ('.zmx','.ZMX')
         if isAbsPath and isRightExt:
             cmd = "SaveFile,{}".format(fileName)
             reply = self._sendDDEcommand(cmd)
@@ -3827,8 +3964,8 @@ class PyZDDE(object):
 
         See also: zOptimize, zLoadMerit
         """
-        isAbsPath = path.isabs(fileName)
-        isRightExt = path.splitext(fileName)[1] in ('.mf','.MF')
+        isAbsPath = _os.path.isabs(fileName)
+        isRightExt = _os.path.splitext(fileName)[1] in ('.mf','.MF')
         if isAbsPath and isRightExt:
             cmd = "SaveMerit,{}".format(fileName)
             reply = self._sendDDEcommand(cmd)
@@ -4175,7 +4312,7 @@ class PyZDDE(object):
 
         See also zExecuteZPLMacro
         """
-        if path.isabs(macroFolderPath):
+        if _os.path.isabs(macroFolderPath):
             self.macroPath = macroFolderPath
             return 0
         else:
@@ -5712,11 +5849,12 @@ class PyZDDE(object):
         rayInfo : 4-tuple = (x,y,z,intensity)
         """
         # Calculate the ray pattern on the pupil plane
-        finishAngle = spirals*2*pi
-        dTheta = finishAngle/(rays-1)
-        theta = (i*dTheta for i in range(rays))
-        r = (i/finishAngle for i in theta)
-        pXY = ((ri*cos(thetai), ri*sin(thetai)) for ri, thetai in izip(r,theta))
+        pi, cos, sin = _math.pi, _math.cos, _math.sin
+        lastAng = spirals*2*pi
+        delta_t = lastAng/(rays-1)
+        theta = lambda dt, rays: (i*dt for i in range(rays))
+        r = (i/lastAng for i in theta(delta_t, rays))
+        pXY = ((r*cos(t), r*sin(t)) for r, t in _izip(r,theta(delta_t, rays)))
         x = [] # x-coordinate of the image surface
         y = [] # y-coordinate of the image surface
         z = [] # z-coordinate of the image surface
@@ -5817,11 +5955,11 @@ class PyZDDE(object):
                 binSurMaxNum = {'BINARY_1':233,'BINARY_2':243}
                 for pNum in range(1,9): # from Par 1 to Par 8
                     par = self.zGetSurfaceParameter(surfNum,pNum)
-                    par_ret = self.zSetSurfaceParameter(surfNum,pNum,
+                    self.zSetSurfaceParameter(surfNum,pNum,
                                                          factor**(1-2.0*pNum)*par)
                 #Scale norm radius in the extra data editor
                 epar2 = self.zGetExtra(surfNum,2) #Norm radius
-                epar2_ret = self.zSetExtra(surfNum,2,factor*epar2)
+                self.zSetExtra(surfNum,2,factor*epar2)
                 #scale the coefficients of the Zernike Fringe polynomial terms in the EDE
                 numBTerms = int(self.zGetExtra(surfNum,1))
                 if numBTerms > 0:
@@ -5831,112 +5969,112 @@ class PyZDDE(object):
                             break
                         else:
                             epar = self.zGetExtra(surfNum,i)
-                            epar_ret = self.zSetExtra(surfNum,i,factor*epar)
+                            self.zSetExtra(surfNum,i,factor*epar)
             elif surfName == 'BINARY_3':
                 #Scaling of parameters in the LDE
                 par1 = self.zGetSurfaceParameter(surfNum,1) # R2
-                par1_ret = self.zSetSurfaceParameter(surfNum,1,factor*par1)
+                self.zSetSurfaceParameter(surfNum,1,factor*par1)
                 par4 = self.zGetSurfaceParameter(surfNum,4) # A2, need to scale A2 before A1,
                                                             # because A2>A1>0.0 always
-                par4_ret = self.zSetSurfaceParameter(surfNum,4,factor*par4)
+                self.zSetSurfaceParameter(surfNum,4,factor*par4)
                 par3 = self.zGetSurfaceParameter(surfNum,3) # A1
-                par3_ret = self.zSetSurfaceParameter(surfNum,3,factor*par3)
+                self.zSetSurfaceParameter(surfNum,3,factor*par3)
                 numBTerms = int(self.zGetExtra(surfNum,1))    #Max possible is 60
                 for i in range(2,243,4):  #242
                     if i > 4*numBTerms + 1: #(+1 because the terms starts from par 2)
                         break
                     else:
                         par_r1 = self.zGetExtra(surfNum,i)
-                        par_r1_ret = self.zSetExtra(surfNum,i,par_r1/factor**(i/2))
+                        self.zSetExtra(surfNum,i,par_r1/factor**(i/2))
                         par_p1 = self.zGetExtra(surfNum,i+1)
-                        par_p1_ret = self.zSetExtra(surfNum,i+1,factor*par_p1)
+                        self.zSetExtra(surfNum,i+1,factor*par_p1)
                         par_r2 = self.zGetExtra(surfNum,i+2)
-                        par_r1_ret = self.zSetExtra(surfNum,i+2,par_r2/factor**(i/2))
+                        self.zSetExtra(surfNum,i+2,par_r2/factor**(i/2))
                         par_p2 = self.zGetExtra(surfNum,i+3)
-                        par_p2_ret = self.zSetExtra(surfNum,i+3,factor*par_p2)
+                        self.zSetExtra(surfNum,i+3,factor*par_p2)
 
             elif surfName == 'COORDBRK': #Coordinate break,
                 par = self.zGetSurfaceParameter(surfNum,1) # decenter X
-                par_ret = self.zSetSurfaceParameter(surfNum,1,factor*par)
+                self.zSetSurfaceParameter(surfNum,1,factor*par)
                 par = self.zGetSurfaceParameter(surfNum,2) # decenter Y
-                par_ret = self.zSetSurfaceParameter(surfNum,2,factor*par)
+                self.zSetSurfaceParameter(surfNum,2,factor*par)
             elif surfName == 'EVENASPH': #Even Asphere,
                 for pNum in range(1,9): # from Par 1 to Par 8
                     par = self.zGetSurfaceParameter(surfNum,pNum)
-                    par_ret = self.zSetSurfaceParameter(surfNum,pNum,
+                    self.zSetSurfaceParameter(surfNum,pNum,
                                                          factor**(1-2.0*pNum)*par)
             elif surfName == 'GRINSUR1': #Gradient1
                 par1 = self.zGetSurfaceParameter(surfNum,1) #Delta T
-                par_ret = self.zSetSurfaceParameter(surfNum,1,factor*par1)
+                self.zSetSurfaceParameter(surfNum,1,factor*par1)
                 par3 = self.zGetSurfaceParameter(surfNum,3) #coeff of radial quadratic index
-                par_ret = self.zSetSurfaceParameter(surfNum,3,par3/(factor**2))
+                self.zSetSurfaceParameter(surfNum,3,par3/(factor**2))
                 par4 = self.zGetSurfaceParameter(surfNum,4) #index of radial linear index
-                par_ret = self.zSetSurfaceParameter(surfNum,4,par4/factor)
+                self.zSetSurfaceParameter(surfNum,4,par4/factor)
             elif surfName == 'GRINSUR9': #Gradient9
                 par = self.zGetSurfaceParameter(surfNum,1) #Delta T
-                par_ret = self.zSetSurfaceParameter(surfNum,1,factor*par)
+                self.zSetSurfaceParameter(surfNum,1,factor*par)
             elif surfName == 'GRINSU11': #Grid Gradient surface with 1 parameter
                 par = self.zGetSurfaceParameter(surfNum,1) #Delta T
-                par_ret = self.zSetSurfaceParameter(surfNum,1,factor*par)
+                self.zSetSurfaceParameter(surfNum,1,factor*par)
             elif surfName == 'PARAXIAL': #Paraxial
                 par = self.zGetSurfaceParameter(surfNum,1) #Focal length
-                par_ret = self.zSetSurfaceParameter(surfNum,1,factor*par)
+                self.zSetSurfaceParameter(surfNum,1,factor*par)
             elif surfName == 'PARAX_XY': #Paraxial XY
                 par = self.zGetSurfaceParameter(surfNum,1) # X power
-                par_ret = self.zSetSurfaceParameter(surfNum,1,par/factor)
+                self.zSetSurfaceParameter(surfNum,1,par/factor)
                 par = self.zGetSurfaceParameter(surfNum,2) # Y power
-                par_ret = self.zSetSurfaceParameter(surfNum,2,par/factor)
+                self.zSetSurfaceParameter(surfNum,2,par/factor)
             elif surfName == 'PERIODIC':
                 par = self.zGetSurfaceParameter(surfNum,1) #Amplitude/ peak to valley height
-                par_ret = self.zSetSurfaceParameter(surfNum,1,factor*par)
+                self.zSetSurfaceParameter(surfNum,1,factor*par)
                 par = self.zGetSurfaceParameter(surfNum,2) #spatial frequency of oscillation in x
-                par_ret = self.zSetSurfaceParameter(surfNum,2,par/factor)
+                self.zSetSurfaceParameter(surfNum,2,par/factor)
                 par = self.zGetSurfaceParameter(surfNum,3) #spatial frequency of oscillation in y
-                par_ret = self.zSetSurfaceParameter(surfNum,3,par/factor)
+                self.zSetSurfaceParameter(surfNum,3,par/factor)
             elif surfName == 'POLYNOMI':
                 for pNum in range(1,5): # from Par 1 to Par 4 for x then Par 5 to Par 8 for y
                     parx = self.zGetSurfaceParameter(surfNum,pNum)
                     pary = self.zGetSurfaceParameter(surfNum,pNum+4)
-                    parx_ret = self.zSetSurfaceParameter(surfNum,pNum,
+                    self.zSetSurfaceParameter(surfNum,pNum,
                                                       factor**(1-2.0*pNum)*parx)
-                    pary_ret = self.zSetSurfaceParameter(surfNum,pNum+4,
+                    self.zSetSurfaceParameter(surfNum,pNum+4,
                                                          factor**(1-2.0*pNum)*pary)
             elif surfName == 'TILTSURF': #Tilted surface
                 pass           #No parameters to scale
             elif surfName == 'TOROIDAL':
                 par = self.zGetSurfaceParameter(surfNum,1) #Radius of rotation
-                par_ret = self.zSetSurfaceParameter(surfNum,1,factor*par)
+                self.zSetSurfaceParameter(surfNum, 1, factor*par)
                 for pNum in range(2,9): # from Par 1 to Par 8
                     par = self.zGetSurfaceParameter(surfNum,pNum)
-                    par_ret = self.zSetSurfaceParameter(surfNum,pNum,
-                                                         factor**(1-2.0*(pNum-1))*par)
+                    self.zSetSurfaceParameter(surfNum,pNum,
+                                              factor**(1-2.0*(pNum-1))*par)
                 #scale parameters from the extra data editor
-                epar = self.zGetExtra(surfNum,2)
-                epar_ret = self.zSetExtra(surfNum,2,factor*epar)
+                epar = self.zGetExtra(surfNum, 2)
+                self.zSetExtra(surfNum, 2, factor*epar)
             elif surfName == 'FZERNSAG': # Zernike fringe sag
                 for pNum in range(1,9): # from Par 1 to Par 8
                     par = self.zGetSurfaceParameter(surfNum,pNum)
-                    par_ret = self.zSetSurfaceParameter(surfNum,pNum,
-                                                         factor**(1-2.0*pNum)*par)
-                par9      = self.zGetSurfaceParameter(surfNum,9) # decenter X
-                par9_ret  = self.zSetSurfaceParameter(surfNum,9,factor*par9)
-                par10     = self.zGetSurfaceParameter(surfNum,10) # decenter Y
-                par10_ret = self.zSetSurfaceParameter(surfNum,10,factor*par10)
+                    self.zSetSurfaceParameter(surfNum,pNum,
+                                              factor**(1-2.0*pNum)*par)
+                par9 = self.zGetSurfaceParameter(surfNum,9) # decenter X
+                self.zSetSurfaceParameter(surfNum,9,factor*par9)
+                par10 = self.zGetSurfaceParameter(surfNum,10) # decenter Y
+                self.zSetSurfaceParameter(surfNum,10,factor*par10)
                 #Scale norm radius in the extra data editor
                 epar2 = self.zGetExtra(surfNum,2) #Norm radius
-                epar2_ret = self.zSetExtra(surfNum,2,factor*epar2)
+                self.zSetExtra(surfNum,2,factor*epar2)
                 #scale the coefficients of the Zernike Fringe polynomial terms in the EDE
                 numZerTerms = int(self.zGetExtra(surfNum,1))
                 if numZerTerms > 0:
                     epar3 = self.zGetExtra(surfNum,3) #Zernike Term 1
-                    epar3_ret = self.zSetExtra(surfNum,3,factor*epar3)
+                    self.zSetExtra(surfNum,3,factor*epar3)
                     #Zernike terms 2,3,4,5 and 6 are not scaled.
                     for i in range(9,40): #scaling of Zernike terms 7 to 37
                         if i > numZerTerms + 2: #(+2 because the Zernike terms starts from par 3)
                             break
                         else:
                             epar = self.zGetExtra(surfNum,i)
-                            epar_ret = self.zSetExtra(surfNum,i,factor*epar)
+                            self.zSetExtra(surfNum,i,factor*epar)
             else:
                 print(("WARNING: Scaling for surf type {sN} in file {lF} not implemented!!"
                       .format(sN=surfName,lF=lensFile)))
@@ -5986,7 +6124,7 @@ class PyZDDE(object):
         if txtFileName2Use != None:
             textFileName = txtFileName2Use
         else:
-            cd = os.path.dirname(os.path.realpath(__file__))
+            cd = _os.path.dirname(_os.path.realpath(__file__))
             textFileName = cd +"\\"+"prescriptionFile.txt"
         ret = self.zGetTextFile(textFileName, 'Pre', "None", 0)
         assert ret == 0
@@ -6025,7 +6163,6 @@ class PyZDDE(object):
             hiatus = abs(ima_z + principalPlane_imgSpace - principalPlane_objSpace)
 
         if not keepFile:
-            # Delete the prescription file (the directory remains clean)
             _deleteFile(textFileName)
         return hiatus
 
@@ -6077,7 +6214,7 @@ class PyZDDE(object):
         if txtFileName2Use != None:
             textFileName = txtFileName2Use
         else:
-            cd = os.path.dirname(os.path.realpath(__file__))
+            cd = _os.path.dirname(_os.path.realpath(__file__))
             textFileName = cd +"\\"+"seidelAberrationFile.txt"
         ret = self.zGetTextFile(textFileName,'Sei', "None", 0)
         assert ret == 0
@@ -6118,7 +6255,6 @@ class PyZDDE(object):
         for k, v in zip(swac_keys02, swac_vals02):
             seidelWaveAberrationCoefficients[k] = float(v)
         if not keepFile:
-            #Delete the prescription file (the directory remains clean)
             _deleteFile(textFileName)
         if which == 'wave':
             return seidelWaveAberrationCoefficients
@@ -6191,18 +6327,18 @@ class PyZDDE(object):
                         break
                 else:
                     mfvSettled = True
-            count +=1
+            count += 1
             tCycles = count*numCycle
-        return (finalMerit,tCycles)
+        return (finalMerit, tCycles)
 
 
 # ***************************************************************
 #              IPYTHON NOTEBOOK UTILITY FUNCTIONS
 # ***************************************************************
-    def ipzCaptureWindow(self, num=1, *args, **kwargs):
-        """Capture graphic window from Zemax and display in IPython.
+    def ipzCaptureWindowLQ(self, num=1, *args, **kwargs):
+        """Capture graphic window from Zemax and display in IPython (Low Quality)
 
-        ipzCaptureWindow(num [, *args, **kwargs])-> displayGraphic
+        ipzCaptureWindowLQ(num [, *args, **kwargs])-> displayGraphic
 
         Parameters
         ----------
@@ -6218,23 +6354,19 @@ class PyZDDE(object):
         PyZDDE\ZPLMacros to the macro directory where Zemax is expecting (i.e.
         as set in Zemax->Preference->Folders)
 
-        For earlier versions (before 2010) please use ipzCaptureWindow2().
+        For earlier versions (before 2010) please use ipzCaptureWindow().
         """
-        global _IPLoad
-        if _IPLoad:
+        global _global_IPLoad
+        if _global_IPLoad:
             macroCode = "W{n}".format(n=str(num).zfill(2))
             dataPath = self.zGetPath()[0]
             imgPath = (r"{dp}\IMAFiles\{mc}_Win{n}.jpg"
-                       .format(dp=dataPath,mc=macroCode,n=str(num).zfill(2)))
-            stat = self.zExecuteZPLMacro(macroCode)
-            if ~stat:
-                stat = _checkFileExist(imgPath)
-                if stat==0:
-                    #Display the image
+                       .format(dp=dataPath, mc=macroCode, n=str(num).zfill(2)))
+            if not self.zExecuteZPLMacro(macroCode):
+                if _checkFileExist(imgPath):
                     _display(_Image(filename=imgPath))
-                    #Delete the image file
                     _deleteFile(imgPath)
-                elif stat==-999:
+                else:
                     print("Timeout reached before image file was ready.")
                     print("The specified graphic window may not be open in ZEMAX!")
             else:
@@ -6245,13 +6377,23 @@ class PyZDDE(object):
         else:
             print("Couldn't import IPython modules.")
 
-    def ipzCaptureWindow2(self, analysisType, percent=12, MFFtNum=0, blur=1,
+    def ipzCaptureWindow2(self, *args, **kwargs):
+        """Capture any analysis window from Zemax main window, using 3-letter
+        analysis code. Same as ipzCaptureWindow().
+
+        Note
+        -----
+        This function is now present only for backward compatibility.
+        """
+        return self.ipzCaptureWindow(*args, **kwargs)
+
+    def ipzCaptureWindow(self, analysisType, percent=12, MFFtNum=0, blur=1,
                          gamma=0.35, settingsFileName=None, flag=0, retArr=False):
-        """Capture any analysis window from Zemax main window, using 3-letter analysis code.
+        """Capture any analysis window from Zemax main window, using 3-letter
+        analysis code.
 
-
-        ipzCaptureWindow2(analysisType [,percent=12,MFFtNum=0,blur=1, gamma=0.35,
-                         settingsFileName=None, flag=0, retArr=False]) -> displayGraphic/
+        ipzCaptureWindow(analysisType [,percent=12,MFFtNum=0,blur=1, gamma=0.35,
+                         settingsFileName=None, flag=0, retArr=False]) -> displayGraphic
 
         Parameters
         ----------
@@ -6287,15 +6429,15 @@ class PyZDDE(object):
         None if `retArr` is False (default). The graphic is embedded into the notebook,
         else `pixel_array` (ndarray) if `retArr` is True.
         """
-        global _IPLoad
-        if _IPLoad:
+        global _global_IPLoad
+        if _global_IPLoad:
             # Use the lens file path to store and process temporary images
-            #tmpImgPath = self.zGetPath()[1]  # lens file path (default) ...
+            # tmpImgPath = self.zGetPath()[1]  # lens file path (default) ...
             # don't use the default lens path, as in earlier versions (before 2009)
             # of ZEMAX this path is in `C:\Program Files\Zemax\Samples`. Accessing
             # this folder to create the temporary file and then delete will most
             # likely not work due to permission issues.
-            tmpImgPath = path.dirname(self.zGetFile())  # directory of the lens file
+            tmpImgPath = _os.path.dirname(self.zGetFile())  # directory of the lens file
             if MFFtNum==0:
                 ext = 'EMF'
             else:
@@ -6303,7 +6445,7 @@ class PyZDDE(object):
             tmpMetaImgName = "{tip}\\TEMPGPX.{ext}".format(tip=tmpImgPath,ext=ext)
             tmpPngImgName = "{tip}\\TEMPGPX.png".format(tip=tmpImgPath)
             # Get the directory where PyZDDE (and thus `convert`) is located
-            cd = os.path.dirname(os.path.realpath(__file__))
+            cd = _os.path.dirname(_os.path.realpath(__file__))
             # Create the ImageMagick command. At this time, we need two different
             # types of command because in Zemax:
             # 1. The Standard metafile export (as .WMF) seems to only work for
@@ -6320,38 +6462,34 @@ class PyZDDE(object):
                               .format(cd=cd,MetaImg=tmpMetaImgName,per=percent,
                                                            PngImg=tmpPngImgName))
             # Get the metafile and display the image
-            stat = self.zGetMetaFile(tmpMetaImgName,analysisType,
-                                     settingsFileName,flag)
-            if stat==0:
-                stat = _checkFileExist(tmpMetaImgName,timeout=0.5)
-                if stat==0:
+            if not self.zGetMetaFile(tmpMetaImgName,analysisType,
+                                     settingsFileName,flag):
+                if _checkFileExist(tmpMetaImgName,timeout=0.5):
                     # Convert Metafile to PNG using ImageMagick's convert
-                    startupinfo = subprocess.STARTUPINFO()
-                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                    subprocess.Popen(args=imagickCmd, stdout=subprocess.PIPE,
+                    startupinfo = _subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= _subprocess.STARTF_USESHOWWINDOW
+                    _subprocess.Popen(args=imagickCmd, stdout=_subprocess.PIPE,
                                      startupinfo=startupinfo)
-                    stat = _checkFileExist(tmpPngImgName,timeout=10) # 10 for safety
-                    if stat==0:
-                        time.sleep(0.2)
+                    if _checkFileExist(tmpPngImgName,timeout=10): # 10 for safety
+                        _time.sleep(0.2)
                         if retArr:
-                            if MPLimgLoad:
-                                arr = matimg.imread(tmpPngImgName, 'PNG')
+                            if _global_mpl_img_load:
+                                arr = _matimg.imread(tmpPngImgName, 'PNG')
                             else:
                                 print("Couldn't import Matplotlib")
-                        else: # Display the image
+                        else: # Display the image if not retArr
                             _display(_Image(filename=tmpPngImgName))
-                        # Delete the image files
                         _deleteFile(tmpMetaImgName)
                         _deleteFile(tmpPngImgName)
                     else:
                         print("Timeout reached before PNG file was ready")
-                elif stat==-999:
+                else:
                     print("Timeout reached before Metafile file was ready")
             else:
                 print("Metafile couldn't be created.")
         else:
                 print("Couldn't import IPython modules.")
-        if MPLimgLoad and retArr:
+        if _global_mpl_img_load and retArr:
             return arr
 
     def ipzGetTextWindow(self, analysisType, sln=0, eln=None, settingsFileName=None,
@@ -6391,21 +6529,17 @@ class PyZDDE(object):
         if not eln:
             eln = 1e10  # Set a very high number
         linePrintCount = 0
-        global _IPLoad
-        if _IPLoad:
+        global _global_IPLoad
+        if _global_IPLoad:
             # Use the lens file path to store and process temporary images
             tmpTxtPath = self.zGetPath()[1]  # lens file path
             tmpTxtFile = "{ttp}\\TEMPTXT.txt".format(ttp=tmpTxtPath)
-            ret = self.zGetTextFile(tmpTxtFile,analysisType,settingsFileName,flag)
-            if ~ret:
-                stat = _checkFileExist(tmpTxtFile)
-                if stat==0:
-                    #tf = _openFile(tmpTxtFile)
+            if not self.zGetTextFile(tmpTxtFile,analysisType,settingsFileName,flag):
+                if _checkFileExist(tmpTxtFile):
                     for line in _getDecodedLineFromFile(_openFile(tmpTxtFile)):
                         if linePrintCount >= sln and linePrintCount <= eln:
                             print(line)  # print in the execution cell
-                        linePrintCount +=1
-                    #tf.close()
+                        linePrintCount += 1
                     _deleteFile(tmpTxtFile)
                 else:
                     print("Text file of analysis window not created")
@@ -6540,9 +6674,9 @@ def numAper(aperConeAngle, rIndex=1.0):
     -------
     na : (float) Numerical Aperture
     """
-    return rIndex*sin(aperConeAngle)
+    return rIndex*_math.sin(aperConeAngle)
 
-def na2fn(na, ri=1.0):
+def numAper2fnum(na, ri=1.0):
     """Convert numerical aperture (NA) to F-number
 
     Parameters
@@ -6554,9 +6688,9 @@ def na2fn(na, ri=1.0):
     -------
     fn : (float) F-number value
     """
-    return 1.0/(2.0*tan(asin(na/ri)))
+    return 1.0/(2.0*_math.tan(_math.asin(na/ri)))
 
-def fn2na(fn, ri=1.0):
+def fnum2numAper(fn, ri=1.0):
     """Convert F-number to numerical aperture (NA)
 
     Parameters
@@ -6568,7 +6702,7 @@ def fn2na(fn, ri=1.0):
     -------
     na : (float) Numerical aperture value
     """
-    return ri*sin(atan(1.0/(2.0*fn)))
+    return ri*_math.sin(_math.atan(1.0/(2.0*fn)))
 
 # ***************************************************************************
 # Helper functions to process data from ZEMAX DDE server. This is especially
@@ -6594,39 +6728,40 @@ def _regressLiteralType(x):
         lit = str(x)
     return lit
 
-def _checkFileExist(filename, timeout=.25):
+def _checkFileExist(filename, mode='r', timeout=.25):
     """This function checks if a file exist.
 
     If the file exist then it is ready to be read, written to, or deleted.
 
-    _checkFileExist(filename [,timeout])->status
+    _checkFileExist(filename [, mode, timeout])->status
 
     Parameters
     ----------
-    filename: filename with full path
-    timeout : (seconds) how long to wait before returning
+    filename : (string) filename with full path
+    mode     : (string) mode for opening file
+    timeout  : (seconds) how long to wait before returning
 
     Returns
     -------
     status:
-      0   : file exist, and file operations are possible
-     -999 : timeout reached
+      True   : file exist, and file operations are possible
+      False  : timeout reached
     """
     timeout_microSec = timeout*1000000.0
-    ti = datetime.datetime.now()
+    ti = _datetime.datetime.now()
+    status = True
     while True:
         try:
-            f = open(filename,'r')
+            f = open(filename, mode)
         except IOError:
-            timeDelta = datetime.datetime.now() - ti
+            timeDelta = _datetime.datetime.now() - ti
             if timeDelta.microseconds > timeout_microSec:
-                status = -999
+                status = False
                 break
             else:
-                time.sleep(0.25)
+                _time.sleep(0.25)
         else:
             f.close()
-            status = 0
             break
     return status
 
@@ -6644,8 +6779,8 @@ def _deleteFile(fileName, n=10):
 
     Returns
     ------
-    status   :  0  = file deleting successful
-              -999 = reached maximum number of attemps, without deleting file.
+    status   : True  = file deleting successful
+               False = reached maximum number of attempts, without deleting file.
 
     Note
     ----
@@ -6653,18 +6788,16 @@ def _deleteFile(fileName, n=10):
     error checking on its existance. This is OK as this function is for internal
     use only.
     """
-    deleted = False
+    status = False
     count = 0
-    status = -999
-    while not deleted and count < n:
+    while not status and count < n:
         try:
-            os.remove(fileName)
+            _os.remove(fileName)
         except OSError:
-            count +=1
-            time.sleep(0.2)
+            count += 1
+            _time.sleep(0.2)
         else:
-            status = 0
-            deleted = True
+            status = True
     return status
 
 def _process_get_set_NSCProperty(code,reply):
@@ -6731,7 +6864,7 @@ def _print_dict(data):
     """Helper function to print a dictionary so that the key and value are
     arranged into nice rows and columns
     """
-    leftColMaxWidth = max(imap(len, data))
+    leftColMaxWidth = max(_imap(len, data))
     for key, value in data.items():
         print("{}: {}".format(key.ljust(leftColMaxWidth+1), value))
 
@@ -6755,8 +6888,8 @@ def _openFile(fileName):
     _getDecodedLineFromFile() that uses a with context manager to handle
     exceptions and file close.
     """
-    global _USE_UNICODE_TEXT
-    if _USE_UNICODE_TEXT:
+    global _global_use_unicode_text
+    if _global_use_unicode_text:
         f = open(fileName, u'rb')
     else:
         f = open(fileName, 'r')
@@ -6767,19 +6900,19 @@ def _getDecodedLineFromFile(fileObj):
     The file is automatically closed when after reading the file or if any
     exception occurs while reading the file.
     """
-    global _PYVER3
-    global _USE_UNICODE_TEXT
-    global _IS_IN_IPYTHON_ENV
+    global _global_pyver3
+    global _global_use_unicode_text
+    global _global_in_IPython_env
 
     # I am not exactly sure why there is a difference in behavior
     # between IPython environmnet and normal Python shell, but it is there!
-    if _IS_IN_IPYTHON_ENV:
+    if _global_in_IPython_env:
         unicode_type = 'utf-16-le'
     else:
         unicode_type = 'utf-16'
 
-    if _USE_UNICODE_TEXT:
-        fenc = EncodedFile(fileObj, unicode_type)
+    if _global_use_unicode_text:
+        fenc = _codecs.EncodedFile(fileObj, unicode_type)
         with fenc as f:
             for line in f:
                 decodedLine = line.decode(unicode_type)
@@ -6787,7 +6920,7 @@ def _getDecodedLineFromFile(fileObj):
     else: # ascii
         with fileObj as f:
             for line in f:
-                if _PYVER3: # ascii and Python 3.x
+                if _global_pyver3: # ascii and Python 3.x
                     yield line.rstrip()
                 else:      # ascii and Python 2.x
                     try:
@@ -6815,11 +6948,7 @@ def _readLinesFromFile(fileObj):
     lines = list(_getDecodedLineFromFile(fileObj))
     return lines
 
-
 if __name__ == "__main__":
-    """If this module is executed directly, the Python interpreter will most
-    likely throw an error because of the relative imports in this file.
-    """
     print("Please import this module as 'import pyzdde.zdde as pyz' ")
-    sys.exit(0)
+    _sys.exit(0)
 
