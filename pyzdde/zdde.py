@@ -833,13 +833,9 @@ class PyZDDE(object):
         side   : width if aspect <= 1; height if aspect > 1. (in lens units)
         """
         asd = _co.namedtuple('aspectData', ['aspect', 'side'])
-        if filename is None:
-            cmd = "GetAspect"
-        else:
-            cmd = "GetAspect,{}".format(filename)
-        reply = self._sendDDEcommand(cmd)
-        rs = reply.split(",")
-        aspectSide = asd._make([float(elem) for elem in rs])
+        cmd = (filename and "GetAspect,{}".format(filename)) or "GetAspect"
+        reply = self._sendDDEcommand(cmd).split(",")
+        aspectSide = asd._make([float(elem) for elem in reply])
         return aspectSide
 
     def zGetBuffer(self, n, tempFileName):
@@ -1004,7 +1000,7 @@ class PyZDDE(object):
         else: # n = 0
             fd = _co.namedtuple('fieldData', ['type', 'numFields',
                                               'Xmax', 'Ymax', 'normMethod'])
-        reply = self._sendDDEcommand('GetField,'+str(n))
+        reply = self._sendDDEcommand('GetField,'+ str(n))
         rs = reply.split(',')
         if n: # n > 0
             fieldData = fd._make([float(elem) for elem in rs])

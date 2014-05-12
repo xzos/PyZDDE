@@ -75,6 +75,9 @@ pyz.zo.findZOperand("decenter")  # method of type 4 (can also be called as pyz.f
 pyz.numAper(0.25)                # method of type 4
 ```
 
+#### Is there anything missing?
+The short answer is yes! PyZDDE doesn't support array/ bulk ray tracing at this point in time. I hope in the near future this feature will be implemented. May be you can help (please look in the [issues page](https://github.com/indranilsinharoy/PyZDDE/issues/21))
+
 
 #### Getting started, usage, and other documentation:
 Getting started with PyZDDE is really very simple as shown in the "Hello world" program above. Please refer to the [Wiki page] (https://github.com/indranilsinharoy/PyZDDE/wiki). It has detailed guide on how to start using PyZDDE.
