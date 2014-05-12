@@ -268,8 +268,9 @@ class PyZDDE(object):
     __appNameDict = _createAppNameDict(_MAX_PARALLEL_CONV)  # {'ZEMAX': False, 'ZEMAX1': False}
 
     def __init__(self):
-        self.appName = _getAppName(PyZDDE.__appNameDict)
-        self.appNum = None       # will be assigned after successful connection
+        PyZDDE.__chNum += 1   # increment channel count
+        self.appName = _getAppName(PyZDDE.__appNameDict) or '' # :-)
+        self.appNum = PyZDDE.__chNum # unique & immutable identity of each instance
         self.connection = False  # 1/0 depending on successful connection or not
         self.macroPath = None    # variable to store macro path
 
@@ -278,8 +279,11 @@ class PyZDDE(object):
                 (self.appName,self.connection,self.macroPath))
 
     def __hash__(self):
-        # for storing in dictionary
+        # for storing in internal dictionary
         return hash(self.appNum)
+
+    def __eq__(self, other):
+        return (self.appNum == other.appNum)
 
     # ZEMAX <--> PyZDDE client connection methods
     #--------------------------------------------
@@ -296,7 +300,6 @@ class PyZDDE(object):
         -------
         status: 0 : DDE link to ZEMAX was successfully established.
                -1 : DDE link couldn't be established.
-
 
         See also `zDDEClose`, `zDDEStart`, `zSetTimeout`
         """
@@ -333,9 +336,7 @@ class PyZDDE(object):
             return -1
         else:
             _debugPrint(1,"Zemax instance successfully connected")
-            self.appNum = PyZDDE.__chNum # unique and immutable identity of each instance
             PyZDDE.__liveCh += 1 # increment the number of live channels
-            PyZDDE.__chNum +=1   # increment channel count
             self.connection = True
             return 0
 
@@ -381,7 +382,6 @@ class PyZDDE(object):
             _debugPrint(2,"liveCh decremented without shutting down DDE channel")
         else:   # if zDDEClose is called by an object which didn't have a channel
             _debugPrint(2,"Nothing to do")
-
         return 0              # For future compatibility
 
     def zSetTimeout(self, time):

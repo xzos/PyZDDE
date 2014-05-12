@@ -54,12 +54,12 @@ class TestPyZDDEFunctions(unittest.TestCase):
         # The DDE initialization has be done here, and so cannot be tested
         # otherwise, as no zDDExxx functions can be carried before initialization.
         status = self.link0.zDDEInit()
-        #if TestPyZDDEFunctions.pRetVar:
+        # if TestPyZDDEFunctions.pRetVar:
         #    print("Status for link 0:", status)
         self.assertEqual(status,0)
         if status:
             print("Couldn't initialize DDE.")
-        #Make sure to reset the lens
+        # Make sure to reset the lens
         ret = self.link0.zNewLens()
         assert ret==0
 
@@ -109,16 +109,16 @@ class TestPyZDDEFunctions(unittest.TestCase):
         filename = zmxfp+lensFileName
         self.link0.zLoadFile(filename)
         currConfig = self.link0.zGetConfig()
-        #Since no configuration is initally present, it should return (1,1,1)
+        # Since no configuration is initally present, it should return (1,1,1)
         self.assertTupleEqual(currConfig,(1,1,1))
-        #Insert a config
+        # Insert a config
         self.link0.zInsertConfig(currConfig[1]+1)
-        #Assert if the number of configurations didn't increase, however the
-        #current configuration shouldn't change, and the number of multiple
-        #configurations must remain same.
+        # Assert if the number of configurations didn't increase, however the
+        # current configuration shouldn't change, and the number of multiple
+        # configurations must remain same.
         newConfig = self.link0.zGetConfig()
         self.assertTupleEqual(newConfig,(currConfig[0],currConfig[1]+1,currConfig[2]))
-        #Now, finally, call zDeleteConfig() to switch configuration
+        # Now, finally, call zDeleteConfig() to switch configuration
         configNum = self.link0.zDeleteConfig(2)
         self.assertEqual(configNum,2)
         newConfig = self.link0.zGetConfig()
@@ -132,15 +132,15 @@ class TestPyZDDEFunctions(unittest.TestCase):
         global zmxfp
         filename = zmxfp+lensFileName
         self.link0.zLoadFile(filename)
-        #Get the current number of configurations (columns and rows)
+        # Get the current number of configurations (columns and rows)
         currConfig = self.link0.zGetConfig()
         self.assertTupleEqual(currConfig,(1,1,1))
-        #Insert a operand (row)
+        # Insert a operand (row)
         newOperNumber = self.link0.zInsertMCO(2)
         self.assertEqual(newOperNumber,2)
         newConfig = self.link0.zGetConfig()
         self.assertTupleEqual(newConfig,(currConfig[0],currConfig[1],currConfig[2]+1))
-        #Finally delete an MCO
+        # Finally delete an MCO
         newOperNumber = self.link0.zDeleteMCO(2)
         self.assertEqual(newOperNumber,1)
         if TestPyZDDEFunctions.pRetVar:
