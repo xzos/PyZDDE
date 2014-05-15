@@ -1,6 +1,6 @@
 ## PyZDDE: Python Zemax Dynamic Data Exchange
 
-https://zenodo.org/badge/3811/indranilsinharoy/PyZDDE.png
+![zenodo DOI](https://zenodo.org/badge/3811/indranilsinharoy/PyZDDE.png)
 
 ##### Current revision:
 
