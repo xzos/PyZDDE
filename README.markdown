@@ -1,5 +1,7 @@
 ## PyZDDE: Python Zemax Dynamic Data Exchange
 
+https://zenodo.org/badge/3811/indranilsinharoy/PyZDDE.png
+
 ##### Current revision:
 
 0.7.6 (Last significant update on 05/11/2014)

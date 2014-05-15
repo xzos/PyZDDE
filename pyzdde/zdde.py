@@ -269,14 +269,14 @@ class PyZDDE(object):
 
     def __init__(self):
         PyZDDE.__chNum += 1   # increment channel count
-        self.appName = _getAppName(PyZDDE.__appNameDict) or '' # :-)
+        self.appName = _getAppName(PyZDDE.__appNameDict) or '' # wicked :-)
         self.appNum = PyZDDE.__chNum # unique & immutable identity of each instance
         self.connection = False  # 1/0 depending on successful connection or not
         self.macroPath = None    # variable to store macro path
 
     def __repr__(self):
-        return ("PyZDDE(appName=%r, connection=%r, macroPath=%r)" %
-                (self.appName,self.connection,self.macroPath))
+        return ("PyZDDE(appName=%r, appNum=%r, connection=%r, macroPath=%r)" %
+                (self.appName, self.appNum, self.connection, self.macroPath))
 
     def __hash__(self):
         # for storing in internal dictionary
@@ -361,28 +361,28 @@ class PyZDDE(object):
         -------
         Status = 0 on success.
         """
-        if PyZDDE.__server and PyZDDE.__liveCh ==0:
+        if PyZDDE.__server and not PyZDDE.__liveCh:
             PyZDDE.__server.Shutdown(self.conversation) # ddeclient's shutdown function
             PyZDDE.__server = 0
             _debugPrint(2,"server shutdown as ZEMAX is not running!")
-        elif PyZDDE.__server and self.connection and PyZDDE.__liveCh ==1:
+        elif PyZDDE.__server and self.connection and PyZDDE.__liveCh == 1:
             PyZDDE.__server.Shutdown(self.conversation) # ddeclient's shutdown function
             self.connection = False
             PyZDDE.__appNameDict[self.appName] = False # make the name available
             self.appName = ''
-            PyZDDE.__liveCh -=1  # This will become zero now. (reset)
-            PyZDDE.__server = 0  # the previous server object should be garbage collected
+            PyZDDE.__liveCh -= 1  # This will become zero now. (reset)
+            PyZDDE.__server = 0   # the previous server object should be garbage collected
             _debugPrint(2,"server shutdown")
         elif self.connection:  # if additional channels were successfully created.
             PyZDDE.__server.Shutdown(self.conversation)
             self.connection = False
             PyZDDE.__appNameDict[self.appName] = False # make the name available
             self.appName = ''
-            PyZDDE.__liveCh -=1
+            PyZDDE.__liveCh -= 1
             _debugPrint(2,"liveCh decremented without shutting down DDE channel")
         else:   # if zDDEClose is called by an object which didn't have a channel
-            _debugPrint(2,"Nothing to do")
-        return 0              # For future compatibility
+            _debugPrint(2, "Nothing to do")
+        return 0
 
     def zSetTimeout(self, time):
         """Sets the timeout in seconds for all ZEMAX DDE calls.
