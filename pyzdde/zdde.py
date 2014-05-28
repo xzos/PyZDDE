@@ -1027,13 +1027,16 @@ class PyZDDE(object):
         See also `zGetField`, `zSetField`, `zSetFieldTuple`
         """
         fieldCount = self.zGetField(0)[1]
-        fieldDataTuple = [ ]
+        fd = _co.namedtuple('fieldData', ['X', 'Y', 'wt',
+                                          'vdx', 'vdy',
+                                          'vcx', 'vcy', 'van'])
+        fieldData = [ ]
         for i in range(fieldCount):
             reply = self._sendDDEcommand('GetField,'+str(i+1))
             rs = reply.split(',')
-            fieldData = tuple([float(elem) for elem in rs])
-            fieldDataTuple.append(fieldData)
-        return tuple(fieldDataTuple)
+            data = fd._make([float(elem) for elem in rs])
+            fieldData.append(data)
+        return tuple(fieldData)
 
     def zGetFile(self):
         """This method extracts and returns the full name of the lens, including
@@ -2435,11 +2438,17 @@ class PyZDDE(object):
         returned by the zSetSystem() method.
 
         See also zSetSystem, zGetFirst, zGetSystemProperty, zGetSystemAper, zGetAperture, zSetAperture
+
         Use `zGetFirst` to get first order lens data such as EFL, F/# etc.
         """
+        sdt = _co.namedtuple('systemData' , ['numberOfSurfaces', 'unitCode',
+                                             'stopSurfaceNum', 'nonAxialFlag',
+                                             'rayAimingType', 'adjustIndexFlag',
+                                             'temperature', 'pressure',
+                                             'globalReferenceSurface'])
         reply = self._sendDDEcommand("GetSystem")
         rs = reply.split(',')
-        systemData = tuple([float(elem) if (i==6) else int(float(elem))
+        systemData = sdt._make([float(elem) if (i==6) else int(float(elem))
                                                   for i,elem in enumerate(rs)])
         return systemData
 
@@ -2470,7 +2479,7 @@ class PyZDDE(object):
 
         See also, `zGetSystem`, `zSetSystemAper`.
         """
-        sad = _co.namedtuple('systemAper', ['aType', 'stopSurf', 'value'])
+        sad = _co.namedtuple('systemAper', ['apertureType', 'stopSurf', 'value'])
         reply = self._sendDDEcommand("GetSystemAper")
         rs = reply.split(',')
         systemAperData = sad._make([float(elem) if i==2 else int(float(elem))
@@ -2885,8 +2894,8 @@ class PyZDDE(object):
         -------
         if n==0: waveData is a tuple containing the following:
             primary : number indicating the primary wavelength (integer)
-            number  : number of wavelengths currently defined (integer).
-        elif 0 < n <= number of wavelengths: waveData consists of:
+            number  : number_of_wavelengths currently defined (integer).
+        elif 0 < n <= number_of_wavelengths: waveData consists of
             wavelength : value of the specific wavelength (floating point)
             weight     : weight of the specific wavelength (floating point)
 
@@ -2895,21 +2904,24 @@ class PyZDDE(object):
         The returned tuple is exactly same in structure and contents to that
         returned by zSetWave().
 
-        See also zSetWave(),zSetWaveTuple(), zGetWaveTuple().
+        See also zSetWave(), zSetWaveTuple(), zGetWaveTuple().
         """
-        reply = self._sendDDEcommand('GetWave,'+str(n))
+        reply = self._sendDDEcommand('GetWave,' + str(n))
         rs = reply.split(',')
         if n:
-            waveData = tuple([float(ele) for ele in rs])
+            wtd = _co.namedtuple('waveData', ['wavelength', 'weight'])
+            waveData = wtd._make([float(ele) for ele in rs])
         else:
-            waveData = tuple([int(ele) for ele in rs])
+            wtd = _co.namedtuple('waveData', ['primaryWavelengthNum',
+                                              'numberOfWavelengths'])
+            waveData = wtd._make([int(ele) for ele in rs])
         return waveData
 
     def zGetWaveTuple(self):
         """Gets data on all defined wavelengths from the ZEMAX DDE server. This
         function is similar to "zGetWaveDataMatrix()" in MZDDE toolbox.
 
-        zDetWaveTuple() -> waveDataTuple
+        zDetWaveTuple() -> ((wave1,wave2,wave3,...,waveN),(wgt1,wgt2,wgt3,...,wgtN))
 
         Parameters
         ---------
@@ -2925,14 +2937,16 @@ class PyZDDE(object):
         See also zSetWaveTuple(), zGetWave(), zSetWave()
         """
         waveCount = self.zGetWave(0)[1]
-        waveDataTuple = [[],[]]
+        waveData = [[],[]]
+        wdt = _co.namedtuple('waveDataTuple', ['wavelengths', 'weights'])
         for i in range(waveCount):
             cmd = "GetWave,{wC:d}".format(wC=i+1)
             reply = self._sendDDEcommand(cmd)
             rs = reply.split(',')
-            waveDataTuple[0].append(float(rs[0])) # store the wavelength
-            waveDataTuple[1].append(float(rs[1])) # store the weight
-        return (tuple(waveDataTuple[0]),tuple(waveDataTuple[1]))
+            waveData[0].append(float(rs[0])) # store the wavelength
+            waveData[1].append(float(rs[1])) # store the weight
+        waveDataTuple = wdt(tuple(waveData[0]),tuple(waveData[1]))
+        return waveDataTuple
 
     def zHammer(self, numOfCycles, algorithm, timeout=60):
         """Calls the Hammer optimizer.
@@ -3022,7 +3036,7 @@ class PyZDDE(object):
            multi-configuration editor.
         3. Use zSetConfig() to switch the current configuration number
 
-        See also zDeleteConfig.
+        See also zDeleteConfig().
         """
         return int(self._sendDDEcommand("InsertConfig,{:d}".format(configNumber)))
 
@@ -6388,41 +6402,50 @@ class PyZDDE(object):
         return self.ipzCaptureWindow(*args, **kwargs)
 
     def ipzCaptureWindow(self, analysisType, percent=12, MFFtNum=0, blur=1,
-                         gamma=0.35, settingsFileName=None, flag=0, retArr=False):
+                         gamma=0.35, settingsFileName=None, flag=0, retArr=False,
+                         wait=10):
         """Capture any analysis window from Zemax main window, using 3-letter
         analysis code.
 
         ipzCaptureWindow(analysisType [,percent=12,MFFtNum=0,blur=1, gamma=0.35,
-                         settingsFileName=None, flag=0, retArr=False]) -> displayGraphic
+                         settingsFileName=None, flag=0, retArr=False])
+                         -> displayGraphic
 
         Parameters
         ----------
         analysisType : string
                        3-letter button code for the type of analysis
         percent : float
-                  percentage of the Zemax metafile to display (default=12). Used for resizing
-                  the large metafile.
+                  percentage of the Zemax metafile to display (default=12).
+                  Used for resizing the large metafile.
         MFFtNum : integer
                   type of metafile. 0 = Enhanced Metafile, 1 = Standard Metafile
         blur : float
-               amount of blurring to use for antialiasing during resizing of metafile (default=1)
+               amount of blurring to use for antialiasing during resizing of
+               metafile (default=1)
         gamma : float
-                gamma for the PNG image (default = 0.35). Use a gamma value of around 0.9
-                for color surface plots.
+                gamma for the PNG image (default = 0.35). Use a gamma value of
+                around 0.9 for color surface plots.
         settingsFileName : string
-                           If a valid file name is used for the `settingsFileName`, ZEMAX will use or save
-                           the settings used to compute the  metafile, depending upon the value of the flag
+                           If a valid file name is used for the `settingsFileName`,
+                           ZEMAX will use or save the settings used to compute
+                           the  metafile, depending upon the value of the flag
                            parameter.
         flag : integer
                 0 = default settings used for the metafile graphic
-                1 = settings provided in the settings file, if valid, else default settings used
-                2 = settings provided in the settings file, if valid, will be used and the settings
-                    box for the requested feature will be displayed. After the user makes any changes to
-                    the settings the graphic will then be generated using the new settings.
+                1 = settings provided in the settings file, if valid, else
+                    default settings used
+                2 = settings provided in the settings file, if valid, will be
+                    used and the settings box for the requested feature will be
+                    displayed. After the user makes any changes to the settings
+                    the graphic will then be generated using the new settings.
         retArr : boolean
                 whether to return the image as an array or not.
                 If `False` (default), the image is embedded and no array is returned.
                 If `True`, an numpy array is returned that may be plotted using Matpotlib.
+        wait : time in sec
+            time given to Zemax for the requested analysis to complete and produce
+            a file.
 
         Returns
         -------
@@ -6464,23 +6487,26 @@ class PyZDDE(object):
             # Get the metafile and display the image
             if not self.zGetMetaFile(tmpMetaImgName,analysisType,
                                      settingsFileName,flag):
-                if _checkFileExist(tmpMetaImgName,timeout=0.5):
+                if _checkFileExist(tmpMetaImgName, timeout=wait):
                     # Convert Metafile to PNG using ImageMagick's convert
                     startupinfo = _subprocess.STARTUPINFO()
                     startupinfo.dwFlags |= _subprocess.STARTF_USESHOWWINDOW
                     _subprocess.Popen(args=imagickCmd, stdout=_subprocess.PIPE,
                                      startupinfo=startupinfo)
-                    if _checkFileExist(tmpPngImgName,timeout=10): # 10 for safety
+                    if _checkFileExist(tmpPngImgName,timeout=10):
                         _time.sleep(0.2)
                         if retArr:
                             if _global_mpl_img_load:
                                 arr = _matimg.imread(tmpPngImgName, 'PNG')
+                                _deleteFile(tmpMetaImgName)
+                                _deleteFile(tmpPngImgName)
+                                return arr
                             else:
                                 print("Couldn't import Matplotlib")
                         else: # Display the image if not retArr
                             _display(_Image(filename=tmpPngImgName))
-                        _deleteFile(tmpMetaImgName)
-                        _deleteFile(tmpPngImgName)
+                            _deleteFile(tmpMetaImgName)
+                            _deleteFile(tmpPngImgName)
                     else:
                         print("Timeout reached before PNG file was ready")
                 else:
@@ -6489,8 +6515,6 @@ class PyZDDE(object):
                 print("Metafile couldn't be created.")
         else:
                 print("Couldn't import IPython modules.")
-        if _global_mpl_img_load and retArr:
-            return arr
 
     def ipzGetTextWindow(self, analysisType, sln=0, eln=None, settingsFileName=None,
                          flag=0, *args, **kwargs):
@@ -6657,6 +6681,41 @@ class PyZDDE(object):
         else:
             return surfdata
 
+    def ipzGetLDE(self):
+        """Prints the LDE data into the IPython cell
+
+        Usage: ipzGetLDE()
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+            Prints the LDE data
+        """
+        cd = _os.path.dirname(_os.path.realpath(__file__))
+        textFileName = cd +"\\"+"prescriptionFile.txt"
+        ret = self.zGetTextFile(textFileName,'Pre', "None", 0)
+        assert ret == 0
+        recSystemData = self.zGetSystem() # Get the current system parameters
+        numSurf = recSystemData[0]
+        line_list = _readLinesFromFile(_openFile(textFileName))
+        for line_num, line in enumerate(line_list):
+            sectionString = ("SURFACE DATA SUMMARY:") # to use re later
+            if line.rstrip()== sectionString:
+                for i in range(numSurf + 4): # 1 object surface + 3 extra lines before the actual data
+                    lde_line = line_list[line_num + i].rstrip()
+                    print(lde_line)
+                break
+        else:
+            raise Exception("Could not find section string '{}' in Prescription file."
+            " \n\nPlease check if there is a mismatch in text encoding between"
+            " Zemax and PyZDDE.".format(sectionString))
+        _deleteFile(textFileName)
+
+
 # ***********************************************************************
 #   OTHER HELPER FUNCTIONS THAT DO NOT REQUIRE A RUNNING ZEMAX SESSION
 # ***********************************************************************
@@ -6747,7 +6806,6 @@ def _checkFileExist(filename, mode='r', timeout=.25):
       True   : file exist, and file operations are possible
       False  : timeout reached
     """
-    timeout_microSec = timeout*1000000.0
     ti = _datetime.datetime.now()
     status = True
     while True:
@@ -6755,7 +6813,7 @@ def _checkFileExist(filename, mode='r', timeout=.25):
             f = open(filename, mode)
         except IOError:
             timeDelta = _datetime.datetime.now() - ti
-            if timeDelta.microseconds > timeout_microSec:
+            if timeDelta.total_seconds() > timeout:
                 status = False
                 break
             else:
@@ -6800,7 +6858,7 @@ def _deleteFile(fileName, n=10):
             status = True
     return status
 
-def _process_get_set_NSCProperty(code,reply):
+def _process_get_set_NSCProperty(code, reply):
     """Process reply for functions zGetNSCProperty and zSETNSCProperty"""
     rs = reply.rstrip()
     if rs == 'BAD COMMAND':
@@ -6819,8 +6877,8 @@ def _process_get_set_Operand(column, reply):
     """Process reply for functions zGetOperand and zSetOperand"""
     rs = reply.rstrip()
     if column == 1:
-        #ensure that it is a string ... as it is supposed to return the operand
-        if isinstance(_regressLiteralType(rs),str):
+        # ensure that it is a string ... as it is supposed to return the operand
+        if isinstance(_regressLiteralType(rs), str):
             return str(rs)
         else:
             return -1
@@ -6838,7 +6896,7 @@ def _process_get_set_Solve(reply):
     else:
         return tuple([_regressLiteralType(x) for x in rs])
 
-def _process_get_set_SystemProperty(code,reply):
+def _process_get_set_SystemProperty(code, reply):
     """Process reply for functions zGetSystemProperty and zSetSystemProperty"""
     # Convert reply to proper type
     if code in  (102,103, 104,105,106,107,108,109,110): # unexpected cases
@@ -6866,7 +6924,7 @@ def _print_dict(data):
     """
     leftColMaxWidth = max(_imap(len, data))
     for key, value in data.items():
-        print("{}: {}".format(key.ljust(leftColMaxWidth+1), value))
+        print("{}: {}".format(key.ljust(leftColMaxWidth + 1), value))
 
 def _openFile(fileName):
     """opens the file in the appropriate mode and returns the file object
