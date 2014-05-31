@@ -10,6 +10,9 @@
 #-------------------------------------------------------------------------------
 """PyZDDE, which is a toolbox written in Python, is used for communicating with
 ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging protocol.
+The docstring examples in the functions assume that PyZDDE is imported as
+``import pyzdde.zdde as pyz`` and a PyZDDE communication object is then created
+as ``ln = pyz.createLink()`` or ``ln = pyz.PyZDDE(); ln.zDDEInit()``.
 """
 from __future__ import division
 from __future__ import print_function
@@ -90,12 +93,15 @@ _system_aperture = {0 : 'EPD',
 
 # Helper function for debugging
 def _debugPrint(level, msg):
-    """
+    """Internal helper function to print debug messages
+
     Parameters
     ----------
-    level = 0, message will definitely be printed
-            1 or 2, message will be printed if level >= _DEBUG_PRINT_LEVEL
-    msg = string message to print
+    level : integer (0, 1 or 2)
+        0 = message will definitely be printed;
+        1 or 2 = message will be printed if ``level >= _DEBUG_PRINT_LEVEL``.
+    msg : string 
+        message to print
     """
     global _DEBUG_PRINT_LEVEL
     if level <= _DEBUG_PRINT_LEVEL:
@@ -121,11 +127,13 @@ showZOperandList = zo.showZOperandList
 showZOperandDescription = zo.showZOperandDescription
 
 _global_dde_linkObj = {}
-def createLink():
-    """create a DDE communication link with Zemax
 
-    Helper function, creates a PyZDDE object, initializes it and returns the
-    communication object.
+def createLink():
+    """Create a DDE communication link with Zemax
+
+    Usage: ``import pyzdde.zdde as pyz; ln = pyz.createLink()`` 
+
+    Helper function to create, initializ and return a PyZDDE communication object.
 
     Parameters
     ----------
@@ -133,7 +141,17 @@ def createLink():
 
     Returns
     -------
-    link : a DDE communication object
+    link : object
+        a PyZDDE communication object if successful, else ``None``.
+
+    Notes
+    -----
+    1. This module level method may used instead of ``ln = pyz.PyZDDE(); ln.zDDEInit()``.
+    2. Zemax application must be running.
+
+    See Also
+    --------
+    closeLink(), zDDEInit()
     """
     global _global_dde_linkObj
     global _MAX_PARALLEL_CONV
@@ -154,18 +172,29 @@ def createLink():
         return None
 
 def closeLink(link=None):
-    """close DDE communication link with Zemax
+    """Close DDE communication link with Zemax
+
+    Usage: ``pyz.closeLink([ln])``
 
     Helper function, for closing DDE communication.
 
     Parameters
     ----------
-    link (optional): PyzDDE link object to remove.
-        If None (default), all existing links are closed.
+    link : PyZDDE link object, optional
+        If a specific link object is not given, all existing links are closed.
 
     Returns
     -------
     None
+
+    See Also
+    --------
+    zDDEClose() : PyZDDE instance method to close a link. 
+        Use this method (as ``ln.zDDEClose()``) if the link was created as 
+        ``ln = pyz.PyZDDE(); ln.zDDEInit()``
+    close() : Another instance method to close a link for easy typing.
+        Use this method (as ``ln.close()``) or ``pyz.closeLink(ln)`` if the
+        link was created as ``ln = pyz.createLink()``
     """
     global _global_dde_linkObj
     dde_closedLinkObj = []
@@ -180,21 +209,28 @@ def closeLink(link=None):
         _global_dde_linkObj.pop(item)
 
 def setTextEncoding(txt_encoding=0):
-    """sets the text encoding to match the TXT encoding in Zemax
+    """Sets PyZDDE text encoding to match the TXT encoding in Zemax
+
+    Usage: ``pyz.setTextEncoding([txt_encoding])``
 
     Parameters
     ----------
-    txt_encoding (integer) : 0 = ASCII
-                             1 = UNICODE
+    txt_encoding : integer (0/1)
+        0 = ASCII; 1 = UNICODE
 
     Returns
     -------
-    status : current setting (and information if the setting was changed or not)
+    status : string
+        current setting (& information if the setting was changed or not)
 
-    Note
-    ----
-    There is no need to set the encoding for every new session as the PyZDDE
-    remembers the setting.
+    Notes
+    -----
+    Not required to set the encoding for every new session as PyZDDE stores
+    the setting.
+
+    See Also
+    --------
+    getTextEncoding()
     """
     global _global_use_unicode_text
     if _global_use_unicode_text and txt_encoding:
@@ -215,7 +251,9 @@ def setTextEncoding(txt_encoding=0):
             print("ERROR: Couldn't change settings")
 
 def getTextEncoding():
-    """returns the current text encoding set in PyZDDE
+    """Returns the current text encoding set in PyZDDE
+
+    Usage: ``pyz.getTextEncoding()``
 
     Parameters
     ----------
@@ -223,14 +261,29 @@ def getTextEncoding():
 
     Returns
     -------
-    encoding (string): 'ascii' or 'unicode'
+    encoding : string
+        'ascii' or 'unicode'
+
+    See Also
+    --------
+    setTextEncoding
     """
     return _config.getTextEncoding()
 
 # PyZDDE class' utility function (for internal use)
 def _createAppNameDict(maxElements):
-    """function to create a dictionary (pool) of possible app-names (keys).
-    values, set to False, indicate name hasn't been taken
+    """Internal function to create a pool (dictionary) of possible app-names
+
+    Parameters
+    ----------
+    maxElements : integer
+        maximum elements in the dictionary
+
+    Returns
+    -------
+    appNameDict : dictionary
+        dictionary of app-names (keys) with values, set to False, indicating 
+        name hasn't been taken.
     """
     appNameDict = {}
     appNameDict['ZEMAX'] = False
@@ -239,7 +292,7 @@ def _createAppNameDict(maxElements):
     return appNameDict
 
 def _getAppName(appNameDict):
-    """return available name from the pool of app-names.
+    """Return available name from the pool of app-names.
     """
     if not appNameDict['ZEMAX']:
         appNameDict['ZEMAX'] = True
@@ -261,13 +314,42 @@ def _getAppName(appNameDict):
 # PyZDDE class
 # ******************
 class PyZDDE(object):
-    """Create an instance of PyZDDE class"""
+    """PyZDDE class for communicating with Zemax
+
+    There are two ways of instantiating and initiating a PyZDDE object:
+
+    1. Instantiate using ``ln = pyz.PyZDDE()`` and then initiate using ``ln.zDDEInit()`` or
+    2. ``pyz.createLink()`` instantiates & initiates a PyZDDE object & returns (recommended way)
+    """
     __chNum =  0  # channel Number; there is no restriction on number of ch
     __liveCh = 0  # no. of live/ simul channels; Can't be > _MAX_PARALLEL_CONV
     __server = 0
     __appNameDict = _createAppNameDict(_MAX_PARALLEL_CONV)  # {'ZEMAX': False, 'ZEMAX1': False}
 
     def __init__(self):
+        """Creates an instance of PyZDDE class
+
+        Usage: ``ln = pyz.PyZDDE()``
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        ln : PyZDDE object
+
+        Notes
+        -----
+        1. Following the creation of PyZDDE object, initiate the communication 
+        channel as ``ln.zDDEInit()``
+        2. Consider using the module level function ``pyz.createLink()`` to create
+        and initiate a DDE channel instead of ``ln = pyz.PyZDDE(); ln.zDDEInit()``
+
+        See Also
+        --------
+        createLink()
+        """
         PyZDDE.__chNum += 1   # increment channel count
         self.appName = _getAppName(PyZDDE.__appNameDict) or '' # wicked :-)
         self.appNum = PyZDDE.__chNum # unique & immutable identity of each instance
@@ -290,7 +372,7 @@ class PyZDDE(object):
     def zDDEInit(self):
         """Initiates DDE link with Zemax server.
 
-        zDDEInit( ) -> status
+        Usage: ``ln.zDDEInit()``
 
         Parameters
         ----------
@@ -298,10 +380,13 @@ class PyZDDE(object):
 
         Returns
         -------
-        status: 0 : DDE link to ZEMAX was successfully established.
-               -1 : DDE link couldn't be established.
+        status : integer
+            0 = DDE Zemax link successful;
+            -1 = DDE link couldn't be established.
 
-        See also `zDDEClose`, `zDDEStart`, `zSetTimeout`
+        See Also
+        -------- 
+        createLink(), zDDEClose(), zDDEStart`, zSetTimeout()
         """
         _debugPrint(1,"appName = " + self.appName)
         _debugPrint(1,"liveCh = " + str(PyZDDE.__liveCh))
@@ -341,17 +426,9 @@ class PyZDDE(object):
             return 0
 
     def close(self):
-        """helper function to close current communication link
+        """Helper function to close current communication link
 
-        This bounded method provides a quick alternative way to close link than
-        calling the module function pyz.closeLink().
-        """
-        closeLink(self)
-
-    def zDDEClose(self):
-        """Close the DDE link with Zemax server.
-
-        `zDDEClose( ) -> Status`
+        Usage: ``ln.close()``
 
         Parameters
         ----------
@@ -359,7 +436,44 @@ class PyZDDE(object):
 
         Returns
         -------
-        Status = 0 on success.
+        None
+
+        Notes
+        -----
+        This bounded method provides a quick alternative way to close link rather
+        than calling the module function ``pyz.closeLink()``. 
+
+        See Also
+        --------
+        zDDEClose() : PyZDDE instance method to close a link. 
+            Use this method (as ``ln.zDDEClose()``) if the link was created as 
+            ``ln = pyz.PyZDDE(); ln.zDDEInit()``
+        closeLink() : A moudle level function to close a link.
+            Use this method (as ``pyz.closeLink(ln)``) or ``ln.close()`` if the
+            link was created as ``ln = pyz.createLink()``
+        """
+        closeLink(self)
+
+    def zDDEClose(self):
+        """Close the DDE link with Zemax server.
+
+        Usage: ``zDDEClose()``
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        status : integer
+            0 on success.
+
+        Notes
+        -----
+        Use this bounded method to close link if the link was created using the
+        idiom ``ln = pyz.PyZDDE(); ln.zDDEInit()``. If however, the link was 
+        created using ``ln = pyz.createLink()``, use either ``pyz.closeLink()``
+        or ``ln.close()``.
         """
         if PyZDDE.__server and not PyZDDE.__liveCh:
             PyZDDE.__server.Shutdown(self.conversation) # ddeclient's shutdown function
@@ -385,26 +499,35 @@ class PyZDDE(object):
         return 0
 
     def zSetTimeout(self, time):
-        """Sets the timeout in seconds for all ZEMAX DDE calls.
+        """Set global timeout value, in seconds, for all Zemax DDE calls.
 
-        `zSetTimeOut(time)`
+        Usage: ``zSetTimeOut(time)``
 
         Parameters
         ----------
-        time: timeout value in seconds (integer value)
+        time: integer
+            timeout value in seconds (if float is given, it is rounded to integer)
 
         Returns
         -------
-        timeout : set timeout value in seconds
+        timeout : integer
+            the set timeout value in seconds
 
-        See also `zDDEInit`, `zDDEStart`
+        Notes
+        -----
+        This is a global timeout value. Some methods provide means to set 
+        individual timeout values. 
+
+        See Also
+        --------
+        zDDEInit
         """
         self.conversation.SetDDETimeout(round(time))
         return self.conversation.GetDDETimeout()
 
 
     def zGetTimeout(self):
-        """Returns the value of the currently set timeout in seconds
+        """Returns the current value of the global timeout in seconds
 
         Parameters
         ----------
@@ -412,7 +535,8 @@ class PyZDDE(object):
 
         Returns
         -------
-        timeout in seconds
+        timeout : integer 
+            globally set timeout value in seconds
         """
         return self.conversation.GetDDETimeout()
 
@@ -1189,49 +1313,48 @@ class PyZDDE(object):
         reply = self._sendDDEcommand("GetLabel,{:d}".format(surfaceNumber))
         return int(float(reply.rstrip()))
 
-    def zGetMetaFile(self,metaFileName,analysisType,settingsFileName=None,flag=0):
-        """Creates a windows Metafile of any ZEMAX graphical analysis plot.
+    def zGetMetaFile(self, metaFileName, analysisType, settingsFileName=None,
+                     flag=0):
+        """Creates a windows Metafile of any Zemax graphical analysis window.
 
-        `zMetaFile(metaFilename, analysisType, settingsFileName, flag)->retVal`
+        Usage: ``zMetaFile(metaFilename, analysisType [, settingsFileName, flag])``
 
         Parameters
         ----------
-        metaFileName : name of the file to be created including the full path,
-                       name, and extension for the metafile.
-        analysisType : 3 letter case-sensitive label that indicates the
-                       type of the analysis to be performed. They are identical
-                       to those used for the button bar in Zemax. The labels
-                       are case sensitive. If no label is provided or recognized,
-                       a 3D Layout plot will be generated.
-        settingsFileName : If a valid file name is used for the "settingsFileName",
-                           ZEMAX will use or save the settings used to compute
-                           the metafile graphic, depending upon the value of
-                           the flag parameter.
-        flag        :  0 = default settings used for the graphic
-                       1 = settings provided in the settings file, if valid,
-                           else default settings used
-                       2 = settings provided in the settings file, if valid,
-                           will be used and the settings box for the requested
-                           feature will be displayed. After the user makes any
-                           changes to the settings the graphic will then be
-                           generated using the new settings.
-                       Please see the ZEMAX manual for more details.
+        metaFileName : string
+            absolute path name with extension
+        analysisType : string
+            3-letter case-sensitive button code for the analysis. If no label
+            is provided or recognized, a 3D Layout plot is generated.
+        settingsFileName : string
+            settings file used/ saved by Zemax to compute the metafile graphic
+            depending upon the value of the flag parameter.
+        flag : integer
+            0 = default settings used for the graphic;
+            1 = use settings in settings file if valid, else default settings;
+            2 = use settings in settings file if valid, and the settings box
+            will be displayed for further setting changes.
+
         Returns
         -------
-          0     : Success
-         -1     : Metafile could not be saved (Zemax may not have received
-                 a full path name or extention).
-        -998   : Command timed out
+        status : integer
+            0  = Success;
+            -1 = metafile could not be saved;
+            -998 = command timed out
 
-        Notes:
+        Notes
         -----
-        No matter what the flag value is, if a valid file name is provided for
-        the settingsfilename, the settings used will be written to the settings
+        No matter what the flag value is, if a valid file-name is provided for
+        the ``settingsfilename``, the settings used will be written to the settings
         file, overwriting any data in the file.
 
-        Example: `zGetMetaFile("C:\Projects\myGraphicfile.EMF",'Lay',None,0)`
+        Examples
+        --------
+        ``ln.zGetMetaFile("C:\\Projects\\myGraphicfile.EMF",'Lay')``
 
-        See also `zGetTextFile`, `zOpenWindow`.
+        See Also
+        --------
+        zGetTextFile, zOpenWindow
         """
         if settingsFileName:
             settingsFile = settingsFileName
@@ -6682,9 +6805,9 @@ class PyZDDE(object):
             return surfdata
 
     def ipzGetLDE(self):
-        """Prints the LDE data into the IPython cell
+        """Prints the sequential mode LDE data into the IPython cell
 
-        Usage: ipzGetLDE()
+        Usage: ``ipzGetLDE()``
 
         Parameters
         ----------
@@ -6693,7 +6816,10 @@ class PyZDDE(object):
         Returns
         -------
         None
-            Prints the LDE data
+
+        Note
+        ----
+        Only works in sequential/hybrid mode. Can't retrieve NSC objects.
         """
         cd = _os.path.dirname(_os.path.realpath(__file__))
         textFileName = cd +"\\"+"prescriptionFile.txt"
@@ -6705,14 +6831,15 @@ class PyZDDE(object):
         for line_num, line in enumerate(line_list):
             sectionString = ("SURFACE DATA SUMMARY:") # to use re later
             if line.rstrip()== sectionString:
-                for i in range(numSurf + 4): # 1 object surface + 3 extra lines before the actual data
+                for i in range(numSurf + 4): # 1 object surf + 3 extra lines before actual data
                     lde_line = line_list[line_num + i].rstrip()
                     print(lde_line)
                 break
         else:
-            raise Exception("Could not find section string '{}' in Prescription file."
+            raise Exception("Could not find string '{}' in Prescription file."
             " \n\nPlease check if there is a mismatch in text encoding between"
-            " Zemax and PyZDDE.".format(sectionString))
+            " Zemax and PyZDDE, ``Surface Data`` is enabled in prescription"
+            " file, and the mode is not pure NSC".format(sectionString))
         _deleteFile(textFileName)
 
 

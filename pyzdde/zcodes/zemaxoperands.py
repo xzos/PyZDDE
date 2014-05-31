@@ -449,7 +449,9 @@ class _Operands(object):
     "TOLR": "Tolerance data.",
     "TOTR": "Total track (length) of lens in lens units. See `Total track`.",
     "TRAC": "Transverse aberration radial direction measured in image space with "
-            "respect to the centroid for the wavelength  defined  by  Wave.",
+            "respect to the centroid for the wavelength  defined  by  Wave. It "
+            "is used by the default merit function to compute how far away from "
+            "the centroid of a spot a given ray lands.",
     "TRAD": "The x component of the TRAR only. TRAD has the same restrictions that "
             "TRAC does; see TRAC for a detailed discussion.",
     "TRAE": "The y component of the TRAR only. TRAE has the same restrictions that "
