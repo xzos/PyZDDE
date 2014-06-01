@@ -100,7 +100,7 @@ def _debugPrint(level, msg):
     level : integer (0, 1 or 2)
         0 = message will definitely be printed;
         1 or 2 = message will be printed if ``level >= _DEBUG_PRINT_LEVEL``.
-    msg : string 
+    msg : string
         message to print
     """
     global _DEBUG_PRINT_LEVEL
@@ -131,9 +131,9 @@ _global_dde_linkObj = {}
 def createLink():
     """Create a DDE communication link with Zemax
 
-    Usage: ``import pyzdde.zdde as pyz; ln = pyz.createLink()`` 
+    Usage: ``import pyzdde.zdde as pyz; ln = pyz.createLink()``
 
-    Helper function to create, initialize and return a PyZDDE communication 
+    Helper function to create, initialize and return a PyZDDE communication
     object.
 
     Parameters
@@ -191,11 +191,11 @@ def closeLink(link=None):
 
     See Also
     --------
-    zDDEClose() : 
-        PyZDDE instance method to close a link. 
+    zDDEClose() :
+        PyZDDE instance method to close a link.
         Use this method (as ``ln.zDDEClose()``) if the link was created as \
         ``ln = pyz.PyZDDE(); ln.zDDEInit()``
-    close() : 
+    close() :
         Another instance method to close a link for easy typing.
         Use this method (as ``ln.close()``) or ``pyz.closeLink(ln)`` if the \
         link was created as ``ln = pyz.createLink()``
@@ -286,7 +286,7 @@ def _createAppNameDict(maxElements):
     Returns
     -------
     appNameDict : dictionary
-        dictionary of app-names (keys) with values, set to False, indicating 
+        dictionary of app-names (keys) with values, set to False, indicating
         name hasn't been taken.
     """
     appNameDict = {}
@@ -347,7 +347,7 @@ class PyZDDE(object):
 
         Notes
         -----
-        1. Following the creation of PyZDDE object, initiate the communication 
+        1. Following the creation of PyZDDE object, initiate the communication
         channel as ``ln.zDDEInit()``
         2. Consider using the module level function ``pyz.createLink()`` to create
         and initiate a DDE channel instead of ``ln = pyz.PyZDDE(); ln.zDDEInit()``
@@ -391,7 +391,7 @@ class PyZDDE(object):
             -1 = DDE link couldn't be established.
 
         See Also
-        -------- 
+        --------
         createLink(), zDDEClose(), zDDEStart(), zSetTimeout()
         """
         _debugPrint(1,"appName = " + self.appName)
@@ -447,15 +447,15 @@ class PyZDDE(object):
         Notes
         -----
         This bounded method provides a quick alternative way to close link rather
-        than calling the module function ``pyz.closeLink()``. 
+        than calling the module function ``pyz.closeLink()``.
 
         See Also
         --------
-        zDDEClose() : 
-            PyZDDE instance method to close a link. 
+        zDDEClose() :
+            PyZDDE instance method to close a link.
             Use this method (as ``ln.zDDEClose()``) if the link was created as \
             ``ln = pyz.PyZDDE(); ln.zDDEInit()``
-        closeLink() : 
+        closeLink() :
             A moudle level function to close a link.
             Use this method (as ``pyz.closeLink(ln)``) or ``ln.close()`` if the \
             link was created as ``ln = pyz.createLink()``
@@ -479,16 +479,16 @@ class PyZDDE(object):
         Notes
         -----
         Use this bounded method to close link if the link was created using the
-        idiom ``ln = pyz.PyZDDE(); ln.zDDEInit()``. If however, the link was 
+        idiom ``ln = pyz.PyZDDE(); ln.zDDEInit()``. If however, the link was
         created using ``ln = pyz.createLink()``, use either ``pyz.closeLink()``
         or ``ln.close()``.
         """
         if PyZDDE.__server and not PyZDDE.__liveCh:
-            PyZDDE.__server.Shutdown(self.conversation) 
+            PyZDDE.__server.Shutdown(self.conversation)
             PyZDDE.__server = 0
             _debugPrint(2,"server shutdown as ZEMAX is not running!")
         elif PyZDDE.__server and self.connection and PyZDDE.__liveCh == 1:
-            PyZDDE.__server.Shutdown(self.conversation) 
+            PyZDDE.__server.Shutdown(self.conversation)
             self.connection = False
             PyZDDE.__appNameDict[self.appName] = False # make the name available
             self.appName = ''
@@ -521,8 +521,8 @@ class PyZDDE(object):
 
         Notes
         -----
-        This is a global timeout value. Some methods provide means to set 
-        individual timeout values. 
+        This is a global timeout value. Some methods provide means to set
+        individual timeout values.
 
         See Also
         --------
@@ -541,7 +541,7 @@ class PyZDDE(object):
 
         Returns
         -------
-        timeout : integer 
+        timeout : integer
             globally set timeout value in seconds
         """
         return self.conversation.GetDDETimeout()
@@ -567,10 +567,10 @@ class PyZDDE(object):
 
         Parameters
         ----------
-        bufferCode : integer 
-            buffercode is an integer value provided by Zemax to the client that 
+        bufferCode : integer
+            buffercode is an integer value provided by Zemax to the client that
             uniquely identifies the correct lens.
-        
+
         Returns
         -------
         retVal : ?
@@ -602,9 +602,9 @@ class PyZDDE(object):
 
         See Also
         --------
-        zInsertConfig() 
+        zInsertConfig()
 
-        zDeleteMCO() : 
+        zDeleteMCO() :
             (TIP) use zDeleteMCO to delete a row/operand
         """
         return int(self._sendDDEcommand("DeleteConfig,{:d}".format(number)))
@@ -622,14 +622,14 @@ class PyZDDE(object):
         newNumberOfOperands : integer
             new number of operands
 
-        Notes 
+        Notes
         -----
         After deleting the row, all succeeding rows (operands) are re-numbered.
 
         See Also
         --------
         zInsertMCO()
-        zDeleteConfig() : 
+        zDeleteConfig() :
             (TIP) Use zDeleteConfig() to delete a column/configuration.
         """
         return int(self._sendDDEcommand("DeleteMCO,"+str(operandNumber)))
@@ -647,7 +647,7 @@ class PyZDDE(object):
         newNumOfOperands : integer
             the new number of operands
 
-        See Also 
+        See Also
         --------
         zInsertMFO()
         """
@@ -666,16 +666,16 @@ class PyZDDE(object):
 
         Returns
         -------
-        status : integer (0 or -1) 
+        status : integer (0 or -1)
             0 if successful, -1 if it failed
 
-        Notes 
+        Notes
         -----
         1. (from MZDDE) The ``surfaceNumber`` is 1 if the lens is purely NSC mode.
         2. If no more objects are present it simply returns 0.
-        
+
         See Also
-        -------- 
+        --------
         zInsertObject()
         """
         cmd = "DeleteObject,{:d},{:d}".format(surfaceNumber,objectNumber)
@@ -696,7 +696,7 @@ class PyZDDE(object):
 
         Returns
         -------
-        status : integer 
+        status : integer
             0 if successful
 
         .. warning:: Although you cannot delete an object the function \
@@ -704,7 +704,7 @@ class PyZDDE(object):
 
         See Also
         --------
-        zInsertSurface
+        zInsertSurface()
         """
         cmd = "DeleteSurface,{:d}".format(surfaceNumber)
         reply = self._sendDDEcommand(cmd)
@@ -716,14 +716,14 @@ class PyZDDE(object):
         Parameters
         ----------
         zplMacroCode : string
-            The first 3 letters (case-sensitive) of the ZPL macro present 
+            The first 3 letters (case-sensitive) of the ZPL macro present
             in the <data>/Macros folder
         timeout : integer
             timeout value in seconds
 
         Returns
         --------
-        status : integer (0 or 1) 
+        status : integer (0 or 1)
             0 = successfully executed the ZPL macro;
             -1 = macro code is incorrect & error code returned by Zemax
 
@@ -734,16 +734,16 @@ class PyZDDE(object):
         macropath and then use ``zExecuteZPLMacro()``.
 
         .. warning::
-        
+
           1. can only "execute" an existing ZPL macro. i.e. you can't \
              create a ZPL macro on-the-fly and execute it.
           2. If it is required to redirect the result of executing the ZPL \
              to a text file, modify the ZPL macro in the following way:
 
-            *   Add the following two lines at the beginning of the file:
+            -   Add the following two lines at the beginning of the file:
                 ``CLOSEWINDOW`` # to suppress the display of default text window
                 ``OUTPUT "full_path_with_extension_of_result_fileName"``
-            *   Add the following line at the end of the file:
+            -   Add the following line at the end of the file:
                 ``OUTPUT SCREEN`` # close the file and re-enable screen printing
 
           3. If there are more than two macros which have the same first 3 letters
@@ -770,52 +770,52 @@ class PyZDDE(object):
 
         Parameters
         ----------
-        fileName : string 
+        fileName : string
             filename including extension (including full path is recommended)
-        fileType : integer (0, 1, 2 or 3) 
+        fileType : integer (0, 1, 2 or 3)
             0 = IGES; 1 = STEP (default); 2 = SAT; 3 = STL
         numSpline : integer
             number of spline segments to use (default = 32)
         firstSurf : integer
             the first surface to export; the first object to export (in NSC mode)
         lastSurf : integer
-            the last surface to export; the last object to export (in NSC mode) 
+            the last surface to export; the last object to export (in NSC mode)
             (default = -1, i.e. image surface)
         raysLayer : integer
             layer to place ray data on (default = 1)
         lensLayer : integer
             layer to place lens data on (default = 0)
-        exportDummy : integer (0 or 1) 
+        exportDummy : integer (0 or 1)
             export dummy surface? 1 = export; 0 (default) = not export
-        useSolids : integer (0 or 1) 
-            export surfaces as solids? 1 (default) = surfaces as solids; 
-        rayPattern : integer (0 <= rayPattern <= 7) 
-            0 (default) = XY fan; 1 = X fan; 2 = Y fan; 3 = ring; 4 = list; 
+        useSolids : integer (0 or 1)
+            export surfaces as solids? 1 (default) = surfaces as solids;
+        rayPattern : integer (0 <= rayPattern <= 7)
+            0 (default) = XY fan; 1 = X fan; 2 = Y fan; 3 = ring; 4 = list;
             5 = none; 6 = grid; 7 = solid beams.
         numRays : integer
             the number of rays to render (default = 1)
         wave : integer
-            wavelength number; 0 (default) indicates all 
+            wavelength number; 0 (default) indicates all
         field : integer
             the field number; 0 (default) indicates all
         delVignett : integer (0 or 1)
             delete vignetted rays? 1 (default) = delete vig. rays
         dummyThick : float
             dummy surface thickness in lens units; (default = 1.00)
-        split : integer (0 or 1) 
-            split rays from NSC sources? 1 = split sources; 0 (default) = no 
+        split : integer (0 or 1)
+            split rays from NSC sources? 1 = split sources; 0 (default) = no
         scatter : integer (0 or 1)
             scatter rays from NSC sources? 1 = Scatter; 0 (deafult) = no
         usePol : integer (0 or 1)
-            use polarization when tracing NSC rays? 1 = use polarization; 
-            0 (default) no. Note that polarization is automatically selected 
-            if ``split`` is ``1``. 
+            use polarization when tracing NSC rays? 1 = use polarization;
+            0 (default) no. Note that polarization is automatically selected
+            if ``split`` is ``1``.
         config : integer (0 <= config <= n+3)
-            n is the total number of configurations; 
+            n is the total number of configurations;
             0 (default) = current config;
-            1 - n for a specific configuration; 
-            n+1 to export "All By File"; 
-            n+2 to export "All by Layer"; 
+            1 - n for a specific configuration;
+            n+1 to export "All By File";
+            n+2 to export "All by Layer";
             n+3 for "All at Once".
 
         Returns
@@ -825,18 +825,18 @@ class PyZDDE(object):
 
         Notes
         -----
-        1. Exporting lens data data may take longer than the timeout interval of 
-           the DDE communication. Zemax spwans an independent thread to process 
-           this request. Once the thread is launched, Zemax returns 
-           "Exporting filename". However, the export may take much longer. 
-           To verify the completion of export and the readiness of the file, 
-           use ``zExportCheck()``, which returns ``1`` as long as the export is 
+        1. Exporting lens data data may take longer than the timeout interval of
+           the DDE communication. Zemax spwans an independent thread to process
+           this request. Once the thread is launched, Zemax returns
+           "Exporting filename". However, the export may take much longer.
+           To verify the completion of export and the readiness of the file,
+           use ``zExportCheck()``, which returns ``1`` as long as the export is
            in process, and ``0`` once completed. Generally, ``zExportCheck()``
            should be placed in a loop, which executes until a ``0`` is returned.
 
            A typical loop-test may look like as follows: ::
 
-            # check for completion of CAD export process 
+            # check for completion of CAD export process
             still_working = True
             while(still_working):
                 # Delay for 200 milliseconds
@@ -847,7 +847,7 @@ class PyZDDE(object):
                 else:       # Done exporting
                     still_working = False
 
-        2. Zemax cannot export some NSC objects (e.g. slide). The unexportable 
+        2. Zemax cannot export some NSC objects (e.g. slide). The unexportable
            objects are ignored.
 
         References
@@ -895,8 +895,8 @@ class PyZDDE(object):
 
         Returns
         -------
-        surfaceNumber : integer 
-            surface-number of surface associated with the given ``label``; 
+        surfaceNumber : integer
+            surface-number of surface associated with the given ``label``;
             -1 if no surface with the specified label is found.
 
         See Also
@@ -912,7 +912,7 @@ class PyZDDE(object):
         Parameters
         ----------
         addressLineNumber : integer
-            line number of address to return 
+            line number of address to return
 
         Returns
         -------
@@ -928,13 +928,13 @@ class PyZDDE(object):
 
         Parameters
         ----------
-        surfNum : integer 
-            the surface-number of a surface 
+        surfNum : integer
+            the surface-number of a surface
 
         Returns
         -------
         a tuple containing the following items
-        aType : integer 
+        aType : integer
             integer codes of aperture types which are:
 
                 - 0 = no aperture (na);
@@ -949,25 +949,25 @@ class PyZDDE(object):
                 - 9 = user defined obscuration (udo);
                 - 10 = floating aperture (fa);
 
-        aMin : float 
+        aMin : float
             min radius(ca); min radius(co); width of arm(s); X-half width(ra);
             X-half width(ro); X-half width(ea); X-half width(eo)
-        aMax : float 
+        aMax : float
             max radius(ca); max radius(co); number of arm(s); X-half width(ra);
             X-half width(ro); X-half width(ea); X-half width(eo)
-        xDecenter : float 
+        xDecenter : float
             amount of decenter in x from current optical axis (in lens units)
-        yDecenter : float 
+        yDecenter : float
             amount of decenter in y from current optical axis (in lens units)
-        apertureFile : string 
+        apertureFile : string
             a text file with .UDA extention.
 
         References
         ----------
-        The following sections from the Zemax manual should be referred for 
+        The following sections from the Zemax manual should be referred for
         details:
-        
-        1. "Aperture type and other aperture controls" for details on aperture  
+
+        1. "Aperture type and other aperture controls" for details on aperture
         2. "User defined apertures and obscurations" for more on UDA extension
 
         See Also
@@ -1002,19 +1002,19 @@ class PyZDDE(object):
         return float(reply)
 
     def zGetAspect(self, filename=None):
-        """Returns the graphic display aspect-ratio and the width (or height) 
+        """Returns the graphic display aspect-ratio and the width (or height)
         of the printed page in current lens units.
 
         Parameters
         ----------
         filename : string
-            name of the temporary file associated with the window being 
-            created or updated. If the temporary file is left off, then the 
+            name of the temporary file associated with the window being
+            created or updated. If the temporary file is left off, then the
             default aspect-ratio and width (or height) is returned.
 
         Returns
         -------
-        aspect : float 
+        aspect : float
             aspect ratio (height/width)
         side : float
             width if ``aspect <= 1``; height if ``aspect > 1`` (in lens units)
@@ -1031,10 +1031,10 @@ class PyZDDE(object):
         Parameters
         ----------
         n : integer (0 <= n <= 15)
-            the buffer number 
+            the buffer number
         tempFileName : string
-            name of the temporary file associated with the window being 
-            updated. The tempFileName is passed to the client when Zemax 
+            name of the temporary file associated with the window being
+            updated. The tempFileName is passed to the client when Zemax
             calls the client.
 
         Returns
@@ -1042,12 +1042,12 @@ class PyZDDE(object):
         bufferData : string
             buffer data
 
-        Notes 
+        Notes
         -----
-        Each window may have its own buffer data, and Zemax uses the filename 
+        Each window may have its own buffer data, and Zemax uses the filename
         to identify the window for which the buffer data is requested.
 
-        References 
+        References
         ----------
         See section "How ZEMAX calls the client" in Zemax manual.
 
@@ -1077,7 +1077,7 @@ class PyZDDE(object):
         return str(reply.rstrip())
 
     def zGetConfig(self):
-        """Returns tuple containing current configuration number, number of 
+        """Returns tuple containing current configuration number, number of
         configurations, and number of multiple configuration operands.
 
         Parameters
@@ -1087,7 +1087,7 @@ class PyZDDE(object):
         Returns
         -------
         3-tuple containing the following elements:
-        currentConfig : integer 
+        currentConfig : integer
             current configuration (column) number in MCE
         numberOfConfigs : integer
             number of configurations (number of columns)
@@ -1097,8 +1097,8 @@ class PyZDDE(object):
         Notes
         -----
         The function returns ``(1,1,1)`` even if the multi-configuration editor
-        is empty. This is because, the current lens in the LDE is, by default, 
-        set to the current configuration. The initial number of configurations 
+        is empty. This is because, the current lens in the LDE is, by default,
+        set to the current configuration. The initial number of configurations
         is therefore ``1``, and the number of operators in the
         multi-configuration editor is also ``1`` (usually, ``MOFF``).
 
@@ -1125,7 +1125,7 @@ class PyZDDE(object):
         Returns
         -------
         date : string
-            date 
+            date
         """
         return self._sendDDEcommand('GetDate')
 
@@ -1162,10 +1162,10 @@ class PyZDDE(object):
 
         Returns
         -------
-        fieldData : tuple 
+        fieldData : tuple
             exact elements of the tuple depeds on the value of ``n``
 
-            if ``n = 0`` 
+            if ``n = 0``
                 fieldData is a tuple containing the following:
 
                   - type : integer (0 = angles in degrees, \
@@ -1175,7 +1175,7 @@ class PyZDDE(object):
                   - numFields : number of fields currently defined
                   - max_x_field : value used to normalize x field coordinate
                   - max_y_field : value used to normalize y field coordinate
-                  - normalization_method : field normalization method 
+                  - normalization_method : field normalization method
                     (0 = radial, 1 = rectangular)
 
             if ``0 < n <= number_of_fields``
@@ -1190,9 +1190,9 @@ class PyZDDE(object):
                   - vcy : compression y vignetting factor
                   - van : angle vignetting factor
 
-        Notes 
+        Notes
         -----
-        The returned tuple's content and structure is exactly same as that 
+        The returned tuple's content and structure is exactly same as that
         returned by ``zSetField()``
 
         See Also
@@ -1225,12 +1225,12 @@ class PyZDDE(object):
         Returns
         -------
         fieldDataTuple: n-tuple (0 < n <= 12)
-            the tuple elements represent field loactions with each element 
+            the tuple elements represent field loactions with each element
             containing all 8 field parameters.
 
         Examples
         --------
-        >>> # example shows the namedtuple returned by ``zGetFieldTuple`` 
+        >>> # example shows the namedtuple returned by ``zGetFieldTuple``
         >>> ln.zGetFieldTuple()
         (fieldData(X=0.0, Y=0.0, wt=1.0, vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0),
          fieldData(X=0.0, Y=14.0, wt=1.0, vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0),
@@ -1314,13 +1314,13 @@ class PyZDDE(object):
         Returns
         -------
         glassInfo : 4-tuple or None
-            glassInfo contains (name, nd, vd, dpgf) if there is a valid glass 
+            glassInfo contains (name, nd, vd, dpgf) if there is a valid glass
             associated with the surface, else ``None``
 
         Notes
         -----
-        If the specified surface is not valid, is not made of glass, or is 
-        gradient index, the returned string is empty. This data may be 
+        If the specified surface is not valid, is not made of glass, or is
+        gradient index, the returned string is empty. This data may be
         meaningless for glasses defined only outside of the FdC band.
         """
         gd = _co.namedtuple('glassData', ['name', 'nd', 'vd', 'dpgf'])
@@ -1334,7 +1334,7 @@ class PyZDDE(object):
         return glassInfo
 
     def zGetGlobalMatrix(self, surfaceNumber):
-        """Returns the the matrix required to convert any local coordinates 
+        """Returns the the matrix required to convert any local coordinates
         (such as from a ray trace) into global coordinates.
 
         Parameters
@@ -1350,12 +1350,12 @@ class PyZDDE(object):
         |         R21, R22, R23,
         |         R31, R32, R33,
         |         Xo,  Yo , Zo)
-                          
+
         the function returns -1, if bad command.
 
         References
         ----------
-        For details on the global coordinate matrix, see "Global Coordinate 
+        For details on the global coordinate matrix, see "Global Coordinate
         Reference Surface" in the Zemax manual.
         """
         gmd = _co.namedtuple('globalMatrix', ['R11', 'R12', 'R13',
@@ -1373,15 +1373,15 @@ class PyZDDE(object):
 
         Parameters
         ----------
-        surfaceNumber : integer 
+        surfaceNumber : integer
             surface number
 
         Returns
         -------
         indexData : tuple of real values
-            the ``indexData`` is a tuple of index of refraction values 
+            the ``indexData`` is a tuple of index of refraction values
             defined for each wavelength in the format (n1, n2, n3, ...).
-            If the specified surface is not valid, or is gradient index, 
+            If the specified surface is not valid, or is gradient index,
             the returned string is empty.
         """
         reply = self._sendDDEcommand("GetIndex,{:d}".format(surfaceNumber))
@@ -1390,7 +1390,7 @@ class PyZDDE(object):
         return tuple(indexData)
 
     def zGetLabel(self, surfaceNumber):
-        """Returns the integer label associated with the specified surface. 
+        """Returns the integer label associated with the specified surface.
 
         Parameters
         ----------
@@ -1408,7 +1408,7 @@ class PyZDDE(object):
         around the target surface.
 
         See Also
-        -------- 
+        --------
         zSetLabel(), zFindLabel()
         """
         reply = self._sendDDEcommand("GetLabel,{:d}".format(surfaceNumber))
@@ -1445,8 +1445,8 @@ class PyZDDE(object):
 
         Notes
         -----
-        No matter what the flag value is, if a valid file-name is provided 
-        for the ``settingsfilename``, the settings used will be written to 
+        No matter what the flag value is, if a valid file-name is provided
+        for the ``settingsfilename``, the settings used will be written to
         the settings file, overwriting any data in the file.
 
         Examples
@@ -1490,13 +1490,13 @@ class PyZDDE(object):
         -------
         zmxModeInformation : 2-tuple (mode, nscSurfNums)
             mode (0 = Sequential; 1 = Non-sequential; 2 = Mixed mode)
-            nscSurfNums = (tuple of integers) the surfaces (in mixed mode) 
+            nscSurfNums = (tuple of integers) the surfaces (in mixed mode)
             that are non-sequential. In Non-sequential mode and in purely
             sequential mode, this tuple is empty (of length 0).
 
         Notes
         -----
-        This only works when a zmx file is loaded into the server. Currently this 
+        This only works when a zmx file is loaded into the server. Currently this
         function is meant to be used for internal purpose only.
 
         For the purpose of this function, "Sequential" implies that there are no
@@ -1530,17 +1530,17 @@ class PyZDDE(object):
 
         Returns
         -------
-        multiConData : tuple 
+        multiConData : tuple
             the exact elements of ``multiConData`` depends on the value of
             ``config``
 
-            If ``config > 0`` 
+            If ``config > 0``
                 then the elements of ``multiConData`` are:
-                (value, num_config, num_row, status, pickuprow, pickupconfig, 
+                (value, num_config, num_row, status, pickuprow, pickupconfig,
                 scale, offset)
-                
-                The ``status`` is 0 for fixed, 1 for variable, 2 for pickup, 
-                & 3 for thermal pickup. If ``status`` is 2 or 3, the pickuprow & 
+
+                The ``status`` is 0 for fixed, 1 for variable, 2 for pickup,
+                & 3 for thermal pickup. If ``status`` is 2 or 3, the pickuprow &
                 pickupconfig values indicate the source data for the pickup solve.
 
             If ``config = 0``
@@ -1557,8 +1557,8 @@ class PyZDDE(object):
             rs = reply.split(",")
             if '' in rs: # if the MCE is "empty"
                 rs[rs.index('')] = '0'
-            multiConData = [float(rs[i]) if (i == 0 or i == 6 or i== 7) else int(rs[i])
-                                                 for i in range(len(rs))]
+            multiConData = [float(rs[i]) if (i==0 or i==6 or i==7) else int(rs[i])
+                                                         for i in range(len(rs))]
         else: # if config == 0
             rs = reply.split(",")
             multiConData = [int(elem) for elem in rs[1:]]
@@ -1581,21 +1581,21 @@ class PyZDDE(object):
         return str(reply.rstrip())
 
     def zGetNSCData(self, surfaceNumber, code):
-        """Returns the data for NSC groups.
+        """Returns the data for NSC groups
 
         Parameters
         ----------
         surfaceNumber : integer
             surface number of the NSC group; Use 1 if for pure NSC mode
         code : integer (0)
-            currently only ``code = 0`` is supported, in which case the 
+            currently only ``code = 0`` is supported, in which case the
             returned data is the number of objects in the NSC group
 
         Returns
         -------
-        nscData : 
+        nscData :
             the number of objects in the NSC group if the command is valid;
-            -1 if it was a bad commnad (generally if the ``surface`` is not 
+            -1 if it was a bad commnad (generally if the ``surface`` is not
             a non-sequential surface)
 
         Notes
@@ -1617,24 +1617,26 @@ class PyZDDE(object):
         return nscData
 
     def zGetNSCMatrix(self, surfaceNumber, objectNumber):
-        """Returns a tuple containing the rotation and position matrices relative
-        to the NSC surface origin.
-
-        `zGetNSCMatrix(surfaceNumber,objectNumber)->nscMatrix`
+        """Returns a tuple containing the rotation and position matrices
+        relative to the NSC surface origin.
 
         Parameters
         ----------
-        surfaceNumber : (integer) surface number of the NSC group. Use 1 if
-                        the program mode is Non-Sequential.
-        objectNumber  : (integer) the NSC ojbect number
+        surfaceNumber : integer
+            surface number of the NSC group; Use 1  for pure NSC mode
+        objectNumber : integer
+            the NSC ojbect number
 
         Returns
         -------
-        nscMatrix     : is a 9-tuple, if successful  = (R11,R12,R13,
-                                                        R21,R22,R23,
-                                                        R31,R32,R33,
-                                                        Xo, Yo , Zo)
-                        it returns -1, if bad command.
+        nscMatrix : 9-tuple
+            the elements of the global matrix:
+        |        (R11, R12, R13,
+        |         R21, R22, R23,
+        |         R31, R32, R33,
+        |         Xo,  Yo , Zo)
+
+        the function returns -1, if bad command.
         """
         nscmat = _co.namedtuple('NSCMatrix', ['R11', 'R12', 'R13',
                                               'R21', 'R22', 'R23',
@@ -1652,50 +1654,75 @@ class PyZDDE(object):
     def zGetNSCObjectData(self, surfaceNumber, objectNumber, code):
         """Returns the various data for NSC objects.
 
-        `zGetNSCOjbect(surfaceNumber,objectNumber,code)->nscObjectData`
-
         Parameters
         ----------
-        surfaceNumber : (integer) surface number of the NSC group. Use 1 if
-                        the program mode is Non-Sequential.
-        objectNumber  : (integer) the NSC ojbect number
-        code          : (integer) see the nscObjectData returned table
+        surfaceNumber : integer
+            surface number of the NSC group. Use 1 if for pure NSC mode
+        objectNumber : integer
+            the NSC ojbect number
+        code : integer
+            for the specific code see the nsc-object-data-codes_ table (below)
 
         Returns
         -------
-        nscObjectData : nscObjectData as per the table below if successful
-                        else -1
-        ------------------------------------------------------------------------
-        Code - Data returned by GetNSCObjectData
-        ------------------------------------------------------------------------
-          0  - Object type name. (string)
-          1  - Comment, which also defines the file name if the object is defined
-               by a file. (string)
-          2  - Color. (integer)
-          5  - Reference object number. (integer)
-          6  - Inside of object number. (integer)
-        The following codes set values on the Type tab of the Object Properties dialog.
-          3  - 1 if object uses a user defined aperture file, 0 otherwise. (integer)
-          4  - User defined aperture file name, if any. (string)
-         29  - Gets the "Use Pixel Interpolation" checkbox. (1 = checked, 0 = unchecked)
-        The following codes set values on the Sources tab of the Object Properties dialog.
-        101  - Gets the source object random polarization. (1 = checked, 0 = unchecked)
-        102  - Gets the source object reverse rays option. (1 = checked, 0 for unchecked)
-        103  - Gets the source object Jones X value.
-        104  - Gets the source object Jones Y value.
-        105  - Gets the source object Phase X value.
-        106  - Gets the source object Phase Y value.
-        107  - Gets the source object initial phase in degrees value.
-        108  - Gets the source object coherence length value.
-        109  - Gets the source object pre-propagation value.
-        110  - Gets the source object sampling method; (0 = random, 1 = Sobol sampling)
-        111  - Gets the source object bulk scatter method; (0 = many, 1 = once, 2 = never)
-        The following codes set values on the Bulk Scatter tab of the Object
-        Properties dialog.
-        202  - Gets the Mean Path value.
-        203  - Gets the Angle value.
-        211-226 - Gets the DLL parameter 1-16, respectively.
+        nscObjectData : nscObjectData
+            the nature of the returned data, which depends on the ``code``,
+            is enumerated in the nsc-object-data-codes_  table (below).
+            If the command fails, it returns ``-1``.
 
+        Notes
+        -----
+
+        .. _nsc-object-data-codes:
+
+        ::
+
+            Table: Codes for NSC data object getter and setter methods
+
+            --------------------------------------------------------------------
+            code - Datum set/returned by zSetNSCObjectData()/zGetNSCObjectData()
+            --------------------------------------------------------------------
+              0  - Object type name (string).
+              1  - Comment and/or the file name if the object is defined by a
+                   file (string).
+              2  - Color (integer).
+              5  - Reference object number (integer).
+              6  - Inside of object number (integer).
+
+            These codes sets/gets values on the "Type tab" of the Object
+            Properties dialog:
+              3  - 1 if object uses a user defined aperture file, 0 otherwise
+              4  - User defined aperture file name, if any (string).
+             29  - Gets the "Use Pixel Interpolation" checkbox
+                   (1 = checked, 0 = unchecked).
+
+            These codes sets/gets values on the "Sources tab" of the Object
+            Properties dialog:
+            101  - Gets the source object random polarization
+                   (1 = checked, 0 = unchecked).
+            102  - Gets the source object reverse rays option
+                   (1 = checked, 0 for unchecked)
+            103  - Gets the source object Jones X value.
+            104  - Gets the source object Jones Y value.
+            105  - Gets the source object Phase X value.
+            106  - Gets the source object Phase Y value.
+            107  - Gets the source object initial phase in degrees value.
+            108  - Gets the source object coherence length value.
+            109  - Gets the source object pre-propagation value.
+            110  - Gets the source object sampling method
+                   (0 = random, 1 = Sobol sampling)
+            111  - Gets the source object bulk scatter method
+                   (0 = many, 1 = once, 2 = never)
+
+            These codes set values on the "Bulk Scatter tab" of the Object
+            Properties dialog:
+            202  - Gets the Mean Path value.
+            203  - Gets the Angle value.
+            211-226 - Gets the DLL parameter 1-16, respectively.
+
+        See Also
+        --------
+        zSetNSCObjectData()
         """
         str_codes = (0,1,4)
         int_codes = (2,3,5,6,29,101,102,110,111)
@@ -4659,52 +4686,30 @@ class PyZDDE(object):
     def zSetNSCObjectData(self, surfaceNumber, objectNumber, code, data):
         """Sets the various data for NSC objects.
 
-        zSetNSCOjbect(surfaceNumber,objectNumber,code,data)->nscObjectData
-
         Parameters
         ----------
-        surfaceNumber : (integer) surface number of the NSC group. Use 1 if
-                        the program mode is Non-Sequential.
-        objectNumber  : (integer) the NSC ojbect number
-        code          : (integer) see the nscObjectData returned table
-        data          : data (string/integer/float) to set
+        surfaceNumber : integer
+            surface number of the NSC group. Use 1 if for pure NSC mode
+        objectNumber : integer
+            the NSC ojbect number
+        code : integer
+            integer code
+        data : string/integer/float
+            data to set NSC object
+
+            Refer table nsc-object-data-codes_ in the docstring of
+            ``zGetNSCObjectData()`` for ``code`` and ``data`` specific details.
 
         Returns
         -------
-        nscObjectData : nscObjectData as per the table below if successful
-                            else -1
-        ------------------------------------------------------------------------
-        Code - Data set/returned by SetNSCObjectData (after setting the new data)
-        ------------------------------------------------------------------------
-          0  - Object type name. (string)
-          1  - Comment, which also defines the file name if the object is defined
-               by a file. (string)
-          2  - Color. (integer)
-          5  - Reference object number. (integer)
-          6  - Inside of object number. (integer)
-        The following codes set values on the Type tab of the Object Properties dialog.
-          3  - 1 if object uses a user defined aperture file, 0 otherwise. (integer)
-          4  - User defined aperture file name, if any. (string)
-         29  - Sets the "Use Pixel Interpolation" checkbox. (1 = checked, 0 = unchecked)
-        The following codes set values on the Sources tab of the Object Properties dialog.
-        101  - Sets the source object random polarization. (1 = checked, 0 = unchecked)
-        102  - Sets the source object reverse rays option. (1 = checked, 0 for unchecked)
-        103  - Sets the source object Jones X value.
-        104  - Sets the source object Jones Y value.
-        105  - Sets the source object Phase X value.
-        106  - Sets the source object Phase Y value.
-        107  - Sets the source object initial phase in degrees value.
-        108  - Sets the source object coherence length value.
-        109  - Sets the source object pre-propagation value.
-        110  - Sets the source object sampling method; (0 = random, 1 = Sobol sampling)
-        111  - Sets the source object bulk scatter method; (0 = many, 1 = once, 2 = never)
-        The following codes set values on the Bulk Scatter tab of the Object
-        Properties dialog.
-        202  - Sets the Mean Path value.
-        203  - Sets the Angle value.
-        211-226 - Sets the DLL parameter 1-16, respectively.
+        nscObjectData : nscObjectData
+            the returned data (same as returned by ``zGetNSCObjectData()``)
+            depends on the ``code``. If the command fails, it returns ``-1``.
+            Refer table nsc-object-data-codes_.
 
-        See also zSetNSCObjectFaceData
+        See Also
+        --------
+        zGetNSCObjectData(), zSetNSCObjectFaceData()
         """
         str_codes = (0,1,4)
         int_codes = (2,3,5,6,29,101,102,110,111)
