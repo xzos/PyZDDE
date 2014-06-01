@@ -437,8 +437,4 @@ def WinMSGLoop():
 
 if __name__ == "__main__":
     pass
-    # Create a connection to ESOTS (OTS Swardfish) and to instrument MAR11 ALSI
-    #dde = DDEClient("ESOTS", "MAR11 ALSI")
 
-    # Run the main message loop to receive advices
-    # WinMSGLoop()
