@@ -1665,7 +1665,7 @@ class PyZDDE(object):
 
         Returns
         -------
-        nscObjectData : nscObjectData
+        nscObjectData : string/integer/float
             the nature of the returned data, which depends on the ``code``,
             is enumerated in the nsc-object-data-codes_  table (below).
             If the command fails, it returns ``-1``.
@@ -1677,7 +1677,7 @@ class PyZDDE(object):
 
         ::
 
-            Table: Codes for NSC data object getter and setter methods
+            Table: Codes for NSC object data getter and setter methods
 
             --------------------------------------------------------------------
             code - Datum set/returned by zSetNSCObjectData()/zGetNSCObjectData()
@@ -1689,36 +1689,33 @@ class PyZDDE(object):
               5  - Reference object number (integer).
               6  - Inside of object number (integer).
 
-            These codes sets/gets values on the "Type tab" of the Object
+            These codes set/get values to/from the "Type tab" of the Object
             Properties dialog:
               3  - 1 if object uses a user defined aperture file, 0 otherwise
               4  - User defined aperture file name, if any (string).
-             29  - Gets the "Use Pixel Interpolation" checkbox
-                   (1 = checked, 0 = unchecked).
+             29  - "Use Pixel Interpolation" checkbox (1 = checked, 0 = unchecked).
 
-            These codes sets/gets values on the "Sources tab" of the Object
+            These codes set/get values to/from the "Sources tab" of the Object
             Properties dialog:
-            101  - Gets the source object random polarization
-                   (1 = checked, 0 = unchecked).
-            102  - Gets the source object reverse rays option
-                   (1 = checked, 0 for unchecked)
-            103  - Gets the source object Jones X value.
-            104  - Gets the source object Jones Y value.
-            105  - Gets the source object Phase X value.
-            106  - Gets the source object Phase Y value.
-            107  - Gets the source object initial phase in degrees value.
-            108  - Gets the source object coherence length value.
-            109  - Gets the source object pre-propagation value.
-            110  - Gets the source object sampling method
-                   (0 = random, 1 = Sobol sampling)
-            111  - Gets the source object bulk scatter method
-                   (0 = many, 1 = once, 2 = never)
+            101  - Source object random polarization (1 = checked, 0 = unchecked)
+            102  - Source object reverse rays option (1 = checked, 0 for unchecked)
+            103  - Source object Jones X value.
+            104  - Source object Jones Y value.
+            105  - Source object Phase X value.
+            106  - Source object Phase Y value.
+            107  - Source object initial phase in degrees value.
+            108  - Source object coherence length value.
+            109  - Source object pre-propagation value.
+            110  - Source object sampling method (0 = random, 1 = Sobol sampling)
+            111  - Source object bulk scatter method (0 = many, 1 = once, 2 = never)
 
-            These codes set values on the "Bulk Scatter tab" of the Object
+            These codes set/set values to/from the "Bulk Scatter tab" of the Object
             Properties dialog:
-            202  - Gets the Mean Path value.
-            203  - Gets the Angle value.
-            211-226 - Gets the DLL parameter 1-16, respectively.
+            202  - Mean Path value.
+            203  - Angle value.
+            211-226 - DLL parameter 1-16, respectively.
+
+            end-of-table
 
         See Also
         --------
@@ -1744,38 +1741,53 @@ class PyZDDE(object):
     def zGetNSCObjectFaceData(self, surfNumber, objNumber, faceNumber, code):
         """Returns the various data for NSC object faces.
 
-        `zGetNSCObjectFaceData(surfNumber,objNumber,faceNumber,code)->nscObjFaceData`
-
         Parameters
         ----------
-        surfNumber   : (integer) surface number. Use 1 if the program mode is
-                       Non-Sequential.
-        objNumber    : (integer) object number
-        faceNumber   : (integer) face number
-        code         : (integer) code (see below)
+        surfaceNumber : integer
+            surface number of the NSC group. Use 1 if for pure NSC mode
+        objectNumber : integer
+            the NSC ojbect number
+        faceNumber : integer
+            face number
+        code : integer
+            code (see below)
 
         Returns
         -------
         nscObjFaceData  : data for NSC object faces (see the table for the
                           particular type of data) if successful, else -1
-        ------------------------------------------------------------------------
-        Code     Data returned by GetNSCObjectFaceData
-        ------------------------------------------------------------------------
-         10   -  Coating name. (string)
-         20   -  Scatter code. (0 = None, 1 = Lambertian, 2 = Gaussian,
-                 3 = ABg, and 4 = user defined.) (integer)
-         21   -  Scatter fraction. (double)
-         22   -  Number of rays to scatter. (integer)
-         23   -  Gaussian scatter sigma. (double)
-         24   -  Face is setting;(0 = object default, 1 = reflective,
-                 2 = absorbing.) (integer)
-         30   -  ABg scatter profile name for reflection. (string)
-         31   -  ABg scatter profile name for transmission. (string)
-         40   -  User Defined Scatter DLL name. (string)
-         41-46 - User Defined Scatter Parameter 1 - 6. (double)
-         60   -  User Defined Scatter data file name. (string)
+        
+        Notes
+        -----
 
-        See also `zSetNSCObjectFaceData`
+        .. _nsc-object-face-data-codes:
+
+        ::
+
+            Table: Codes for NSC object face data getter and setter methods
+
+            --------------------------------------------------------------------
+            code  -  Datum set/ret by zGetNSCObjectFaceData/zGetNSCObjectFaceData
+            --------------------------------------------------------------------
+             10   -  Coating name (string).
+             20   -  Scatter code (0 = None, 1 = Lambertian, 2 = Gaussian,
+                     3 = ABg, and 4 = user defined)
+             21   -  Scatter fraction (float).
+             22   -  Number of rays to scatter (integer).
+             23   -  Gaussian scatter sigma (float).
+             24   -  Face is setting(0 = object default, 1 = reflective,
+                     2 = absorbing) 
+             30   -  ABg scatter profile name for reflection (string).
+             31   -  ABg scatter profile name for transmission (string).
+             40   -  User Defined Scatter DLL name (string).
+             41-46 - User Defined Scatter Parameter 1 - 6 (double).
+             60   -  User Defined Scatter data file name (string).
+
+             end-of-table
+
+        See Also
+        --------
+        zSetNSCObjectFaceData()
         """
         str_codes = (10,30,31,40,60)
         int_codes = (20,22,24)
@@ -1795,22 +1807,25 @@ class PyZDDE(object):
         return nscObjFaceData
 
     def zGetNSCParameter(self, surfNumber, objNumber, parameterNumber):
-        """Returns the parameter data for NSC objects.
-
-        `zGetNSCParameter(surfNumber,objNumber,parameterNumber)->nscParaVal`
+        """Returns NSC object's parameter data 
 
         Parameters
         ----------
-        surfNumber      : (integer) surface number. Use 1 if
-                          the program mode is Non-Sequential.
-        objNumber       : (integer) object number
-        parameterNumber : (integer) parameter number
+        surfaceNumber : integer
+            surface number of the NSC group. Use 1 if for pure NSC mode
+        objectNumber : integer
+            the NSC ojbect number
+        parameterNumber : integer
+            parameter number
 
         Returns
         -------
-        nscParaVal     : (float) parameter value
+        nscParaVal : float
+            parameter value
 
-        See also `zSetNSCParameter`
+        See Also
+        --------
+        zSetNSCParameter()
         """
         cmd = ("GetNSCParameter,{:d},{:d},{:d}"
               .format(surfNumber,objNumber,parameterNumber))
@@ -1823,14 +1838,14 @@ class PyZDDE(object):
         return nscParaVal
 
     def zGetNSCPosition(self, surfNumber, objectNumber):
-        """Returns the position data for NSC objects
+        """Returns position data for NSC object
 
         Parameters
         ----------
-        surfNumber : integer
-            surface number; use 1 if the program mode is Non-Sequential
+        surfaceNumber : integer
+            surface number of the NSC group. Use 1 if for pure NSC mode
         objectNumber : integer
-            object number
+            the NSC ojbect number
 
         Returns
         -------
@@ -1860,166 +1875,183 @@ class PyZDDE(object):
 
     def zGetNSCProperty(self, surfaceNumber, objectNumber, faceNumber, code):
         """Returns a numeric or string value from the property pages of objects
-        defined in the non-sequential components editor. It mimics the ZPL
-        function NPRO.
-
-        `zGetNSCProperty(surfaceNumber,objectNumber,faceNumber,code)->nscPropData`
+        defined in NSC editor. It mimics the ZPL function NPRO.
 
         Parameters
         ----------
-        surfaceNumber  : (integer) surface number. Use 1 if the program mode is
-                         Non-Sequential.
-        objectNumber   : (integer) object number
-        faceNumber     : (integer) face number
-        code           : (integer) code used to identify specific types of NSC
-                           object data (see below)
+        surfaceNumber : integer
+            surface number of the NSC group. Use 1 if for pure NSC mode
+        objectNumber : integer
+            the NSC ojbect number
+        faceNumber : integer
+            face number
+        code : integer
+            for the specific code see the nsc-property-codes_ table (below)
 
         Returns
         -------
-        nscPropData  :  string or numeric (see below)
+        nscPropData : string/float/integer
+            the nature of the returned data, which depends on the ``code``, 
+            is enumerated in the nsc-property-codes_  table (below). 
+            If the command fails, it returns ``-1``.
 
-        ------------------------------------------------------------------------
-        CODE -             PROPERTY
-        ------------------------------------------------------------------------
-        The following codes get values from the NSC Editor.
-          1 - Gets the object comment. (string)
-          2 - Gets the reference object number. (integer)
-          3 - Gets the "inside of" object number. (integer)
-          4 - Gets the object material. (string)
-        The following codes get values from the Type tab of the Object Properties
-        dialog.
-          0 - Gets the object type. The value should be the name of the object,
-              such as "NSC_SLEN" for the standard lens. The names for each object
-              type are listed in the Prescription Report for each object type in
-              the NSC editor. All NSC object names start with "NSC_". (string)
-         13 - Gets User Defined Aperture, (1 = checked, 0 = unchecked)
-         14 - Gets the User Defined Aperture file name. (string)
-         15 - Gets the "Use Global XYZ Rotation Order" checkbox, (1 = checked,
-              0 = unchecked). (integer)
-         16 - Gets the "Rays Ignore This Object" checkbox, (1 = checked, 0 = un-
-              checked.) (integer)
-         17 - Gets the "Object Is A Detector" checkbox, (1 = checked, 0 = un-
-              checked.) (integer)
-         18 - Gets the "Consider Objects" list. The argument should be a string
-              listing the object numbers to consider delimited by spaces, such
-              as "2 5 14". (string)
-         19 - Gets the "Ignore Objects" list. The argument should be a string
-              listing the object numbers to ignore delimited by spaces, such as
-              "1 3 7". (string)
-         20 - Gets the "Use Pixel Interpolation" checkbox, (1 = checked, 0 = un-
-              checked.) (integer)
-        The following codes get values from the Coat/Scatter tab of the Object
-        Properties dialog.
-          5 - Gets the coating name for the specified face. (string)
-          6 - Gets the profile name for the specified face. (string)
-          7 - Gets the scatter mode for the specified face, (0 = none,
-              1 = Lambertian, 2 = Gaussian, 3 = ABg, 4 = User Defined.)
-          8 - Gets the scatter fraction for the specified face. (float)
-          9 - Gets the number of scatter rays for the specified face. (integer)
-         10 - Gets the Gaussian sigma for the specified face. (float)
-         11 - Gets the reflect ABg data name for the specified face. (string)
-         12 - Gets the transmit ABg data name for the specified face. (string)
-         27 - Gets the name of the user defined scattering DLL. (string)
-         28 - Gets the name of the user defined scattering data file. (string)
-        21-26 - Gets parameter values on the user defined scattering DLL. (float)
-         29 - Gets the "Face Is" property for the specified face. (0 = "Object
-              Default", 1 = "Reflective", 2 = "Absorbing")
-        The following codes get values from the Bulk Scattering tab of the Object
-        Properties dialog.
-         81 - Gets the "Model" value on the bulk scattering tab. (0 = "No Bulk
-              Scattering", 1 = "Angle Scattering", 2 = "DLL Defined Scattering")
-         82 - Gets the mean free path to use for bulk scattering.
-         83 - Gets the angle to use for bulk scattering.
-         84 - Gets the name of the DLL to use for bulk scattering.
-         85 - Gets the parameter value to pass to the DLL, where the face value
-              is used to specify which parameter is being defined. The first
-              parameter is 1, the second is 2, etc. (float)
-         86 - Gets the wavelength shift string. (string)
-        The following codes get values from the Diffraction tab of the Object
-        Properties dialog.
-         91 - Gets the "Split" value on the diffraction tab. (0 = "Don't Split
-              By Order", 1 = "Split By Table Below", 2 = "Split By DLL Function")
-         92 - Gets the name of the DLL to use for diffraction splitting. (string)
-         93 - Gets the Start Order value. (float)
-         94 - Gets the Stop Order value. (float)
-         95 - Gets  the  parameter  values  on  the  diffraction  tab.  These
-              are  the  parameters passed to the diffraction splitting DLL as
-              well as the order efficiency values used by "split by table below"
-              option. The face value is used to specify which parameter is being
-              defined. The first parameter is 1, the second is 2, etc. (float)
-        The following codes get values from the Sources tab of the Object
-        Properties dialog.
-        101 - Gets the source object random polarization.(1=checked,0=unchecked)
-        102 - Gets the source object reverse rays option.(1=checked,0=unchecked)
-        103 - Gets the source object Jones X value.
-        104 - Gets the source object Jones Y value.
-        105 - Gets the source object Phase X value.
-        106 - Gets the source object Phase Y value.
-        107 - Gets the source object initial phase in degrees value.
-        108 - Gets the source object coherence length value.
-        109 - Gets the source object pre-propagation value.
-        110 - Gets the source object sampling method; (0=random,1=Sobol sampling)
-        111 - Gets the source object bulk scatter method; (0=many,1=once,2=never)
-        112 - Gets the array mode; (0 = none, 1 = rectangular, 2 = circular,
-              3 = hexapolar, 4 = hexagonal)
-        113 - Gets the source color mode. For a complete list of the available
-              modes, see "Defining the color and spectral content of sources"
-              in the Zemax manual. The source color modes are numbered starting
-              with 0 for the System Wavelengths, and then from 1 through the last
-              model listed in the dialog box control. (integer)
-        114-116 - Gets the number of spectrum steps, start wavelength, and end
-                  wavelength, respectively. (float)
-        117 - Gets the name of the spectrum file. (string)
-        161-162 - Gets the array mode integer arguments 1 and 2.
-        165-166 - Gets the array mode double precision arguments 1 and 2.
-        181-183 - Gets the source color mode arguments, for example, the XYZ
-                  values of the Tristimulus. (float)
-        The following codes get values from the Grin tab of the Object Properties
-        dialog.
-        121 - Gets the "Use DLL Defined Grin Media" checkbox. (1 = checked, 0 =
-              unchecked) (integer)
-        122 - Gets the Maximum Step Size value. (float)
-        123 - Gets the DLL name. (string)
-        124 - Gets the Grin DLL parameters. These are the parameters passed to
-              the DLL. The face value is used to specify which parameter is being
-              defined. The first parameter is 1, the second is 2, etc. (float)
-        The following codes get values from the Draw tab of the Object Properties
-        dialog.
-        141 - Gets the do not draw object checkbox.(1 = checked, 0 = unchecked)
-        142 - Gets the object opacity. (0 = 100%, 1 = 90%, 2 = 80%, etc.)
-        The following codes get values from the Scatter To tab of the Object
-        Properties dialog.
-        151 - Gets the scatter to method. (0 = scatter to list, 1 = importance
-              sampling)
-        152 - Gets  the  Importance  Sampling  target  data.  The  argument
-              should be a string listing the ray number, the object number, the
-              size, & the limit value, all separated by spaces Here is a sample
-              syntax to set the Importance Sampling data for ray 3, object 6,
-              size 3.5, and limit 0.6:"3 6 3.5 0.6". (string)
-        153 - Gets the "Scatter To List" values. The argument should be a string
-              listing the object numbers to scatter to delimited by spaces, such
-              as "4 6 19". (string)
-        The following codes get values from the Birefringence tab of the Object
-        Properties dialog.
-        171 - Gets the Birefringent Media checkbox. (0 = unchecked, 1 = checked)
-        172 - Gets the Birefringent Media Mode. (0 = Trace ordinary and
-              extraordinary rays, 1 = Trace only ordinary rays, 2 = Trace only
-              extraordinary rays, and 3 = Waveplate mode) (integer)
-        173 - Gets the Birefringent Media Reflections status. (0 = Trace
-              reflected and refracted rays, 1 = Trace only refracted rays, and
-              2 = Trace only reflected rays)
-        174-176 - Gets the Ax, Ay, and Az values. (float)
-        177 - Gets the Axis Length. (float)
-        200 - Gets the index of refraction of an object.
-        201-203 - Gets the nd (201), vd (202), and dpgf (203) parameters of an
-                  object using a model glass.
+        Notes
+        -----
+        
+        .. _nsc-property-codes: 
 
-        See also `zSetNSCProperty`
+        ::
+
+            Table: Codes for NSC property getter and setter methods
+
+            --------------------------------------------------------------------
+            code - Datum set/returned by zSetNSCProperty()/zGetNSCProperty() 
+            --------------------------------------------------------------------
+            The following codes sets/get values to/from the NSC Editor.
+              1 - Object comment (string).
+              2 - Reference object number (integer).
+              3 - "Inside of" object number (integer).
+              4 - Object material (string).
+            
+            The following codes set/get values to/from the "Type tab" of the 
+            Object Properties dialog.
+              0 - Object type. For e.g., "NSC_SLEN" for the standard lens (string).
+             13 - User Defined Aperture (1 = checked, 0 = unchecked)
+             14 - User Defined Aperture file name (string).
+             15 - "Use Global XYZ Rotation Order" checkbox; (1 = checked,
+                  0 = unchecked)
+             16 - "Rays Ignore This Object" checkbox; (1 = checked, 0 = un-checked)
+             17 - "Object Is A Detector" checkbox; (1 = checked, 0 = un-checked)
+             18 - "Consider Objects" list. The argument is a string listing the 
+                  object numbers delimited by spaces, e.g., "2 5 14" (string).
+             19 - "Ignore Objects" list. The argument is a string listing the 
+                  object numbers delimited by spaces, e.g., "1 3 7" (string).
+             20 - "Use Pixel Interpolation" checkbox, (1 = checked, 0 = un-
+                  checked).
+            
+            The following codes set/get values to/from the "Coat/Scatter tab" of 
+            the Object Properties dialog.
+              5 - Coating name for the specified face (string).
+              6 - Profile name for the specified face (string).
+              7 - Scatter mode for the specified face, (0 = none, 1 = Lambertian, 
+                  2 = Gaussian, 3 = ABg, 4 = User Defined.)
+              8 - Scatter fraction for the specified face (float).
+              9 - Number of scatter rays for the specified face (integer).
+             10 - Gaussian sigma for the specified face (float).
+             11 - Reflect ABg data name for the specified face (string).
+             12 - Transmit ABg data name for the specified face (string).
+             27 - Name of the user defined scattering DLL (string).
+             28 - Name of the user defined scattering data file (string).
+            21-26 - Parameter values on the user defined scattering DLL (float).
+             29 - "Face Is" property for the specified face (0 = "Object Default", 
+                  1 = "Reflective", 2 = "Absorbing")
+            
+            The following codes set/get values to/from the "Bulk Scattering tab" of 
+            the Object Properties dialog.
+             81 - "Model" value on the bulk scattering tab (0 = "No Bulk 
+                  Scattering", 1 = "Angle Scattering", 2 = "DLL Defined Scattering")
+             82 - Mean free path to use for bulk scattering.
+             83 - Angle to use for bulk scattering.
+             84 - Name of the DLL to use for bulk scattering.
+             85 - Parameter value to pass to the DLL, where the face value
+                  is used to specify which parameter is being defined. The first
+                  parameter is 1, the second is 2, etc. (float)
+             86 - Wavelength shift string (string).
+
+            The following codes set/get values from the Diffraction tab of the 
+            Object Properties dialog.
+             91 - "Split" value on the diffraction tab (0 = "Don't Split By Order", 
+                  1 = "Split By Table Below", 2 = "Split By DLL Function")
+             92 - Name of the DLL to use for diffraction splitting (string).
+             93 - Start Order value (float).
+             94 - Stop Order value (float).
+             95 - Parameter values on the diffraction tab. These parameters are 
+                  passed to the diffraction splitting DLL as well as the order 
+                  efficiency values used by "split by table below" option. The 
+                  face value is used to specify which parameter is being defined.
+                  The first parameter is 1, the second is 2, etc. (float).
+            
+            The following codes set/get values to/from the "Sources tab" of the 
+            Object Properties dialog.
+            101 - Source object random polarization (1=checked, 0=unchecked).
+            102 - Source object reverse rays option (1=checked, 0=unchecked).
+            103 - Source object Jones X value.
+            104 - Source object Jones Y value.
+            105 - Source object Phase X value.
+            106 - Source object Phase Y value.
+            107 - Source object initial phase in degrees value.
+            108 - Source object coherence length value.
+            109 - Source object pre-propagation value.
+            110 - Source object sampling method; (0=random, 1=Sobol sampling)
+            111 - Source object bulk scatter method; (0=many,1=once, 2=never)
+            112 - Array mode; (0 = none, 1 = rectangular, 2 = circular,
+                  3 = hexapolar, 4 = hexagonal)
+            113 - Source color mode. For a complete list of the available
+                  modes, see "Defining the color and spectral content of sources"
+                  in the Zemax manual. The source color modes are numbered starting
+                  with 0 for the System Wavelengths, and then from 1 through the last
+                  model listed in the dialog box control (integer).
+            114-116 - Number of spectrum steps, start wavelength, and end
+                      wavelength, respectively (float).
+            117 - Name of the spectrum file (string).
+            161-162 - Array mode integer arguments 1 and 2.
+            165-166 - Array mode double precision arguments 1 and 2.
+            181-183 - Source color mode arguments, for example, the XYZ
+                      values of the Tristimulus (float).
+            
+            The following codes set/get values to/from the "Grin tab" of the 
+            Object Properties dialog.
+            121 - "Use DLL Defined Grin Media" checkbox (1 = checked, 0 =
+                  unchecked).
+            122 - Maximum step size value (float).
+            123 - DLL name (string).
+            124 - Grin DLL parameters. These are the parameters passed to the DLL. 
+                  The face value is used to specify which parameter is being
+                  defined. The first parameter is 1, the second is 2, etc (float)
+
+            The following codes set/get values to/from the "Draw tab" of the 
+            Object Properties dialog.
+            141 - Do not draw object checkbox (1 = checked, 0 = unchecked)
+            142 - Object opacity (0 = 100%, 1 = 90%, 2 = 80%, etc.)
+            
+            The following codes set/get values to/from the "Scatter To tab" of 
+            the Object Properties dialog.
+            151 - Scatter to method (0 = scatter to list, 1 = importance
+                  sampling)
+            152 - Importance Sampling target data. The argument is a string 
+                  listing the ray number, the object number, the size, & the 
+                  limit value, separated by spaces. For e.g., to set the 
+                  Importance Sampling data for ray 3, object 6, size 3.5, and 
+                  limit 0.6, the string argument is "3 6 3.5 0.6".
+            153 - "Scatter To List" values. The argument is a string listing the 
+                  object numbers to scatter to delimited by spaces, such as 
+                  "4 6 19" (string).
+            
+            The following codes set/get values to/from the "Birefringence tab" 
+            of the Object Properties dialog.
+            171 - Birefringent Media checkbox (0 = unchecked, 1 = checked)
+            172 - Birefringent Media Mode (0 = Trace ordinary and extraordinary 
+                  rays, 1 = Trace only ordinary rays, 2 = Trace only
+                  extraordinary rays, and 3 = Waveplate mode) 
+            173 - Birefringent Media Reflections status (0 = Trace reflected and 
+                  refracted rays, 1 = Trace only refracted rays, and 2 = Trace 
+                  only reflected rays)
+            174-176 - Ax, Ay, and Az values (float).
+            177 - Axis Length (float).
+            200 - Index of refraction of an object (float).
+            201-203 - nd (201), vd (202), and dpgf (203) parameters of an
+                      object using a model glass.
+
+            end-of-table
+
+        See Also
+        --------
+        zSetNSCProperty()
         """
         cmd = ("GetNSCProperty,{:d},{:d},{:d},{:d}"
-                .format(surfaceNumber,objectNumber,code,faceNumber))
+                .format(surfaceNumber, objectNumber, code, faceNumber))
         reply = self._sendDDEcommand(cmd)
-        nscPropData = _process_get_set_NSCProperty(code,reply)
+        nscPropData = _process_get_set_NSCProperty(code, reply)
         return nscPropData
 
     def zGetNSCSettings(self):
@@ -2027,25 +2059,27 @@ class PyZDDE(object):
         minimum absolute intensity, minimum relative intensity, glue distance,
         miss ray distance, and ignore errors flag used for NSC ray tracing.
 
-        `zGetNSCSettings()->nscSettingsData`
-
         Parameters
-        ---------
+        ----------
         None
 
         Returns
         -------
-          nscSettingsData is an 8-tuple with the following elements
-          maxInt     : (integer) maximum number of intersections
-          maxSeg     : (integer) maximum number of segments
-          maxNest    : (integer) maximum nesting level
-          minAbsI    : (float) minimum absolute intensity
-          minRelI    : (float) minimum relative intensity
-          glueDist   : (float) glue distance
-          missRayLen : (float) miss ray distance
-          ignoreErr  : (integer) 1 if true, 0 if false
+        nscSettingsData : 8-tuple 
+            the sncSettingsData tuple contains the following elements:
 
-        See also `zSetNSCSettings`
+              - maxInt     : (integer) maximum number of intersections
+              - maxSeg     : (integer) maximum number of segments
+              - maxNest    : (integer) maximum nesting level
+              - minAbsI    : (float) minimum absolute intensity
+              - minRelI    : (float) minimum relative intensity
+              - glueDist   : (float) glue distance
+              - missRayLen : (float) miss ray distance
+              - ignoreErr  : (integer) 1 if true, 0 if false
+
+        See Also
+        --------
+        zSetNSCSettings()
         """
         reply = str(self._sendDDEcommand('GetNSCSettings'))
         rs = reply.rsplit(",")
@@ -4702,7 +4736,7 @@ class PyZDDE(object):
 
         Returns
         -------
-        nscObjectData : nscObjectData
+        nscObjectData : string/integer/float
             the returned data (same as returned by ``zGetNSCObjectData()``)
             depends on the ``code``. If the command fails, it returns ``-1``.
             Refer table nsc-object-data-codes_.
@@ -4735,43 +4769,35 @@ class PyZDDE(object):
                 nscObjectData = float(rs)
         return nscObjectData
 
-    def zSetNSCObjectFaceData(self,surfNumber,objNumber,faceNumber,code,data):
-        """Sets the various data for NSC object faces.
-
-        zSetNSCObjectFaceData(surfNumber,objNumber,faceNumber,code,data)->
-                                                                  nscObjFaceData
+    def zSetNSCObjectFaceData(self, surfNumber, objNumber, faceNumber, code, data):
+        """Sets the various data for NSC object faces
 
         Parameters
         ----------
-        surfNumber   : (integer) surface number. Use 1 if the program mode is
-                       Non-Sequential.
-        objNumber    : (integer) object number
-        faceNumber   : (integer) face number
-        code         : (integer) code (see below)
-        data         : (float/integer/string) data to set
+        surfaceNumber : integer
+            surface number of the NSC group. Use 1 if for pure NSC mode
+        objectNumber : integer
+            the NSC ojbect number
+        faceNumber : integer
+            face number
+        code : integer
+            integer code 
+        data : float/integer/string
+            data to set NSC object face
+
+            Refer table nsc-object-face-data-codes_ in the docstring of 
+            ``zGetNSCObjectData()`` for ``code`` and ``data`` specific details. 
 
         Returns
         -------
-        nscObjFaceData  : data for NSC object faces (see the table for the
-                          particular type of data) if successful, else -1
-        ------------------------------------------------------------------------
-        Code     Data set/returned by zSetNSCObjectFaceData (after setting new data)
-        ------------------------------------------------------------------------
-         10   -  Coating name. (string)
-         20   -  Scatter code. (0 = None, 1 = Lambertian, 2 = Gaussian,
-                 3 = ABg, and 4 = user defined.) (integer)
-         21   -  Scatter fraction. (double)
-         22   -  Number of rays to scatter. (integer)
-         23   -  Gaussian scatter sigma. (double)
-         24   -  Face is setting;(0 = object default, 1 = reflective,
-                 2 = absorbing.) (integer)
-         30   -  ABg scatter profile name for reflection. (string)
-         31   -  ABg scatter profile name for transmission. (string)
-         40   -  User Defined Scatter DLL name. (string)
-         41-46 - User Defined Scatter Parameter 1 - 6. (double)
-         60   -  User Defined Scatter data file name. (string)
+        nscObjFaceData  : string/integer/float
+            the returned data (same as returned by ``zGetNSCObjectFaceData()``)
+            depends on the ``code``. If the command fails, it returns ``-1``.
+            Refer table nsc-object-face-data-codes_.
 
-        See also zGetNSCObjectFaceData
+        See Also 
+        --------
+        zGetNSCObjectFaceData()
         """
         str_codes = (10,30,31,40,60)
         int_codes = (20,22,24)
@@ -4861,160 +4887,37 @@ class PyZDDE(object):
                                                     for i in range(len(rs))])
         return nscPosData
 
-    def zSetNSCProperty(self,surfaceNumber,objectNumber,faceNumber,code,value):
+    def zSetNSCProperty(self, surfaceNumber, objectNumber, faceNumber, code, value):
         """Sets a numeric or string value to the property pages of objects
-        defined in the non-sequential components editor. It mimics the ZPL
-        function NPRO.
+        defined in the NSC editor. It mimics the ZPL function NPRO.
 
-        zSetNSCProperty(surfaceNumber,objectNumber,faceNumber,code,value)->nscPropData
 
         Parameters
         ----------
-        surfaceNumber  : (integer) surface number. Use 1 if the program mode is
-                         Non-Sequential.
-        objectNumber   : (integer) object number
-        faceNumber     : (integer) face number
-        code           : (integer) code used to identify specific types of NSC
-                         object data (see below)
-        value          : (string, float or integer) value to set (see below)
+        surfaceNumber : integer
+            surface number of the NSC group. Use 1 if for pure NSC mode
+        objectNumber : integer
+            the NSC ojbect number
+        faceNumber : integer
+            face number
+        code : integer
+            for the specific code
+        value : string/integer/float
+            value to set NSC property 
+
+            Refer table nsc-property-codes_ in the docstring of ``zGetNSCProperty()`` 
+            for ``code`` and ``value`` specific details.
 
         Returns
         -------
-        nscPropData  :  string or numeric (see below)
-        ------------------------------------------------------------------------
-        Code   Property
-        ------------------------------------------------------------------------
-        The following codes set values on the NSC Editor.
-          1 - Sets the object comment. (string)
-          2 - Sets the reference object number. (integer)
-          3 - Sets the "inside of" object number. (integer)
-          4 - Sets the object material. (string)
-        The following codes set values on the Type tab of the Object Properties
-        dialog.
-          0 - Sets the object type. The value should be the name of the object,
-              such as "NSC_SLEN" for the standard lens. The names for each object
-              type are listed in the Prescription Report for each object type in
-              the NSC editor. All NSC object names start with "NSC_". (string)
-         13 - Sets User Defined Aperture, (1 = checked, 0 = unchecked)
-         14 - Sets the User Defined Aperture file name. (string)
-         15 - Sets the "Use Global XYZ Rotation Order" checkbox, (1 = checked,
-              0 = unchecked). (integer)
-         16 - Sets the "Rays Ignore This Object" checkbox, (1 = checked, 0 = un-
-              checked.) (integer)
-         17 - Sets the "Object Is A Detector" checkbox, (1 = checked, 0 = un-
-              checked.) (integer)
-         18 - Sets the "Consider Objects" list. The argument should be a string
-              listing the object numbers to consider delimited by spaces, such
-              as "2 5 14". (string)
-         19 - Sets the "Ignore Objects" list. The argument should be a string
-              listing the object numbers to ignore delimited by spaces, such as
-              "1 3 7". (string)
-         20 - Sets the "Use Pixel Interpolation" checkbox, (1 = checked, 0 = un-
-              checked.) (integer)
-        The following codes set values on the Coat/Scatter tab of the Object Pro-
-        perties dialog.
-          5 - Sets the coating name for the specified face. (string)
-          6 - Sets the profile name for the specified face. (string)
-          7 - Sets the scatter mode for the specified face, (0 = none,
-              1 = Lambertian, 2 = Gaussian, 3 = ABg, 4 = User Defined.)
-          8 - Sets the scatter fraction for the specified face. (float)
-          9 - Sets the number of scatter rays for the specified face. (integer)
-         10 - Sets the Gaussian sigma for the specified face. (float)
-         11 - Sets the reflect ABg data name for the specified face. (string)
-         12 - Sets the transmit ABg data name for the specified face. (string)
-         27 - Sets the name of the user defined scattering DLL. (string)
-         28 - Sets the name of the user defined scattering data file. (string)
-        21-26 - Sets parameter values on the user defined scattering DLL. (float)
-         29 - Sets the "Face Is" property for the specified face. (0 = "Object
-              Default", 1 = "Reflective", 2 = "Absorbing")
-        The following codes set values on the Bulk Scattering tab of the Object
-        Properties dialog.
-         81 - Sets the "Model" value on the bulk scattering tab. (0 = "No Bulk
-              Scattering", 1 = "Angle Scattering", 2 = "DLL Defined Scattering")
-         82 - Sets the mean free path to use for bulk scattering.
-         83 - Sets the angle to use for bulk scattering.
-         84 - Sets the name of the DLL to use for bulk scattering.
-         85 - Sets the parameter value to pass to the DLL, where the face value
-              is used to specify which parameter is being defined. The first
-              parameter is 1, the second is 2, etc. (float)
-         86 - Sets the wavelength shift string. (string)
-        The following codes set values on the Diffraction tab of the Object Pro-
-        perties dialog.
-         91 - Sets the "Split" value on the diffraction tab. (0 = "Don't Split
-              By Order", 1 = "Split By Table Below", 2 = "Split By DLL Function")
-         92 - Sets the name of the DLL to use for diffraction splitting. (string)
-         93 - Sets the Start Order value. (float)
-         94 - Sets the Stop Order value. (float)
-         95 - Sets  the  parameter  values  on  the  diffraction  tab.  These
-              are  the  parameters passed to the diffraction splitting DLL as
-              well as the order efficiency values used by "split by table below"
-              option. The face value is used to specify which parameter is being
-              defined. The first parameter is 1, the second is 2, etc. (float)
-        The following codes set values on the Sources tab of the Object Properties
-        dialog.
-        101 - Sets the source object random polarization.(1=checked,0=unchecked)
-        102 - Sets the source object reverse rays option.(1=checked,0=unchecked)
-        103 - Sets the source object Jones X value.
-        104 - Sets the source object Jones Y value.
-        105 - Sets the source object Phase X value.
-        106 - Sets the source object Phase Y value.
-        107 - Sets the source object initial phase in degrees value.
-        108 - Sets the source object coherence length value.
-        109 - Sets the source object pre-propagation value.
-        110 - Sets the source object sampling method; (0=random,1=Sobol sampling)
-        111 - Sets the source object bulk scatter method; (0=many,1=once,2=never)
-        112 - Sets the array mode; (0 = none, 1 = rectangular, 2 = circular,
-              3 = hexapolar, 4 = hexagonal)
-        113 - Sets the source color mode. For a complete list of the available
-              modes, see "Defining the color and spectral content of sources"
-              in the Zemax manual. The source color modes are numbered starting
-              with 0 for the System Wavelengths, and then from 1 through the last
-              model listed in the dialog box control. (integer)
-        114-116 - Sets the number of spectrum steps, start wavelength, and end
-                  wavelength, respectively. (float)
-        117 - Sets the name of the spectrum file. (string)
-        161-162 - Sets the array mode integer arguments 1 and 2.
-        165-166 - Sets the array mode double precision arguments 1 and 2.
-        181-183 - Sets the source color mode arguments, for example, the XYZ
-                  values of the Tristimulus. (float)
-        The following codes set values on the Grin tab of the Object Properties
-        dialog.
-        121 - Sets the "Use DLL Defined Grin Media" checkbox. (1 = checked, 0 =
-              unchecked) (integer)
-        122 - Sets the Maximum Step Size value. (float)
-        123 - Sets the DLL name. (string)
-        124 - Sets the Grin DLL parameters. These are the parameters passed to
-              the DLL. The face value is used to specify which parameter is being
-              defined. The first parameter is 1, the second is 2, etc. (float)
-        The following codes set values on the Draw tab of the Object Properties
-        dialog.
-        141 - Sets the do not draw object checkbox.(1 = checked, 0 = unchecked)
-        142 - Sets the object opacity. (0 = 100%, 1 = 90%, 2 = 80%, etc.)
-        The following codes set values on the Scatter To tab of the Object
-        Properties dialog.
-        151 - Sets the scatter to method. (0 = scatter to list, 1 = importance
-              sampling)
-        152 - Sets  the  Importance  Sampling  target  data.  The  argument
-              should be a string listing the ray number, the object number, the
-              size, & the limit value, all separated by spaces Here is a sample
-              syntax to set the Importance Sampling data for ray 3, object 6,
-              size 3.5, and limit 0.6:"3 6 3.5 0.6". (string)
-        153 - Sets the "Scatter To List" values. The argument should be a string
-              listing the object numbers to scatter to delimited by spaces, such
-              as "4 6 19". (string)
-        The following codes set values on the Birefringence tab of the Object
-        Properties dialog.
-        171 - Sets the Birefringent Media checkbox. (0 = unchecked, 1 = checked)
-        172 - Sets the Birefringent Media Mode. (0 = Trace ordinary and
-              extraordinary rays, 1 = Trace only ordinary rays, 2 = Trace only
-              extraordinary rays, and 3 = Waveplate mode) (integer)
-        173 - Sets the Birefringent Media Reflections status. (0 = Trace
-              reflected and refracted rays, 1 = Trace only refracted rays, and
-              2 = Trace only reflected rays)
-        174-176 - Sets the Ax, Ay, and Az values. (float)
-        177 - Sets the Axis Length. (float)
+        nscPropData : string/float/integer
+            the returned data (same as returned by ``zGetNSCProperty()``) depends 
+            on the ``code``. If the command fails, it returns ``-1``.
+            Refer table nsc-property-codes_. 
 
-        See also zGetNSCProperty
+        See Also 
+        --------
+        zGetNSCProperty()
         """
         cmd = ("SetNSCProperty,{:d},{:d},{:d},{:d},"
                 .format(surfaceNumber,objectNumber,code,faceNumber))

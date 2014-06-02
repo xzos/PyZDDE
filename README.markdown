@@ -22,7 +22,9 @@ Other projects that are using PyZDDE are listed [here](https://github.com/indran
 
 #### Hello world
 
-Here is a simple but complete "Hello world" code which gets and prints the version of Zemax.   
+Here is a simple but complete "Hello world" code which prints the version of Zemax. 
+(If you are using Python 2.x, don't forget to add `from __future__ import print_function`
+before these lines.)   
 
 ```python
 import pyzdde.zdde as pyz
