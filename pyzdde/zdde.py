@@ -1756,7 +1756,7 @@ class PyZDDE(object):
         -------
         nscObjFaceData  : data for NSC object faces (see the table for the
                           particular type of data) if successful, else -1
-        
+
         Notes
         -----
 
@@ -1776,7 +1776,7 @@ class PyZDDE(object):
              22   -  Number of rays to scatter (integer).
              23   -  Gaussian scatter sigma (float).
              24   -  Face is setting(0 = object default, 1 = reflective,
-                     2 = absorbing) 
+                     2 = absorbing)
              30   -  ABg scatter profile name for reflection (string).
              31   -  ABg scatter profile name for transmission (string).
              40   -  User Defined Scatter DLL name (string).
@@ -1807,7 +1807,7 @@ class PyZDDE(object):
         return nscObjFaceData
 
     def zGetNSCParameter(self, surfNumber, objNumber, parameterNumber):
-        """Returns NSC object's parameter data 
+        """Returns NSC object's parameter data
 
         Parameters
         ----------
@@ -1891,29 +1891,29 @@ class PyZDDE(object):
         Returns
         -------
         nscPropData : string/float/integer
-            the nature of the returned data, which depends on the ``code``, 
-            is enumerated in the nsc-property-codes_  table (below). 
+            the nature of the returned data, which depends on the ``code``,
+            is enumerated in the nsc-property-codes_  table (below).
             If the command fails, it returns ``-1``.
 
         Notes
         -----
-        
-        .. _nsc-property-codes: 
+
+        .. _nsc-property-codes:
 
         ::
 
             Table: Codes for NSC property getter and setter methods
 
             --------------------------------------------------------------------
-            code - Datum set/returned by zSetNSCProperty()/zGetNSCProperty() 
+            code - Datum set/returned by zSetNSCProperty()/zGetNSCProperty()
             --------------------------------------------------------------------
             The following codes sets/get values to/from the NSC Editor.
               1 - Object comment (string).
               2 - Reference object number (integer).
               3 - "Inside of" object number (integer).
               4 - Object material (string).
-            
-            The following codes set/get values to/from the "Type tab" of the 
+
+            The following codes set/get values to/from the "Type tab" of the
             Object Properties dialog.
               0 - Object type. For e.g., "NSC_SLEN" for the standard lens (string).
              13 - User Defined Aperture (1 = checked, 0 = unchecked)
@@ -1922,18 +1922,18 @@ class PyZDDE(object):
                   0 = unchecked)
              16 - "Rays Ignore This Object" checkbox; (1 = checked, 0 = un-checked)
              17 - "Object Is A Detector" checkbox; (1 = checked, 0 = un-checked)
-             18 - "Consider Objects" list. The argument is a string listing the 
+             18 - "Consider Objects" list. The argument is a string listing the
                   object numbers delimited by spaces, e.g., "2 5 14" (string).
-             19 - "Ignore Objects" list. The argument is a string listing the 
+             19 - "Ignore Objects" list. The argument is a string listing the
                   object numbers delimited by spaces, e.g., "1 3 7" (string).
              20 - "Use Pixel Interpolation" checkbox, (1 = checked, 0 = un-
                   checked).
-            
-            The following codes set/get values to/from the "Coat/Scatter tab" of 
+
+            The following codes set/get values to/from the "Coat/Scatter tab" of
             the Object Properties dialog.
               5 - Coating name for the specified face (string).
               6 - Profile name for the specified face (string).
-              7 - Scatter mode for the specified face, (0 = none, 1 = Lambertian, 
+              7 - Scatter mode for the specified face, (0 = none, 1 = Lambertian,
                   2 = Gaussian, 3 = ABg, 4 = User Defined.)
               8 - Scatter fraction for the specified face (float).
               9 - Number of scatter rays for the specified face (integer).
@@ -1943,12 +1943,12 @@ class PyZDDE(object):
              27 - Name of the user defined scattering DLL (string).
              28 - Name of the user defined scattering data file (string).
             21-26 - Parameter values on the user defined scattering DLL (float).
-             29 - "Face Is" property for the specified face (0 = "Object Default", 
+             29 - "Face Is" property for the specified face (0 = "Object Default",
                   1 = "Reflective", 2 = "Absorbing")
-            
-            The following codes set/get values to/from the "Bulk Scattering tab" of 
+
+            The following codes set/get values to/from the "Bulk Scattering tab" of
             the Object Properties dialog.
-             81 - "Model" value on the bulk scattering tab (0 = "No Bulk 
+             81 - "Model" value on the bulk scattering tab (0 = "No Bulk
                   Scattering", 1 = "Angle Scattering", 2 = "DLL Defined Scattering")
              82 - Mean free path to use for bulk scattering.
              83 - Angle to use for bulk scattering.
@@ -1958,20 +1958,20 @@ class PyZDDE(object):
                   parameter is 1, the second is 2, etc. (float)
              86 - Wavelength shift string (string).
 
-            The following codes set/get values from the Diffraction tab of the 
+            The following codes set/get values from the Diffraction tab of the
             Object Properties dialog.
-             91 - "Split" value on the diffraction tab (0 = "Don't Split By Order", 
+             91 - "Split" value on the diffraction tab (0 = "Don't Split By Order",
                   1 = "Split By Table Below", 2 = "Split By DLL Function")
              92 - Name of the DLL to use for diffraction splitting (string).
              93 - Start Order value (float).
              94 - Stop Order value (float).
-             95 - Parameter values on the diffraction tab. These parameters are 
-                  passed to the diffraction splitting DLL as well as the order 
-                  efficiency values used by "split by table below" option. The 
+             95 - Parameter values on the diffraction tab. These parameters are
+                  passed to the diffraction splitting DLL as well as the order
+                  efficiency values used by "split by table below" option. The
                   face value is used to specify which parameter is being defined.
                   The first parameter is 1, the second is 2, etc. (float).
-            
-            The following codes set/get values to/from the "Sources tab" of the 
+
+            The following codes set/get values to/from the "Sources tab" of the
             Object Properties dialog.
             101 - Source object random polarization (1=checked, 0=unchecked).
             102 - Source object reverse rays option (1=checked, 0=unchecked).
@@ -1998,43 +1998,43 @@ class PyZDDE(object):
             165-166 - Array mode double precision arguments 1 and 2.
             181-183 - Source color mode arguments, for example, the XYZ
                       values of the Tristimulus (float).
-            
-            The following codes set/get values to/from the "Grin tab" of the 
+
+            The following codes set/get values to/from the "Grin tab" of the
             Object Properties dialog.
             121 - "Use DLL Defined Grin Media" checkbox (1 = checked, 0 =
                   unchecked).
             122 - Maximum step size value (float).
             123 - DLL name (string).
-            124 - Grin DLL parameters. These are the parameters passed to the DLL. 
+            124 - Grin DLL parameters. These are the parameters passed to the DLL.
                   The face value is used to specify which parameter is being
                   defined. The first parameter is 1, the second is 2, etc (float)
 
-            The following codes set/get values to/from the "Draw tab" of the 
+            The following codes set/get values to/from the "Draw tab" of the
             Object Properties dialog.
             141 - Do not draw object checkbox (1 = checked, 0 = unchecked)
             142 - Object opacity (0 = 100%, 1 = 90%, 2 = 80%, etc.)
-            
-            The following codes set/get values to/from the "Scatter To tab" of 
+
+            The following codes set/get values to/from the "Scatter To tab" of
             the Object Properties dialog.
             151 - Scatter to method (0 = scatter to list, 1 = importance
                   sampling)
-            152 - Importance Sampling target data. The argument is a string 
-                  listing the ray number, the object number, the size, & the 
-                  limit value, separated by spaces. For e.g., to set the 
-                  Importance Sampling data for ray 3, object 6, size 3.5, and 
+            152 - Importance Sampling target data. The argument is a string
+                  listing the ray number, the object number, the size, & the
+                  limit value, separated by spaces. For e.g., to set the
+                  Importance Sampling data for ray 3, object 6, size 3.5, and
                   limit 0.6, the string argument is "3 6 3.5 0.6".
-            153 - "Scatter To List" values. The argument is a string listing the 
-                  object numbers to scatter to delimited by spaces, such as 
+            153 - "Scatter To List" values. The argument is a string listing the
+                  object numbers to scatter to delimited by spaces, such as
                   "4 6 19" (string).
-            
-            The following codes set/get values to/from the "Birefringence tab" 
+
+            The following codes set/get values to/from the "Birefringence tab"
             of the Object Properties dialog.
             171 - Birefringent Media checkbox (0 = unchecked, 1 = checked)
-            172 - Birefringent Media Mode (0 = Trace ordinary and extraordinary 
+            172 - Birefringent Media Mode (0 = Trace ordinary and extraordinary
                   rays, 1 = Trace only ordinary rays, 2 = Trace only
-                  extraordinary rays, and 3 = Waveplate mode) 
-            173 - Birefringent Media Reflections status (0 = Trace reflected and 
-                  refracted rays, 1 = Trace only refracted rays, and 2 = Trace 
+                  extraordinary rays, and 3 = Waveplate mode)
+            173 - Birefringent Media Reflections status (0 = Trace reflected and
+                  refracted rays, 1 = Trace only refracted rays, and 2 = Trace
                   only reflected rays)
             174-176 - Ax, Ay, and Az values (float).
             177 - Axis Length (float).
@@ -2065,7 +2065,7 @@ class PyZDDE(object):
 
         Returns
         -------
-        nscSettingsData : 8-tuple 
+        nscSettingsData : 8-tuple
             the sncSettingsData tuple contains the following elements:
 
               - maxInt     : (integer) maximum number of intersections
@@ -2088,35 +2088,42 @@ class PyZDDE(object):
         return tuple(nscSettingsData)
 
     def zGetNSCSolve(self, surfaceNumber, objectNumber, parameter):
-        """Returns the current solve status and settings for NSC position & parameter
-        data.
-
-        `zGetNSCSolve(surfaceNumber, objectNumber, parameter) -> nscSolveData`
+        """Returns the current solve status and settings for NSC position and
+        parameter data
 
         Parameters
         ----------
-        surfaceNumber  : (integer) surface number. Use 1 if the program mode is
-                         Non-Sequential.
-        objectNumber   : (integer) object number
-        parameter      : -1 = extract data for x data
-                         -2 = extract data for y data
-                         -3 = extract data for z data
-                         -4 = extract data for tilt x data
-                         -5 = extract data for tilt y data
-                         -6 = extract data for tilt z data
-                          n > 0  = extract data for the nth parameter
+        surfaceNumber : integer
+            surface number of NSC group; use 1 if the program mode is pure NSC
+        objectNumber : integer
+            object number
+        parameter : integer
+            the parameter are as follows:
+
+                * -1 = extract data for x data
+                * -2 = extract data for y data
+                * -3 = extract data for z data
+                * -4 = extract data for tilt x data
+                * -5 = extract data for tilt y data
+                * -6 = extract data for tilt z data
+                * n > 0  = extract data for the nth parameter
 
         Returns
         -------
-          nscSolveData : 5-tuple containing
-                           (status, pickupObject, pickupColumn, scaleFactor, offset)
-                           The status value is 0 for fixed, 1 for variable, and 2
-                           for a pickup solve.
-                           Only when the staus is a pickup solve is the other data
-                           meaningful.
-                          -1 if it a BAD COMMAND
+        nscSolveData : 5-tuple
+            nscSolveData tuple contains
+            (status, pickupObject, pickupColumn, scaleFactor, offset)
 
-        See also `zSetNSCSolve`
+            The status value is 0 for fixed, 1 for variable, and 2 for a pickup
+            solve.
+
+            Only when the staus is a pickup solve is the other data meaningful.
+
+            -1 if it a BAD COMMAND
+
+        See Also
+        --------
+        zSetNSCSolve()
         """
         nscSolveData = -1
         cmd = "GetNSCSolve,{:d},{:d},{:d}".format(surfaceNumber,objectNumber,parameter)
@@ -2128,48 +2135,61 @@ class PyZDDE(object):
         return nscSolveData
 
     def zGetOperand(self, row, column):
-        """Returns the operand data from the Merit Function Editor.
-
-        `zGetOperand(row,column)-> operandData`
+        """Returns the operand data from the Merit Function Editor
 
         Parameters
         ----------
-        row   : (integer) row operand number in the MFE
-        column : (integer) column
+        row : integer
+            row operand number in the MFE
+        column : integer
+            column
 
         Returns
         -------
-        operandData : integer, float or string depending upon column  (see
-                      table below) if successful, else -1.
-                      -----------------------------------------------
-                      Column        Returned operand data
-                      -----------------------------------------------
-                       1               operand type (string)
-                       2               int1 (integer)
-                       3               int2 (integer)
-                       4-7             data1-data4 (float)
-                       8               target (float)
-                       9               weight (float)
-                       10              value (float)
-                       11              percentage contribution (float)
-                       12-13           data5-data6 (float)
-                      -----------------------------------------------
+        operandData : integer/float/string
+            opernadData's type depends on ``column`` argument if successful,
+            else -1.
 
-        Note
-        ----
-        To update the merit function prior to calling zGetOperand function,
-        use the `zOptimize` function with the number of cycles set to -1.
+            Refer to the column-operand-data_ table for information on the
+            types of ``operandData`` and ``column`` number
 
-        See also `zSetOperand` and `zOptimize`.
+        Notes
+        -----
+
+        .. _column-operand-data:
+
+        ::
+
+            Table: Column and operand data types
+
+            -----------------------------------------------
+            column          operand data
+            -----------------------------------------------
+            1               operand type (string)
+            2               int1 (integer)
+            3               int2 (integer)
+            4-7             data1-data4 (float)
+            8               target (float)
+            9               weight (float)
+            10              value (float)
+            11              percentage contribution (float)
+            12-13           data5-data6 (float)
+
+            end-of-table
+
+        See Also
+        --------
+        zOptimize() :
+            To update the merit function prior to calling ``zGetOperand()``,
+            call ``zOptimize()`` with the number of cycles set to -1
+        zSetOperand()
         """
         cmd = "GetOperand,{:d},{:d}".format(row, column)
         reply = self._sendDDEcommand(cmd)
         return _process_get_set_Operand(column, reply)
 
     def zGetPath(self):
-        """Returns path name to <data> folder and default lenses folder.
-
-        zGetPath()->(pathToDataFolder,pathToDefaultLensFolder)
+        """Returns path name to <data> folder and default lenses folder
 
         Parameters
         ----------
@@ -2177,39 +2197,42 @@ class PyZDDE(object):
 
         Returns
         -------
-        pathToDataFolder : (string) full path to the <data> folder
-        pathToDefaultLensFolder : (string) full path to the default folder for
-                                  lenses.
+        pathToDataFolder : string
+            full path to the <data> folder
+        pathToDefaultLensFolder : string
+            full path to the default folder for lenses
         """
         reply = str(self._sendDDEcommand('GetPath'))
         rs = str(reply.rstrip())
         return tuple(rs.split(','))
 
     def zGetPolState(self):
-        """Returns the default polarization state set by the user.
-
-        zGetPolState()->polStateData
+        """Returns the default polarization state set by the user
 
         Parameters
-        ---------
+        ----------
         None
 
         Returns
         -------
-        polStateData is 5-tuple containing the following elements
-        nlsPolarized : (integer) if nlsPolarized > 0, then default polarization
-                         state is unpolarized.
-          Ex           : (float) normalized electric field magnitude in x direction
-          Ey           : (float) normalized electric field magnitude in y direction
-          Phax         : (float) relative phase in x direction in degrees
-          Phay         : (float) relative phase in y direction in degrees
+        polStateData : 5-tuple
+            polStateData tuple contains the following elements:
 
-        Note
-        ----
-        The quantity Ex*Ex + Ey*Ey should have a value of 1.0 although any
+                - nlsPol : if ``nlsPol > 0``, then default polarization
+                           state is unpolarized (integer)
+                - Ex : normalized electric field magnitude in x direction (float)
+                - Ey : normalized electric field magnitude in y direction (float)
+                - Phax : relative phase in x direction in degrees (float)
+                - Phay : relative phase in y direction in degrees (float)
+
+        Notes
+        -----
+        The quantity Ex*Ex + Ey*Ey should have a value of 1.0, although any
         values are accepted.
 
-        See also zSetPolState.
+        See Also
+        --------
+        zSetPolState()
         """
         reply = self._sendDDEcommand("GetPolState")
         rs = reply.rsplit(",")
@@ -2217,61 +2240,75 @@ class PyZDDE(object):
                                        for i,elem in enumerate(rs[:-1])]
         return tuple(polStateData)
 
-    def zGetPolTrace(self,waveNum,mode,surf,hx,hy,px,py,Ex,Ey,Phax,Phay):
-        """Trace a single polarized ray through the current lens in the ZEMAX
-        DDE server. If Ex, Ey, Phax, Phay are all zero, Zemax will trace two
-        orthogonal rays and the resulting transmitted intensity will be averaged.
+    def zGetPolTrace(self, waveNum, mode, surf, hx, hy, px, py, Ex, Ey, Phax, Phay):
+        """Trace a single polarized ray through the lens system
 
-        zGetPolTrace(waveNum,mode,surf,hx,hy,px,py,Ex,Ey,Phax,Phay)->rayPolTraceData
+        If ``Ex``, ``Ey``, ``Phax``, ``Phay`` are all zero, two orthogonal rays are
+        traced, and the resulting transmitted intensity is averaged.
 
         Parameters
         ----------
-        waveNum : wavelength number as in the wavelength data editor
-        mode    : 0 = real, 1 = paraxial
-        surf    : surface to trace the ray to. Usually, the ray data is only
-                  needed at the image surface; setting the surface number to
-                  -1 will yield data at the image surface.
-        hx      : normalized field height along x axis
-        hy      : normalized field height along y axis
-        px      : normalized height in pupil coordinate along x axis
-        py      : normalized height in pupil coordinate along y axis
-        Ex      : normalized electric field magnitude in x direction
-        Ey      : normalized electric field magnitude in y direction
-        Phax    : relative phase in x direction in degrees
-        Phay    : relative phase in y direction in degrees
+        waveNum : integer
+            wavelength number as in the wavelength data editor
+        mode : integer (0/1)
+            0 = real, 1 = paraxial
+        surf : integer
+            surface to trace the ray to. if -1, surf is the image plane.
+        hx : float
+            normalized field height along x axis
+        hy : float
+            normalized field height along y axis
+        px : float
+            normalized height in pupil coordinate along x axis
+        py : float
+            normalized height in pupil coordinate along y axis
+        Ex : float
+            normalized electric field magnitude in x direction
+        Ey : float
+            normalized electric field magnitude in y direction
+        Phax : float
+            relative phase in x direction in degrees
+        Phay : float
+            relative phase in y direction in degrees
 
         Returns
-        ------
-        rayPolTraceData : rayPolTraceData is a 8-tuple or 2-tuple (depending
-                          on polarized or unpolarized rays) containing the
-                          following elements:
-
-        For polarized rays --
-            error       : 0, if the ray traced successfully
-                          +ve number indicates that the ray missed the surface
-                          -ve number indicates that the ray total internal
-                          reflected (TIR) at the surface given by the absolute
-                          value of the errorCode number.
-            intensity   : the transmitted intensity of the ray. It is always
-                          normalized to an input electric field intensity of
-                          unity. The transmitted intensity accounts for surface,
-                          thin film, and bulk absorption effects, but does not
-                          consider whether or not the ray was vignetted.
-            Exr,Eyr,Ezr : real parts of the electric field components
-            Exi,Eyi,Ezi : imaginary parts of the electric field components
-
-        For unpolarized rays --
-            error       : (see above)
-            intensity   : (see above)
-
-        Example:
         -------
+        rayPolTraceData : 8-tuple/ 2-tuple
+            rayPolTraceData is a 8-tuple or 2-tuple (depending on polarized or
+            unpolarized rays) containing the following elements:
+
+            .. _returns-GetPolTrace:
+
+            | For polarized rays:
+            |    error       : 0, if the ray traced successfully;
+            |                  +ve number indicates ray missed the surface
+            |                  -ve number indicates ray total internal
+            |                  reflected (TIR) at the surface given by the
+            |                  absolute value of the errorCode number
+            |    intensity   : the transmitted intensity of the ray. It is always
+            |                  normalized to an input electric field intensity of
+            |                  unity. The transmitted intensity accounts for
+            |                  surface, thin film, and bulk absorption effects,
+            |                  but does not consider whether or not the ray was
+            |                  vignetted.
+            |    Exr,Eyr,Ezr : real parts of the electric field components
+            |    Exi,Eyi,Ezi : imaginary parts of the electric field components
+            |
+            | For unpolarized rays:
+            |    error       : (see above)
+            |    intensity   : (see above)
+
+        Examples
+        --------
         To trace the real unpolarized marginal ray to the image surface at
         wavelength 2, the function would be:
-                 zGetPolTrace(2,0,-1,0.0,0.0,0.0,1.0,0,0,0,0)
 
-        Note
-        ----
+        >>> ln.zGetPolTrace(2, 0, -1, 0.0, 0.0, 0.0, 1.0, 0, 0, 0, 0)
+
+        .. _notes-GetPolTrace:
+
+        Notes
+        -----
         1. The quantity Ex*Ex + Ey*Ey should have a value of 1.0 although any
            values are accepted.
         2. There is an important exception to the above rule -- If Ex, Ey, Phax,
@@ -2279,12 +2316,12 @@ class PyZDDE(object):
            ting transmitted intensity will be averaged.
         3. Always check to verify the ray data is valid (check the error) before
            using the rest of the data in the tuple.
-        4. Use of zGetPolTrace() has significant overhead as only one ray per DDE
-           call is traced. Please refer to the ZEMAX manual for more details.
-           Also, if a large number of rays are to be traced, see the section
-           "Tracing large number of rays" in the ZEMAX manual.
+        4. Use of ``zGetPolTrace()`` has significant overhead as only one ray per
+           DDE call is traced. Please refer to the ZEMAX manual for more details.
 
-        See also zGetPolTraceDirect, zGetTrace, zGetTraceDirect
+        See Also
+        --------
+        zGetPolTraceDirect(), zGetTrace(), zGetTraceDirect()
         """
         args1 = "{wN:d},{m:d},{s:d},".format(wN=waveNum,m=mode,s=surf)
         args2 = "{hx:1.4f},{hy:1.4f},".format(hx=hx,hy=hy)
@@ -2298,70 +2335,52 @@ class PyZDDE(object):
                                    for i,elem in enumerate(rs)])
         return rayPolTraceData
 
-    def zGetPolTraceDirect(self,waveNum,mode,
-                           startSurf,stopSurf,
-                           x,y,z,l,m,n,Ex,Ey,Phax,Phay):
-        """Trace a single polarized ray through the current lens in the ZEMAX
-        DDE server while providing a more direct access to the ZEMAX ray tracing
-        engine than zGetPolTrace. If Ex, Ey, Phax, Phay are all zero, Zemax will
-        trace two orthogonal rays and the resulting transmitted intensity will be
-        averaged.
+    def zGetPolTraceDirect(self, waveNum, mode, startSurf, stopSurf,
+                           x, y, z, l, m, n, Ex, Ey, Phax, Phay):
+        """Trace a single polarized ray using a more direct access to the Zemax
+        ray tracing than ``zGetPolTrace()``
 
-        zGetPolTrace(waveNum,mode,startSurf,stopSurf,x,y,z,
-                     l,m,n,Ex,Ey,Phax,Phay)->rayPolTraceData
+        If ``Ex``, ``Ey``, ``Phax``, ``Phay`` are all zero, Zemax will trace two
+        orthogonal rays and the resulting transmitted intensity will be averaged.
 
         Parameters
         ----------
-        waveNum  : wavelength number as in the wavelength data editor
-        mode     : 0 = real, 1 = paraxial
-        startSurf: surface to trace the ray from.
-        stopSurf : last surface to trace the polarized ray to.
-        x,y,z,   : coordinates of the ray at the starting surface
-        l,m,n    : the direction cosines to the entrance pupil aim point for
-                   the x-, y-, z- direction cosines respectively
-        Ex       : normalized electric field magnitude in x direction
-        Ey       : normalized electric field magnitude in y direction
-        Phax     : relative phase in x direction in degrees
-        Phay     : relative phase in y direction in degrees
+        waveNum : integer
+            wavelength number as in the wavelength data editor
+        mode : integer (0/1)
+            0 = real, 1 = paraxial
+        startSurf : integer
+            surface to trace the ray from.
+        stopSurf : integer
+            last surface to trace the polarized ray to.
+        x, y, z : floats
+            coordinates of the ray at the starting surface
+        l, m, n : floats
+            the direction cosines to the entrance pupil aim point for the
+            x-, y-, z- direction cosines respectively
+        Ex : float
+            normalized electric field magnitude in x direction
+        Ey : float
+            normalized electric field magnitude in y direction
+        Phax : float
+            relative phase in x direction in degrees
+        Phay : float
+            relative phase in y direction in degrees
 
         Returns
         -------
-        rayPolTraceData : rayPolTraceData is a 8-tuple or 2-tuple (depending
-        on polarized or unpolarized rays) containing the following elements:
+        rayPolTraceData : 8-tuple/ 2-tuple
+            rayPolTraceData is the same data structure as that returned by
+            ``zGetPolTrace()``. Refer to the description of the data structure
+            returned by ``zGetPolTrace()`` (returns-GetPolTrace_) for details.
 
-        For polarized rays --
-            error       : 0, if the ray traced successfully
-                          +ve number indicates that the ray missed the surface
-                          -ve number indicates that the ray total internal
-                          reflected (TIR) at the surface given by the absolute
-                          value of the errorCode number.
-            intensity   : the transmitted intensity of the ray. It is always
-                          normalized to an input electric field intensity of
-                          unity. The transmitted intensity accounts for surface,
-                          thin film, and bulk absorption effects, but does not
-                          consider whether or not the ray was vignetted.
-            Exr,Eyr,Ezr : real parts of the electric field components
-            Exi,Eyi,Ezi : imaginary parts of the electric field components
+        Notes
+        -----
+        Refer to the notes (notes-GetPolTrace_) of ``zGetPolTrace()``
 
-        For unpolarized rays --
-            error       : (see above)
-            intensity   : (see above)
-
-        Note
-        ----
-        1. The quantity Ex*Ex + Ey*Ey should have a value of 1.0 although any
-           values are accepted.
-        2. There is an important exception to the above rule -- If Ex, Ey, Phax,
-           Phay are all zero, Zemax will trace two orthogonal rays and the resul-
-           ting transmitted intensity will be averaged.
-        3. Always check to verify the ray data is valid (check the error) before
-           using the rest of the data in the tuple.
-        4. Use of zGetPolTraceDirect() has significant overhead as only one ray
-           per DDE call is traced. Please refer to the ZEMAX manual for more
-           details. Also, if a large number of rays are to be traced, see the
-           section "Tracing large number of rays" in the ZEMAX manual.
-
-        See also zGetPolTraceDirect, zGetTrace, zGetTraceDirect
+        See Also
+        --------
+        zGetPolTraceDirect(), zGetTrace(), zGetTraceDirect()
         """
         args0 = "{wN:d},{m:d},".format(wN=waveNum,m=mode)
         args1 = "{sa:d},{sd:d},".format(sa=startSurf,sd=stopSurf)
@@ -2377,33 +2396,37 @@ class PyZDDE(object):
         return rayPolTraceData
 
     def zGetPupil(self):
-        """Get pupil data from ZEMAX.
+        """Return the pupil data such as aperture type, ENPD, EXPD, etc.
 
-        zGetPupil()-> pupilData
+        Parameters
+        ----------
+        None
 
         Returns
         -------
-        pupilData: a tuple containing the following elements:
-            aType              : integer indicating the system aperture
-                                 0 = entrance pupil diameter
-                                 1 = image space F/#
-                                 2 = object space NA
-                                 3 = float by stop
-                                 4 = paraxial working F/#
-                                 5 = object cone angle
-            value              : if aperture type == float by stop
-                                     value is stop surface semi-diameter
-                                 else
-                                     value is the sytem aperture
-            ENPD               : entrance pupil diameter (in lens units)
-            ENPP               : entrance pupil position (in lens units)
-            EXPD               : exit pupil diameter (in lens units)
-            EXPP               : exit pupil position (in lens units)
-            apodization_type   : integer indicating the following types
-                                 0 = none
-                                 1 = Gaussian
-                                 2 = Tangential/Cosine cubed
-            apodization_factor : number shown on general data dialog box.
+        pupilData: tuple
+            the pupilData tuple contains the following elements:
+
+                - aType              : integer indicating the system aperture
+                    -                 0 = entrance pupil diameter
+                    -                 1 = image space F/#
+                    -                 2 = object space NA
+                    -                 3 = float by stop
+                    -                 4 = paraxial working F/#
+                    -                 5 = object cone angle
+                - value              : if aperture ``type == float`` by stop
+                                         value is "stop surface semi-diameter"
+                                       else
+                                         value is the "sytem aperture"
+                - ENPD               : entrance pupil diameter (in lens units)
+                - ENPP               : entrance pupil position (in lens units)
+                - EXPD               : exit pupil diameter (in lens units)
+                - EXPP               : exit pupil position (in lens units)
+                - apodization_type   : integer indicating the following types
+                    -                 0 = none
+                    -                 1 = Gaussian
+                    -                 2 = Tangential/Cosine cubed
+                - apodization_factor : number shown on general data dialog box.
 
         """
         reply = self._sendDDEcommand('GetPupil')
@@ -4016,7 +4039,7 @@ class PyZDDE(object):
         Parameters
         ----------
         numOfCycles  : (integer) the number of cycles to run
-                       if numOfCycles == 0, optimization runs in automatic mode.
+                       if numOfCycles == 0 (default), optimization runs in automatic mode.
                        if numOfCycles < 0, zOptimize updates all operands in the
                        merit function and returns the current merit function,
                        and no optimization is performed.
@@ -4781,12 +4804,12 @@ class PyZDDE(object):
         faceNumber : integer
             face number
         code : integer
-            integer code 
+            integer code
         data : float/integer/string
             data to set NSC object face
 
-            Refer table nsc-object-face-data-codes_ in the docstring of 
-            ``zGetNSCObjectData()`` for ``code`` and ``data`` specific details. 
+            Refer table nsc-object-face-data-codes_ in the docstring of
+            ``zGetNSCObjectData()`` for ``code`` and ``data`` specific details.
 
         Returns
         -------
@@ -4795,7 +4818,7 @@ class PyZDDE(object):
             depends on the ``code``. If the command fails, it returns ``-1``.
             Refer table nsc-object-face-data-codes_.
 
-        See Also 
+        See Also
         --------
         zGetNSCObjectFaceData()
         """
@@ -4903,19 +4926,19 @@ class PyZDDE(object):
         code : integer
             for the specific code
         value : string/integer/float
-            value to set NSC property 
+            value to set NSC property
 
-            Refer table nsc-property-codes_ in the docstring of ``zGetNSCProperty()`` 
+            Refer table nsc-property-codes_ in the docstring of ``zGetNSCProperty()``
             for ``code`` and ``value`` specific details.
 
         Returns
         -------
         nscPropData : string/float/integer
-            the returned data (same as returned by ``zGetNSCProperty()``) depends 
+            the returned data (same as returned by ``zGetNSCProperty()``) depends
             on the ``code``. If the command fails, it returns ``-1``.
-            Refer table nsc-property-codes_. 
+            Refer table nsc-property-codes_.
 
-        See Also 
+        See Also
         --------
         zGetNSCProperty()
         """
@@ -5053,41 +5076,35 @@ class PyZDDE(object):
         return waveData
 
     def zSetOperand(self, row, column, value):
-        """Sets the operand data in the Merit Function Editor.
-
-        zSetOperand(row,column,value)->operandData
+        """Sets the operand data in the Merit Function Editor
 
         Parameters
         ----------
-        row    : (integer) row operand number in the MFE
-        column : (integer) column number (see table below)
-                  -----------------------------------------------
-                  Column        Returned operand data
-                  -----------------------------------------------
-                   1               operand type (string)
-                   2               int1 (integer)
-                   3               int2 (integer)
-                   4-7             data1-data4 (float)
-                   8               target (float)
-                   9               weight (float)
-                   10              value (float)
-                   11              percentage contribution (float)
-                   12-13           data5-data6 (float)
-                  -----------------------------------------------
-        value : string/integer/float. See table above.
+        row : integer
+            row operand number in the MFE
+        column : integer
+            column number
+        value : string/integer/float
+            the type of ``value`` depends on the ``column`` number
+
+            Refer to the column-operand-data_ table (in the docstring of
+            ``zGetOperand()`` for the column-value mapping)
 
         Returns
         -------
-        operandData : the value (string/integer/float) set in the MFE cell
+        operandData : string/integer/float
+            the value set in the MFE cell. Refer table column-operand-data_.
 
-        Note
-        ----
-        1. To update the merit function after called zSetOperand() function,
-           use the zOptimize() function with the number of cycles set to -1.
-        2. Use zInsertMFO() to insert additional rows, before calling
-           zSetOperand().
+        Notes
+        -----
+        1. To update the merit function after calling ``zSetOperand()``,
+           call ``zOptimize()`` with the number of cycles set to -1.
+        2. Use ``zInsertMFO()`` to insert additional rows, before calling
+           ``zSetOperand()``.
 
-        See also zGetOperand, zOptimize, zInsertMFO.
+        See Also
+        --------
+        zGetOperand(), zOptimize(), zInsertMFO()
         """
         if column == 1:
             if zo.isZOperand(str(value)):
