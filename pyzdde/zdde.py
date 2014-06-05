@@ -4008,7 +4008,7 @@ class PyZDDE(object):
         else:
             return -1
 
-    def zOptimize(self, numOfCycles, algorithm, timeout=None):
+    def zOptimize(self, numOfCycles = 0, algorithm = 0, timeout=None):
         """Calls the Zemax Damped Least Squares/ Orthogonal Descent optimizer.
 
         `zOptimize(numOfCycles,algorithm)->finalMeritFn`
@@ -4972,10 +4972,10 @@ class PyZDDE(object):
         nscSettingsData = [float(rs[i]) if i in (3,4,5,6) else int(float(rs[i]))
                                                         for i in range(len(rs))]
         return tuple(nscSettingsData)
-
-    def zSetNSCSolve(self, surfaceNumber, objectNumber, parameter, solveType,
-                     pickupObject, pickupColumn, scale, offset):
-        """Sets the solve type on NSC position and parameter data.
+			
+	#set the pickup variables to 0 so that they are not required	
+    def zSetNSCSolve(self, surfaceNumber, objectNumber, parameter, solveType, pickupObject=0, pickupColumn=0, scale=0, offset=0):
+	"""Sets the solve type on NSC position and parameter data.
 
         zSetNSCSolve(surfaceNumber, objectNumber, parametersolveType,
                      pickupObject, pickupColumn, scale, offset) -> nscSolveData
@@ -4993,10 +4993,10 @@ class PyZDDE(object):
                          -6 = data for tilt z data
                           n > 0  = data for the nth parameter
         solveType      : 0 = fixed, 1 = variable, 2 = pickup
-        pickupObject   : if solveType = 0, pickup object number
-        pickupColumn   : if solveType = 0, pickup column number (0 for current column)
-        scale          : if solveType = 0, scale factor
-        offset         : if solveType = 0, offset
+        pickupObject   : if solveType = 2, pickup object number
+        pickupColumn   : if solveType = 2, pickup column number (0 for current column)
+        scale          : if solveType = 2, scale factor
+        offset         : if solveType = 2, offset
 
         Returns
         -------
