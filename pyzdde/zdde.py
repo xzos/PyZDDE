@@ -4008,7 +4008,7 @@ class PyZDDE(object):
         else:
             return -1
 
-    def zOptimize(self, numOfCycles = 0, algorithm = 0, timeout=None):
+    def zOptimize(self, numOfCycles=0, algorithm=0, timeout=None):
         """Calls the Zemax Damped Least Squares/ Orthogonal Descent optimizer.
 
         `zOptimize(numOfCycles,algorithm)->finalMeritFn`
