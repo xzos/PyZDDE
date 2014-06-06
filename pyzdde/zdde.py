@@ -4995,9 +4995,9 @@ class PyZDDE(object):
         nscSettingsData = [float(rs[i]) if i in (3,4,5,6) else int(float(rs[i]))
                                                         for i in range(len(rs))]
         return tuple(nscSettingsData)
-			
-	#set the pickup variables to 0 so that they are not required	
-    def zSetNSCSolve(self, surfaceNumber, objectNumber, parameter, solveType, pickupObject=0, pickupColumn=0, scale=0, offset=0):
+				
+    def zSetNSCSolve(self, surfaceNumber, objectNumber, parameter, solveType, 
+                     pickupObject=0, pickupColumn=0, scale=0, offset=0):
 	"""Sets the solve type on NSC position and parameter data.
 
         zSetNSCSolve(surfaceNumber, objectNumber, parametersolveType,

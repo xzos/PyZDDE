@@ -35,11 +35,12 @@ link.close()
 
 #### Overview
 
-PyZDDE is a Python-based standalone extension for communicating with [ZEMAX] (http://www.radiantzemax.com/) using the DDE protocol. ZEMAX (now OpticStudio) is an optical design and analysis software. PyZDDE is similar to---and very much inspired by---the Matlab-based [MZDDE toolbox] (http://kb-en.radiantzemax.com/KnowledgebaseArticle50204.aspx) developed by Derek Griffith at CSIR. At this point in time PyZDDE is not as extensive as MZDDE. 
+PyZDDE is a Python-based standalone extension for communicating with [ZEMAX] (http://www.radiantzemax.com/) using the DDE protocol. ZEMAX (now OpticStudio) is an optical design and analysis software. PyZDDE is similar to---and very much inspired by---the Matlab-based [MZDDE toolbox] (http://kb-en.radiantzemax.com/KnowledgebaseArticle50204.aspx) developed by Derek Griffith at CSIR. At this point in time PyZDDE is not as extensive as MZDDE; however it contains all the data items defined in the Zemax manual and supports extra functions suitable for interactive work in IPython notebook. 
+
 PyZDDE can be used with regular Python scripts as well as in an interactive environment such as an IPython shell, [QtConsole] (http://ipython.org/ipython-doc/dev/interactive/qtconsole.html) or [IPython Notebook] (http://ipython.org/ipython-doc/dev/interactive/htmlnotebook.html). The ability to interact with ZEMAX from an IPython Notebook using PyZDDE can be a useful tool for teaching, recording thought process during an optical design, design documentation and design presentation/ sharing. PyZDDE is supported on both Python 2.7 and Python 3.3/3.4. It also supports both Unicode and ascii text. 
 
 
-Currently, PyZDDE is a work in progress. All the functions (125 in total) for accessing the ZEMAX "data items" for extensions have been implemented. In addition, there are more than15 helper functions. The following is a sample of the extra helper functions in PyZDDE (more will be added in future):
+Currently, PyZDDE is a work in progress. All the functions (125 in total) for accessing the ZEMAX "data items" for extensions have been implemented. In addition, there are more than 15 helper functions. The following is a sample of the extra helper functions in PyZDDE (more will be added in future):
 
  `zSetTimeout`, `zExecuteZPLMacro`, `zSpiralSpot`, `zGetSeidelAberration`, `zSetFieldTuple`, `zGetFieldTuple`, `zSetWaveTuple`, `zGetWaveTuple`, `zCalculateHiatus`, `zGetPupilMagnification`, `ipzCaptureWindow`, `ipzGetFirst`, `ipzGetPupil`, `ipzGetSystemAper`, `ipzGetTextWindow`.
 

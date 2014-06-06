@@ -285,14 +285,17 @@ class _Operands(object):
     "NPZG": "Non-sequential object position z greater than. See NPXG.",
     "NPZL": "Non-sequential object position z less than. See NPXG.",
     "NPZV": "Non-sequential object position z value. See NPXG.",
-    "NSDC": "Non-sequential coherent data.",
-    "NSDD": "Non-sequential incoherent intensity data.",
+    "NSDC": "Non-sequential coherent data. See also NSDD.",
+    "NSDD": "Non-sequential incoherent intensity (brightness) data. NSDD is used "
+            "to clear detectors and to read out detector data. It is one of the "
+            "most common NSC operands.",
     "NSDE": "Non-sequential Detector Color object data. See also NSDD and NSDP.",
     "NSDP": "Non-sequential Detector Polar object data. See also NSDD and NSDE.",
     "NSRA": "Non-sequential single ray trace.",
     "NSRM": "Non-sequential Rotation Matrix component.",
     "NSST": "Non-sequential single ray trace. See also NSTR.",
-    "NSTR": "Non-sequential trace. See also NSST.",
+    "NSTR": "Non-sequential trace. It is used to trace rays from NSC sources. "
+            "It is one of the most common NSC operands. See also NSST.",
     "NTXG": "Non-sequential object tilt about x greater than. See NPXG.",
     "NTXL": "Non-sequential object tilt about x less than. See NPXG.",
     "NTXV": "Non-sequential object tilt about x value. See NPXG.",
