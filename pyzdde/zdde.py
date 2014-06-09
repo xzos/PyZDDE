@@ -933,21 +933,20 @@ class PyZDDE(object):
 
         Returns
         -------
-        a tuple containing the following items
         aType : integer
             integer codes of aperture types which are:
 
-                - 0 = no aperture (na);
-                - 1 = circular aperture (ca);
-                - 2 = circular obscuration (co);
-                - 3 = spider (s);
-                - 4 = rectangular aperture (ra);
-                - 5 = rectangular obscuration (ro);
-                - 6 = elliptical aperture (ea);
-                - 7 = elliptical obscuration (eo);
-                - 8 = user defined aperture (uda);
-                - 9 = user defined obscuration (udo);
-                - 10 = floating aperture (fa);
+                * 0 = no aperture (na);
+                * 1 = circular aperture (ca);
+                * 2 = circular obscuration (co);
+                * 3 = spider (s);
+                * 4 = rectangular aperture (ra);
+                * 5 = rectangular obscuration (ro);
+                * 6 = elliptical aperture (ea);
+                * 7 = elliptical obscuration (eo);
+                * 8 = user defined aperture (uda);
+                * 9 = user defined obscuration (udo);
+                * 10 = floating aperture (fa);
 
         aMin : float
             min radius(ca); min radius(co); width of arm(s); X-half width(ra);
@@ -1086,7 +1085,6 @@ class PyZDDE(object):
 
         Returns
         -------
-        3-tuple containing the following elements:
         currentConfig : integer
             current configuration (column) number in MCE
         numberOfConfigs : integer
@@ -1281,19 +1279,21 @@ class PyZDDE(object):
 
         Returns
         -------
-        firstOrderData : 5-tuple
-            firstOrderData tuple contain the following elements:
-
-              - focal : Effective Focal Length (EFL) in lens units,
-              - pwfn : paraxial working F/#,
-              - rwfn : real working F/#,
-              - pima : paraxial image height, and
-              - pmag : paraxial magnification.
+        focal : float
+            Effective Focal Length (EFL) in lens units,
+        pwfn : float
+            paraxial working F/#,
+        rwfn : float
+            real working F/#,
+        pima : float
+            paraxial image height, and
+        pmag : float
+            paraxial magnification.
 
         See Also
         --------
         zGetSystem() :
-            Use ``zGetSystem()`` to get general system data
+            Use ``zGetSystem()`` to get general system data,
         zGetSystemProperty()
         """
         fd = _co.namedtuple('firstOrderData',
@@ -1480,7 +1480,6 @@ class PyZDDE(object):
     def _zGetMode(self):
         """Returns the mode (Sequential, Non-sequential or Mixed) of the current
         lens in the DDE server
-
 
         Parameters
         ----------
@@ -2065,17 +2064,22 @@ class PyZDDE(object):
 
         Returns
         -------
-        nscSettingsData : 8-tuple
-            the sncSettingsData tuple contains the following elements:
-
-              - maxInt     : (integer) maximum number of intersections
-              - maxSeg     : (integer) maximum number of segments
-              - maxNest    : (integer) maximum nesting level
-              - minAbsI    : (float) minimum absolute intensity
-              - minRelI    : (float) minimum relative intensity
-              - glueDist   : (float) glue distance
-              - missRayLen : (float) miss ray distance
-              - ignoreErr  : (integer) 1 if true, 0 if false
+        maxInt : integer
+            maximum number of intersections
+        maxSeg : integer
+            maximum number of segments
+        maxNest : integer
+            maximum nesting level
+        minAbsI : float
+            minimum absolute intensity
+        minRelI : float
+            minimum relative intensity
+        glueDist : float
+            glue distance
+        missRayLen : float
+            miss ray distance
+        ignoreErr : integer
+            1 if true, 0 if false
 
         See Also
         --------
@@ -2215,15 +2219,16 @@ class PyZDDE(object):
 
         Returns
         -------
-        polStateData : 5-tuple
-            polStateData tuple contains the following elements:
-
-                - nlsPol : if ``nlsPol > 0``, then default polarization
-                           state is unpolarized (integer)
-                - Ex : normalized electric field magnitude in x direction (float)
-                - Ey : normalized electric field magnitude in y direction (float)
-                - Phax : relative phase in x direction in degrees (float)
-                - Phay : relative phase in y direction in degrees (float)
+        nlsPol : integer
+            if ``nlsPol > 0``, then default polarization state is unpolarized
+        Ex : float
+            normalized electric field magnitude in x direction
+        Ey : float
+            normalized electric field magnitude in y direction
+        Phax : float
+            relative phase in x direction in degrees
+        Phay : float
+            relative phase in y direction in degrees
 
         Notes
         -----
@@ -2404,30 +2409,37 @@ class PyZDDE(object):
 
         Returns
         -------
-        pupilData: tuple
-            the pupilData tuple contains the following elements:
+        aType : integer 
+            the system aperture de*ined as follows:
 
-                - aType              : integer indicating the system aperture
-                    -                 0 = entrance pupil diameter
-                    -                 1 = image space F/#
-                    -                 2 = object space NA
-                    -                 3 = float by stop
-                    -                 4 = paraxial working F/#
-                    -                 5 = object cone angle
-                - value              : if aperture ``type == float`` by stop
-                                         value is "stop surface semi-diameter"
-                                       else
-                                         value is the "sytem aperture"
-                - ENPD               : entrance pupil diameter (in lens units)
-                - ENPP               : entrance pupil position (in lens units)
-                - EXPD               : exit pupil diameter (in lens units)
-                - EXPP               : exit pupil position (in lens units)
-                - apodization_type   : integer indicating the following types
-                    -                 0 = none
-                    -                 1 = Gaussian
-                    -                 2 = Tangential/Cosine cubed
-                - apodization_factor : number shown on general data dialog box.
+                * 0 = entrance pupil diameter
+                * 1 = image space F/#
+                * 2 = object space NA
+                * 3 = float by stop
+                * 4 = paraxial working F/#
+                * 5 = object cone angle
 
+        value : float
+            the ``value`` is "stop surface semi-diameter" if 
+            ``aperture type == float by stop`` else ``value`` is the 
+            "sytem aperture"
+        ENPD : float
+            entrance pupil diameter (in lens units)
+        ENPP : float 
+            entrance pupil position (in lens units)
+        EXPD : float 
+            exit pupil diameter (in lens units)
+        EXPP : float 
+            exit pupil position (in lens units)
+        apodization_type : integer 
+            the apodization type is indicated as follows:
+
+                * 0 = none
+                * 1 = Gaussian
+                * 2 = Tangential/Cosine cubed
+
+        apodization_factor : float
+            number shown on general data dialog box
         """
         reply = self._sendDDEcommand('GetPupil')
         rs = reply.split(',')
@@ -2436,24 +2448,28 @@ class PyZDDE(object):
         return pupilData
 
     def zGetRefresh(self):
-        """Copy the lens data from the LDE into the stored copy of the ZEMAX
-        server.The lens is then updated, and ZEMAX re-computes all data.
+        """Copy lens data from the LDE into the Zemax server
 
-        zGetRefresh() -> status
+        The lens is updated and Zemax re-computes all data.
 
         Parameters
-        ---------
+        ----------
         None
 
         Returns
         -------
-        status:    0 if successful,
-                  -1 if ZEMAX could not copy the lens data from LDE to the server
-                -998 if the command times out (Note MZDDE returns -2)
+        status : integer (0, -1, or -998)   
+            0 if successful; 
+            -1 if Zemax could not copy the lens data from LDE to the server;
+            -998 if the command times out (Note MZDDE returns -2)
+        
+        Notes
+        -----
+        If ``zGetRefresh()`` returns -1, no ray tracing can be performed.
 
-        If zGetRefresh() returns -1, no ray tracing can be performed.
-
-        See also zGetUpdate, zPushLens.
+        See Also 
+        --------
+        zGetUpdate(), zPushLens()
         """
         reply = None
         reply = self._sendDDEcommand('GetRefresh')
@@ -2462,24 +2478,24 @@ class PyZDDE(object):
         else:
             return -998
 
-    def zGetSag(self,surfaceNumber,x,y):
-        """Returns the sag of the surface with the number `surfaceNumber`, at
-        `x` and `y` coordinates on the surface. The returned `sag` and the
-        coordinates `x` and `y` are in lens units.
-
-        zGetSag(surfaceNumber,x,y)->sagTuple
+    def zGetSag(self, surfaceNumber, x, y):
+        """Return the sag of the surface at coordinates (x,y) in lens units
 
         Parameters
         ----------
-          surfaceNumber : (integer) surface number
-          x             : (float) x coordinate in lens units
-          y             : (float) y coordinate in lens units
+        surfaceNumber : integer 
+            surface number
+        x : float
+            x coordinate in lens units
+        y : float
+            y coordinate in lens units
 
         Returns
         -------
-        sagTuple is a 2-tuple containing the following elements
-          sag           : (float) sag of the surface at (x,y) in lens units
-          alternateSag  : (float) altenate sag
+        sag : float 
+            sag of the surface at (x,y) in lens units
+        alternateSag : float
+            alternate sag
         """
         cmd = "GetSag,{:d},{:1.20g},{:1.20g}".format(surfaceNumber,x,y)
         reply = self._sendDDEcommand(cmd)
@@ -2487,59 +2503,64 @@ class PyZDDE(object):
         return (float(sagData[0]),float(sagData[1]))
 
     def zGetSequence(self):
-        """Returns the sequence number of the lens in the Server's memory, and
-        the sequence number of the lens in the LDE in a 2-tuple.
-
-        zGetSequence()->sequenceNumbers
+        """Returns the sequence numbers of the lens in the server and in the LDE
 
         Parameters
-        ---------
+        ----------
         None
 
         Returns
         -------
-        sequenceNumbers : 2-tuple containing the sequence numbers
+        seqNum_lenServ : float
+            sequence number of lens in server
+        seqNum_lenLDE : float
+            sequence number of lens in LDE
         """
         reply = self._sendDDEcommand("GetSequence")
         seqNum = reply.rsplit(",")
         return (float(seqNum[0]),float(seqNum[1]))
 
     def zGetSerial(self):
-        """Get the serial number
+        """Get the serial number of the running Zemax application
 
         Parameters
-        ---------
+        ----------
         None
 
         Returns
-        ------
-        serial number
+        -------
+        serial number : integer
+            serial number
         """
         reply = self._sendDDEcommand('GetSerial')
         return int(reply.rstrip())
 
-    def zGetSettingsData(self,tempFile,number):
-        """Returns the settings data used by a window.
+    def zGetSettingsData(self, tempFile, number):
+        """Returns the settings data used by a window
 
-        The data must have been previously stored by a call to zSetSettingsData()
-        or the data may have been stored by a previous execution of the client
+        The data must have been previously stored by a call to 
+        ``zSetSettingsData()`` or by a previous execution of the client
         program.
-
-        zGetSettingsData(tempFile,number)->settingsData
 
         Parameters
         ----------
-        tempfile  : the name of the output file passed by ZEMAX to the client.
-                    ZEMAX uses this name to identify for which window the
-                    zGetSettingsData() request is for.
-        number    : the data number used by the previous zSetSettingsData call.
-                    Currently, only number = 0 is supported.
+        tempfile : string
+            the name of the output file passed by Zemax to the client. Zemax 
+            uses this name to identify for the window for which the 
+            ``zGetSettingsData()`` request is for.
+        number : integer
+            the data number used by the previous ``zSetSettingsData()`` call.
+            Currently, only ``number = 0`` is supported.
+        
         Returns
         -------
-        settingsData : (string)  the string that was saved by a previous
-                       zSetSettingsData() function for the window & number.
+        settingsData : string 
+            data saved by a previous ``zSetSettingsData()`` call for the 
+            ``window`` and ``number``.
 
-        See also zSetSettingsData
+        See Also
+        -------- 
+        zSetSettingsData()
         """
         cmd = "GetSettingsData,{},{:d}".format(tempFile,number)
         reply = self._sendDDEcommand(cmd)
