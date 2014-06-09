@@ -6355,6 +6355,113 @@ class PyZDDE(object):
             _deleteFile(textFileName)
         return hiatus
 
+		
+    def zGetPOP(self, txtFileName2Use=None, keepFile=False, configFileName=None):
+        """Get Physical Optics Propagation information
+
+        zGetPOP([txtFileName2Use,keepFile])-> values from the Physical Optics Propagation
+
+        Parameters
+        ----------
+        txtFileName2Use : (optional, string) If passed, the POP analysis file
+                          will be named such. Pass a specific txtFileName if
+                          you want to dump the file into a separate directory.
+        keepFile        : (optional, bool) If false (default), the prescription
+                          file will be deleted after use. If true, the file
+                          will persist.
+        configFileName  : (optional, string) If passed, the POP will be called
+                          with this configuration file 
+        Returns
+        -------  
+        peakIrradiance    : The peak irradiance is the maximum power per unit 
+                            area at any point in the beam. Irradiance is 
+                            measured in Source Units per lens unit squared
+        totalPower        : The total power, or the integral of the irradiance
+                            over the entire beam
+        fiberEfficiency_system  : The efficiency of power transfer through the 
+                                    system.
+        fiberEfficiency_receiver : The efficiency of the receiving fiber
+        coupling            : The total coupling efficiency, the product of the 
+                              system and receiver efficiencies 
+          
+        pilotSize       : The size of the gaussian beam at the surface 
+        pilotWaist      : The waist of the gaussian beam
+        pos             : Relative z position of the gaussian beam
+        rayleigh        : The rayleigh range of the gaussian beam    
+        powerGrid       : a two-dimensional list of the powers in the analysis
+                          grid                         
+        """
+        if txtFileName2Use != None:
+            textFileName = txtFileName2Use
+        else:
+            cd = _os.path.dirname(_os.path.realpath(__file__))
+            textFileName = cd +"\\"+"popInfo.txt"
+        getTextFlag = 0
+        if configFileName:
+            getTextFlag = 1
+        ret = self.zGetTextFile(textFileName, 'Pop', configFileName, getTextFlag)
+        assert ret == 0
+	
+        # The number of lines in the file will be equal to the Y dimension of the grid
+        line_list = _readLinesFromFile(_openFile(textFileName))
+        
+        peakIrradiance = 0.0
+        totalPower = 0.0
+        #print(type(line_list[12]))
+        if line_list[12]:
+            peakIrradiance = line_list[12].split("=")[1]
+            peakIrradiance = peakIrradiance.split("Watts")[0]
+            peakIrradiance = float(peakIrradiance)
+            
+            totalPower = line_list[12].split("=")[2]
+            totalPower = totalPower.split("Watts")[0]
+            totalPower = float(totalPower)
+        
+        fiberEfficiency_system = 0.0
+        fiberEfficiency_receiver = 0.0 
+        coupling = 0.0
+        
+        if line_list[13]:
+            fiberEfficiency_system = line_list[13].split("System")[1]
+            fiberEfficiency_system = fiberEfficiency_system.split(",")[0]
+            fiberEfficiency_system = float(fiberEfficiency_system)
+            fiberEfficiency_receiver = line_list[13].split("Receiver")[1]
+            fiberEfficiency_receiver = fiberEfficiency_receiver.split(",")[0]
+            fiberEfficiency_receiver = float(fiberEfficiency_receiver)
+            coupling = line_list[13].split("Coupling")[1]
+            coupling = float(coupling)
+                        
+        pilotSize = 0.0
+        pilotWaist = 0.0
+        pos = 0.0
+        rayleigh = 0.0
+        
+        if line_list[14]:
+            pilotSize = line_list[14].split("=")[1]
+            pilotSize = pilotSize.split(",")[0]
+            pilotSize = float(pilotSize)
+            pilotWaist = line_list[14].split("=")[2]
+            pilotWaist = pilotWaist.split(",")[0]
+            pilotWaist = float(pilotWaist)
+            pos = line_list[14].split("=")[3]
+            pos = pos.split(",")[0]
+            pos = float(pos)
+            rayleigh = line_list[14].split("=")[4]
+            rayleigh = float(rayleigh)
+
+        yGridSize = len(line_list)-16
+        xGridSize = len(line_list[16].split('\t'))
+        powerGrid = [[0 for x in xrange(xGridSize)] for x in xrange(yGridSize)]
+        for i in range(0,yGridSize):
+            row = line_list[i+16].split('\t')
+            for j in range(0,xGridSize):
+                   powerGrid[i][j] = float(row[j])
+                   
+        if not keepFile:
+            _deleteFile(textFileName)
+        return [peakIrradiance, totalPower,fiberEfficiency_system,fiberEfficiency_receiver, 
+coupling,pilotSize,pilotWaist,pos,rayleigh,powerGrid]
+	
     def zGetPupilMagnification(self):
         """Return the pupil magnification, which is the ratio of the exit-pupil
         diameter to the entrance pupil diameter.
