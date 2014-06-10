@@ -324,6 +324,29 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.link0.zSetSurfaceData(1,4,'GRINSUR1')
         self.assertEqual(glass, None)
 
+    def test_zGetPOP(self):
+        print("\nTest: zGetPOP()")
+        global zmxfp
+        filename = zmxfp+lensFileName
+        configFilename = zmxfp+popSettingsFileName
+        ret = self.link0.zLoadFile(filename)
+        assert ret == 0   # This is not a unit-test assert.
+        results = self.link0.zGetPOP(None, False, configFilename)
+        print(configFilename)
+        self.assertEqual(results[0],0.075032)
+        self.assertEqual(results[1],0.94421)
+        self.assertEqual(results[2],0.944211)
+        self.assertEqual(results[3],0.043829)
+        self.assertEqual(results[4],0.041384)
+        self.assertEqual(results[5],2.8283)
+        self.assertEqual(results[6],0.0036082)
+        self.assertEqual(results[7],66.792)
+        self.assertEqual(results[8],0.08521)
+        self.assertIsInstance(results[9],list)
+        self.assertEqual(len(results[9]),128)
+        if TestPyZDDEFunctions.pRetVar:
+            print('zGetPop test successful')
+
     def test_zGlobalMatrix(self):
         print("\nTEST: zGetGlobalMatrix()")
         global zmxfp
