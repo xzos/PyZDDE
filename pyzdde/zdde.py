@@ -2409,7 +2409,7 @@ class PyZDDE(object):
 
         Returns
         -------
-        aType : integer 
+        aType : integer
             the system aperture de*ined as follows:
 
                 * 0 = entrance pupil diameter
@@ -2420,18 +2420,18 @@ class PyZDDE(object):
                 * 5 = object cone angle
 
         value : float
-            the ``value`` is "stop surface semi-diameter" if 
-            ``aperture type == float by stop`` else ``value`` is the 
+            the ``value`` is "stop surface semi-diameter" if
+            ``aperture type == float by stop`` else ``value`` is the
             "sytem aperture"
         ENPD : float
             entrance pupil diameter (in lens units)
-        ENPP : float 
+        ENPP : float
             entrance pupil position (in lens units)
-        EXPD : float 
+        EXPD : float
             exit pupil diameter (in lens units)
-        EXPP : float 
+        EXPP : float
             exit pupil position (in lens units)
-        apodization_type : integer 
+        apodization_type : integer
             the apodization type is indicated as follows:
 
                 * 0 = none
@@ -2458,16 +2458,16 @@ class PyZDDE(object):
 
         Returns
         -------
-        status : integer (0, -1, or -998)   
-            0 if successful; 
+        status : integer (0, -1, or -998)
+            0 if successful;
             -1 if Zemax could not copy the lens data from LDE to the server;
             -998 if the command times out (Note MZDDE returns -2)
-        
+
         Notes
         -----
         If ``zGetRefresh()`` returns -1, no ray tracing can be performed.
 
-        See Also 
+        See Also
         --------
         zGetUpdate(), zPushLens()
         """
@@ -2483,7 +2483,7 @@ class PyZDDE(object):
 
         Parameters
         ----------
-        surfaceNumber : integer 
+        surfaceNumber : integer
             surface number
         x : float
             x coordinate in lens units
@@ -2492,7 +2492,7 @@ class PyZDDE(object):
 
         Returns
         -------
-        sag : float 
+        sag : float
             sag of the surface at (x,y) in lens units
         alternateSag : float
             alternate sag
@@ -2538,28 +2538,28 @@ class PyZDDE(object):
     def zGetSettingsData(self, tempFile, number):
         """Returns the settings data used by a window
 
-        The data must have been previously stored by a call to 
+        The data must have been previously stored by a call to
         ``zSetSettingsData()`` or by a previous execution of the client
         program.
 
         Parameters
         ----------
         tempfile : string
-            the name of the output file passed by Zemax to the client. Zemax 
-            uses this name to identify for the window for which the 
+            the name of the output file passed by Zemax to the client. Zemax
+            uses this name to identify for the window for which the
             ``zGetSettingsData()`` request is for.
         number : integer
             the data number used by the previous ``zSetSettingsData()`` call.
             Currently, only ``number = 0`` is supported.
-        
+
         Returns
         -------
-        settingsData : string 
-            data saved by a previous ``zSetSettingsData()`` call for the 
+        settingsData : string
+            data saved by a previous ``zSetSettingsData()`` call for the
             ``window`` and ``number``.
 
         See Also
-        -------- 
+        --------
         zSetSettingsData()
         """
         cmd = "GetSettingsData,{},{:d}".format(tempFile,number)
@@ -3652,12 +3652,13 @@ class PyZDDE(object):
         -------
         None
 
-        Example
-        -------
+        Examples
+        --------
         A sample item string might look like the following:
 
-        zMakeGraphicWindow('C:\TEMP\ZGF001.TMP','C:\ZEMAX\FEATURES\CLIENT.EXE',
-                           'ClientWindow',1,"0 1 2 12.55")
+        >>> ln.zMakeGraphicWindow('C:\TEMP\ZGF001.TMP',
+                                  'C:\ZEMAX\FEATURES\CLIENT.EXE',
+                                  'ClientWindow', 1, "0 1 2 12.55")
 
         This call indicates that ZEMAX should open a graphic window, display the
         data stored in the file 'C:\TEMP\ZGF001.TMP', and that any updates or
@@ -3676,11 +3677,11 @@ class PyZDDE(object):
         return str(reply.rstrip())
         # FIX !!! What is the appropriate reply?
 
-    def zMakeTextWindow(self,fileName,moduleName,winTitle,settingsData=None):
-        """Notifies ZEMAX that text data has been written to a file and may now
-        be displayed as a ZEMAX child window. The primary purpose of this item
+    def zMakeTextWindow(self, fileName, moduleName, winTitle, settingsData=None):
+        """Notifies Zemax that text data has been written to a file and may now
+        be displayed as a Zemax child window. The primary purpose of this item
         is to implement user defined features in a client application, that look
-        and act like native ZEMAX features.
+        and act like native Zemax features.
 
         There are two ways of using this command:
 
@@ -3699,20 +3700,20 @@ class PyZDDE(object):
                        arguments, if any.
         moduleName   : the full path and executable name of the client program
                        that created the text data.
-        winTitle     : the string which defines the title ZEMAX should place in
+        winTitle     : the string which defines the title Zemax should place in
                        the top bar of the window.
         settingsData : The settings data is a string of values delimited by
                        spaces (not commas) which are used by the client to define
                        how the data was generated. These values are only used
-                       by the client, not by ZEMAX. The settings data string
+                       by the client, not by Zemax. The settings data string
                        holds the options and data that would normally appear in
-                       a ZEMAX "settings" style dialog box. The settings data
+                       a Zemax "settings" style dialog box. The settings data
                        should be used to recreate the data if required. Because
                        the total length of a data item cannot exceed 255
                        characters, the function zSetSettingsData() may be used
                        prior to the call to zMakeTextWindow() to specify the
                        settings data string rather than including the data as
-                       part of zMakeTextWindow(). See "How ZEMAX calls the
+                       part of zMakeTextWindow(). See "How Zemax calls the
                        client" in the manual for more details on the settings
                        data.
 
@@ -3721,7 +3722,7 @@ class PyZDDE(object):
         zMakeTextWindow('C:\TEMP\ZGF002.TMP','C:\ZEMAX\FEATURES\CLIENT.EXE',
                            'ClientWindow',"6 5 4 12.55")
 
-        This call indicates that ZEMAX should open a text window, display the
+        This call indicates that Zemax should open a text window, display the
         data stored in the file 'C:\TEMP\ZGF002.TMP', and that any updates or
         setting changes can be made by calling the client module
         'C:\ZEMAX\FEATURES\CLIENT.EXE'. The settingsdata string (used only by the
@@ -3738,28 +3739,33 @@ class PyZDDE(object):
         # FIX !!! What is the appropriate reply?
 
     def zModifySettings(self, fileName, mType, value):
-        """Used to change specific options in ZEMAX settings files.
+        """change specific options in Zemax settings files (.CFG)
 
-        The settings files are used by `zMakeTextWindow` and `zMakeGraphicWindow`
-
-        `zModifySettings(fileName,mType,value)->status`
+        Settings files are used by ``zMakeTextWindow()`` & ``zMakeGraphicWindow()``.
+        The modified settings file is written back to the original settings fileName.
 
         Parameters
         ----------
-        fileName : The full name of the settings file, including the path.
-        mType    : a mnemonic that defines what option value is being modified.
-                   The valid values for type are as defined in the ZPL macro
-                   command `MODIFYSETTINGS` that serves the same function as
-                   `zModifySettings()` does for extensions. See `MODIFYSETTINGS`
-                   in the Zemax manual for a complete list of the type codes.
-        value    : value (can be String or Integer)
+        fileName : string
+            full name of the settings file, including the path & extension
+        mType : string
+            a mnemonic that indicates which setting within the file is to be 
+            modified. See the ZPL macro command "MODIFYSETTINGS" in the Zemax 
+            manual for a complete list of the ``mType`` codes
+        value : string/integer
+            the new data for the specified setting
 
         Returns
         -------
-        status :  0 = no error
-                 -1 = invalid file
-                 -2 = incorrect version number
-                 -3 = file access conflict
+        status : integer
+            0 = no error;
+            -1 = invalid file;
+            -2 = incorrect version number;
+            -3 = file access conflict
+
+        Examples
+        --------
+        >>> ln.zModifySettings("C:\MyPOP.CFG", "POP_BEAMTYPE", 2)
         """
         if isinstance(value, str):
             cmd = "ModifySettings,{},{},{}".format(fileName,mType,value)
@@ -3769,12 +3775,19 @@ class PyZDDE(object):
         return int(float(reply.rstrip()))
 
     def zNewLens(self):
-        """Erases the current lens.
+        """erases the current lens
 
-        The "minimum" lens that remains is identical to the lens Data Editor
-        when "File,New" is selected. No prompt to save the existing lens is given.
+        The "minimum" lens that remains is identical to the LDE when "File>>New" 
+        is selected. No prompt to save the existing lens is given
 
-        zNewLens-> retVal (retVal = 0 means successful)
+        Parameters
+        ---------- 
+        None
+
+        Returns
+        ------- 
+        status : integer
+            0 = successful
         """
         return int(self._sendDDEcommand('NewLens'))
 
@@ -5016,8 +5029,8 @@ class PyZDDE(object):
         nscSettingsData = [float(rs[i]) if i in (3,4,5,6) else int(float(rs[i]))
                                                         for i in range(len(rs))]
         return tuple(nscSettingsData)
-				
-    def zSetNSCSolve(self, surfaceNumber, objectNumber, parameter, solveType, 
+
+    def zSetNSCSolve(self, surfaceNumber, objectNumber, parameter, solveType,
                      pickupObject=0, pickupColumn=0, scale=0, offset=0):
 	"""Sets the solve type on NSC position and parameter data.
 
@@ -5898,12 +5911,14 @@ class PyZDDE(object):
             wavelength : value of the specific wavelength (floating point)
             weight     : weight of the specific wavelength (floating point)
 
-        Note
+        Notes
         -----
         The returned tuple is exactly same in structure and contents to that
         returned by zGetWave().
 
-        See also zGetWave(), zSetPrimaryWave(), zSetWaveTuple(), zGetWaveTuple().
+        See Also
+        --------
+        zGetWave(), zSetPrimaryWave(), zSetWaveTuple(), zGetWaveTuple()
         """
         if n:
             cmd = "SetWave,{:d},{:1.20g},{:1.20g}".format(n,arg1,arg2)
@@ -6080,8 +6095,8 @@ class PyZDDE(object):
         1 : success with warning
         -1: failure
 
-        Notes:
-        ------
+        Notes
+        -----
         1. WARNING: this function implementation is not yet complete.
             * Note all surfaces have been implemented
             * ignoreSurface option has not been implemented yet.
@@ -6355,113 +6370,6 @@ class PyZDDE(object):
             _deleteFile(textFileName)
         return hiatus
 
-		
-    def zGetPOP(self, txtFileName2Use=None, keepFile=False, configFileName=None):
-        """Get Physical Optics Propagation information
-
-        zGetPOP([txtFileName2Use,keepFile])-> values from the Physical Optics Propagation
-
-        Parameters
-        ----------
-        txtFileName2Use : (optional, string) If passed, the POP analysis file
-                          will be named such. Pass a specific txtFileName if
-                          you want to dump the file into a separate directory.
-        keepFile        : (optional, bool) If false (default), the prescription
-                          file will be deleted after use. If true, the file
-                          will persist.
-        configFileName  : (optional, string) If passed, the POP will be called
-                          with this configuration file 
-        Returns
-        -------  
-        peakIrradiance    : The peak irradiance is the maximum power per unit 
-                            area at any point in the beam. Irradiance is 
-                            measured in Source Units per lens unit squared
-        totalPower        : The total power, or the integral of the irradiance
-                            over the entire beam
-        fiberEfficiency_system  : The efficiency of power transfer through the 
-                                    system.
-        fiberEfficiency_receiver : The efficiency of the receiving fiber
-        coupling            : The total coupling efficiency, the product of the 
-                              system and receiver efficiencies 
-          
-        pilotSize       : The size of the gaussian beam at the surface 
-        pilotWaist      : The waist of the gaussian beam
-        pos             : Relative z position of the gaussian beam
-        rayleigh        : The rayleigh range of the gaussian beam    
-        powerGrid       : a two-dimensional list of the powers in the analysis
-                          grid                         
-        """
-        if txtFileName2Use != None:
-            textFileName = txtFileName2Use
-        else:
-            cd = _os.path.dirname(_os.path.realpath(__file__))
-            textFileName = cd +"\\"+"popInfo.txt"
-        getTextFlag = 0
-        if configFileName:
-            getTextFlag = 1
-        ret = self.zGetTextFile(textFileName, 'Pop', configFileName, getTextFlag)
-        assert ret == 0
-	
-        # The number of lines in the file will be equal to the Y dimension of the grid
-        line_list = _readLinesFromFile(_openFile(textFileName))
-        
-        peakIrradiance = 0.0
-        totalPower = 0.0
-        #print(type(line_list[12]))
-        if line_list[12]:
-            peakIrradiance = line_list[12].split("=")[1]
-            peakIrradiance = peakIrradiance.split("Watts")[0]
-            peakIrradiance = float(peakIrradiance)
-            
-            totalPower = line_list[12].split("=")[2]
-            totalPower = totalPower.split("Watts")[0]
-            totalPower = float(totalPower)
-        
-        fiberEfficiency_system = 0.0
-        fiberEfficiency_receiver = 0.0 
-        coupling = 0.0
-        
-        if line_list[13]:
-            fiberEfficiency_system = line_list[13].split("System")[1]
-            fiberEfficiency_system = fiberEfficiency_system.split(",")[0]
-            fiberEfficiency_system = float(fiberEfficiency_system)
-            fiberEfficiency_receiver = line_list[13].split("Receiver")[1]
-            fiberEfficiency_receiver = fiberEfficiency_receiver.split(",")[0]
-            fiberEfficiency_receiver = float(fiberEfficiency_receiver)
-            coupling = line_list[13].split("Coupling")[1]
-            coupling = float(coupling)
-                        
-        pilotSize = 0.0
-        pilotWaist = 0.0
-        pos = 0.0
-        rayleigh = 0.0
-        
-        if line_list[14]:
-            pilotSize = line_list[14].split("=")[1]
-            pilotSize = pilotSize.split(",")[0]
-            pilotSize = float(pilotSize)
-            pilotWaist = line_list[14].split("=")[2]
-            pilotWaist = pilotWaist.split(",")[0]
-            pilotWaist = float(pilotWaist)
-            pos = line_list[14].split("=")[3]
-            pos = pos.split(",")[0]
-            pos = float(pos)
-            rayleigh = line_list[14].split("=")[4]
-            rayleigh = float(rayleigh)
-
-        yGridSize = len(line_list)-16
-        xGridSize = len(line_list[16].split('\t'))
-        powerGrid = [[0 for x in xrange(xGridSize)] for x in xrange(yGridSize)]
-        for i in range(0,yGridSize):
-            row = line_list[i+16].split('\t')
-            for j in range(0,xGridSize):
-                   powerGrid[i][j] = float(row[j])
-                   
-        if not keepFile:
-            _deleteFile(textFileName)
-        return [peakIrradiance, totalPower,fiberEfficiency_system,fiberEfficiency_receiver, 
-coupling,pilotSize,pilotWaist,pos,rayleigh,powerGrid]
-	
     def zGetPupilMagnification(self):
         """Return the pupil magnification, which is the ratio of the exit-pupil
         diameter to the entrance pupil diameter.
@@ -7049,6 +6957,47 @@ def fnum2numAper(fn, ri=1.0):
     """
     return ri*_math.sin(_math.atan(1.0/(2.0*fn)))
 
+def fresnelNumber(r, z, wl=550e-6, approx=False):
+    """calculate the fresnel number 
+    
+    Parameters
+    ----------
+    r : float
+        radius of the aperture in units of length (usually mm)
+    z : float
+        distance of the observation plane from the aperture. this is equal 
+        to the focal length of the lens for infinite conjugate, or the image 
+        plane distance, in the same units of length as ``r``
+    wl : float
+        wavelength of light (default=550e-6 mm)
+    approx : boolean
+        if True, uses the approximate expression (default is False)
+    
+    Returns
+    -------
+    fN : float
+        fresnel number
+    
+    Notes
+    -----
+    1. The Fresnel number is calculated based on a circular aperture or a 
+       an unaberrated rotationally symmetric beam with finite extent [Zemax]_.
+    2. From the Huygens-Fresnel principle perspective, the Fresnel number 
+       represents the number of annular Fresnel zones in the aperture opening 
+       [Wolf2011]_, or from the center of the beam to the edge in case of a
+       propagating beam [Zemax]_. 
+
+    References
+    ----------
+    .. [Zemax] Zemax manual
+
+    .. [Born&Wolf2011] Principles of Optics, Born and Wolf, 2011
+    """
+    if approx:
+        return (r**2)/(wl*z)
+    else:
+        return 2.0*(math.sqrt(z**2 + r**2) - z)/wl
+
 # ***************************************************************************
 # Helper functions to process data from ZEMAX DDE server. This is especially
 # convenient for processing replies from Zemax for those function calls that
@@ -7249,7 +7198,7 @@ def _getDecodedLineFromFile(fileObj):
     global _global_in_IPython_env
 
     # I am not exactly sure why there is a difference in behavior
-    # between IPython environmnet and normal Python shell, but it is there!
+    # between IPython environment and normal Python shell, but it is there!
     if _global_in_IPython_env:
         unicode_type = 'utf-16-le'
     else:

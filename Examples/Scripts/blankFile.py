@@ -27,10 +27,10 @@ if PyZDDEPath not in sys.path:
 import pyzdde.zdde as pyz
 
 # Create a DDE link object
-link = pyz.createLink()
+ln = pyz.createLink()
 try:
     # Write your code to interact with Zemax, for example
-    zemaxVer = link.zGetVersion()
+    zemaxVer = ln.zGetVersion()
     print("Zemax version: ", zemaxVer)
 
 
@@ -39,4 +39,4 @@ except Exception, err:
     traceback.print_exc()
 finally:
     #Close DDE link
-    link.zDDEClose()
+    ln.zDDEClose()

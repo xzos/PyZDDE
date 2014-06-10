@@ -162,9 +162,9 @@ root.mainloop()
 #end of Tikinter GUI code
 
 # Create a DDE channel object
-pyZmLnk = pyzdde.PyZDDE()
+ln = pyzdde.PyZDDE()
 #Initialize the DDE link
-stat = pyZmLnk.zDDEInit()
+stat = ln.zDDEInit()
 
 #Get all the zemax files in the directories recursively
 pattern = "*.zmx"
@@ -202,7 +202,7 @@ for lens_file in filenames:
     if fDBG_PRINT:
         print("Lens file: ",lens_file)
     #Load the lens in to the Zemax DDE server
-    ret = pyZmLnk.zLoadFile(lens_file)
+    ret = ln.zLoadFile(lens_file)
     if ret != 0:
         print(ret, lens_file, " Couldn't open!")
         filesNotLoaded.append(lens_file)
@@ -212,7 +212,7 @@ for lens_file in filenames:
     #In order to maintain the units, set the units to mm for all lenses. Also
     #ensure that the global reference surface for all lenses is set to surface 1,
     #all other system settings should remain same.
-    recSystemData_g = pyZmLnk.zGetSystem() #Get the current system parameters
+    recSystemData_g = ln.zGetSystem() #Get the current system parameters
     numSurf       = recSystemData_g[0]
     unitCode      = recSystemData_g[1]  # lens units code (0,1,2,or 3 for mm, cm, in, or M)
     stopSurf      = recSystemData_g[2]
@@ -223,32 +223,32 @@ for lens_file in filenames:
     pressure      = recSystemData_g[7]
     globalRefSurf = recSystemData_g[8]
     #Set the system parameters
-    recSystemData_s = pyZmLnk.zSetSystem(0,stopSurf,rayAimingType,0,temp,pressure,1)
+    recSystemData_s = ln.zSetSystem(0,stopSurf,rayAimingType,0,temp,pressure,1)
 
     #Scale lens to a normalized EFFL
     scaleFactor = 1.00
     if SCALE_LENSES:
         #Get first order EFL
-        efl = pyZmLnk.zGetFirst()[0]
+        efl = ln.zGetFirst()[0]
         #Determine scale factor
         scaleFactor = abs(NORMALIZATION_EFL/efl)
         if fDBG_PRINT:
             print("EFFL: ",efl," Scale Factor: ", scaleFactor)
         #Scale Lens
-        ret_ls = pyZmLnk.zLensScale(scaleFactor)
+        ret_ls = ln.zLensScale(scaleFactor)
 
         if ret_ls == -1:  # Lens scale failure, don't bother to calculate hiatus
             print("Lens scaling failed for: ",lens_file)
             continue
 
     #Update the lens
-    #ret = pyZmLnk.zGetUpdate() ... I don't think the designs should be updated...
+    #ret = ln.zGetUpdate() ... I don't think the designs should be updated...
     #as we don't need to re-optimize, etc.
     #assert ret == 0
     textFileName = exampleDirectory + '\\' + "searchSpecAttr_Prescription.txt"
 
     #Get the Hiatus for the lens design
-    hiatus = pyZmLnk.zCalculateHiatus(textFileName,keepFile=False)
+    hiatus = ln.zCalculateHiatus(textFileName,keepFile=False)
 
     if hiatus > HIATUS_UPPER_LIMIT:
         continue
@@ -263,7 +263,7 @@ for lens_file in filenames:
     scaleFactorData[os.path.basename(lens_file)] = scaleFactor
 
 #Close the DDE channel before processing the dictionary.
-pyZmLnk.zDDEClose()
+ln.zDDEClose()
 
 if fDBG_PRINT:
     print("Hiatus data dictionary:\n", hiatusData)
