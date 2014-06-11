@@ -23,7 +23,8 @@ import subprocess as _subprocess
 import math as _math
 import time as _time
 import datetime as _datetime
-#import warnings as _warnings
+import re as _re
+# import warnings as _warnings
 import codecs as _codecs
 # Try to import IPython if it is available (for notebook helper functions)
 try:
@@ -6372,120 +6373,151 @@ class PyZDDE(object):
             _deleteFile(textFileName)
         return hiatus
 
-
     def zGetPOP(self, txtFileName2Use=None, keepFile=False, configFileName=None,
-                timeout=None):
-        """Get Physical Optics Propagation (POP) information
+                retDisplayData=False, timeout=None):
+        """returns Physical Optics Propagation (POP) data
 
         Parameters
         ----------
         txtFileName2Use : string, optional
-            If passed, the POP analysis file will be named such. Pass a 
+            if passed, the POP analysis file will be named such. Pass a 
             specific ``txtFileName`` if you want to dump the file into a 
             separate directory.
         keepFile : bool, optional 
-            If false (default), the prescription file will be deleted after 
+            if false (default), the prescription file will be deleted after 
             use. If true, the file will persist.
         configFileName : string, optional
-            If passed, the POP will be called with this configuration file
+            if passed, the POP will be called with this configuration file
+        retDisplayData : bool
+            if ``true`` the function returns the 2D display data; default 
+            is ``false``
         timeout : integer, optional
             timeout in seconds
-        
+
         Returns
         -------
-        peakIrradiance : float
-            the peak irradiance is the maximum power per unit area at any 
-            point in the beam, measured in Source Units per lens unit squared
-        totalPower : float 
-            the total power, or the integral of the irradiance over the entire 
-            beam
-        fiberEfficiency_system : float
-            the efficiency of power transfer through the system
-        fiberEfficiency_receiver : float
-            the efficiency of the receiving fiber
-        coupling : float
-            the total coupling efficiency, the product of the system and 
-            receiver efficiencies
-        pilotSize : float
-            the size of the gaussian beam at the surface
-        pilotWaist : float
-            the waist of the gaussian beam
-        pos : float
-            relative z position of the gaussian beam
-        rayleigh : float 
-            the rayleigh range of the gaussian beam
-        powerGrid : a two-dimensional list of the powers in the analysis grid
+        popData : tuple
+            popData is a 1-tuple continining just ``popInfo`` (see below) if 
+            ``retDisplayData`` is ``false`` (default). If ``retDisplayData``
+            is ``true``, ``popData`` is a 2-tuple containing ``popInfo`` (a
+            tuple) and ``powerGrid`` (a 2D list):
+
+            popInfo : tuple
+                peakIrradiance : float
+                    the peak irradiance is the maximum power per unit area 
+                    at any point in the beam, measured in source units per 
+                    lens unit squared
+                totalPower : float 
+                    the total power, or the integral of the irradiance over 
+                    the entire beam
+                fiberEfficiency_system : float
+                    the efficiency of power transfer through the system
+                fiberEfficiency_receiver : float
+                    the efficiency of the receiving fiber
+                coupling : float
+                    the total coupling efficiency, the product of the system 
+                    and receiver efficiencies
+                pilotSize : float
+                    the size of the gaussian beam at the surface
+                pilotWaist : float
+                    the waist of the gaussian beam
+                pos : float
+                    relative z position of the gaussian beam
+                rayleigh : float 
+                    the rayleigh range of the gaussian beam
+        
+            powerGrid : 2D list/ None
+                a two-dimensional list of the powers in the analysis grid if
+                ``retDisplayData`` is ``true``
+
+        Notes
+        ----- 
+        The function returns ``None`` for any field which was not found in POP 
+        text file. This is most common in the case of ``fiberEfficiency_system``
+        and ``fiberEfficiency_receiver`` as they need to be set explicitly in 
+        the POP settings 
         """
         if txtFileName2Use != None:
             textFileName = txtFileName2Use
         else:
             cd = _os.path.dirname(_os.path.realpath(__file__))
-            textFileName = cd +"\\"+"popInfo.txt"
-        getTextFlag = 0
-        if configFileName:
-            getTextFlag = 1
+            textFileName = _os.path.join(cd, "popData.txt")
+            
+        getTextFlag = 1 if configFileName else 0
+        
         ret = self.zGetTextFile(textFileName, 'Pop', configFileName, getTextFlag)
         assert ret == 0
 
-        # The number of lines in the file will be equal to the Y dimension of the grid
         line_list = _readLinesFromFile(_openFile(textFileName))
+        
+        # Get the Grid size
+        grid_line = line_list[_getFirstLineOfInterest(line_list, 'Grid size')]
+        grid_x, grid_y = [int(i) for i in _re.findall('\d{2,5}', grid_line)] 
+           
+        # Peak Irradiance and Total Power
+        pat_pi = r'-*\d\.\d{4,6}[Ee][-\+]\d{3}' # pattern for P. Irr, T. Pow, Pi data
+        pat_fe = r'\d\.\d{6}'                   # pattern for fiber efficiency 
+        peakIrr, totPow = None, None
+        pi_tp_line = line_list[_getFirstLineOfInterest(line_list, 'Peak Irradiance')]
+        pi_info, tp_info = pi_tp_line.split(',')
+        pi = _re.search(pat_pi, pi_info)
+        tp = _re.search(pat_pi, tp_info)
+        if pi:
+            peakIrr = float(pi.group())
+        if tp:
+            totPow = float(tp.group())
 
-        peakIrradiance = 0.0
-        totalPower = 0.0
-        #print(type(line_list[12]))
-        if line_list[12]:
-            peakIrradiance = line_list[12].split("=")[1]
-            peakIrradiance = peakIrradiance.split("Watts")[0]
-            peakIrradiance = float(peakIrradiance)
+        # Pilot_size, Pilot_Waist, Pos, Rayleigh
+        pilotSize, pilotWaist, pos, rayleigh = None, None, None, None
+        pilot_line = line_list[_getFirstLineOfInterest(line_list, 'Pilot')]
+        p_size_info, p_waist_info, p_pos_info, p_rayleigh_info = pilot_line.split(',')
+        p_size = _re.search(pat_pi, p_size_info)
+        p_waist = _re.search(pat_pi, p_waist_info)
+        p_pos = _re.search(pat_pi, p_pos_info)
+        p_rayleigh = _re.search(pat_pi, p_rayleigh_info)
+        if p_size:
+            pilotSize = float(p_size.group())
+        if p_waist:
+            pilotWaist = float(p_waist.group())
+        if p_pos:
+            pos = float(p_pos.group())
+        if p_rayleigh:
+            rayleigh = float(p_rayleigh.group())
 
-            totalPower = line_list[12].split("=")[2]
-            totalPower = totalPower.split("Watts")[0]
-            totalPower = float(totalPower)
-
-        fiberEfficiency_system = 0.0
-        fiberEfficiency_receiver = 0.0
-        coupling = 0.0
-
-        if line_list[13]:
-            fiberEfficiency_system = line_list[13].split("System")[1]
-            fiberEfficiency_system = fiberEfficiency_system.split(",")[0]
-            fiberEfficiency_system = float(fiberEfficiency_system)
-            fiberEfficiency_receiver = line_list[13].split("Receiver")[1]
-            fiberEfficiency_receiver = fiberEfficiency_receiver.split(",")[0]
-            fiberEfficiency_receiver = float(fiberEfficiency_receiver)
-            coupling = line_list[13].split("Coupling")[1]
-            coupling = float(coupling)
-
-        pilotSize = 0.0
-        pilotWaist = 0.0
-        pos = 0.0
-        rayleigh = 0.0
-
-        if line_list[14]:
-            pilotSize = line_list[14].split("=")[1]
-            pilotSize = pilotSize.split(",")[0]
-            pilotSize = float(pilotSize)
-            pilotWaist = line_list[14].split("=")[2]
-            pilotWaist = pilotWaist.split(",")[0]
-            pilotWaist = float(pilotWaist)
-            pos = line_list[14].split("=")[3]
-            pos = pos.split(",")[0]
-            pos = float(pos)
-            rayleigh = line_list[14].split("=")[4]
-            rayleigh = float(rayleigh)
-
-        yGridSize = len(line_list) - 16
-        xGridSize = len(line_list[16].split('\t'))
-        powerGrid = [[0 for x in xrange(xGridSize)] for x in xrange(yGridSize)]
-        for i in range(0, yGridSize):
-            row = line_list[i + 16].split('\t')
-            for j in range(0, xGridSize):
-                   powerGrid[i][j] = float(row[j])
-
+        # Fiber Efficiency, Coupling
+        fibEffSys, fibEffRec, coupling = None, None, None
+        effi_coup_line_num = _getFirstLineOfInterest(line_list, 'Fiber Efficiency')
+        if effi_coup_line_num:
+            efficiency_coupling_line = line_list[effi_coup_line_num]
+            efs_info, fer_info, cou_info = efficiency_coupling_line.split(',')
+            fes = _re.search(pat_fe, efs_info)
+            fer = _re.search(pat_fe, fer_info)
+            cou = _re.search(pat_fe, cou_info)
+            if fes:
+                fibEffSys = float(fes.group())
+            if fer:
+                fibEffRec = float(fer.group())
+            if cou:
+                coupling = float(cou.group())
+        
+        # Get the 2D data
+        pat = r'(-*\d\.\d{4,6}[Ee][-\+]\d{3}\s*)' + r'{{{num}}}'.format(num=grid_x)
+        start_line = _getFirstLineOfInterest(line_list, pat)
+        powerGrid = _get2DList(line_list, start_line, grid_y)
+        
         if not keepFile:
             _deleteFile(textFileName)
-        return [peakIrradiance, totalPower,fiberEfficiency_system,fiberEfficiency_receiver,
-coupling,pilotSize,pilotWaist,pos,rayleigh,powerGrid]
+
+        popi = _co.namedtuple('POPinfo', ['peakIrr', 'totPow', 
+                                          'fibEffSys', 'fibEffRec', 'coupling', 
+                                          'pilotSize', 'pilotWaist', 
+                                          'pos', 'rayleigh'])
+        popInfo = popi(peakIrr, totPow, fibEffSys, fibEffRec, coupling, 
+                       pilotSize, pilotWaist, pos, rayleigh)
+        if retDisplayData:
+            return (popInfo, powerGrid)
+        else:
+            return popInfo
 
     def zGetPupilMagnification(self):
         """Return the pupil magnification, which is the ratio of the exit-pupil
@@ -7358,6 +7390,57 @@ def _readLinesFromFile(fileObj):
     lines = list(_getDecodedLineFromFile(fileObj))
     return lines
 
+def _getFirstLineOfInterest(line_list, pattern):
+    """returns the line number (index in the list of lines) that matches the 
+    regex pattern. 
+
+    This function can be used to return the starting line of the data-of-interest, 
+    identified by the regex pattern, from a list of lines.
+    
+    Parameters
+    ----------
+    line_list : list
+        list of lines in the file returned by ``_readLinesFromFile()``
+    pattern : string
+        regex pattern that should be used to identify the line of interest
+    
+    Returns
+    -------
+    line_number : integer
+        line_number/ index in the list where the ``pattern`` first matched. 
+        If no match could be found, the function returns ``None``
+    """
+    pat = _re.compile(pattern)
+    for line_num, line in enumerate(line_list):
+        if _re.match(pat, line.strip()):
+            return line_num
+
+def _get2DList(line_list, start_line, number_of_lines):
+    """returns a 2D list of data read between ``start_line`` and 
+    ``start_line + number_of_lines`` of a list 
+    
+    Parameters
+    ----------
+    line_list : list
+        list of lines read from a file using ``_readLinesFromFile()``
+    start_line : integer
+        index of line_list 
+    number_of_lines : integer
+        number of lines to read (number of lines which contain the 2D data)
+
+    Returns
+    ------- 
+    data : list
+        data is a 2-D list of float type data read from the lines in line_list
+    """
+    data = []
+    end_Line = start_line + number_of_lines
+    for lineNum, row in enumerate(line_list):
+        if start_line <= lineNum <= end_Line:
+            data.append([float(i) for i in row.split('\t')])
+    return data
+#
+#
 if __name__ == "__main__":
     print("Please import this module as 'import pyzdde.zdde as pyz' ")
     _sys.exit(0)
