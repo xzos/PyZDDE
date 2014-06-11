@@ -2927,48 +2927,50 @@ class PyZDDE(object):
         sysPropData = _process_get_set_SystemProperty(code,reply)
         return sysPropData
 
-    def zGetTextFile(self, textFileName, analysisType, settingsFileName=None, flag=0):
+    def zGetTextFile(self, textFileName, analysisType, settingsFileName=None, 
+                     flag=0, timeout=None):
         """Generate a text file for any analysis that supports text output.
 
-        zGetText(textFilename, analysisType [, settingsFileName, flag]) -> retVal
-
         Parameters
-        -----------
-        textFileName : name of the file to be created including the full path,
-                       name, and extension for the text file.
-        analysisType : 3 letter case-sensitive label that indicates the
-                       type of the analysis to be performed. They are identical
-                       to those used for the button bar in Zemax. The labels
-                       are case sensitive. If no label is provided or recognized,
-                       a standard raytrace will be generated.
-        settingsFileName : If a valid file name is used for the `settingsFileName`,
-                           ZEMAX will use or save the settings used to compute the
-                           text file, depending upon the value of the flag parameter.
-        flag        :  0 = default settings used for the text
-                       1 = settings provided in the settings file, if valid,
-                           else default settings used
-                       2 = settings provided in the settings file, if valid,
-                           will be used and the settings box for the requested
-                           feature will be displayed. After the user makes any
-                           changes to the settings the text will then be
-                           generated using the new settings.
-                       Please see the ZEMAX manual for more details.
+        ----------
+        textFileName : string
+            name of the file to be created including the full path and extension
+        analysisType : string
+            3 letter case-sensitive label that indicates the type of the analysis 
+            to be performed. They are identical to the button codes. If no label 
+            is provided or recognized, a standard raytrace will be generated
+        settingsFileName : string
+            If ``settingsFileName`` is valid, Zemax will use or save the settings 
+            used to compute the text file, depending upon the value of the flag 
+            parameter
+        flag : integer (0/1/2)  
+            0 = default settings used for the text;
+            1 = settings provided in the settings file, if valid, else default;
+            2 = settings provided in the settings file, if valid, will be used 
+                and the settings box for the requested feature will be displayed. 
+                After the user makes any changes to the settings the text will 
+                then be generated using the new settings. Please see the manual 
+                for more details
+        timeout : integer, optional
+            timeout in seconds (default=None, i.e. default timeout value)
 
         Returns
         -------
-        retVal:
-         0     : Success
-        -1     : Text file could not be saved (Zemax may not have received
-                 a full path name or extention).
-        -998   : Command timed out
+        retVal : integer
+            0 = success;
+            -1 = text file could not be saved (Zemax may not have received
+                 a full path name or extention);
+            -998 = command timed out
 
         Notes
         -----
-        No matter what the flag value is, if a valid file name is provided
-        for `settingsfilename`, the settings used will be written to the settings
+        No matter what the flag value is, if a valid file name is provided for 
+        ``settingsfilename``, the settings used will be written to the settings
         file, overwriting any data in the file.
 
-        See also `zGetMetaFile`, `zOpenWindow`.
+        See Also
+        -------- 
+        zGetMetaFile(), zOpenWindow()
         """
         retVal = -1
         if settingsFileName:
@@ -2979,7 +2981,7 @@ class PyZDDE(object):
         if _os.path.isabs(textFileName) and _os.path.splitext(textFileName)[1]!='':
             cmd = 'GetTextFile,"{tF}",{aT},"{sF}",{fl:d}'.format(tF=textFileName,
                                     aT=analysisType,sF=settingsFile,fl=flag)
-            reply = self._sendDDEcommand(cmd)
+            reply = self._sendDDEcommand(cmd, timeout)
             if 'OK' in reply.split():
                 retVal = 0
         return retVal
@@ -6371,7 +6373,8 @@ class PyZDDE(object):
         return hiatus
 
 
-    def zGetPOP(self, txtFileName2Use=None, keepFile=False, configFileName=None):
+    def zGetPOP(self, txtFileName2Use=None, keepFile=False, configFileName=None,
+                timeout=None):
         """Get Physical Optics Propagation (POP) information
 
         Parameters
@@ -6385,6 +6388,8 @@ class PyZDDE(object):
             use. If true, the file will persist.
         configFileName : string, optional
             If passed, the POP will be called with this configuration file
+        timeout : integer, optional
+            timeout in seconds
         
         Returns
         -------
@@ -6409,8 +6414,7 @@ class PyZDDE(object):
             relative z position of the gaussian beam
         rayleigh : float 
             the rayleigh range of the gaussian beam
-        powerGrid : a two-dimensional list of the powers in the analysis
-                          grid
+        powerGrid : a two-dimensional list of the powers in the analysis grid
         """
         if txtFileName2Use != None:
             textFileName = txtFileName2Use
