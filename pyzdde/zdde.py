@@ -6500,10 +6500,11 @@ class PyZDDE(object):
             if cou:
                 coupling = float(cou.group())
         
-        # Get the 2D data
-        pat = r'(-*\d\.\d{4,6}[Ee][-\+]\d{3}\s*)' + r'{{{num}}}'.format(num=grid_x)
-        start_line = _getFirstLineOfInterest(line_list, pat)
-        powerGrid = _get2DList(line_list, start_line, grid_y)
+        if retDisplayData:
+            # Get the 2D data
+            pat = r'(-*\d\.\d{4,6}[Ee][-\+]\d{3}\s*)' + r'{{{num}}}'.format(num=grid_x)
+            start_line = _getFirstLineOfInterest(line_list, pat)
+            powerGrid = _get2DList(line_list, start_line, grid_y)
         
         if not keepFile:
             _deleteFile(textFileName)
