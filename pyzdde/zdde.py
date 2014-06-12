@@ -24,6 +24,7 @@ import math as _math
 import time as _time
 import datetime as _datetime
 import re as _re
+import shutil as _shutil
 # import warnings as _warnings
 import codecs as _codecs
 # Try to import IPython if it is available (for notebook helper functions)
@@ -6380,14 +6381,17 @@ class PyZDDE(object):
         Parameters
         ----------
         txtFileName2Use : string, optional
-            if passed, the POP analysis file will be named such. Pass a 
+            if passed, the POP data file will be named such. Pass a 
             specific ``txtFileName`` if you want to dump the file into a 
             separate directory.
         keepFile : bool, optional 
             if false (default), the prescription file will be deleted after 
             use. If true, the file will persist.
         configFileName : string, optional
-            if passed, the POP will be called with this configuration file
+            if passed, the POP will be called with this configuration file. 
+            If no configFileName is passed, and config file (.CFG) having
+            the same name as the lens file is present, the settings from that
+            file will be used 
         retDisplayData : bool
             if ``true`` the function returns the 2D display data; default 
             is ``false``
@@ -6435,7 +6439,11 @@ class PyZDDE(object):
         The function returns ``None`` for any field which was not found in POP 
         text file. This is most common in the case of ``fiberEfficiency_system``
         and ``fiberEfficiency_receiver`` as they need to be set explicitly in 
-        the POP settings 
+        the POP settings
+
+        See Also
+        -------- 
+        zCreatePOPSettings()   
         """
         if txtFileName2Use != None:
             textFileName = txtFileName2Use
@@ -6519,6 +6527,157 @@ class PyZDDE(object):
             return (popInfo, powerGrid)
         else:
             return popInfo
+
+    def zCreatePOPSettings(self, settingsFileName=None, start_sur=None,  
+                           end_sur=None, field=None, wave=None, auto=None, 
+                           beamType=None, paramN=((),()), pIrr=None, tPow=None, 
+                           sampx=None, sampy=None, srcFile=None, widex=None, 
+                           widey=None, fibComp=None, fibFile=None, fibType=None, 
+                           fparamN=((),()), ignPol=None, pos=None, tiltx=None, 
+                           tilty=None):
+        """create a new POP settings file starting from "reset" POP settings
+
+        Only those parameters with non-None or non-zero-length (in case of tuples)
+        will be set.
+        
+        Parameters
+        ----------
+        settingsFileName : string, optional
+            full file name, including path and extension of settings file.
+            If ``None``, a file with the name of the lens and with extension
+            ".CFG" will be created in the same directory as the lens file
+        start_sur : integer, optional
+            the starting surface
+        end_sur : integer, optional
+            the end surface
+        field : integer, optional
+            the field number
+        wave : integer, optional
+            the wavelength number
+        auto : ??, optional
+            simulates the pressing of the "auto" button which chooses appropriate
+            X and Y beam widths based upon the sampling and other settings
+        beamType : integer (0...6), optional
+            0 = Gaussian Waist; 1 = Gaussian Angle; 2 = Gaussian Size + Angle; 
+            3 = Top Hat; 4 = File; 5 = DLL; 6 = Multimode.
+        paramN : 2-tuple, optional
+            sets beam parameter n, for example ((1, 4),(0.1, 0.5)) sets parameters 
+            1 and 4 to 0.1 and 0.5 respectively. Hint: For Beam Definitions, 
+            n=1 for Waist X, 2, for Waist Y, 3 for Decenter X, 4 for Decenter Y, 
+            5 for Aperture X, 6 for Aperture Y, 7 for Order X, 8 for Order Y
+        pIrr : float, optional
+            sets the normalization by peak irradiance. It is the initial beam peak 
+            irradiance in power per area. It is an alternative to Total Power (tPow)
+        tPow : float, optional
+            sets the normalization by total beam power. It is the initial beam 
+            total power. This is an alternative to Peak Irradiance (pIrr)
+        sampx : integer (1...10), optional
+            the X direction sampling. 1 for 32; 2 for 64; 3 for 128; 4 for 256; 
+            5 for 512; 6 for 1024; 7 for 2048; 8 for 4096; 9 for 8192; 10 for 16384; 
+        sampy : integer (1...10), optional
+            the Y direction sampling. 1 for 32; 2 for 64; 3 for 128; 4 for 256; 
+            5 for 512; 6 for 1024; 7 for 2048; 8 for 4096; 9 for 8192; 10 for 16384;
+        srcFile : string, optional
+            The file name if the starting beam is defined by a ZBF file, DLL, or 
+            multimode file
+        widex : float, optional
+            the X direction width
+        widey : float, optional
+            the Y direction width
+        fibComp : integer (1/0), optional
+            use 1 to check the fiber coupling integral on, 0 to check it off
+        fibFile : string, optional
+            the file name if the fiber mode is defined by a ZBF or DLL
+        fibType : string, optional
+            use the same values as ``beamType`` above, except for multimode which 
+            is not yet supported
+        fparamN : 2-tuple, optional
+            sets fiber parameter n, for example ((2,3),(0.5, 0.6)) sets parameters 
+            2 and 3 to 0.5 and 0.6 respectively. See the hint for ``paramN``
+        ignPol : integer (0/1), optional
+            use 1 to ignore polarization, 0 to consider polarization
+        pos : integer (0/1), optional
+            use 0 for chief ray, 1 for surface vertex 
+        tiltx : float, optional
+            tilt about X in degrees
+        tilty : float, optional
+            tilt about Y in degrees
+
+        Returns
+        -------
+        settingsFile : string
+            the full name, including path and extension, of the just created 
+            settings file
+        
+        Notes
+        -----
+        Further modifications of the settings file can be made using 
+        ``ln.zModifySettings()`` method
+
+        See Also
+        -------- 
+        zGetPOP()
+        """
+        # Create a settings file with "reset" settings
+        global _pDir
+        src = _os.path.join(_pDir, 'ZMXFILES', 'RESET_SETTINGS_POP.CFG')
+        if settingsFileName:
+            dst = settingsFileName
+        else:
+            dst = _os.path.splitext(self.zGetFile())[0] + '.CFG'
+        try:
+            _shutil.copy(src, dst)
+        except IOError:
+            print("ERROR: Invalid settingsFileName")
+            return
+        else:
+            if start_sur:
+                self.zModifySettings(dst, "POP_START", start_sur)
+            if end_sur:
+                self.zModifySettings(dst, "POP_END", end_sur)
+            if field:
+                self.zModifySettings(dst, "POP_FIELD", field)
+            if wave:
+                self.zModifySettings(dst, "POP_WAVE", wave)
+            if auto:
+                self.zModifySettings(dst, "POP_AUTO", auto)
+            if beamType:
+                self.zModifySettings(dst, "POP_BEAMTYPE", beamType)
+            if paramN[0]:
+                for i, j in _izip(paramN[0], paramN[1]):
+                    self.zModifySettings(dst, "POP_PARAM{}".format(i), j)
+            if pIrr:
+                self.zModifySettings(dst, "POP_PEAKIRRAD", pIrr)
+            if tPow:
+                self.zModifySettings(dst, "POP_POWER", tPow)
+            if sampx:
+                self.zModifySettings(dst, "POP_SAMPX", sampx)
+            if sampy:
+                self.zModifySettings(dst, "POP_SAMPY", sampy)
+            if srcFile:
+                self.zModifySettings(dst, "POP_SOURCEFILE", srcFile)
+            if widex:
+                self.zModifySettings(dst, "POP_WIDEX", widex)
+            if widey:
+                self.zModifySettings(dst, "POP_WIDEY", widey)
+            if fibComp:
+                self.zModifySettings(dst, "POP_COMPUTE", fibComp)
+            if fibFile:
+                self.zModifySettings(dst, "POP_FIBERFILE", fibFile)
+            if fibType:
+                self.zModifySettings(dst, "POP_FIBERTYPE", fibType)
+            if fparamN[0]:
+                for i, j in _izip(fparamN[0], fparamN[1]):
+                    self.zModifySettings(dst, "POP_FPARAM{}".format(i), j)
+            if ignPol:
+                self.zModifySettings(dst, "POP_IGNOREPOL", ignPol)
+            if pos:
+                self.zModifySettings(dst, "POP_POSITION", pos)
+            if tiltx:
+                self.zModifySettings(dst, "POP_TILTX", tiltx)
+            if tilty:
+                self.zModifySettings(dst, "POP_TILTY", tilty)
+            return dst       
 
     def zGetPupilMagnification(self):
         """Return the pupil magnification, which is the ratio of the exit-pupil
