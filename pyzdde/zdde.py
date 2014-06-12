@@ -6535,7 +6535,8 @@ class PyZDDE(object):
                            widey=None, fibComp=None, fibFile=None, fibType=None, 
                            fparamN=((),()), ignPol=None, pos=None, tiltx=None, 
                            tilty=None):
-        """create a new POP settings file starting from "reset" POP settings
+        """create a new POP settings file starting from "reset" POP settings of 
+        the most basic lens in Zemax
 
         Only those parameters with non-None or non-zero-length (in case of tuples)
         will be set.
@@ -6562,7 +6563,7 @@ class PyZDDE(object):
             3 = Top Hat; 4 = File; 5 = DLL; 6 = Multimode.
         paramN : 2-tuple, optional
             sets beam parameter n, for example ((1, 4),(0.1, 0.5)) sets parameters 
-            1 and 4 to 0.1 and 0.5 respectively. Hint: For Beam Definitions, 
+            1 and 4 to 0.1 and 0.5 respectively. Hint: For Gaussian Waist beam, 
             n=1 for Waist X, 2, for Waist Y, 3 for Decenter X, 4 for Decenter Y, 
             5 for Aperture X, 6 for Aperture Y, 7 for Order X, 8 for Order Y
         pIrr : float, optional
