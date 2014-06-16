@@ -6407,13 +6407,15 @@ class PyZDDE(object):
             tuple) and ``powerGrid`` (a 2D list):
 
             popInfo : tuple
-                peakIrradiance : float
+                peakIrradiance/ centerPhase : float
                     the peak irradiance is the maximum power per unit area 
                     at any point in the beam, measured in source units per 
-                    lens unit squared
+                    lens unit squared. It returns center phase if the data
+                    type is "Phase" in POP settings
                 totalPower : float 
                     the total power, or the integral of the irradiance over 
-                    the entire beam
+                    the entire beam if data type is "Irradiance" in POP 
+                    settings. This field is blank for "Phase" data
                 fiberEfficiency_system : float
                     the efficiency of power transfer through the system
                 fiberEfficiency_receiver : float
@@ -6443,7 +6445,7 @@ class PyZDDE(object):
 
         See Also
         -------- 
-        zCreatePOPSettings()   
+        zSetPOPSettings()   
         """
         if txtFileName2Use != None:
             textFileName = txtFileName2Use
@@ -6458,24 +6460,40 @@ class PyZDDE(object):
 
         line_list = _readLinesFromFile(_openFile(textFileName))
         
+        # Get data type ... phase or Irradiance?
+        find_irr_data = _getFirstLineOfInterest(line_list, 'POP Irradiance Data', 
+                                                patAtStart=False) 
+        data_is_irr = False if find_irr_data is None else True
+
         # Get the Grid size
         grid_line = line_list[_getFirstLineOfInterest(line_list, 'Grid size')]
         grid_x, grid_y = [int(i) for i in _re.findall('\d{2,5}', grid_line)] 
-           
-        # Peak Irradiance and Total Power
-        pat_pi = r'-*\d\.\d{4,6}[Ee][-\+]\d{3}' # pattern for P. Irr, T. Pow, Pi data
-        pat_fe = r'\d\.\d{6}'                   # pattern for fiber efficiency 
-        peakIrr, totPow = None, None
-        pi_tp_line = line_list[_getFirstLineOfInterest(line_list, 'Peak Irradiance')]
-        pi_info, tp_info = pi_tp_line.split(',')
-        pi = _re.search(pat_pi, pi_info)
-        tp = _re.search(pat_pi, tp_info)
-        if pi:
-            peakIrr = float(pi.group())
-        if tp:
-            totPow = float(tp.group())
 
-        # Pilot_size, Pilot_Waist, Pos, Rayleigh
+        if data_is_irr:
+            # Peak Irradiance and Total Power
+            pat_i = r'-?\d\.\d{4,6}[Ee][-\+]\d{3}' # pattern for P. Irr, T. Pow,
+            peakIrr, totPow = None, None
+            pi_tp_line = line_list[_getFirstLineOfInterest(line_list, 'Peak Irradiance')]
+            if pi_tp_line: # Transfer magnitude doesn't have Peak Irradiance info
+                pi_info, tp_info = pi_tp_line.split(',')
+                pi = _re.search(pat_i, pi_info)
+                tp = _re.search(pat_i, tp_info)
+                if pi:
+                    peakIrr = float(pi.group())
+                if tp:
+                    totPow = float(tp.group())
+        else:
+            # Center Phase
+            pat_p = r'-?\d+\.\d{4,6}' # pattern for Center Phase Info
+            centerPhase = None
+            cp_line = line_list[_getFirstLineOfInterest(line_list, 'Center Phase')]
+            if cp_line: # Transfer magnitude / Phase doesn't have Center Phase info
+                cp = _re.search(pat_p, cp_line)
+                if cp:
+                    centerPhase = float(cp.group())
+        # Pilot_size, Pilot_Waist, Pos, Rayleigh [... available for both Phase and Irr data]
+        pat_fe = r'\d\.\d{6}'   # pattern for fiber efficiency
+        pat_pi = r'-?\d\.\d{4,6}[Ee][-\+]\d{3}' # pattern for Pilot size/waist
         pilotSize, pilotWaist, pos, rayleigh = None, None, None, None
         pilot_line = line_list[_getFirstLineOfInterest(line_list, 'Pilot')]
         p_size_info, p_waist_info, p_pos_info, p_rayleigh_info = pilot_line.split(',')
@@ -6492,7 +6510,7 @@ class PyZDDE(object):
         if p_rayleigh:
             rayleigh = float(p_rayleigh.group())
 
-        # Fiber Efficiency, Coupling
+        # Fiber Efficiency, Coupling [... if enabled in settings]
         fibEffSys, fibEffRec, coupling = None, None, None
         effi_coup_line_num = _getFirstLineOfInterest(line_list, 'Fiber Efficiency')
         if effi_coup_line_num:
@@ -6510,39 +6528,50 @@ class PyZDDE(object):
         
         if retDisplayData:
             # Get the 2D data
-            pat = r'(-*\d\.\d{4,6}[Ee][-\+]\d{3}\s*)' + r'{{{num}}}'.format(num=grid_x)
+            pat = r'(-?\d\.\d{4,6}[Ee][-\+]\d{3}\s*)' + r'{{{num}}}'.format(num=grid_x)
             start_line = _getFirstLineOfInterest(line_list, pat)
             powerGrid = _get2DList(line_list, start_line, grid_y)
         
         if not keepFile:
             _deleteFile(textFileName)
 
-        popi = _co.namedtuple('POPinfo', ['peakIrr', 'totPow', 
-                                          'fibEffSys', 'fibEffRec', 'coupling', 
-                                          'pilotSize', 'pilotWaist', 
-                                          'pos', 'rayleigh'])
-        popInfo = popi(peakIrr, totPow, fibEffSys, fibEffRec, coupling, 
-                       pilotSize, pilotWaist, pos, rayleigh)
+        if data_is_irr: # Irradiance data
+            popi = _co.namedtuple('POPinfo', ['peakIrr', 'totPow', 
+                                              'fibEffSys', 'fibEffRec', 'coupling', 
+                                              'pilotSize', 'pilotWaist', 
+                                              'pos', 'rayleigh'])
+            popInfo = popi(peakIrr, totPow, fibEffSys, fibEffRec, coupling, 
+                           pilotSize, pilotWaist, pos, rayleigh)
+        else: # Phase data
+            popi = _co.namedtuple('POPinfo', ['cenPhase', 'blank', 
+                                              'fibEffSys', 'fibEffRec', 'coupling', 
+                                              'pilotSize', 'pilotWaist', 
+                                              'pos', 'rayleigh'])
+            popInfo = popi(centerPhase, None, fibEffSys, fibEffRec, coupling, 
+                           pilotSize, pilotWaist, pos, rayleigh)
+        
         if retDisplayData:
             return (popInfo, powerGrid)
         else:
             return popInfo
-
-    def zCreatePOPSettings(self, settingsFileName=None, start_sur=None,  
+    
+    def zSetPOPSettings(self, data=0, settingsFileName=None, start_sur=None,  
                            end_sur=None, field=None, wave=None, auto=None, 
                            beamType=None, paramN=((),()), pIrr=None, tPow=None, 
                            sampx=None, sampy=None, srcFile=None, widex=None, 
                            widey=None, fibComp=None, fibFile=None, fibType=None, 
                            fparamN=((),()), ignPol=None, pos=None, tiltx=None, 
                            tilty=None):
-        """create a new POP settings file starting from "reset" POP settings of 
-        the most basic lens in Zemax
+        """create and set a new POP settings file starting from the "reset" POP 
+        settings state of the most basic lens in Zemax
 
         Only those parameters with non-None or non-zero-length (in case of tuples)
         will be set.
         
         Parameters
         ----------
+        data : integer
+            0 = irradiance, 1 = phase
         settingsFileName : string, optional
             full file name, including path and extension of settings file.
             If ``None``, a file with the name of the lens and with extension
@@ -6621,7 +6650,11 @@ class PyZDDE(object):
         """
         # Create a settings file with "reset" settings
         global _pDir
-        src = _os.path.join(_pDir, 'ZMXFILES', 'RESET_SETTINGS_POP.CFG')
+        if data == 1:
+            clean_cfg = 'RESET_SETTINGS_POP_PHASE.CFG'
+        else:
+            clean_cfg = 'RESET_SETTINGS_POP_IRR.CFG'
+        src = _os.path.join(_pDir, 'ZMXFILES', clean_cfg)
         if settingsFileName:
             dst = settingsFileName
         else:
@@ -7551,7 +7584,7 @@ def _readLinesFromFile(fileObj):
     lines = list(_getDecodedLineFromFile(fileObj))
     return lines
 
-def _getFirstLineOfInterest(line_list, pattern):
+def _getFirstLineOfInterest(line_list, pattern, patAtStart=True):
     """returns the line number (index in the list of lines) that matches the 
     regex pattern. 
 
@@ -7564,14 +7597,21 @@ def _getFirstLineOfInterest(line_list, pattern):
         list of lines in the file returned by ``_readLinesFromFile()``
     pattern : string
         regex pattern that should be used to identify the line of interest
+    patAtStart : bool
+        if ``True``, match pattern at the beginning of line string (default)
     
     Returns
     -------
     line_number : integer
         line_number/ index in the list where the ``pattern`` first matched. 
         If no match could be found, the function returns ``None``
+
+    Notes
+    ----- 
+    If it is known that the pattern will be matched at the beginning, then
+    letting ``patAtStart==True`` is more efficient.
     """
-    pat = _re.compile(pattern)
+    pat = _re.compile(pattern) if patAtStart else _re.compile('.*'+pattern)
     for line_num, line in enumerate(line_list):
         if _re.match(pat, line.strip()):
             return line_num
