@@ -7082,7 +7082,7 @@ class PyZDDE(object):
         None if `retArr` is False (default). The graphic is embedded into the notebook,
         else `pixel_array` (ndarray) if `retArr` is True.
         """
-        global _global_IPLoad
+        global _global_IPLoad, _global_mpl_img_load
         if _global_IPLoad:
             # Use the lens file path to store and process temporary images
             # tmpImgPath = self.zGetPath()[1]  # lens file path (default) ...
@@ -7095,7 +7095,8 @@ class PyZDDE(object):
                 ext = 'EMF'
             else:
                 ext = 'WMF'
-            tmpMetaImgName = "{tip}\\TEMPGPX.{ext}".format(tip=tmpImgPath,ext=ext)
+            tmpMetaImgName = "{tip}\\TEMPGPX.{ext}".format(tip=tmpImgPath, 
+                                                               ext=ext)
             tmpPngImgName = "{tip}\\TEMPGPX.png".format(tip=tmpImgPath)
             # Get the directory where PyZDDE (and thus `convert`) is located
             cd = _os.path.dirname(_os.path.realpath(__file__))
@@ -7106,12 +7107,12 @@ class PyZDDE(object):
             # 2. The pen width setting in Zemax for the Enhanced metafile (as .EMF)
             #    is not functioning.
             if MFFtNum==0:
-                imagickCmd = ("{cd}\convert {MetaImg} -flatten -blur {bl} "
-                              "-resize {per}% -gamma {ga} {PngImg}"
+                imagickCmd = ("{cd}\convert \"{MetaImg}\" -flatten -blur {bl} "
+                              "-resize {per}% -gamma {ga} \"{PngImg}\""
                               .format(cd=cd,MetaImg=tmpMetaImgName,bl=blur,
                                       per=percent,ga=gamma,PngImg=tmpPngImgName))
             else:
-                imagickCmd = ("{cd}\convert {MetaImg} -resize {per}% {PngImg}"
+                imagickCmd = ("{cd}\convert \"{MetaImg}\" -resize {per}% \"{PngImg}\""
                               .format(cd=cd,MetaImg=tmpMetaImgName,per=percent,
                                                            PngImg=tmpPngImgName))
             # Get the metafile and display the image

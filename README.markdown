@@ -42,7 +42,7 @@ PyZDDE can be used with regular Python scripts as well as in an interactive envi
 
 Currently, PyZDDE is a work in progress. All the functions (125 in total) for accessing the ZEMAX "data items" for extensions have been implemented. In addition, there are more than 15 helper functions. The following is a sample of the extra helper functions in PyZDDE (more will be added in future):
 
- `zSetTimeout`, `zExecuteZPLMacro`, `zSpiralSpot`, `zGetSeidelAberration`, `zSetFieldTuple`, `zGetFieldTuple`, `zSetWaveTuple`, `zGetWaveTuple`, `zCalculateHiatus`, `zGetPupilMagnification`, `ipzCaptureWindow`, `ipzGetFirst`, `ipzGetPupil`, `ipzGetSystemAper`, `ipzGetTextWindow`.
+ `zSetTimeout()`, `zExecuteZPLMacro()`, `zSpiralSpot()`, `zGetSeidelAberration()`, `zSetFieldTuple()`, `zGetFieldTuple()`, `zSetWaveTuple()`, `zGetWaveTuple()`, `zCalculateHiatus()`, `zGetPupilMagnification()`, `zGetPOP()`, `zSetPOPSettings()`, `zModifyPOPSettings()`, `ipzCaptureWindow()`, `ipzGetFirst()`, `ipzGetPupil()`, `ipzGetSystemAper()`, `ipzGetTextWindow()`.
 
 A complete list of helper functions is available [here](https://github.com/indranilsinharoy/PyZDDE/wiki/List-of-helper-functions-in-PyZDDE).
 
