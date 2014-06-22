@@ -30,19 +30,6 @@ import pyzdde.zdde as pyzdde
 imp.reload(pyzdde)  # In order to ensure that the latest changes in the pyzdde module
                     # are updated here.
 
-# ZEMAX file directory
-zmxfp = pyzddedirectory+'\\ZMXFILES\\'
-
-# Zemax file(s) used in the test
-lensFile = ["Cooke 40 degree field.zmx"]
-lensFileName = lensFile[0]
-# Zemax settings file(s) used in the test
-settingsFile = ["Cooke 40 degree field.CFG"]
-settingsFileName = settingsFile[0]
-#Zemax file for POP analysis settings
-popSettingsFile = ["POP.CFG"]
-popSettingsFileName = popSettingsFile[0]
-
 # Flag to enable printing of returned values.
 PRINT_RETURNED_VALUES = 1     # if test results are not going to be viewed by
                               # humans, turn this off.
@@ -108,8 +95,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zDeleteConfig(self):
         print("\nTEST: zDeleteConfig()")
         # Load a lens file into the DDE server
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         self.link0.zLoadFile(filename)
         currConfig = self.link0.zGetConfig()
         # Since no configuration is initally present, it should return (1,1,1)
@@ -132,8 +118,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zDeleteMCO(self):
         print("\nTEST: zDeleteMCO()")
         # Load a lens file into the DDE server
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         self.link0.zLoadFile(filename)
         # Get the current number of configurations (columns and rows)
         currConfig = self.link0.zGetConfig()
@@ -206,8 +191,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zGetConfig(self):
         print("\nTEST: zGetConfig()")
         # Load a lens file into the DDE server
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         self.link0.zLoadFile(filename)
         currConfig = self.link0.zGetConfig()
         #Since no configuration is initally present, it should return (1,1,1)
@@ -272,7 +256,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
             for i in range(len(iFieldDataTuple)):
                 print("oFieldDataTuple_g, field {i} : {t}".format(i=i,
                                                         t=oFieldDataTuple_g[i]))
-        #Verify
+        # Verify
         for i in range(len(iFieldDataTuple)):
             self.assertEqual(oFieldDataTuple_g[i][:len(iFieldDataTuple[i])],
                                                        iFieldDataTuple[i])
@@ -281,8 +265,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def test_zGetFile(self):
         print("\nTEST: zGetFile()")
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         ret = self.link0.zLoadFile(filename)
         assert ret == 0   # This is not a unit-test assert.
         reply = self.link0.zGetFile()
@@ -293,12 +276,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def test_zGetFirst(self):
         print("\nTEST: zGetFirst()")
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         ret = self.link0.zLoadFile(filename)
         assert ret == 0   # This is not a unit-test assert.
         (focal,pwfn,rwfn,pima,pmag) = self.link0.zGetFirst()
-        #Just going to check the validity of the returned data type
+        # Just going to check the validity of the returned data type
         self.assertIsInstance(focal,float)
         self.assertIsInstance(pwfn,float)
         self.assertIsInstance(rwfn,float)
@@ -311,8 +293,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     @unittest.skip("To implement")
     def test_zGetGlass(self):
         print("\nTEST: zGetGlass()")
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         ret = self.link0.zLoadFile(filename)
         assert ret == 0   # This is not a unit-test assert.
         glass = self.link0.zGetGlass(0)
@@ -324,10 +305,185 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.link0.zSetSurfaceData(1,4,'GRINSUR1')
         self.assertEqual(glass, None)
 
+    def test_zGetPOP(self):
+        print("\nTest: zGetPOP()")
+        def check_popinfo(pidata, length, sfile=None):
+            """Helper function to validate popinfo data"""
+            self.assertIsInstance(pidata, tuple,
+                "Expecting popinfo as a tuple")
+            self.assertEqual(len(pidata), length,
+                "Expecting {} elements in popinfo tuple".format(length))
+            # validate the actual data in the pop info
+            if sfile == 'default':
+                expPidata = (10078.0, 1.0, 1.0, 0.999955, 0.999955, 0.0079605,
+                             0.0079605, 0.00060786, 0.19908, 256, 256, 0.3201024,
+                             0.3201024)
+            if sfile == 'nofibint':
+                expPidata = (10078.0, 1.0, None, None, None, 0.0079605,
+                             0.0079605, 0.00060786, 0.19908, 256, 256, 0.3201024,
+                             0.3201024)
+            if sfile == 'nzstbirr':
+                expPidata = (10058.0, 1.0, 1.0, 0.985784, 0.985784, 0.0079602,
+                             0.0077483, -0.044419, 0.18861, 256, 256, 0.320384,
+                             0.320384)
+            if sfile == 'nzstbpha':
+                expPidata = (-0.2339, None, 1.0, 0.985784, 0.985784, 0.0079602,
+                             0.0077483, -0.044419, 0.18861, 256, 256, 0.320384,
+                             0.320384)
+            if sfile: # perform test iff there is an sfile
+                for x, y in zip(pidata, expPidata):
+                    self.assertAlmostEqual(x, y, places=5)
+
+        def check_data(data, dim, dtype=None, sfile=None):
+            """Helper function to validate data"""
+            self.assertIsInstance(data, list, "Expecting data as a list")
+            self.assertEqual(len(data), dim[0],
+                "Expecting the first dimension of popinfo to be {}".format(dim[0]))
+            self.assertEqual(len(data[0]), dim[1],
+                "Expecting the second dimension of popinfo to be {}".format(dim[1]))
+        # first file (default settings)
+        filename, sfilename = get_test_file('pop', settings=True, sfile='default')
+        ret = self.link0.zLoadFile(filename)
+        assert ret == 0   # This is not a unit-test assert.
+        #print("Lens file: {}\nSettings file: {}".format(filename, sfilename))
+        # zGetPOP() without any arguments
+        popinfo = self.link0.zGetPOP()
+        check_popinfo(popinfo, 13, sfile='default')
+        # zGetPOP() with displayData
+        popinfo, data = self.link0.zGetPOP(displayData=True)
+        check_popinfo(popinfo, 13)
+        check_data(data, (256,256))
+        # zGetPOP() with settings file
+        popinfo = self.link0.zGetPOP(settingsFile=sfilename)
+        check_popinfo(popinfo, 13, sfile='default')
+        check_data(data, (256,256))
+        # second file (no fiber coupling integral)
+        filename, sfilename = get_test_file('pop', settings=True, sfile='nofibint')
+        ret = self.link0.zLoadFile(filename)
+        assert ret == 0   # This is not a unit-test assert.
+        #print("Lens file: {}\nSettings file: {}".format(filename, sfilename))
+        # zGetPOP() with the settingfile with no fiber coupling integral
+        popinfo, data = self.link0.zGetPOP(settingsFile=sfilename, displayData=True)
+        check_popinfo(popinfo, 13, sfile='nofibint')
+        check_data(data, (256,256))
+        # third file (irradiance data)
+        filename, sfilename = get_test_file('pop', settings=True, sfile='nzstbirr')
+        ret = self.link0.zLoadFile(filename)
+        assert ret == 0   # This is not a unit-test assert.
+        #print("Lens file: {}\nSettings file: {}".format(filename, sfilename))
+        # zGetPOP() with settings to irradiance data with non-zero surf to beam
+        # value
+        popinfo, data = self.link0.zGetPOP(settingsFile=sfilename, displayData=True)
+        check_popinfo(popinfo, 13, sfile='nzstbirr')
+        check_data(data, (256,256))
+        # fourth file (phase data)
+        filename, sfilename = get_test_file('pop', settings=True, sfile='nzstbpha')
+        ret = self.link0.zLoadFile(filename)
+        assert ret == 0   # This is not a unit-test assert.
+        #print("Lens file: {}\nSettings file: {}".format(filename, sfilename))
+        # zGetPOP() with settings to phase data with non-zero surf to beam value
+        popinfo, data = self.link0.zGetPOP(settingsFile=sfilename, displayData=True)
+        check_popinfo(popinfo, 13, sfile='nzstbpha')
+        check_data(data, (256,256))
+        if TestPyZDDEFunctions.pRetVar:
+            print('zGetPop test successful')
+
+    def test_zSetPOPSettings(self):
+        print("\nTEST: zSetPOPSettings()")
+        filename = get_test_file('pop')
+        ret = self.link0.zLoadFile(filename)
+        assert ret == 0   # This is not a unit-test assert.
+        # Set POP settings, without specifying a settings file name.
+        srcParam = ((1, 2, 7, 8), (2, 2, 0, 0)) # x/y waist = 2mm, TEM00
+        fibParam = ((1, 2, 7, 8), (0.008, 0.008, 0, 0)) # x/y waist = 0.008 mm, TEM00
+        sfilename = self.link0.zSetPOPSettings(data=0, start_surf=1, end_surf=4,
+                                               field=1, wave=1, beamType=0,
+                                               paramN=srcParam, tPow=1, sampx=4,
+                                               sampy=4, widex=40, widey=40,
+                                               fibComp=1, fibType=0, fparamN=fibParam)
+        exception = None
+        try:
+            self.assertTrue(checkFileExist(sfilename),
+                            "Expected function to create settings file")
+            dirname, fn = os.path.split(filename)
+            sdirname, sfn = os.path.split(sfilename)
+            self.assertEqual(dirname, sdirname,
+                            "Expected settings file to be in same dir as lens file")
+            self.assertTrue(sfn.endswith('_pyzdde_POP.CFG'),
+                            "Expected file name to end with '_pyzdde_POP.CFG'")
+            # Get POP info with the above settings
+            popinfo = self.link0.zGetPOP(sfilename)
+            self.assertEqual(popinfo[1], 1.0, 'Expected tot power 1.0')
+            self.assertIsNot(popinfo[2], None, 'Expected non-None')
+            self.assertEqual(popinfo[9], 256, 'Expected grid x be 256')
+            # Change to phase data, with few different settings but with the
+            # same settings file name
+            sfilename_new = self.link0.zSetPOPSettings(data=1,
+                                 settingsFileName=sfilename, start_surf=1,
+                                 end_surf=4, field=1, wave=1, beamType=0,
+                                 paramN=srcParam, pIrr=1, sampx=3, sampy=3,
+                                 widex=40, widey=40, fibComp=0, fibType=0,
+                                 fparamN=fibParam)
+            self.assertEqual(sfilename, sfilename_new, 'Expecting same filenames')
+            # Get POP info with the above settings
+            popinfo = self.link0.zGetPOP(sfilename_new)
+            self.assertEqual(popinfo[1], None, 'Expected None for blank phase field')
+            self.assertEqual(popinfo[2], None, 'Expected None for no fiber integral')
+            self.assertEqual(popinfo[9], 128, 'Expected grid x be 128')
+        except Exception as exception:
+            pass # nothing to do here, raise it after cleaning up
+        finally:
+            # It is important to delete these settings files after the test. If not
+            # deleted, they WILL interfere with the ohter POP tests
+            deleteFile(sfilename)
+            if exception:
+                raise exception
+        if TestPyZDDEFunctions.pRetVar:
+            print('zSetPOPSettings test successful')
+
+    def test_zModifyPOPSettings(self):
+        print("\nTEST: zModifyPOPSettings()")
+        filename = get_test_file('pop')
+        ret = self.link0.zLoadFile(filename)
+        assert ret == 0   # This is not a unit-test assert.
+        # Set POP settings, without specifying a settings file name.
+        srcParam = ((1, 2, 7, 8), (2, 2, 0, 0)) # x/y waist = 2mm, TEM00
+        fibParam = ((1, 2, 7, 8), (0.008, 0.008, 0, 0)) # x/y waist = 0.008 mm, TEM00
+        sfilename = self.link0.zSetPOPSettings(data=0, start_surf=1, end_surf=4,
+                                               field=1, wave=1, beamType=0,
+                                               paramN=srcParam, tPow=1, sampx=4,
+                                               sampy=4, widex=40, widey=40,
+                                               fibComp=1, fibType=0, fparamN=fibParam)
+        exception = None
+        try:
+            # Get POP info with the above settings
+            popinfo = self.link0.zGetPOP(sfilename)
+            assert popinfo[9] == 256, 'Expected grid x be 256' #
+            # Change settings using zModifyPOPSettings
+            errCode = self.link0.zModifyPOPSettings(settingsFile=sfilename,
+                                                    end_surf=1, sampx=2, sampy=2,
+                                                    paramN=((1, 2),(1, 2)), tPow=2)
+            self.assertIsInstance(errCode, tuple)
+            self.assertTupleEqual(errCode, (0, (0, 0), 0, 0, 0))
+            # Get POP info with the above settings
+            popinfo = self.link0.zGetPOP(sfilename)
+            print(popinfo)
+            self.assertEqual(popinfo[1], 2.0, 'Expected tot pow 2.0')
+            self.assertEqual(popinfo[9], 64, 'Expected grid x be 64')
+        except Exception as exception:
+            pass # nothing to do here, raise it after cleaning up
+        finally:
+            # It is important to delete these settings files after the test. If not
+            # deleted, they WILL interfere with the ohter POP tests
+            deleteFile(sfilename)
+            if exception:
+                raise exception
+        if TestPyZDDEFunctions.pRetVar:
+            print('zModifyPOPSettings test successful')
+
     def test_zGlobalMatrix(self):
         print("\nTEST: zGetGlobalMatrix()")
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         ret = self.link0.zLoadFile(filename)
         assert ret == 0   # This is not a unit-test assert.
         gmd = self.link0.zGetGlobalMatrix(2)
@@ -391,8 +547,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     @unittest.skip("To implement test")
     def test_zGetName(self):
         print("\nTEST: zGetName()")
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         self.link0.zLoadFile(filename)
         reply = self.lin0.zGetName()
         self.assertEqual(reply,"A SIMPLE COOKE TRIPLET.")
@@ -457,7 +612,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def test_zGetPolState(self):
         print("\nTEST: zGetPolState()")
-        #Set polarization of the "new" lens
+        # Set polarization of the "new" lens
         self.link0.zSetPolState(0,0.5,0.5,10.0,10.0)
         polStateData = self.link0.zGetPolState()
         self.assertTupleEqual(polStateData,(0,0.5,0.5,10.0,10.0))
@@ -466,9 +621,8 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def test_zGetPolTrace(self):
         print("\nTEST: zGetPolTrace()")
-       # Load a lens file into the LDE
-        global zmxfp
-        filename = zmxfp+lensFileName
+        # Load a lens file into the LDE
+        filename = get_test_file()
         self.link0.zLoadFile(filename)
         # Set up the data
         (waveNum,mode,surf,hx,hy,px,py,Ex,Ey,Phax,Phay) = (1,0,-1,0.0,.5,0.0,1.0,
@@ -491,8 +645,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zGetPupil(self):
         print("\nTEST: zGetPupil()")
         # Load a lens to the ZEMAX DDE server
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         self.link0.zLoadFile(filename)
         #Get the pupil data
         pupilData = self.link0.zGetPupil()
@@ -526,8 +679,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zGetRefresh(self):
         print("\nTEST: zGetRefresh()")
         # Load & then push a lens file into the LDE
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         ret = self.link0.zLoadFile(filename)
         ret = self.link0.zPushLens(1)
         # Copy the lens data from the LDE into the stored copy of the ZEMAX server.
@@ -544,12 +696,12 @@ class TestPyZDDEFunctions(unittest.TestCase):
     @unittest.skip("To implement")
     def test_zGetSag(self):
         print("\nTEST: zGetSag()")
-        #Load a lens file
+        # Load a lens file
 
     @unittest.skip("To implement")
     def test_zGetSequence(self):
         print("\nTEST: zGetSequence()")
-        #Load a lens file
+        # Load a lens file
 
     def test_zGetSerial(self):
         print("\nTEST: zGetSerial()")
@@ -564,8 +716,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def test_zGetSolve(self):
         print("\nTEST: zGetSolve()")
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         self.link0.zLoadFile(filename)
         # set a solve on the curvature (0) of surface number 6 such that the
         # Marginal Ray angle (2) value is 0.1.
@@ -577,8 +728,8 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def test_zGetSurfaceData(self):
         print("\nTEST: zGetSurfaceData()")
-        #Load a lens file
-        filename = zmxfp+lensFileName
+        # Load a lens file
+        filename = get_test_file()
         ret = self.link0.zLoadFile(filename)
         assert ret == 0
         surfName = self.link0.zGetSurfaceData(1,0)   # Surface name
@@ -602,15 +753,15 @@ class TestPyZDDEFunctions(unittest.TestCase):
     @unittest.skip("To implement")
     def test_zGetSurfaceParameter(self):
         print("\nTEST: zGetSurfaceParameter()")
-        #Load a lens file
-        filename = zmxfp+lensFileName
+        # Load a lens file
+        filename = get_test_file()
         ret = self.link0.zLoadFile(filename)
         assert ret == 0
         surfParam1 = self.link0.zGetSurfaceParameter(1,1)
         print("Surface name: ", surfParam1)
         surfParam3 = self.link0.zGetSurfaceParameter(1,3)
         print("Radius: ", surfParam3)
-        #ToDo: not complete
+        #TODO!!! not complete
 
 
     def test_zGetSystem(self):
@@ -648,15 +799,15 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def test_zGetSystemProperty(self):
         print("\nTEST: zGetSystemProperty():")
-        #Set Aperture type as EPD
+        # Set Aperture type as EPD
         sysPropData_s = self.link0.zSetSystemProperty(10,0)
         sysPropData_g = self.link0.zGetSystemProperty(10)
         self.assertEqual(sysPropData_s,sysPropData_g)
-        #Let lens title
+        # Let lens title
         sysPropData_s = self.link0.zSetSystemProperty(16,"My Lens")
         sysPropData_g = self.link0.zGetSystemProperty(16)
         self.assertEqual(sysPropData_s,sysPropData_g)
-        #Set glass catalog
+        # Set glass catalog
         sysPropData_s = self.link0.zSetSystemProperty(23,"SCHOTT HOYA OHARA")
         sysPropData_g = self.link0.zGetSystemProperty(23)
         self.assertEqual(sysPropData_s,sysPropData_g)
@@ -666,24 +817,23 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zGetTextFile(self):
         print("\nTEST: zGetTextFile()")
         # Load a lens file into the DDE Server (Not required to Push lens)
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         ret = self.link0.zLoadFile(filename)
         # create text files
         spotDiagFileName = 'SpotDiagram.txt'          # Change appropriately
         abberSCFileName = 'SeidelCoefficients.txt'    # Change appropriately
-        #Request to dump prescription file, without giving fullpath name. It
-        #should return -1
+        # Request to dump prescription file, without giving fullpath name. It
+        # should return -1
         preFileName = 'Prescription_unitTest_00.txt'
         ret = self.link0.zGetTextFile(preFileName,'Pre',"None",0)
         self.assertEqual(ret,-1)
-        #filename path is absolute, however, doesn't have extension
+        # filename path is absolute, however, doesn't have extension
         textFileName = testdirectory + '\\' + os.path.splitext(preFileName)[0]
         ret = self.link0.zGetTextFile(textFileName,'Pre',"None",0)
         self.assertEqual(ret,-1)
-        #Request to dump prescription file, without providing a valid settings file
-        #and flag = 0 ... so that the default settings will be used for the text
-        #Create filename with full path
+        # Request to dump prescription file, without providing a valid settings file
+        # and flag = 0 ... so that the default settings will be used for the text
+        # Create filename with full path
         textFileName = testdirectory + '\\' + preFileName
         ret = self.link0.zGetTextFile(textFileName,'Pre',"None",0)
         self.assertIn(ret,(0,-1,-998)) #ensure that the ret is any valid return
@@ -693,7 +843,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
             print("MSG: zGetTextFile() function timed out")
         if TestPyZDDEFunctions.pRetVar:
             print("zGetTextFile return value", ret)
-        #Request zemax to dump prescription file, with a settings
+        # Request zemax to dump prescription file, with a settings
         ret = self.link0.zGetRefresh()
         settingsFileName = "Cooke 40 degree field_PreSettings_OnlyCardinals.CFG"
         preFileName = 'Prescription_unitTest_01.txt'
@@ -707,15 +857,14 @@ class TestPyZDDEFunctions(unittest.TestCase):
         if TestPyZDDEFunctions.pRetVar:
             print("zGetText return value", ret)
             print('zGetText test successful')
-        #To do:
+        #TODO!!!
         #unit test for (purposeful) fail cases....
         #clean-up the dumped text files.
 
     def test_zGetTol(self):
         print("\nTEST: zGetTol()")
         # Load a lens file into the DDE server
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         self.link0.zLoadFile(filename)
         #Try to set a valid tolerance operand
         self.link0.zSetTol(1,1,'TCON') # set tol operand of 1st row
@@ -730,8 +879,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zGetTrace(self):
         print("\nTEST: zGetTrace()")
         # Load a lens file into the LDE (Not required to Push lens)
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         self.link0.zLoadFile(filename)
         # Set up the data
         waveNum,mode,surf,hx,hy,px,py = 3,0,5,0.0,1.0,0.0,0.0
@@ -777,8 +925,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zGetUpdate(self):
         print("\nTEST: zGetUpdate()")
         # Load & then push a lens file into the LDE
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         ret = self.link0.zLoadFile(filename)
         # Push the lens in the Zemax DDE server into the LDE
         ret = self.link0.zPushLens(update=1)
@@ -860,8 +1007,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zInsertConfig(self):
         print("\nTEST: zInsertConfig()")
         # Load a lens file into the DDE server
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         self.link0.zLoadFile(filename)
         #Get the current number of configurations (columns)
         currConfig = self.link0.zGetConfig()
@@ -878,8 +1024,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zInsertMCO(self):
         print("\nTEST: zInsertMCO()")
         # Load a lens file into the DDE server
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         self.link0.zLoadFile(filename)
         #Get the current number of configurations (columns and rows)
         currConfig = self.link0.zGetConfig()
@@ -916,13 +1061,12 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def test_zLoadFile(self):
         print("\nTEST: zLoadFile()")
-        global zmxfp
-        #Try to load a non existant file
-        filename = zmxfp+"nonExistantFile.zmx"
+        # Try to load a non existant file
+        filename = "C:\\nonExistantFile.zmx"
         ret = self.link0.zLoadFile(filename)
         self.assertEqual(ret,-999)
-        #Now, try to load a real file
-        filename = zmxfp+lensFileName
+        # Now, try to load a real file
+        filename = get_test_file()
         ret = self.link0.zLoadFile(filename)
         self.assertEqual(ret,0)
         if TestPyZDDEFunctions.pRetVar:
@@ -948,10 +1092,8 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zModifySettings(self):
         print("\nTEST: zModifySettings()")
         # Load the ZEMAX DDE server with a lens so that it has something to begin with
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename, sfilename = get_test_file(fileType='seq', settings=True)
         ret = self.link0.zLoadFile(filename)
-        sfilename = zmxfp+settingsFileName
         # Pass valid parameters and integer value
         ret = self.link0.zModifySettings(sfilename,'LAY_RAYS', 5)
         self.assertEqual(ret, 0)
@@ -967,8 +1109,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zNewLens(self):
         print("\nTEST: zNewLens()")
         # Load the ZEMAX DDE server with a lens so that it has something to begin with
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         ret = self.link0.zLoadFile(filename)
         # Call zNewLens to erase the current lens.
         ret = self.link0.zNewLens()
@@ -1126,8 +1267,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zSetConfig(self):
         print("\nTEST: zSetConfig()")
         # Load a lens file into the DDE server
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         self.link0.zLoadFile(filename)
         currConfig = self.link0.zGetConfig()
         #Since no configuration is initally present, it should return (1,1,1)
@@ -1301,8 +1441,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def test_zSetOperand(self):
         print("\nTEST: zSetOperand()")
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         ret = self.link0.zLoadFile(filename)
         #Try to set an invalid operand
         operandData = self.link0.zSetOperand(1,1,'INVALID')
@@ -1339,8 +1478,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def test_zSetSolve(self):
         print("\nTEST: zSetSolve()")
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         self.link0.zLoadFile(filename)
         # set a solve on the curvature (0) of surface number 6 such that the
         # Marginal Ray angle (2) value is 0.1. The following three methods are
@@ -1417,8 +1555,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zSetTol(self):
         print("\nTEST: zSetTol()")
         # Load a lens file into the DDE server
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         self.link0.zLoadFile(filename)
         #Try to set a wrong tolerance operand
         tolData = self.link0.zSetTol(1,1,'INVALIDOPERAND') # set tol operand of 1st row
@@ -1432,8 +1569,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zSetTolRow(self):
         print("\nTEST: zSetTolRow()")
         # Load a lens file into the DDE server
-        global zmxfp
-        filename = zmxfp+lensFileName
+        filename = get_test_file()
         self.link0.zLoadFile(filename)
         #Try to set a wrong tolerance operand
         tolData = self.link0.zSetTolRow(1,'INVALIDOPERAND',1,0,0,0.25,0.75)
@@ -1514,6 +1650,85 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zSetTimeout(self):
         print("\nTEST: zSetTimeout()")
         self.link0.zSetTimeout(3)
+
+# Helper functions
+
+def get_test_file(fileType='seq', settings=False, **kwargs):
+    """helper function to get test lens file(s) for each unit test function
+
+    Parameters
+    ----------
+    fileType : string, optional
+        3-character code for loading different (pre-specified) lens files:
+        "seq" = file for sequential ray tracing function tests;
+        "pop" = file for physical optics propagation tests;
+    settings : bool, optional
+        if ``True``, a tuple is returned with the second element being the name
+        of the settings file associated with the lens file.
+    kwargs : keyword arguments
+        sfile : string (for POP settings)
+            "default" = use default settings file associated with the lens file;
+            "nofibint" = settings with fiber integral calculation disabled;
+            "nzstbirr" = non-zero surface to beam setting, irradiance data;
+            "nzstbpha" = non-zero surface to beam setting, phase data;
+
+    Returns
+    -------
+    file : string/ tuple
+        filenames are complete complete paths
+    """
+    zmxfp = os.path.join(pyzddedirectory, 'ZMXFILES')
+    lensFile = ["Cooke 40 degree field.zmx",
+                "Double Gauss 5 degree field.ZMX", ]
+    settingsFile = ["Cooke 40 degree field_unittest.CFG", ]
+    popFiles = ["Fiber Coupling.ZMX", ]
+    popSettingsFile = ["Fiber Coupling_POPunittest.CFG",
+                       "Fiber Coupling_POPunittest_Irradiance.CFG",
+                       "Fiber Coupling_POPunittest_Phase.CFG",
+                       "Fiber Coupling_POPunittest_NoFiberCompute.CFG", ]
+    if len(kwargs):
+        pass  # for extending later or handled by individual cases
+    else:
+        lenFileIndex = 0
+        setFileIndex = 0
+    files = []
+    if fileType == 'seq':
+        files.append(lensFile[lenFileIndex])
+        if settings:
+            files.append(settingsFile[setFileIndex])
+    elif fileType == 'pop':
+        if settings:
+            if len(kwargs):
+                if kwargs['sfile'] == 'nofibint':
+                    lenFileIndex, setFileIndex = 0, 3
+                elif kwargs['sfile'] == 'nzstbirr':
+                    lenFileIndex, setFileIndex = 0, 1
+                elif kwargs['sfile'] == 'nzstbpha':
+                    lenFileIndex, setFileIndex = 0, 2
+                else:
+                    lenFileIndex, setFileIndex = 0, 0
+            else: # if settings == True, but there is no kwargs
+                lenFileIndex, setFileIndex = 0, 0
+            # add the appropriate files
+            files.append(popFiles[lenFileIndex])
+            files.append(popSettingsFile[setFileIndex])
+        else: # if settings == False
+            files.append(popFiles[lenFileIndex])
+
+    files = [os.path.join(zmxfp, f) for f in files]
+    if len(files) > 1:
+        return tuple(files)
+    else:
+        return files[0]
+
+def deleteFile(fileName):
+    """delete a file using zdde's internal delete function"""
+    return pyzdde._deleteFile(fileName, 5)
+
+def checkFileExist(fileName):
+    """check if a file exist, using zdde's internal function"""
+    return pyzdde._checkFileExist(fileName)
+
 
 if __name__ == '__main__':
     unittest.main()
