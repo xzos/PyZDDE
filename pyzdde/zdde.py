@@ -1416,11 +1416,11 @@ class PyZDDE(object):
         reply = self._sendDDEcommand("GetLabel,{:d}".format(surfaceNumber))
         return int(float(reply.rstrip()))
 
-    def zGetMetaFile(self, metaFileName, analysisType, settingsFileName=None,
+    def zGetMetaFile(self, metaFileName, analysisType, settingsFile=None,
                      flag=0):
         """Creates a windows Metafile of any Zemax graphical analysis window
 
-        Usage: ``zMetaFile(metaFilename, analysisType [, settingsFileName, flag])``
+        Usage: ``zMetaFile(metaFilename, analysisType [, settingsFile, flag])``
 
         Parameters
         ----------
@@ -1429,7 +1429,7 @@ class PyZDDE(object):
         analysisType : string
             3-letter case-sensitive button code for the analysis. If no label
             is provided or recognized, a 3D Layout plot is generated.
-        settingsFileName : string
+        settingsFile : string
             settings file used/ saved by Zemax to compute the metafile graphic
             depending upon the value of the flag parameter.
         flag : integer
@@ -1448,7 +1448,7 @@ class PyZDDE(object):
         Notes
         -----
         No matter what the flag value is, if a valid file-name is provided
-        for the ``settingsfilename``, the settings used will be written to
+        for the ``settingsFile``, the settings used will be written to
         the settings file, overwriting any data in the file.
 
         Examples
@@ -1460,8 +1460,8 @@ class PyZDDE(object):
         --------
         zGetTextFile(), zOpenWindow()
         """
-        if settingsFileName:
-            settingsFile = settingsFileName
+        if settingsFile:
+            settingsFile = settingsFile
         else:
             settingsFile = ''
         retVal = -1
@@ -2195,7 +2195,7 @@ class PyZDDE(object):
         return _process_get_set_Operand(column, reply)
 
     def zGetPath(self):
-        """Returns path name to <data> folder and default lenses folder
+        """Returns path-name-to-<data> folder and default lenses folder
 
         Parameters
         ----------
@@ -2929,7 +2929,7 @@ class PyZDDE(object):
         sysPropData = _process_get_set_SystemProperty(code,reply)
         return sysPropData
 
-    def zGetTextFile(self, textFileName, analysisType, settingsFileName=None, 
+    def zGetTextFile(self, textFileName, analysisType, settingsFile=None, 
                      flag=0, timeout=None):
         """Generate a text file for any analysis that supports text output.
 
@@ -2941,8 +2941,8 @@ class PyZDDE(object):
             3 letter case-sensitive label that indicates the type of the analysis 
             to be performed. They are identical to the button codes. If no label 
             is provided or recognized, a standard raytrace will be generated
-        settingsFileName : string
-            If ``settingsFileName`` is valid, Zemax will use or save the settings 
+        settingsFile : string
+            If ``settingsFile`` is valid, Zemax will use or save the settings 
             used to compute the text file, depending upon the value of the flag 
             parameter
         flag : integer (0/1/2)  
@@ -2967,7 +2967,7 @@ class PyZDDE(object):
         Notes
         -----
         No matter what the flag value is, if a valid file name is provided for 
-        ``settingsfilename``, the settings used will be written to the settings
+        ``settingsFile``, the settings used will be written to the settings
         file, overwriting any data in the file.
 
         See Also
@@ -2975,8 +2975,8 @@ class PyZDDE(object):
         zGetMetaFile(), zOpenWindow()
         """
         retVal = -1
-        if settingsFileName:
-            settingsFile = settingsFileName
+        if settingsFile:
+            settingsFile = settingsFile
         else:
             settingsFile = ''
         #Check if the file path is valid and has extension
@@ -4013,7 +4013,7 @@ class PyZDDE(object):
                       function in an interactive shell, for example:
                           `import zemaxbuttons as zb`
                           `zb.showZButtonList()`
-        zplMacro      : (bool) True if the analysisTyppe code is the first 3-letters
+        zplMacro      : (bool) True if the analysisType code is the first 3-letters
                       of a ZPL macro name, else False (default). Please see
                       the Note below
         timeout       : timeout value in seconds. Default=None
@@ -5036,7 +5036,7 @@ class PyZDDE(object):
 
     def zSetNSCSolve(self, surfaceNumber, objectNumber, parameter, solveType,
                      pickupObject=0, pickupColumn=0, scale=0, offset=0):
-	"""Sets the solve type on NSC position and parameter data.
+        """Sets the solve type on NSC position and parameter data.
 
         zSetNSCSolve(surfaceNumber, objectNumber, parametersolveType,
                      pickupObject, pickupColumn, scale, offset) -> nscSolveData
@@ -6309,18 +6309,18 @@ class PyZDDE(object):
         return ret
 
 
-    def zCalculateHiatus(self, txtFileName2Use=None, keepFile=False):
+    def zCalculateHiatus(self, txtFile=None, keepFile=False):
         """Calculate the Hiatus.
 
         The hiatus, also known as the Null space, or nodal space, or the
         interstitium is the distance between the two principal planes.
 
-        zCalculateHiatus([txtFileName2Use,keepFile])-> hiatus
+        zCalculateHiatus([txtFile,keepFile])-> hiatus
 
         Parameters
         ----------
-        txtFileName2Use : (optional, string) If passed, the prescription file
-                          will be named such. Pass a specific txtFileName if
+        txtFile : (optional, string) If passed, the prescription file
+                          will be named such. Pass a specific txtFile if
                           you want to dump the file into a separate directory.
         keepFile        : (optional, bool) If false (default), the prescription
                           file will be deleted after use. If true, the file
@@ -6329,11 +6329,11 @@ class PyZDDE(object):
         -------
         hiatus          : the value of the hiatus
         """
-        if txtFileName2Use != None:
-            textFileName = txtFileName2Use
+        if txtFile is not None:
+            textFileName = txtFile
         else:
             cd = _os.path.dirname(_os.path.realpath(__file__))
-            textFileName = cd +"\\"+"prescriptionFile.txt"
+            textFileName = _os.path.join(cd, "prescriptionFile.txt")
         ret = self.zGetTextFile(textFileName, 'Pre', "None", 0)
         assert ret == 0
         recSystemData = self.zGetSystem()
@@ -6374,27 +6374,32 @@ class PyZDDE(object):
             _deleteFile(textFileName)
         return hiatus
 
-    def zGetPOP(self, txtFileName2Use=None, keepFile=False, configFileName=None,
-                retDisplayData=False, timeout=None):
+    def zGetPOP(self, settingsFile=None, displayData=False, txtFile=None, 
+                keepFile=False, timeout=None):
         """returns Physical Optics Propagation (POP) data
 
         Parameters
         ----------
-        txtFileName2Use : string, optional
+        settingsFile : string, optional
+            * if passed, the POP will be called with this configuration file; 
+            * if no ``settingsFile`` is passed, and config file ending with the
+              same name as the lens file post fixed with "_pyzdde_POP.CFG" is 
+              present, the settings from this file will be used;
+            * if no ``settingsFile`` and no file name post-fixed with 
+              "_pyzdde_POP.CFG" is found, but a config file with the same name 
+              as the lens file is present, the settings from that file will be 
+              used;
+            * if no settings file is found, then a default settings will be used 
+        displayData : bool
+            if ``true`` the function returns the 2D display data; default 
+            is ``false``
+        txtFile : string, optional
             if passed, the POP data file will be named such. Pass a 
-            specific ``txtFileName`` if you want to dump the file into a 
+            specific ``txtFile`` if you want to dump the file into a 
             separate directory.
         keepFile : bool, optional 
             if false (default), the prescription file will be deleted after 
             use. If true, the file will persist.
-        configFileName : string, optional
-            if passed, the POP will be called with this configuration file. 
-            If no configFileName is passed, and config file (.CFG) having
-            the same name as the lens file is present, the settings from that
-            file will be used 
-        retDisplayData : bool
-            if ``true`` the function returns the 2D display data; default 
-            is ``false``
         timeout : integer, optional
             timeout in seconds
 
@@ -6402,9 +6407,9 @@ class PyZDDE(object):
         -------
         popData : tuple
             popData is a 1-tuple continining just ``popInfo`` (see below) if 
-            ``retDisplayData`` is ``false`` (default). If ``retDisplayData``
-            is ``true``, ``popData`` is a 2-tuple containing ``popInfo`` (a
-            tuple) and ``powerGrid`` (a 2D list):
+            ``displayData`` is ``false`` (default). 
+            If ``displayData`` is ``true``, ``popData`` is a 2-tuple containing 
+            ``popInfo`` (a tuple) and ``powerGrid`` (a 2D list):
 
             popInfo : tuple
                 peakIrradiance/ centerPhase : float
@@ -6431,10 +6436,18 @@ class PyZDDE(object):
                     relative z position of the gaussian beam
                 rayleigh : float 
                     the rayleigh range of the gaussian beam
+                gridX : integer
+                    the X-sampling
+                gridY : interger
+                    the Y-sampling
+                widthX : float
+                    width along X in lens units
+                widthY : float
+                    width along Y in lens units
         
             powerGrid : 2D list/ None
                 a two-dimensional list of the powers in the analysis grid if
-                ``retDisplayData`` is ``true``
+                ``displayData`` is ``true``
 
         Notes
         ----- 
@@ -6445,19 +6458,29 @@ class PyZDDE(object):
 
         See Also
         -------- 
-        zSetPOPSettings()   
+        zSetPOPSettings(), zModifyPOPSettings()   
         """
-        if txtFileName2Use != None:
-            textFileName = txtFileName2Use
+        cd = _os.path.dirname(_os.path.realpath(__file__))
+        if txtFile != None:
+            textFileName = txtFile
         else:
-            cd = _os.path.dirname(_os.path.realpath(__file__))
             textFileName = _os.path.join(cd, "popData.txt")
-            
-        getTextFlag = 1 if configFileName else 0
+        # decide about what settings to use
+        if settingsFile:
+            cfgFile = settingsFile    
+            getTextFlag = 1 
+        else:
+            f = _os.path.splitext(self.zGetFile())[0] + '_pyzdde_POP.CFG'
+            if _checkFileExist(f): # use "*_pyzdde_POP.CFG" settings file 
+                cfgFile = f
+                getTextFlag = 1
+            else: # use default settings file
+                cfgFile = ''
+                getTextFlag = 0
         
-        ret = self.zGetTextFile(textFileName, 'Pop', configFileName, getTextFlag)
+        ret = self.zGetTextFile(textFileName, 'Pop', cfgFile, getTextFlag)
         assert ret == 0
-
+        # get line list
         line_list = _readLinesFromFile(_openFile(textFileName))
         
         # Get data type ... phase or Irradiance?
@@ -6467,7 +6490,15 @@ class PyZDDE(object):
 
         # Get the Grid size
         grid_line = line_list[_getFirstLineOfInterest(line_list, 'Grid size')]
-        grid_x, grid_y = [int(i) for i in _re.findall('\d{2,5}', grid_line)] 
+        grid_x, grid_y = [int(i) for i in _re.findall(r'\d{2,5}', grid_line)]
+
+        # Point spacing
+        pts_line = line_list[_getFirstLineOfInterest(line_list, 'Point spacing')]
+        pat = r'-?\d\.\d{4,6}[Ee][-\+]\d{3}'
+        pts_x, pts_y =  [float(i) for i in _re.findall(pat, pts_line)]
+
+        width_x = pts_x*grid_x
+        width_y = pts_y*grid_y
 
         if data_is_irr:
             # Peak Irradiance and Total Power
@@ -6526,9 +6557,10 @@ class PyZDDE(object):
             if cou:
                 coupling = float(cou.group())
         
-        if retDisplayData:
+        if displayData:
             # Get the 2D data
-            pat = r'(-?\d\.\d{4,6}[Ee][-\+]\d{3}\s*)' + r'{{{num}}}'.format(num=grid_x)
+            pat = (r'(-?\d\.\d{4,6}[Ee][-\+]\d{3}\s*)' + r'{{{num}}}'
+                   .format(num=grid_x))
             start_line = _getFirstLineOfInterest(line_list, pat)
             powerGrid = _get2DList(line_list, start_line, grid_y)
         
@@ -6538,33 +6570,130 @@ class PyZDDE(object):
         if data_is_irr: # Irradiance data
             popi = _co.namedtuple('POPinfo', ['peakIrr', 'totPow', 
                                               'fibEffSys', 'fibEffRec', 'coupling', 
-                                              'pilotSize', 'pilotWaist', 
-                                              'pos', 'rayleigh'])
+                                              'pilotSize', 'pilotWaist', 'pos', 
+                                              'rayleigh', 'gridX', 'gridY',
+                                              'widthX', 'widthY' ])
             popInfo = popi(peakIrr, totPow, fibEffSys, fibEffRec, coupling, 
-                           pilotSize, pilotWaist, pos, rayleigh)
+                           pilotSize, pilotWaist, pos, rayleigh, 
+                           grid_x, grid_y, width_x, width_y)
         else: # Phase data
             popi = _co.namedtuple('POPinfo', ['cenPhase', 'blank', 
                                               'fibEffSys', 'fibEffRec', 'coupling', 
-                                              'pilotSize', 'pilotWaist', 
-                                              'pos', 'rayleigh'])
+                                              'pilotSize', 'pilotWaist', 'pos', 
+                                              'rayleigh', 'gridX', 'gridY',
+                                              'widthX', 'widthY' ])
             popInfo = popi(centerPhase, None, fibEffSys, fibEffRec, coupling, 
-                           pilotSize, pilotWaist, pos, rayleigh)
-        
-        if retDisplayData:
+                           pilotSize, pilotWaist, pos, rayleigh, 
+                           grid_x, grid_y, width_x, width_y)
+        if displayData:
             return (popInfo, powerGrid)
         else:
             return popInfo
-    
-    def zSetPOPSettings(self, data=0, settingsFileName=None, start_sur=None,  
-                           end_sur=None, field=None, wave=None, auto=None, 
+
+    def zModifyPOPSettings(self, settingsFile, start_surf=None,  
+                           end_surf=None, field=None, wave=None, auto=None, 
                            beamType=None, paramN=((),()), pIrr=None, tPow=None, 
                            sampx=None, sampy=None, srcFile=None, widex=None, 
                            widey=None, fibComp=None, fibFile=None, fibType=None, 
                            fparamN=((),()), ignPol=None, pos=None, tiltx=None, 
                            tilty=None):
-        """create and set a new POP settings file starting from the "reset" POP 
-        settings state of the most basic lens in Zemax
+        """modify an existing POP settings file
 
+        Only those parameters with non-None or non-zero-length (in case of tuples)
+        will be set.
+
+        Parameters
+        ---------- 
+        settingsFile : string
+            filename of the settings file including path and extension
+        others :
+            see the parameter definitions of ``zSetPOPSettings()``
+
+        Returns
+        ------- 
+        statusTuple : tuple or -1
+            tuple of codes returned by ``zModifySettings()`` for each non-None
+            parameters. The status codes are as follows:
+            0 = no error;
+            -1 = invalid file;
+            -2 = incorrect version number;
+            -3 = file access conflict
+
+            The function returns -1 if ``settingsFile`` is invalid. 
+
+        See Also
+        -------- 
+        zSetPOPSettings(), zGetPOP()
+        """
+        sTuple = []
+        if (_os.path.isfile(settingsFile) and 
+            settingsFile.lower().endswith('.cfg')):
+            dst = settingsFile
+        else:
+            return -1
+        if start_surf is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_START", start_surf))
+        if end_surf is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_END", end_surf))
+        if field is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_FIELD", field))
+        if wave is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_WAVE", wave))
+        if auto is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_AUTO", auto))
+        if beamType is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_BEAMTYPE", beamType))
+        if paramN[0]:
+            tst = []
+            for i, j in _izip(paramN[0], paramN[1]):
+                tst.append(self.zModifySettings(dst, "POP_PARAM{}".format(i), j))
+            sTuple.append(tuple(tst))
+        if pIrr is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_PEAKIRRAD", pIrr))
+        if tPow is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_POWER", tPow))
+        if sampx is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_SAMPX", sampx))
+        if sampy is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_SAMPY", sampy))
+        if srcFile is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_SOURCEFILE", srcFile))
+        if widex is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_WIDEX", widex))
+        if widey is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_WIDEY", widey))
+        if fibComp is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_COMPUTE", fibComp))
+        if fibFile is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_FIBERFILE", fibFile))
+        if fibType is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_FIBERTYPE", fibType))
+        if fparamN[0]:
+            tst = []
+            for i, j in _izip(fparamN[0], fparamN[1]):
+                tst.append(self.zModifySettings(dst, "POP_FPARAM{}".format(i), j))
+            sTuple.append(tuple(tst))
+        if ignPol is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_IGNOREPOL", ignPol))
+        if pos is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_POSITION", pos))
+        if tiltx is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_TILTX", tiltx))
+        if tilty is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_TILTY", tilty))
+        return tuple(sTuple)
+    
+    def zSetPOPSettings(self, data=0, settingsFileName=None, start_surf=None, 
+                        end_surf=None, field=None, wave=None, auto=None, 
+                        beamType=None, paramN=((),()), pIrr=None, tPow=None, 
+                        sampx=None, sampy=None, srcFile=None, widex=None, 
+                        widey=None, fibComp=None, fibFile=None, fibType=None, 
+                        fparamN=((),()), ignPol=None, pos=None, tiltx=None, 
+                        tilty=None):
+        """create and set a new settings file starting from the "reset" settings 
+        state of the most basic lens in Zemax. 
+
+        To modify an existing POP settings file, use ``zModifyPOPSettings()``. 
         Only those parameters with non-None or non-zero-length (in case of tuples)
         will be set.
         
@@ -6573,28 +6702,33 @@ class PyZDDE(object):
         data : integer
             0 = irradiance, 1 = phase
         settingsFileName : string, optional
-            full file name, including path and extension of settings file.
-            If ``None``, a file with the name of the lens and with extension
-            ".CFG" will be created in the same directory as the lens file
-        start_sur : integer, optional
+            name to give to the settings file to be created. It must be the full 
+            file name, including path and extension of settings file.
+            If ``None``, then a CFG file with the name of the lens followed by 
+            the string '_pyzdde_POP.CFG' will be created in the same directory 
+            as the lens file and returned
+        start_surf : integer, optional
             the starting surface
-        end_sur : integer, optional
+        end_surf : integer, optional
             the end surface
         field : integer, optional
             the field number
         wave : integer, optional
             the wavelength number
-        auto : ??, optional
+        auto : integer, optional
             simulates the pressing of the "auto" button which chooses appropriate
-            X and Y beam widths based upon the sampling and other settings
+            X and Y beam widths based upon the sampling and other settings. Set
+            it to 1
         beamType : integer (0...6), optional
             0 = Gaussian Waist; 1 = Gaussian Angle; 2 = Gaussian Size + Angle; 
             3 = Top Hat; 4 = File; 5 = DLL; 6 = Multimode.
         paramN : 2-tuple, optional
             sets beam parameter n, for example ((1, 4),(0.1, 0.5)) sets parameters 
-            1 and 4 to 0.1 and 0.5 respectively. Hint: For Gaussian Waist beam, 
-            n=1 for Waist X, 2, for Waist Y, 3 for Decenter X, 4 for Decenter Y, 
-            5 for Aperture X, 6 for Aperture Y, 7 for Order X, 8 for Order Y
+            1 and 4 to 0.1 and 0.5 respectively. These parameter names and values 
+            change depending upon the beam type setting. For example, for the 
+            Gaussian Waist beam, n=1 for Waist X, 2 for Waist Y, 3 for Decenter X, 
+            4 for Decenter Y, 5 for Aperture X, 6 for Aperture Y, 7 for Order X, 
+            and 8 for Order Y
         pIrr : float, optional
             sets the normalization by peak irradiance. It is the initial beam peak 
             irradiance in power per area. It is an alternative to Total Power (tPow)
@@ -6611,9 +6745,9 @@ class PyZDDE(object):
             The file name if the starting beam is defined by a ZBF file, DLL, or 
             multimode file
         widex : float, optional
-            the X direction width
+            the initial X direction width in lens units
         widey : float, optional
-            the Y direction width
+            the initial Y direction width in lens units
         fibComp : integer (1/0), optional
             use 1 to check the fiber coupling integral on, 0 to check it off
         fibFile : string, optional
@@ -6641,8 +6775,11 @@ class PyZDDE(object):
         
         Notes
         -----
-        Further modifications of the settings file can be made using 
-        ``ln.zModifySettings()`` method
+        1. Further modifications of the settings file can be made using 
+           ``ln.zModifySettings()`` or ``ln.zModifyPOPSettings()`` method
+        2. The function creates settings file ending with '_pyzdde_POP.CFG'
+           in order to prevent overwritting any existing settings file not
+           created by pyzdde for POP.
 
         See Also
         -------- 
@@ -6655,62 +6792,22 @@ class PyZDDE(object):
         else:
             clean_cfg = 'RESET_SETTINGS_POP_IRR.CFG'
         src = _os.path.join(_pDir, 'ZMXFILES', clean_cfg)
+        
         if settingsFileName:
             dst = settingsFileName
         else:
-            dst = _os.path.splitext(self.zGetFile())[0] + '.CFG'
+            filename_partial = _os.path.splitext(self.zGetFile())[0]
+            dst =  filename_partial + '_pyzdde_POP.CFG'
         try:
             _shutil.copy(src, dst)
         except IOError:
-            print("ERROR: Invalid settingsFileName")
+            print("ERROR: Invalid settingsFile {}".format(dst))
             return
         else:
-            if start_sur:
-                self.zModifySettings(dst, "POP_START", start_sur)
-            if end_sur:
-                self.zModifySettings(dst, "POP_END", end_sur)
-            if field:
-                self.zModifySettings(dst, "POP_FIELD", field)
-            if wave:
-                self.zModifySettings(dst, "POP_WAVE", wave)
-            if auto:
-                self.zModifySettings(dst, "POP_AUTO", auto)
-            if beamType:
-                self.zModifySettings(dst, "POP_BEAMTYPE", beamType)
-            if paramN[0]:
-                for i, j in _izip(paramN[0], paramN[1]):
-                    self.zModifySettings(dst, "POP_PARAM{}".format(i), j)
-            if pIrr:
-                self.zModifySettings(dst, "POP_PEAKIRRAD", pIrr)
-            if tPow:
-                self.zModifySettings(dst, "POP_POWER", tPow)
-            if sampx:
-                self.zModifySettings(dst, "POP_SAMPX", sampx)
-            if sampy:
-                self.zModifySettings(dst, "POP_SAMPY", sampy)
-            if srcFile:
-                self.zModifySettings(dst, "POP_SOURCEFILE", srcFile)
-            if widex:
-                self.zModifySettings(dst, "POP_WIDEX", widex)
-            if widey:
-                self.zModifySettings(dst, "POP_WIDEY", widey)
-            if fibComp:
-                self.zModifySettings(dst, "POP_COMPUTE", fibComp)
-            if fibFile:
-                self.zModifySettings(dst, "POP_FIBERFILE", fibFile)
-            if fibType:
-                self.zModifySettings(dst, "POP_FIBERTYPE", fibType)
-            if fparamN[0]:
-                for i, j in _izip(fparamN[0], fparamN[1]):
-                    self.zModifySettings(dst, "POP_FPARAM{}".format(i), j)
-            if ignPol:
-                self.zModifySettings(dst, "POP_IGNOREPOL", ignPol)
-            if pos:
-                self.zModifySettings(dst, "POP_POSITION", pos)
-            if tiltx:
-                self.zModifySettings(dst, "POP_TILTX", tiltx)
-            if tilty:
-                self.zModifySettings(dst, "POP_TILTY", tilty)
+            self.zModifyPOPSettings(dst, start_surf, end_surf, field, wave, auto, 
+                                    beamType, paramN, pIrr, tPow, sampx, sampy, 
+                                    srcFile, widex, widey, fibComp, fibFile, 
+                                    fibType, fparamN, ignPol, pos, tiltx, tilty)
             return dst       
 
     def zGetPupilMagnification(self):
@@ -6730,10 +6827,10 @@ class PyZDDE(object):
         _, _, ENPD, ENPP, EXPD, EXPP, _, _ = self.zGetPupil()
         return (EXPD/ENPD)
 
-    def zGetSeidelAberration(self, which='wave', txtFileName2Use=None, keepFile=False):
+    def zGetSeidelAberration(self, which='wave', txtFile=None, keepFile=False):
         """Return the Seidel Aberration coefficients
 
-        zGetSeidelAberration([which='wave', txtFileName2Use=None, keepFile=False]) -> sac
+        zGetSeidelAberration([which='wave', txtFile=None, keepFile=False]) -> sac
 
         Parameters
         ----------
@@ -6742,7 +6839,7 @@ class PyZDDE(object):
                           'aber' = Seidel aberration coefficients (total) is returned
                           'both' = both Wavefront (summary) and Seidel aberration (total)
                                    coefficients are returned
-        txtFileName2Use : (optional, string) If passed, the prescription file
+        txtFile : (optional, string) If passed, the prescription file
                           will be named such. Pass a specific txtFileName if
                           you want to dump the file into a separate directory.
         keepFile        : (optional, bool) If false (default), the prescription
@@ -6758,11 +6855,11 @@ class PyZDDE(object):
                        if 'which' is 'both', then a tuple of dictionaries containint Wavefront
                        aberration coefficients and Seidel aberration coefficients is returned.
         """
-        if txtFileName2Use != None:
-            textFileName = txtFileName2Use
+        if txtFile is not None:
+            textFileName = txtFile
         else:
             cd = _os.path.dirname(_os.path.realpath(__file__))
-            textFileName = cd +"\\"+"seidelAberrationFile.txt"
+            textFileName = _os.path.join(cd, "seidelAberrationFile.txt")
         ret = self.zGetTextFile(textFileName,'Sei', "None", 0)
         assert ret == 0
         recSystemData = self.zGetSystem() # Get the current system parameters
@@ -6935,13 +7032,13 @@ class PyZDDE(object):
         return self.ipzCaptureWindow(*args, **kwargs)
 
     def ipzCaptureWindow(self, analysisType, percent=12, MFFtNum=0, blur=1,
-                         gamma=0.35, settingsFileName=None, flag=0, retArr=False,
+                         gamma=0.35, settingsFile=None, flag=0, retArr=False,
                          wait=10):
         """Capture any analysis window from Zemax main window, using 3-letter
         analysis code.
 
         ipzCaptureWindow(analysisType [,percent=12,MFFtNum=0,blur=1, gamma=0.35,
-                         settingsFileName=None, flag=0, retArr=False])
+                         settingsFile=None, flag=0, retArr=False])
                          -> displayGraphic
 
         Parameters
@@ -6959,8 +7056,8 @@ class PyZDDE(object):
         gamma : float
                 gamma for the PNG image (default = 0.35). Use a gamma value of
                 around 0.9 for color surface plots.
-        settingsFileName : string
-                           If a valid file name is used for the `settingsFileName`,
+        settingsFile : string
+                           If a valid file name is used for the `settingsFile`,
                            ZEMAX will use or save the settings used to compute
                            the  metafile, depending upon the value of the flag
                            parameter.
@@ -7019,7 +7116,7 @@ class PyZDDE(object):
                                                            PngImg=tmpPngImgName))
             # Get the metafile and display the image
             if not self.zGetMetaFile(tmpMetaImgName,analysisType,
-                                     settingsFileName,flag):
+                                     settingsFile,flag):
                 if _checkFileExist(tmpMetaImgName, timeout=wait):
                     # Convert Metafile to PNG using ImageMagick's convert
                     startupinfo = _subprocess.STARTUPINFO()
@@ -7049,7 +7146,7 @@ class PyZDDE(object):
         else:
                 print("Couldn't import IPython modules.")
 
-    def ipzGetTextWindow(self, analysisType, sln=0, eln=None, settingsFileName=None,
+    def ipzGetTextWindow(self, analysisType, sln=0, eln=None, settingsFile=None,
                          flag=0, *args, **kwargs):
         """Print the text output of a Zemax analysis type into a IPython cell.
 
@@ -7066,7 +7163,7 @@ class PyZDDE(object):
         sln          : starting line number (integer) `default=0`
         eln          : ending line number (integer) `default=None`. If `None` all
                        lines in the file are printed.
-        settingsFileName : If a valid file name is used for the "settingsFileName",
+        settingsFile : If a valid file name is used for the "settingsFile",
                            ZEMAX will use or save the settings used to compute the
                            text file, depending upon the value of the flag parameter.
         flag        :  0 = default settings used for the text
@@ -7091,7 +7188,7 @@ class PyZDDE(object):
             # Use the lens file path to store and process temporary images
             tmpTxtPath = self.zGetPath()[1]  # lens file path
             tmpTxtFile = "{ttp}\\TEMPTXT.txt".format(ttp=tmpTxtPath)
-            if not self.zGetTextFile(tmpTxtFile,analysisType,settingsFileName,flag):
+            if not self.zGetTextFile(tmpTxtFile,analysisType,settingsFile,flag):
                 if _checkFileExist(tmpTxtFile):
                     for line in _getDecodedLineFromFile(_openFile(tmpTxtFile)):
                         if linePrintCount >= sln and linePrintCount <= eln:
@@ -7366,23 +7463,24 @@ def _regressLiteralType(x):
     return lit
 
 def _checkFileExist(filename, mode='r', timeout=.25):
-    """This function checks if a file exist.
+    """This function checks if a file exist
 
-    If the file exist then it is ready to be read, written to, or deleted.
-
-    _checkFileExist(filename [, mode, timeout])->status
+    If the file exist then it is ready to be read, written to, or deleted
 
     Parameters
     ----------
-    filename : (string) filename with full path
-    mode     : (string) mode for opening file
-    timeout  : (seconds) how long to wait before returning
+    filename : string
+        filename with full path
+    mode : string, optional 
+        mode for opening file
+    timeout : integer, 
+        timeout in seconds for how long to wait before returning
 
     Returns
     -------
-    status:
-      True   : file exist, and file operations are possible
-      False  : timeout reached
+    status : bool
+      True = file exist, and file operations are possible; 
+      False = timeout reached
     """
     ti = _datetime.datetime.now()
     status = True

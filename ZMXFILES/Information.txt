@@ -1,2 +1,56 @@
-Apochromat:
-Trying to open this file causes an error such as "Can't open File" This is because a particular glass/glass catalog is missing.
+Information regarding the files in this directory
+=================================================
+
+General Files
+*************
+
+Apochromat
+~~~~~~~~~~
+
+Trying to open this file causes an error such as "Can't open File" This is 
+because a particular glass/glass catalog is missing.
+
+
+POP setting (.CFG) files
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+RESET_SETTINGS_POP_IRR.CFG
+--------------------------
+most basic settings file (created using "reset" on "LENS.ZMX" lens file) to 
+return irradiance data in POP analysis
+
+
+RESET_SETTINGS_POP_PHASE.CFG
+----------------------------
+most basic settings file (created using "reset" on "LENS.ZMX" lens file) to 
+return phase data in POP analysis
+
+
+Unit-test files
+***************
+
+Fiber Coupling settings (.CFG) files for unit-tests
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Fiber Coupling_POPunittest.CFG
+------------------------------
+The original (unmodified) POP settings for Fiber Coupling.ZMX file. In this
+setting, the display data type is Irradiance, fiber coupling integral is
+checked, beam is a Gaussian TEM00.
+
+Fiber Coupling_POPunittest_Irradiance.CFG
+-----------------------------------------
+POP settings to return Irradiance data, the ``surf to beam`` is set to -3 m.
+This settings doesn't affect the irradiance, but changes the phase and thus
+the coupling efficiency. 
+
+Fiber Coupling_POPunittest_Phase.CFG
+------------------------------------
+POP settings to return Phase data, the ``surf to beam`` is set to -3 m.
+This settings doesn't affect the irradiance, but changes the phase and thus
+the coupling efficiency.
+
+Fiber Coupling_POPunittest_NoFiberCompute.CFG
+---------------------------------------------
+POP settings to return Irradiance data. The "computer fiber integral" option
+is checked-OFF in this settings file.

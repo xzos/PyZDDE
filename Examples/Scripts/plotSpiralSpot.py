@@ -16,17 +16,16 @@ import matplotlib.pyplot as plt
 # *********** Add PyZDDE to the python search path ***********************
 cd = os.path.dirname(os.path.realpath(__file__))
 ind = cd.find('Examples')
-cd = cd[0:ind-1]
+pDir = cd[0:ind-1]
 ##
-if cd not in sys.path:
-    sys.path.append(cd)
+if pDir not in sys.path:
+    sys.path.append(pDir)
 # ************************************************************************
 import pyzdde.zdde as pyz
 
 # The ZEMAX file path
-zmxfp = cd+'\\ZMXFILES\\'
 zmxfile = 'Cooke 40 degree field.zmx'
-filename = zmxfp+zmxfile
+filename = os.path.join(pDir, 'ZMXFILES', zmxfile)
 
 ln = pyz.createLink()
 # Load a lens file into the ZEMAX DDE server
