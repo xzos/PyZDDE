@@ -1244,7 +1244,7 @@ class PyZDDE(object):
         fd = _co.namedtuple('fieldData', ['X', 'Y', 'wt',
                                           'vdx', 'vdy',
                                           'vcx', 'vcy', 'van'])
-        fieldData = [ ]
+        fieldData = []
         for i in range(fieldCount):
             reply = self._sendDDEcommand('GetField,'+str(i+1))
             rs = reply.split(',')

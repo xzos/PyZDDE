@@ -14,6 +14,7 @@
 from __future__ import print_function, division
 import pyzdde.zdde as pyz
 import matplotlib.pyplot as plt
+import math
 import os
 
 ln = pyz.createLink()
@@ -100,13 +101,15 @@ ax = fig.add_subplot(2,2,3)
 ax.set_title('Phase at source')
 ext = [-popInfo_src_phase[-2]/2, popInfo_src_phase[-2]/2,
        -popInfo_src_phase[-1]/2, popInfo_src_phase[-1]/2]
-ax.imshow(data_src_phase, extent=ext, origin='lower')
+ax.imshow(data_src_phase, extent=ext, origin='lower', 
+          vmin=-math.pi, vmax=math.pi)
 ax.set_xlabel('x (mm)'); ax.set_ylabel('y (mm)')
 ax = fig.add_subplot(2,2,4)
 ax.set_title('Phase at fiber')
 ext = [-popInfo_dst_phase[-2]/2, popInfo_dst_phase[-2]/2,
        -popInfo_dst_phase[-1]/2, popInfo_dst_phase[-1]/2]
-ax.imshow(data_dst_phase, extent=ext, origin='lower')
+ax.imshow(data_dst_phase, extent=ext, origin='lower', 
+          vmin=-math.pi, vmax=math.pi)
 ax.set_xlabel('x (mm)'); ax.set_ylabel('y (mm)')
 
 fig.tight_layout()
