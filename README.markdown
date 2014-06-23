@@ -33,6 +33,8 @@ print("Hello Zemax version: ", link.zGetVersion())
 link.close()
 ```
 
+You may also see few more examples [here](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/tree/master/Examples/). 
+
 #### Features
 
 * Functions for using all "data items" defined in Zemax manual
@@ -50,10 +52,10 @@ PyZDDE can be used with regular Python scripts as well as in an interactive envi
 
 There are 4 types of functions in the toolbox:
 
-1.  Functions for accessing ZEMAX using the data items defined in the "ZEMAX EXTENSIONS" chapter of the ZEMAX manual. These functions' names start with "z" and the rest of the function names matches the data item defined by Zemax. For example `zGetSolve` for the data item GetSolve, `zSetSolve` for the data item SetSolve, etc.
-2.  Helper functions to enhance the toolbox functionality beyond just the data items, such as `zLensScale`, `zCalculateHiatus`, `zSpiralSpot`. Also, there are other utilities which increase the capability of the toolbox such as `zOptimize2`, `zSetWaveTuple`, `zExecuteZPLMacro`, etc. More functions are expected to be added over time.
-3.  Few functions such as `ipzCaptureWindow`, `ipzGetTextWindow` can be used to embed analysis/graphic windows and text files from Zemax into an IPython Notebook or IPython QtConsole.
-4.  There are several other functions which can be used independent of a running Zemax session.. Examples include `showZOperandList`, `findZOperand`, `findZButtonCode`, etc. Also, more functions are expected to be added over time.
+1.  Functions for accessing ZEMAX using the data items defined in the "ZEMAX EXTENSIONS" chapter of the ZEMAX manual. These functions' names start with "z" and the rest of the function names matches the data item defined by Zemax. For example `zGetSolve()` for the data item "GetSolve", `zSetSolve()` for the data item "SetSolve", etc.
+2.  Helper functions to enhance the toolbox functionality beyond just the data items, such as `zCalculateHiatus`, `zSpiralSpot`. Also, there are other utilities which increase the capability of the toolbox such as `zOptimize2()`, `zSetWaveTuple()`, `zExecuteZPLMacro()`, etc. 
+3.  Few functions such as `ipzCaptureWindow()`, `ipzGetTextWindow()` can be used to embed analysis/graphic windows and text files from Zemax into an IPython Notebook or IPython QtConsole.
+4.  There are several other functions which can be used independent of a running Zemax session. Examples include `showZOperandList()`, `findZOperand()`, `findZButtonCode()`, etc.
 
 
 All the functions prefixed with "z" or "ipz"  (types 1, 2 and 3) interact with Zemax directly and hence require a Zemax session to be running simultaneously. As they are instance methods of a pyzdde channel object, a pyzdde object needs to be created.
@@ -73,13 +75,13 @@ Helper functions of type 4 can be accessed from the `zdde` module directly.
 For example:
 
 ```python
-pyz.zo.findZOperand("decenter")  # method of type 4 (can also be called as pyz.findZOperand)
+pyz.zo.findZOperand("decenter")  # method of type 4 (same as pyz.findZOperand)
 pyz.numAper(0.25)                # method of type 4
 ```
 
-A complete list of helper functions is available [here](https://github.com/indranilsinharoy/PyZDDE/wiki/List-of-helper-functions-in-PyZDDE).
+A complete list of helper functions is available [here](https://github.com/indranilsinharoy/PyZDDE/wiki/List-of-helper-functions-in-PyZDDE). (Beware that the currently this page is not updated at the same rate at which functions are getting added)
 
-At this point in time, a distribution version is not available as the tool box is being updated regularly.
+At this point in time, a distribution version is not available as the tool box is being updated regularly. The advantage is that you can just download the code and start using just as any other Python code, except that you will need to tell the Python interpreter about PyZDDE's whereabouts.
 
 Please download the code to a local directory in your computer and add that directory to python search path in order to use it. For detailed instructions on using PyZDDE, please refer to the [Wiki page] (https://github.com/indranilsinharoy/PyZDDE/wiki)
 
