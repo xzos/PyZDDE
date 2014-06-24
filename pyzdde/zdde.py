@@ -1374,39 +1374,39 @@ class PyZDDE(object):
         """Return the Image Space Numerical Aperture (ISNA) of the lens
 
         Parameters
-        ---------- 
+        ----------
         None
 
         Returns
-        ------- 
-        isna : real 
-            image space numerical aperture 
+        -------
+        isna : real
+            image space numerical aperture
 
         Notes
-        ----- 
-        The ISNA is calculated using paraxial ray tracing. It is defined as 
-        the index of the image space multiplied by the sine of the angle 
-        between the paraxial on-axis chief ray and the paraxial on-axis +y 
-        marginal ray calculated at the defined conjugates for the primary 
+        -----
+        The ISNA is calculated using paraxial ray tracing. It is defined as
+        the index of the image space multiplied by the sine of the angle
+        between the paraxial on-axis chief ray and the paraxial on-axis +y
+        marginal ray calculated at the defined conjugates for the primary
         wavelength [UPRT]_.
 
         References
         ----------
-        .. [UPRT] Understanding Paraxial Ray-Tracing, Mark Nicholson, Zemax 
+        .. [UPRT] Understanding Paraxial Ray-Tracing, Mark Nicholson, Zemax
                   Knowledgebase, July 21, 2005.
         """
-        waveNum = self.zGetPrimaryWaveNum()
+        waveNum = self.zGetPrimaryWave()
         last_surf = self.zGetNumSurf()
         # Trace paraxial on-axis chief ray at primary wavelength
-        chief_ray_dat = self.zGetTrace(waveNum, mode=1, surf=last_surf, 
+        chief_ray_dat = self.zGetTrace(waveNum, mode=1, surf=last_surf,
                                        hx=0, hy=0, px=0, py=0)
         chief_angle = _math.asin(chief_ray_dat[6])
         # Trace paraxial marginal ray at primary wavelength
-        margi_ray_dat = self.zGetTrace(waveNum, mode=1, surf=last_surf, 
+        margi_ray_dat = self.zGetTrace(waveNum, mode=1, surf=last_surf,
                                        hx=0, hy=0, px=0, py=1)
         margi_angle = _math.asin(margi_ray_dat[6])
         index = self.zGetIndex(last_surf)[0]
-        return index*_math.sin(chief_angle - margi_angle) 
+        return index*_math.sin(chief_angle - margi_angle)
 
     def zGetIndex(self, surfaceNumber):
         """Returns the index of refraction data for the specified surface
@@ -2184,29 +2184,29 @@ class PyZDDE(object):
         Equivalent to ZPL macro ``NFLD``
 
         Parameters
-        ---------- 
+        ----------
         None
 
         Returns
-        ------- 
-        nfld : integer 
-            number of fields defined  
+        -------
+        nfld : integer
+            number of fields defined
         """
         return self.zGetSystemProperty(101)
 
     def zGetNumSurf(self):
-        """Return the total number of surfaces defined 
+        """Return the total number of surfaces defined
 
-        Equivalent to ZPL macro ``NSUR`` 
+        Equivalent to ZPL macro ``NSUR``
 
         Parameters
-        ---------- 
+        ----------
         None
 
         Returns
-        ------- 
+        -------
         nsur : integer
-            number of surfaces defined 
+            number of surfaces defined
         """
         return self.zGetSystem()[0]
 
@@ -2216,12 +2216,12 @@ class PyZDDE(object):
         Equivalent to ZPL macro ``NWAV``
 
         Parameters
-        ---------- 
+        ----------
         None
 
         Returns
-        ------- 
-        nwav : integer 
+        -------
+        nwav : integer
             number of wavelengths defined
         """
         return self.zGetSystemProperty(201)
@@ -2494,16 +2494,16 @@ class PyZDDE(object):
         Equivalent to ZPL macro ``PWAV``
 
         Parameters
-        ---------- 
+        ----------
         None
 
         Returns
-        ------- 
-        primary_wavelength_number : integer 
-            primary wavelength number 
+        -------
+        primary_wavelength_number : integer
+            primary wavelength number
 
         See Also
-        -------- 
+        --------
         zSetPrimaryWave()
         """
         return self.zGetSystemProperty(200)
@@ -3035,7 +3035,7 @@ class PyZDDE(object):
         sysPropData = _process_get_set_SystemProperty(code,reply)
         return sysPropData
 
-    def zGetTextFile(self, textFileName, analysisType, settingsFile=None, 
+    def zGetTextFile(self, textFileName, analysisType, settingsFile=None,
                      flag=0, timeout=None):
         """Generate a text file for any analysis that supports text output.
 
@@ -3044,20 +3044,20 @@ class PyZDDE(object):
         textFileName : string
             name of the file to be created including the full path and extension
         analysisType : string
-            3 letter case-sensitive label that indicates the type of the analysis 
-            to be performed. They are identical to the button codes. If no label 
+            3 letter case-sensitive label that indicates the type of the analysis
+            to be performed. They are identical to the button codes. If no label
             is provided or recognized, a standard raytrace will be generated
         settingsFile : string
-            If ``settingsFile`` is valid, Zemax will use or save the settings 
-            used to compute the text file, depending upon the value of the flag 
+            If ``settingsFile`` is valid, Zemax will use or save the settings
+            used to compute the text file, depending upon the value of the flag
             parameter
-        flag : integer (0/1/2)  
+        flag : integer (0/1/2)
             0 = default settings used for the text;
             1 = settings provided in the settings file, if valid, else default;
-            2 = settings provided in the settings file, if valid, will be used 
-                and the settings box for the requested feature will be displayed. 
-                After the user makes any changes to the settings the text will 
-                then be generated using the new settings. Please see the manual 
+            2 = settings provided in the settings file, if valid, will be used
+                and the settings box for the requested feature will be displayed.
+                After the user makes any changes to the settings the text will
+                then be generated using the new settings. Please see the manual
                 for more details
         timeout : integer, optional
             timeout in seconds (default=None, i.e. default timeout value)
@@ -3072,12 +3072,12 @@ class PyZDDE(object):
 
         Notes
         -----
-        No matter what the flag value is, if a valid file name is provided for 
+        No matter what the flag value is, if a valid file name is provided for
         ``settingsFile``, the settings used will be written to the settings
         file, overwriting any data in the file.
 
         See Also
-        -------- 
+        --------
         zGetMetaFile(), zOpenWindow()
         """
         retVal = -1
@@ -3132,59 +3132,59 @@ class PyZDDE(object):
         ----------
         waveNum : integer
             wavelength number as in the wavelength data editor
-        mode : integer 
+        mode : integer
             0 = real; 1 = paraxial
-        surf : integer 
-            surface to trace the ray to. Usually, the ray data is only 
-            needed at the image surface; setting the surface number to 
+        surf : integer
+            surface to trace the ray to. Usually, the ray data is only
+            needed at the image surface; setting the surface number to
             -1 will yield data at the image surface.
-        hx : real 
+        hx : real
             normalized field height along x axis
-        hy : real 
+        hy : real
             normalized field height along y axis
-        px : real 
+        px : real
             normalized height in pupil coordinate along x axis
-        py : real 
+        py : real
             normalized height in pupil coordinate along y axis
 
         Returns
         -------
         errorCode : integer
-            0 = ray traced successfully; 
+            0 = ray traced successfully;
             +ve number = the ray missed the surface;
-            -ve number = the ray total internal reflected (TIR) at the surface 
+            -ve number = the ray total internal reflected (TIR) at the surface
                          given by the absolute value of the errorCode number;
         vigCode : integer
-            the first surface where the ray was vignetted. Unless an error 
-            occurs at that surface or subsequent to that surface, the ray 
+            the first surface where the ray was vignetted. Unless an error
+            occurs at that surface or subsequent to that surface, the ray
             will continue to trace to the requested surface.
-        x,y,z : reals 
+        x,y,z : reals
             coordinates of the ray on the requested surface
         l,m,n : reals
-            the direction cosines after refraction into the media following 
+            the direction cosines after refraction into the media following
             the requested surface.
-        l2,m2,n2 : reals 
+        l2,m2,n2 : reals
             the surface intercept direction normals at the requested surface
         intensity : real
-            the relative transmitted intensity of the ray, including any 
+            the relative transmitted intensity of the ray, including any
             pupil or surface apodization defined.
 
         Examples
-        -------- 
+        --------
         To trace the real chief ray to surface 5 for wavelength 3:
-        
+
         >>> rayTraceData = ln.zGetTrace(3,0,5,0.0,1.0,0.0,0.0)
         >>> errorCode,vigCode,x,y,z,l,m,n,l2,m2,n2,intensity = rayTraceData
 
         Notes
         -----
-        1. Always check to verify the ray data is valid  (errorCode) before 
-           using the rest of the returned parameters 
-        2. Use of ``zGetTrace()`` has significant overhead as only 1 ray per 
-           DDE call is traced. 
+        1. Always check to verify the ray data is valid  (errorCode) before
+           using the rest of the returned parameters
+        2. Use of ``zGetTrace()`` has significant overhead as only 1 ray per
+           DDE call is traced.
 
         See Also
-        -------- 
+        --------
         zGetTraceDirect(), zGetPolTrace(), zGetPolTraceDirect()
         """
         args1 = "{wN:d},{m:d},{s:d},".format(wN=waveNum,m=mode,s=surf)
@@ -3327,11 +3327,11 @@ class PyZDDE(object):
         """Get the version of Zemax
 
         Parameters
-        ---------- 
+        ----------
         None
 
         Returns
-        ------- 
+        -------
         version : integer
 
         """
@@ -3360,7 +3360,7 @@ class PyZDDE(object):
         returned by zSetWave().
 
         See Also
-        -------- 
+        --------
         zSetWave(), zSetWaveTuple(), zGetWaveTuple(), zGetPrimaryWaveNum()
         """
         reply = self._sendDDEcommand('GetWave,' + str(n))
@@ -3872,8 +3872,8 @@ class PyZDDE(object):
         fileName : string
             full name of the settings file, including the path & extension
         mType : string
-            a mnemonic that indicates which setting within the file is to be 
-            modified. See the ZPL macro command "MODIFYSETTINGS" in the Zemax 
+            a mnemonic that indicates which setting within the file is to be
+            modified. See the ZPL macro command "MODIFYSETTINGS" in the Zemax
             manual for a complete list of the ``mType`` codes
         value : string/integer
             the new data for the specified setting
@@ -3900,15 +3900,15 @@ class PyZDDE(object):
     def zNewLens(self):
         """erases the current lens
 
-        The "minimum" lens that remains is identical to the LDE when "File>>New" 
+        The "minimum" lens that remains is identical to the LDE when "File>>New"
         is selected. No prompt to save the existing lens is given
 
         Parameters
-        ---------- 
+        ----------
         None
 
         Returns
-        ------- 
+        -------
         status : integer
             0 = successful
         """
@@ -5224,7 +5224,7 @@ class PyZDDE(object):
         returned by zGetWave(0).
 
         See Also
-        -------- 
+        --------
         zGetPrimaryWave(), zSetWave(), zSetWave(), zSetWaveTuple(), zGetWaveTuple()
         """
         waveData = self.zGetWave(0)
@@ -6494,31 +6494,31 @@ class PyZDDE(object):
             _deleteFile(textFileName)
         return hiatus
 
-    def zGetPOP(self, settingsFile=None, displayData=False, txtFile=None, 
+    def zGetPOP(self, settingsFile=None, displayData=False, txtFile=None,
                 keepFile=False, timeout=None):
         """returns Physical Optics Propagation (POP) data
 
         Parameters
         ----------
         settingsFile : string, optional
-            * if passed, the POP will be called with this configuration file; 
+            * if passed, the POP will be called with this configuration file;
             * if no ``settingsFile`` is passed, and config file ending with the
-              same name as the lens file post fixed with "_pyzdde_POP.CFG" is 
+              same name as the lens file post fixed with "_pyzdde_POP.CFG" is
               present, the settings from this file will be used;
-            * if no ``settingsFile`` and no file name post-fixed with 
-              "_pyzdde_POP.CFG" is found, but a config file with the same name 
-              as the lens file is present, the settings from that file will be 
+            * if no ``settingsFile`` and no file name post-fixed with
+              "_pyzdde_POP.CFG" is found, but a config file with the same name
+              as the lens file is present, the settings from that file will be
               used;
-            * if no settings file is found, then a default settings will be used 
+            * if no settings file is found, then a default settings will be used
         displayData : bool
-            if ``true`` the function returns the 2D display data; default 
+            if ``true`` the function returns the 2D display data; default
             is ``false``
         txtFile : string, optional
-            if passed, the POP data file will be named such. Pass a 
-            specific ``txtFile`` if you want to dump the file into a 
+            if passed, the POP data file will be named such. Pass a
+            specific ``txtFile`` if you want to dump the file into a
             separate directory.
-        keepFile : bool, optional 
-            if false (default), the prescription file will be deleted after 
+        keepFile : bool, optional
+            if false (default), the prescription file will be deleted after
             use. If true, the file will persist.
         timeout : integer, optional
             timeout in seconds
@@ -6526,27 +6526,27 @@ class PyZDDE(object):
         Returns
         -------
         popData : tuple
-            popData is a 1-tuple continining just ``popInfo`` (see below) if 
-            ``displayData`` is ``false`` (default). 
-            If ``displayData`` is ``true``, ``popData`` is a 2-tuple containing 
+            popData is a 1-tuple continining just ``popInfo`` (see below) if
+            ``displayData`` is ``false`` (default).
+            If ``displayData`` is ``true``, ``popData`` is a 2-tuple containing
             ``popInfo`` (a tuple) and ``powerGrid`` (a 2D list):
 
             popInfo : tuple
                 peakIrradiance/ centerPhase : float
-                    the peak irradiance is the maximum power per unit area 
-                    at any point in the beam, measured in source units per 
+                    the peak irradiance is the maximum power per unit area
+                    at any point in the beam, measured in source units per
                     lens unit squared. It returns center phase if the data
                     type is "Phase" in POP settings
-                totalPower : float 
-                    the total power, or the integral of the irradiance over 
-                    the entire beam if data type is "Irradiance" in POP 
+                totalPower : float
+                    the total power, or the integral of the irradiance over
+                    the entire beam if data type is "Irradiance" in POP
                     settings. This field is blank for "Phase" data
                 fiberEfficiency_system : float
                     the efficiency of power transfer through the system
                 fiberEfficiency_receiver : float
                     the efficiency of the receiving fiber
                 coupling : float
-                    the total coupling efficiency, the product of the system 
+                    the total coupling efficiency, the product of the system
                     and receiver efficiencies
                 pilotSize : float
                     the size of the gaussian beam at the surface
@@ -6554,7 +6554,7 @@ class PyZDDE(object):
                     the waist of the gaussian beam
                 pos : float
                     relative z position of the gaussian beam
-                rayleigh : float 
+                rayleigh : float
                     the rayleigh range of the gaussian beam
                 gridX : integer
                     the X-sampling
@@ -6564,21 +6564,21 @@ class PyZDDE(object):
                     width along X in lens units
                 widthY : float
                     width along Y in lens units
-        
+
             powerGrid : 2D list/ None
                 a two-dimensional list of the powers in the analysis grid if
                 ``displayData`` is ``true``
 
         Notes
-        ----- 
-        The function returns ``None`` for any field which was not found in POP 
+        -----
+        The function returns ``None`` for any field which was not found in POP
         text file. This is most common in the case of ``fiberEfficiency_system``
-        and ``fiberEfficiency_receiver`` as they need to be set explicitly in 
+        and ``fiberEfficiency_receiver`` as they need to be set explicitly in
         the POP settings
 
         See Also
-        -------- 
-        zSetPOPSettings(), zModifyPOPSettings()   
+        --------
+        zSetPOPSettings(), zModifyPOPSettings()
         """
         cd = _os.path.dirname(_os.path.realpath(__file__))
         if txtFile != None:
@@ -6587,25 +6587,25 @@ class PyZDDE(object):
             textFileName = _os.path.join(cd, "popData.txt")
         # decide about what settings to use
         if settingsFile:
-            cfgFile = settingsFile    
-            getTextFlag = 1 
+            cfgFile = settingsFile
+            getTextFlag = 1
         else:
             f = _os.path.splitext(self.zGetFile())[0] + '_pyzdde_POP.CFG'
-            if _checkFileExist(f): # use "*_pyzdde_POP.CFG" settings file 
+            if _checkFileExist(f): # use "*_pyzdde_POP.CFG" settings file
                 cfgFile = f
                 getTextFlag = 1
             else: # use default settings file
                 cfgFile = ''
                 getTextFlag = 0
-        
+
         ret = self.zGetTextFile(textFileName, 'Pop', cfgFile, getTextFlag)
         assert ret == 0
         # get line list
         line_list = _readLinesFromFile(_openFile(textFileName))
-        
+
         # Get data type ... phase or Irradiance?
-        find_irr_data = _getFirstLineOfInterest(line_list, 'POP Irradiance Data', 
-                                                patAtStart=False) 
+        find_irr_data = _getFirstLineOfInterest(line_list, 'POP Irradiance Data',
+                                                patAtStart=False)
         data_is_irr = False if find_irr_data is None else True
 
         # Get the Grid size
@@ -6676,46 +6676,46 @@ class PyZDDE(object):
                 fibEffRec = float(fer.group())
             if cou:
                 coupling = float(cou.group())
-        
+
         if displayData:
             # Get the 2D data
             pat = (r'(-?\d\.\d{4,6}[Ee][-\+]\d{3}\s*)' + r'{{{num}}}'
                    .format(num=grid_x))
             start_line = _getFirstLineOfInterest(line_list, pat)
             powerGrid = _get2DList(line_list, start_line, grid_y)
-        
+
         if not keepFile:
             _deleteFile(textFileName)
 
         if data_is_irr: # Irradiance data
-            popi = _co.namedtuple('POPinfo', ['peakIrr', 'totPow', 
-                                              'fibEffSys', 'fibEffRec', 'coupling', 
-                                              'pilotSize', 'pilotWaist', 'pos', 
+            popi = _co.namedtuple('POPinfo', ['peakIrr', 'totPow',
+                                              'fibEffSys', 'fibEffRec', 'coupling',
+                                              'pilotSize', 'pilotWaist', 'pos',
                                               'rayleigh', 'gridX', 'gridY',
                                               'widthX', 'widthY' ])
-            popInfo = popi(peakIrr, totPow, fibEffSys, fibEffRec, coupling, 
-                           pilotSize, pilotWaist, pos, rayleigh, 
+            popInfo = popi(peakIrr, totPow, fibEffSys, fibEffRec, coupling,
+                           pilotSize, pilotWaist, pos, rayleigh,
                            grid_x, grid_y, width_x, width_y)
         else: # Phase data
-            popi = _co.namedtuple('POPinfo', ['cenPhase', 'blank', 
-                                              'fibEffSys', 'fibEffRec', 'coupling', 
-                                              'pilotSize', 'pilotWaist', 'pos', 
+            popi = _co.namedtuple('POPinfo', ['cenPhase', 'blank',
+                                              'fibEffSys', 'fibEffRec', 'coupling',
+                                              'pilotSize', 'pilotWaist', 'pos',
                                               'rayleigh', 'gridX', 'gridY',
                                               'widthX', 'widthY' ])
-            popInfo = popi(centerPhase, None, fibEffSys, fibEffRec, coupling, 
-                           pilotSize, pilotWaist, pos, rayleigh, 
+            popInfo = popi(centerPhase, None, fibEffSys, fibEffRec, coupling,
+                           pilotSize, pilotWaist, pos, rayleigh,
                            grid_x, grid_y, width_x, width_y)
         if displayData:
             return (popInfo, powerGrid)
         else:
             return popInfo
 
-    def zModifyPOPSettings(self, settingsFile, start_surf=None,  
-                           end_surf=None, field=None, wave=None, auto=None, 
-                           beamType=None, paramN=((),()), pIrr=None, tPow=None, 
-                           sampx=None, sampy=None, srcFile=None, widex=None, 
-                           widey=None, fibComp=None, fibFile=None, fibType=None, 
-                           fparamN=((),()), ignPol=None, pos=None, tiltx=None, 
+    def zModifyPOPSettings(self, settingsFile, start_surf=None,
+                           end_surf=None, field=None, wave=None, auto=None,
+                           beamType=None, paramN=((),()), pIrr=None, tPow=None,
+                           sampx=None, sampy=None, srcFile=None, widex=None,
+                           widey=None, fibComp=None, fibFile=None, fibType=None,
+                           fparamN=((),()), ignPol=None, pos=None, tiltx=None,
                            tilty=None):
         """modify an existing POP settings file
 
@@ -6723,14 +6723,14 @@ class PyZDDE(object):
         will be set.
 
         Parameters
-        ---------- 
+        ----------
         settingsFile : string
             filename of the settings file including path and extension
         others :
             see the parameter definitions of ``zSetPOPSettings()``
 
         Returns
-        ------- 
+        -------
         statusTuple : tuple or -1
             tuple of codes returned by ``zModifySettings()`` for each non-None
             parameters. The status codes are as follows:
@@ -6739,14 +6739,14 @@ class PyZDDE(object):
             -2 = incorrect version number;
             -3 = file access conflict
 
-            The function returns -1 if ``settingsFile`` is invalid. 
+            The function returns -1 if ``settingsFile`` is invalid.
 
         See Also
-        -------- 
+        --------
         zSetPOPSettings(), zGetPOP()
         """
         sTuple = []
-        if (_os.path.isfile(settingsFile) and 
+        if (_os.path.isfile(settingsFile) and
             settingsFile.lower().endswith('.cfg')):
             dst = settingsFile
         else:
@@ -6802,30 +6802,30 @@ class PyZDDE(object):
         if tilty is not None:
             sTuple.append(self.zModifySettings(dst, "POP_TILTY", tilty))
         return tuple(sTuple)
-    
-    def zSetPOPSettings(self, data=0, settingsFileName=None, start_surf=None, 
-                        end_surf=None, field=None, wave=None, auto=None, 
-                        beamType=None, paramN=((),()), pIrr=None, tPow=None, 
-                        sampx=None, sampy=None, srcFile=None, widex=None, 
-                        widey=None, fibComp=None, fibFile=None, fibType=None, 
-                        fparamN=((),()), ignPol=None, pos=None, tiltx=None, 
-                        tilty=None):
-        """create and set a new settings file starting from the "reset" settings 
-        state of the most basic lens in Zemax. 
 
-        To modify an existing POP settings file, use ``zModifyPOPSettings()``. 
+    def zSetPOPSettings(self, data=0, settingsFileName=None, start_surf=None,
+                        end_surf=None, field=None, wave=None, auto=None,
+                        beamType=None, paramN=((),()), pIrr=None, tPow=None,
+                        sampx=None, sampy=None, srcFile=None, widex=None,
+                        widey=None, fibComp=None, fibFile=None, fibType=None,
+                        fparamN=((),()), ignPol=None, pos=None, tiltx=None,
+                        tilty=None):
+        """create and set a new settings file starting from the "reset" settings
+        state of the most basic lens in Zemax.
+
+        To modify an existing POP settings file, use ``zModifyPOPSettings()``.
         Only those parameters with non-None or non-zero-length (in case of tuples)
         will be set.
-        
+
         Parameters
         ----------
         data : integer
             0 = irradiance, 1 = phase
         settingsFileName : string, optional
-            name to give to the settings file to be created. It must be the full 
+            name to give to the settings file to be created. It must be the full
             file name, including path and extension of settings file.
-            If ``None``, then a CFG file with the name of the lens followed by 
-            the string '_pyzdde_POP.CFG' will be created in the same directory 
+            If ``None``, then a CFG file with the name of the lens followed by
+            the string '_pyzdde_POP.CFG' will be created in the same directory
             as the lens file and returned
         start_surf : integer, optional
             the starting surface
@@ -6840,29 +6840,29 @@ class PyZDDE(object):
             X and Y beam widths based upon the sampling and other settings. Set
             it to 1
         beamType : integer (0...6), optional
-            0 = Gaussian Waist; 1 = Gaussian Angle; 2 = Gaussian Size + Angle; 
+            0 = Gaussian Waist; 1 = Gaussian Angle; 2 = Gaussian Size + Angle;
             3 = Top Hat; 4 = File; 5 = DLL; 6 = Multimode.
         paramN : 2-tuple, optional
-            sets beam parameter n, for example ((1, 4),(0.1, 0.5)) sets parameters 
-            1 and 4 to 0.1 and 0.5 respectively. These parameter names and values 
-            change depending upon the beam type setting. For example, for the 
-            Gaussian Waist beam, n=1 for Waist X, 2 for Waist Y, 3 for Decenter X, 
-            4 for Decenter Y, 5 for Aperture X, 6 for Aperture Y, 7 for Order X, 
+            sets beam parameter n, for example ((1, 4),(0.1, 0.5)) sets parameters
+            1 and 4 to 0.1 and 0.5 respectively. These parameter names and values
+            change depending upon the beam type setting. For example, for the
+            Gaussian Waist beam, n=1 for Waist X, 2 for Waist Y, 3 for Decenter X,
+            4 for Decenter Y, 5 for Aperture X, 6 for Aperture Y, 7 for Order X,
             and 8 for Order Y
         pIrr : float, optional
-            sets the normalization by peak irradiance. It is the initial beam peak 
+            sets the normalization by peak irradiance. It is the initial beam peak
             irradiance in power per area. It is an alternative to Total Power (tPow)
         tPow : float, optional
-            sets the normalization by total beam power. It is the initial beam 
+            sets the normalization by total beam power. It is the initial beam
             total power. This is an alternative to Peak Irradiance (pIrr)
         sampx : integer (1...10), optional
-            the X direction sampling. 1 for 32; 2 for 64; 3 for 128; 4 for 256; 
-            5 for 512; 6 for 1024; 7 for 2048; 8 for 4096; 9 for 8192; 10 for 16384; 
+            the X direction sampling. 1 for 32; 2 for 64; 3 for 128; 4 for 256;
+            5 for 512; 6 for 1024; 7 for 2048; 8 for 4096; 9 for 8192; 10 for 16384;
         sampy : integer (1...10), optional
-            the Y direction sampling. 1 for 32; 2 for 64; 3 for 128; 4 for 256; 
+            the Y direction sampling. 1 for 32; 2 for 64; 3 for 128; 4 for 256;
             5 for 512; 6 for 1024; 7 for 2048; 8 for 4096; 9 for 8192; 10 for 16384;
         srcFile : string, optional
-            The file name if the starting beam is defined by a ZBF file, DLL, or 
+            The file name if the starting beam is defined by a ZBF file, DLL, or
             multimode file
         widex : float, optional
             the initial X direction width in lens units
@@ -6873,15 +6873,15 @@ class PyZDDE(object):
         fibFile : string, optional
             the file name if the fiber mode is defined by a ZBF or DLL
         fibType : string, optional
-            use the same values as ``beamType`` above, except for multimode which 
+            use the same values as ``beamType`` above, except for multimode which
             is not yet supported
         fparamN : 2-tuple, optional
-            sets fiber parameter n, for example ((2,3),(0.5, 0.6)) sets parameters 
+            sets fiber parameter n, for example ((2,3),(0.5, 0.6)) sets parameters
             2 and 3 to 0.5 and 0.6 respectively. See the hint for ``paramN``
         ignPol : integer (0/1), optional
             use 1 to ignore polarization, 0 to consider polarization
         pos : integer (0/1), optional
-            use 0 for chief ray, 1 for surface vertex 
+            use 0 for chief ray, 1 for surface vertex
         tiltx : float, optional
             tilt about X in degrees
         tilty : float, optional
@@ -6890,19 +6890,19 @@ class PyZDDE(object):
         Returns
         -------
         settingsFile : string
-            the full name, including path and extension, of the just created 
+            the full name, including path and extension, of the just created
             settings file
-        
+
         Notes
         -----
-        1. Further modifications of the settings file can be made using 
+        1. Further modifications of the settings file can be made using
            ``ln.zModifySettings()`` or ``ln.zModifyPOPSettings()`` method
         2. The function creates settings file ending with '_pyzdde_POP.CFG'
            in order to prevent overwritting any existing settings file not
            created by pyzdde for POP.
 
         See Also
-        -------- 
+        --------
         zGetPOP()
         """
         # Create a settings file with "reset" settings
@@ -6912,7 +6912,7 @@ class PyZDDE(object):
         else:
             clean_cfg = 'RESET_SETTINGS_POP_IRR.CFG'
         src = _os.path.join(_pDir, 'ZMXFILES', clean_cfg)
-        
+
         if settingsFileName:
             dst = settingsFileName
         else:
@@ -6924,11 +6924,11 @@ class PyZDDE(object):
             print("ERROR: Invalid settingsFile {}".format(dst))
             return
         else:
-            self.zModifyPOPSettings(dst, start_surf, end_surf, field, wave, auto, 
-                                    beamType, paramN, pIrr, tPow, sampx, sampy, 
-                                    srcFile, widex, widey, fibComp, fibFile, 
+            self.zModifyPOPSettings(dst, start_surf, end_surf, field, wave, auto,
+                                    beamType, paramN, pIrr, tPow, sampx, sampy,
+                                    srcFile, widex, widey, fibComp, fibFile,
                                     fibType, fparamN, ignPol, pos, tiltx, tilty)
-            return dst       
+            return dst
 
     def zGetPupilMagnification(self):
         """Return the pupil magnification, which is the ratio of the exit-pupil
@@ -7215,7 +7215,7 @@ class PyZDDE(object):
                 ext = 'EMF'
             else:
                 ext = 'WMF'
-            tmpMetaImgName = "{tip}\\TEMPGPX.{ext}".format(tip=tmpImgPath, 
+            tmpMetaImgName = "{tip}\\TEMPGPX.{ext}".format(tip=tmpImgPath,
                                                                ext=ext)
             tmpPngImgName = "{tip}\\TEMPGPX.png".format(tip=tmpImgPath)
             # Get the directory where PyZDDE (and thus `convert`) is located
@@ -7519,34 +7519,34 @@ def fnum2numAper(fn, ri=1.0):
     return ri*_math.sin(_math.atan(1.0/(2.0*fn)))
 
 def fresnelNumber(r, z, wl=550e-6, approx=False):
-    """calculate the fresnel number 
-    
+    """calculate the fresnel number
+
     Parameters
     ----------
     r : float
         radius of the aperture in units of length (usually mm)
     z : float
-        distance of the observation plane from the aperture. this is equal 
-        to the focal length of the lens for infinite conjugate, or the image 
+        distance of the observation plane from the aperture. this is equal
+        to the focal length of the lens for infinite conjugate, or the image
         plane distance, in the same units of length as ``r``
     wl : float
         wavelength of light (default=550e-6 mm)
     approx : boolean
         if True, uses the approximate expression (default is False)
-    
+
     Returns
     -------
     fN : float
         fresnel number
-    
+
     Notes
     -----
-    1. The Fresnel number is calculated based on a circular aperture or a 
+    1. The Fresnel number is calculated based on a circular aperture or a
        an unaberrated rotationally symmetric beam with finite extent [Zemax]_.
-    2. From the Huygens-Fresnel principle perspective, the Fresnel number 
-       represents the number of annular Fresnel zones in the aperture opening 
+    2. From the Huygens-Fresnel principle perspective, the Fresnel number
+       represents the number of annular Fresnel zones in the aperture opening
        [Wolf2011]_, or from the center of the beam to the edge in case of a
-       propagating beam [Zemax]_. 
+       propagating beam [Zemax]_.
 
     References
     ----------
@@ -7592,15 +7592,15 @@ def _checkFileExist(filename, mode='r', timeout=.25):
     ----------
     filename : string
         filename with full path
-    mode : string, optional 
+    mode : string, optional
         mode for opening file
-    timeout : integer, 
+    timeout : integer,
         timeout in seconds for how long to wait before returning
 
     Returns
     -------
     status : bool
-      True = file exist, and file operations are possible; 
+      True = file exist, and file operations are possible;
       False = timeout reached
     """
     ti = _datetime.datetime.now()
@@ -7804,12 +7804,12 @@ def _readLinesFromFile(fileObj):
     return lines
 
 def _getFirstLineOfInterest(line_list, pattern, patAtStart=True):
-    """returns the line number (index in the list of lines) that matches the 
-    regex pattern. 
+    """returns the line number (index in the list of lines) that matches the
+    regex pattern.
 
-    This function can be used to return the starting line of the data-of-interest, 
+    This function can be used to return the starting line of the data-of-interest,
     identified by the regex pattern, from a list of lines.
-    
+
     Parameters
     ----------
     line_list : list
@@ -7818,15 +7818,15 @@ def _getFirstLineOfInterest(line_list, pattern, patAtStart=True):
         regex pattern that should be used to identify the line of interest
     patAtStart : bool
         if ``True``, match pattern at the beginning of line string (default)
-    
+
     Returns
     -------
     line_number : integer
-        line_number/ index in the list where the ``pattern`` first matched. 
+        line_number/ index in the list where the ``pattern`` first matched.
         If no match could be found, the function returns ``None``
 
     Notes
-    ----- 
+    -----
     If it is known that the pattern will be matched at the beginning, then
     letting ``patAtStart==True`` is more efficient.
     """
@@ -7836,20 +7836,20 @@ def _getFirstLineOfInterest(line_list, pattern, patAtStart=True):
             return line_num
 
 def _get2DList(line_list, start_line, number_of_lines):
-    """returns a 2D list of data read between ``start_line`` and 
-    ``start_line + number_of_lines`` of a list 
-    
+    """returns a 2D list of data read between ``start_line`` and
+    ``start_line + number_of_lines`` of a list
+
     Parameters
     ----------
     line_list : list
         list of lines read from a file using ``_readLinesFromFile()``
     start_line : integer
-        index of line_list 
+        index of line_list
     number_of_lines : integer
         number of lines to read (number of lines which contain the 2D data)
 
     Returns
-    ------- 
+    -------
     data : list
         data is a 2-D list of float type data read from the lines in line_list
     """
