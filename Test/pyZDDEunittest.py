@@ -305,6 +305,17 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.link0.zSetSurfaceData(1,4,'GRINSUR1')
         self.assertEqual(glass, None)
 
+    def test_zGetImageSpaceNA(self):
+        print("\nTEST: zGetImageSpaceNA()")
+        filename = get_test_file()
+        ret = self.link0.zLoadFile(filename)
+        assert ret == 0
+        isna = self.link0.zGetImageSpaceNA()
+        self.assertAlmostEqual(isna, 0.09950372, places=5,
+                               msg='Expected ISNA to be 0.09950372')
+        if TestPyZDDEFunctions.pRetVar:
+            print("zGetImageSpaceNA test successful")
+
     def test_zGetPOP(self):
         print("\nTest: zGetPOP()")
         def check_popinfo(pidata, length, sfile=None):
@@ -333,7 +344,6 @@ class TestPyZDDEFunctions(unittest.TestCase):
             if sfile: # perform test iff there is an sfile
                 for x, y in zip(pidata, expPidata):
                     self.assertAlmostEqual(x, y, places=5)
-
         def check_data(data, dim, dtype=None, sfile=None):
             """Helper function to validate data"""
             self.assertIsInstance(data, list, "Expecting data as a list")

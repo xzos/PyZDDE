@@ -855,7 +855,7 @@ class PyZDDE(object):
         References
         ----------
         For a detailed exposition on the configuration settings,
-        see "Export IGES/SAT.STEP Solid" in the Zemax manual.
+        see "Export IGES/SAT.STEP Solid" in the Zemax manual [Zemax]_.
         """
         # Determine last surface/object depending upon zemax mode
         if lastSurf == -1:
@@ -966,7 +966,7 @@ class PyZDDE(object):
         References
         ----------
         The following sections from the Zemax manual should be referred for
-        details:
+        details [Zemax]_:
 
         1. "Aperture type and other aperture controls" for details on aperture
         2. "User defined apertures and obscurations" for more on UDA extension
@@ -1050,7 +1050,7 @@ class PyZDDE(object):
 
         References
         ----------
-        See section "How ZEMAX calls the client" in Zemax manual.
+        See section "How ZEMAX calls the client" in Zemax manual [Zemax]_.
 
         See Also
         --------
@@ -1358,7 +1358,7 @@ class PyZDDE(object):
         References
         ----------
         For details on the global coordinate matrix, see "Global Coordinate
-        Reference Surface" in the Zemax manual.
+        Reference Surface" in the Zemax manual [Zemax]_.
         """
         gmd = _co.namedtuple('globalMatrix', ['R11', 'R12', 'R13',
                                               'R21', 'R22', 'R23',
@@ -1369,6 +1369,44 @@ class PyZDDE(object):
         rs = reply.rstrip()
         globalMatrix = gmd._make([float(elem) for elem in rs.split(',')])
         return globalMatrix
+
+    def zGetImageSpaceNA(self):
+        """Return the Image Space Numerical Aperture (ISNA) of the lens
+
+        Parameters
+        ---------- 
+        None
+
+        Returns
+        ------- 
+        isna : real 
+            image space numerical aperture 
+
+        Notes
+        ----- 
+        The ISNA is calculated using paraxial ray tracing. It is defined as 
+        the index of the image space multiplied by the sine of the angle 
+        between the paraxial on-axis chief ray and the paraxial on-axis +y 
+        marginal ray calculated at the defined conjugates for the primary 
+        wavelength [UPRT]_.
+
+        References
+        ----------
+        .. [UPRT] Understanding Paraxial Ray-Tracing, Mark Nicholson, Zemax 
+                  Knowledgebase, July 21, 2005.
+        """
+        waveNum = self.zGetPrimaryWaveNum()
+        last_surf = self.zGetNumSurf()
+        # Trace paraxial on-axis chief ray at primary wavelength
+        chief_ray_dat = self.zGetTrace(waveNum, mode=1, surf=last_surf, 
+                                       hx=0, hy=0, px=0, py=0)
+        chief_angle = _math.asin(chief_ray_dat[6])
+        # Trace paraxial marginal ray at primary wavelength
+        margi_ray_dat = self.zGetTrace(waveNum, mode=1, surf=last_surf, 
+                                       hx=0, hy=0, px=0, py=1)
+        margi_angle = _math.asin(margi_ray_dat[6])
+        index = self.zGetIndex(last_surf)[0]
+        return index*_math.sin(chief_angle - margi_angle) 
 
     def zGetIndex(self, surfaceNumber):
         """Returns the index of refraction data for the specified surface
@@ -2140,8 +2178,56 @@ class PyZDDE(object):
                                  for i,e in enumerate(rs.split(","))])
         return nscSolveData
 
+    def zGetNumField(self):
+        """Returns the total number of fields defined
+
+        Equivalent to ZPL macro ``NFLD``
+
+        Parameters
+        ---------- 
+        None
+
+        Returns
+        ------- 
+        nfld : integer 
+            number of fields defined  
+        """
+        return self.zGetSystemProperty(101)
+
+    def zGetNumSurf(self):
+        """Return the total number of surfaces defined 
+
+        Equivalent to ZPL macro ``NSUR`` 
+
+        Parameters
+        ---------- 
+        None
+
+        Returns
+        ------- 
+        nsur : integer
+            number of surfaces defined 
+        """
+        return self.zGetSystem()[0]
+
+    def zGetNumWave(self):
+        """Return the total number of wavelengths defined
+
+        Equivalent to ZPL macro ``NWAV``
+
+        Parameters
+        ---------- 
+        None
+
+        Returns
+        ------- 
+        nwav : integer 
+            number of wavelengths defined
+        """
+        return self.zGetSystemProperty(201)
+
     def zGetOperand(self, row, column):
-        """Returns the operand data from the Merit Function Editor
+        """Return the operand data from the Merit Function Editor
 
         Parameters
         ----------
@@ -2402,6 +2488,22 @@ class PyZDDE(object):
                                    for i,elem in enumerate(rs)])
         return rayPolTraceData
 
+    def zGetPrimaryWaveNum(self):
+        """Return the primary wavelength number
+
+        Equivalent to ZPL macro ``PWAV``
+
+        Parameters
+        ---------- 
+        None
+
+        Returns
+        ------- 
+        primary_wavelength_number : integer 
+            primary wavelength number 
+        """
+        return self.zGetSystemProperty(200)
+
     def zGetPupil(self):
         """Return the pupil data such as aperture type, ENPD, EXPD, etc.
 
@@ -2412,7 +2514,7 @@ class PyZDDE(object):
         Returns
         -------
         aType : integer
-            the system aperture de*ined as follows:
+            the system aperture defined as follows:
 
                 * 0 = entrance pupil diameter
                 * 1 = image space F/#
@@ -2920,9 +3022,9 @@ class PyZDDE(object):
 
         NOTE: Currently Zemax returns just "0" for the codes: 102,103, 104,105,
               106,107,108,109, and 110. This is unexpected! So, PyZDDE will return
-              the reply (string) as is for the user to handle.
+              the reply (string) as-is for the user to handle.
 
-        See also zSetSystemProperty, zGetFirt
+        See also zSetSystemProperty, zGetFirst
         """
         cmd = "GetSystemProperty,{c}".format(c=code)
         reply = self._sendDDEcommand(cmd)
@@ -3020,61 +3122,66 @@ class PyZDDE(object):
         return toleranceData
 
     def zGetTrace(self, waveNum, mode, surf, hx, hy, px, py):
-        """Trace a (single) ray through the current lens in the ZEMAX DDE server.
-
-        zGetTrace(waveNum,mode,surf,hx,hy,px,py[,retNamedTuple]) -> rayTraceData
+        """Trace a ray through the lens in the Zemax DDE server
 
         Parameters
         ----------
-        waveNum : wavelength number as in the wavelength data editor
-        mode    : 0 = real, 1 = paraxial
-        surf    : surface to trace the ray to. Usually, the ray data is only
-                  needed at the image surface; setting the surface number to
-                  -1 will yield data at the image surface.
-        hx      : normalized field height along x axis
-        hy      : normalized field height along y axis
-        px      : normalized height in pupil coordinate along x axis
-        py      : normalized height in pupil coordinate along y axis
+        waveNum : integer
+            wavelength number as in the wavelength data editor
+        mode : integer 
+            0 = real; 1 = paraxial
+        surf : integer 
+            surface to trace the ray to. Usually, the ray data is only 
+            needed at the image surface; setting the surface number to 
+            -1 will yield data at the image surface.
+        hx : real 
+            normalized field height along x axis
+        hy : real 
+            normalized field height along y axis
+        px : real 
+            normalized height in pupil coordinate along x axis
+        py : real 
+            normalized height in pupil coordinate along y axis
 
         Returns
         -------
-        rayTraceData : rayTraceData is a tuple containing the following elements:
-           errorCode : 0, if the ray traced successfully
-                       +ve number indicates that the ray missed the surface
-                       -ve number indicates that the ray total internal reflected
-                       (TIR) at the surface given by the absolute value of the
-                       errorCode number.
-           vigCode   : the first surface where the ray was vignetted. Unless an
-                       error occurs at that surface or subsequent to that surface,
-                       the ray will continue to trace to the requested surface.
-           x,y,z     : coordinates of the ray on the requested surface
-           l,m,n     : the direction cosines after refraction into the media
-                       following the requested surface.
-           l2,m2,n2  : the surface intercept direction normals at the requested
-                       surface.
-           intensity : the relative transmitted intensity of the ray, including
-                       any pupil or surface apodization defined.
+        errorCode : integer
+            0 = ray traced successfully; 
+            +ve number = the ray missed the surface;
+            -ve number = the ray total internal reflected (TIR) at the surface 
+                         given by the absolute value of the errorCode number;
+        vigCode : integer
+            the first surface where the ray was vignetted. Unless an error 
+            occurs at that surface or subsequent to that surface, the ray 
+            will continue to trace to the requested surface.
+        x,y,z : reals 
+            coordinates of the ray on the requested surface
+        l,m,n : reals
+            the direction cosines after refraction into the media following 
+            the requested surface.
+        l2,m2,n2 : reals 
+            the surface intercept direction normals at the requested surface
+        intensity : real
+            the relative transmitted intensity of the ray, including any 
+            pupil or surface apodization defined.
 
-        Example:
-        -------
-        To trace the real chief ray to surface 5 for wavelength 3, use
-        rayTraceData = zGetTrace(3,0,5,0.0,1.0,0.0,0.0)
+        Examples
+        -------- 
+        To trace the real chief ray to surface 5 for wavelength 3:
+        
+        >>> rayTraceData = ln.zGetTrace(3,0,5,0.0,1.0,0.0,0.0)
+        >>> errorCode,vigCode,x,y,z,l,m,n,l2,m2,n2,intensity = rayTraceData
 
-        OR
+        Notes
+        -----
+        1. Always check to verify the ray data is valid  (errorCode) before 
+           using the rest of the returned parameters 
+        2. Use of ``zGetTrace()`` has significant overhead as only 1 ray per 
+           DDE call is traced. 
 
-        (errorCode,vigCode,x,y,z,l,m,n,l2,m2,n2,intensity) = \
-                                          zGetTrace(3,0,5,0.0,1.0,0.0,0.0)
-
-        Note
-        ----
-        1. Always check to verify the ray data is valid  (errorCode) before using
-           the rest of the string!
-        2. Use of zGetTrace() has significant overhead as only one ray per DDE call
-           is traced. Please refer to the ZEMAX manual for more details. Also, if a
-           large number of rays are to be traced, see the section "Tracing large
-           number of rays" in the ZEMAX manual.
-
-        See also `zGetTraceDirect`, `zGetPolTrace`, `zGetPolTraceDirect`
+        See Also
+        -------- 
+        zGetTraceDirect(), zGetPolTrace(), zGetPolTraceDirect()
         """
         args1 = "{wN:d},{m:d},{s:d},".format(wN=waveNum,m=mode,s=surf)
         args2 = "{hx:1.4f},{hy:1.4f},".format(hx=hx,hy=hy)
@@ -3213,9 +3320,15 @@ class PyZDDE(object):
         return status
 
     def zGetVersion(self):
-        """Get the current version of ZEMAX which is running.
+        """Get the version of Zemax
 
-        zGetVersion() -> version (integer, generally 5 digit)
+        Parameters
+        ---------- 
+        None
+
+        Returns
+        ------- 
+        version : integer
 
         """
         return int(self._sendDDEcommand("GetVersion"))
@@ -3242,7 +3355,9 @@ class PyZDDE(object):
         The returned tuple is exactly same in structure and contents to that
         returned by zSetWave().
 
-        See also zSetWave(), zSetWaveTuple(), zGetWaveTuple().
+        See Also
+        -------- 
+        zSetWave(), zSetWaveTuple(), zGetWaveTuple(), zGetPrimaryWaveNum()
         """
         reply = self._sendDDEcommand('GetWave,' + str(n))
         rs = reply.split(',')
@@ -5725,7 +5840,6 @@ class PyZDDE(object):
          109  - The field number is value1, value2 is the field vignetting angle
          110  - The field normalization method, value 1 is 0 for radial and 1 for rectangular
          200  - Primary wavelength number.
-         200  - Primary wavelength number.
          201  - Number of wavelengths
          202  - The wavelength number is value1, value 2 is the wavelength in micrometers.
          203  - The wavelength number is value1, value 2 is the wavelength weight
@@ -7576,7 +7690,7 @@ def _process_get_set_Solve(reply):
 def _process_get_set_SystemProperty(code, reply):
     """Process reply for functions zGetSystemProperty and zSetSystemProperty"""
     # Convert reply to proper type
-    if code in  (102,103, 104,105,106,107,108,109,110): # unexpected cases
+    if code in  (102,103, 104,105,106,107,108,109,110,202,203): # unexpected (identified) cases
         sysPropData = reply
     elif code in (16,17,23,40,41,42,43): # string
         sysPropData = reply.rstrip()    #str(reply)

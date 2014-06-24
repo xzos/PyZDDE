@@ -21,7 +21,8 @@ ln = pyz.createLink()
 
 curDir = os.path.dirname(os.path.realpath(__file__))
 samplesDir = ln.zGetPath()[1]
-popfile = os.path.join(samplesDir, 'Physical Optics', 'Fiber Coupling.zmx')
+lens = ['Simple Lens.zmx', 'Fiber Coupling.zmx']
+popfile = os.path.join(samplesDir, 'Physical Optics', lens[0])
 cfgFile = os.path.join(curDir, "coupEffSgleModePOPEx.CFG")
 
 # load pop file into Zemax server
@@ -101,14 +102,14 @@ ax = fig.add_subplot(2,2,3)
 ax.set_title('Phase at source')
 ext = [-popInfo_src_phase[-2]/2, popInfo_src_phase[-2]/2,
        -popInfo_src_phase[-1]/2, popInfo_src_phase[-1]/2]
-ax.imshow(data_src_phase, extent=ext, origin='lower', 
+ax.imshow(data_src_phase, extent=ext, origin='lower',
           vmin=-math.pi, vmax=math.pi)
 ax.set_xlabel('x (mm)'); ax.set_ylabel('y (mm)')
 ax = fig.add_subplot(2,2,4)
 ax.set_title('Phase at fiber')
 ext = [-popInfo_dst_phase[-2]/2, popInfo_dst_phase[-2]/2,
        -popInfo_dst_phase[-1]/2, popInfo_dst_phase[-1]/2]
-ax.imshow(data_dst_phase, extent=ext, origin='lower', 
+ax.imshow(data_dst_phase, extent=ext, origin='lower',
           vmin=-math.pi, vmax=math.pi)
 ax.set_xlabel('x (mm)'); ax.set_ylabel('y (mm)')
 
