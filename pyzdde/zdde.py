@@ -1395,17 +1395,17 @@ class PyZDDE(object):
         .. [UPRT] Understanding Paraxial Ray-Tracing, Mark Nicholson, Zemax
                   Knowledgebase, July 21, 2005.
         """
-        waveNum = self.zGetPrimaryWave()
+        prim_wave_num = self.zGetPrimaryWave()
         last_surf = self.zGetNumSurf()
         # Trace paraxial on-axis chief ray at primary wavelength
-        chief_ray_dat = self.zGetTrace(waveNum, mode=1, surf=last_surf,
+        chief_ray_dat = self.zGetTrace(prim_wave_num, mode=1, surf=last_surf,
                                        hx=0, hy=0, px=0, py=0)
         chief_angle = _math.asin(chief_ray_dat[6])
         # Trace paraxial marginal ray at primary wavelength
-        margi_ray_dat = self.zGetTrace(waveNum, mode=1, surf=last_surf,
+        margi_ray_dat = self.zGetTrace(prim_wave_num, mode=1, surf=last_surf,
                                        hx=0, hy=0, px=0, py=1)
         margi_angle = _math.asin(margi_ray_dat[6])
-        index = self.zGetIndex(last_surf)[0]
+        index = self.zGetIndexPrimWave(last_surf)
         return index*_math.sin(chief_angle - margi_angle)
 
     def zGetIndex(self, surfaceNumber):
@@ -1423,11 +1423,38 @@ class PyZDDE(object):
             defined for each wavelength in the format (n1, n2, n3, ...).
             If the specified surface is not valid, or is gradient index,
             the returned string is empty.
+
+        See Also
+        -------- 
+        zGetIndexPrimWave()
         """
         reply = self._sendDDEcommand("GetIndex,{:d}".format(surfaceNumber))
         rs = reply.split(",")
         indexData = [float(rs[i]) for i in range(len(rs))]
         return tuple(indexData)
+
+    def zGetIndexPrimWave(self, surfaceNumber):
+        """Returns the index of refraction at primary wavelength for the 
+        specified surface 
+
+        Emulates the ZPL macro ``INDX(surface)``
+
+        Parameters
+        ---------- 
+        surfaceNumber : integer
+            surface number 
+
+        Returns
+        ------- 
+        index : float 
+            index of refraction at primary wavelength 
+        
+        See Also
+        -------- 
+        zGetIndex()
+        """
+        prime_wave_num = self.zGetPrimaryWave()
+        return self.zGetIndex(surfaceNumber)[prime_wave_num-1]
 
     def zGetLabel(self, surfaceNumber):
         """Returns the integer label associated with the specified surface.
@@ -2207,6 +2234,10 @@ class PyZDDE(object):
         -------
         nsur : integer
             number of surfaces defined
+
+        Notes
+        ----- 
+        The count doesn't include the object (OBJ) surface.
         """
         return self.zGetSystem()[0]
 

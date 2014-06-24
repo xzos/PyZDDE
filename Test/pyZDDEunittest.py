@@ -267,7 +267,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zGetFile()")
         filename = get_test_file()
         ret = self.link0.zLoadFile(filename)
-        assert ret == 0   # This is not a unit-test assert.
+        assert ret == 0
         reply = self.link0.zGetFile()
         self.assertEqual(reply,filename)
         if TestPyZDDEFunctions.pRetVar:
@@ -278,7 +278,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zGetFirst()")
         filename = get_test_file()
         ret = self.link0.zLoadFile(filename)
-        assert ret == 0   # This is not a unit-test assert.
+        assert ret == 0
         (focal,pwfn,rwfn,pima,pmag) = self.link0.zGetFirst()
         # Just going to check the validity of the returned data type
         self.assertIsInstance(focal,float)
@@ -295,7 +295,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zGetGlass()")
         filename = get_test_file()
         ret = self.link0.zLoadFile(filename)
-        assert ret == 0   # This is not a unit-test assert.
+        assert ret == 0
         glass = self.link0.zGetGlass(0)
         self.assertEqual(glass, None)
         glass = self.link0.zGetGlass(1)
@@ -354,7 +354,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         # first file (default settings)
         filename, sfilename = get_test_file('pop', settings=True, sfile='default')
         ret = self.link0.zLoadFile(filename)
-        assert ret == 0   # This is not a unit-test assert.
+        assert ret == 0
         #print("Lens file: {}\nSettings file: {}".format(filename, sfilename))
         # zGetPOP() without any arguments
         popinfo = self.link0.zGetPOP()
@@ -370,7 +370,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         # second file (no fiber coupling integral)
         filename, sfilename = get_test_file('pop', settings=True, sfile='nofibint')
         ret = self.link0.zLoadFile(filename)
-        assert ret == 0   # This is not a unit-test assert.
+        assert ret == 0
         #print("Lens file: {}\nSettings file: {}".format(filename, sfilename))
         # zGetPOP() with the settingfile with no fiber coupling integral
         popinfo, data = self.link0.zGetPOP(settingsFile=sfilename, displayData=True)
@@ -379,7 +379,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         # third file (irradiance data)
         filename, sfilename = get_test_file('pop', settings=True, sfile='nzstbirr')
         ret = self.link0.zLoadFile(filename)
-        assert ret == 0   # This is not a unit-test assert.
+        assert ret == 0
         #print("Lens file: {}\nSettings file: {}".format(filename, sfilename))
         # zGetPOP() with settings to irradiance data with non-zero surf to beam
         # value
@@ -389,7 +389,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         # fourth file (phase data)
         filename, sfilename = get_test_file('pop', settings=True, sfile='nzstbpha')
         ret = self.link0.zLoadFile(filename)
-        assert ret == 0   # This is not a unit-test assert.
+        assert ret == 0
         #print("Lens file: {}\nSettings file: {}".format(filename, sfilename))
         # zGetPOP() with settings to phase data with non-zero surf to beam value
         popinfo, data = self.link0.zGetPOP(settingsFile=sfilename, displayData=True)
@@ -402,7 +402,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zSetPOPSettings()")
         filename = get_test_file('pop')
         ret = self.link0.zLoadFile(filename)
-        assert ret == 0   # This is not a unit-test assert.
+        assert ret == 0
         # Set POP settings, without specifying a settings file name.
         srcParam = ((1, 2, 7, 8), (2, 2, 0, 0)) # x/y waist = 2mm, TEM00
         fibParam = ((1, 2, 7, 8), (0.008, 0.008, 0, 0)) # x/y waist = 0.008 mm, TEM00
@@ -455,7 +455,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zModifyPOPSettings()")
         filename = get_test_file('pop')
         ret = self.link0.zLoadFile(filename)
-        assert ret == 0   # This is not a unit-test assert.
+        assert ret == 0
         # Set POP settings, without specifying a settings file name.
         srcParam = ((1, 2, 7, 8), (2, 2, 0, 0)) # x/y waist = 2mm, TEM00
         fibParam = ((1, 2, 7, 8), (0.008, 0.008, 0, 0)) # x/y waist = 0.008 mm, TEM00
@@ -495,7 +495,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zGetGlobalMatrix()")
         filename = get_test_file()
         ret = self.link0.zLoadFile(filename)
-        assert ret == 0   # This is not a unit-test assert.
+        assert ret == 0
         gmd = self.link0.zGetGlobalMatrix(2)
         expGmd = (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 3.25895583)
         for x, y in zip(gmd, expGmd):
@@ -504,10 +504,18 @@ class TestPyZDDEFunctions(unittest.TestCase):
             print("Global Matrix:", gmd)
             print('zGetGlobalMatrix test successful')
 
-    @unittest.skip("To implement")
     def test_zGetIndex(self):
         print("\nTEST: zGetIndex()")
-        pass
+        filename = get_test_file()
+        ret = self.link0.zLoadFile(filename)
+        assert ret == 0
+        index = self.link0.zGetIndex(1)
+        self.assertIsInstance(index, tuple)
+        expIndex = (1.628139266, 1.622607688, 1.617521122)
+        for i, j in zip(index, expIndex):
+            self.assertAlmostEqual(i, j, places=5)
+        if TestPyZDDEFunctions.pRetVar:
+            print('zGetIndex Test successful')
 
     @unittest.skip("To implement")
     def test_zGetLabel(self):
