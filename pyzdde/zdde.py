@@ -2488,7 +2488,7 @@ class PyZDDE(object):
                                    for i,elem in enumerate(rs)])
         return rayPolTraceData
 
-    def zGetPrimaryWaveNum(self):
+    def zGetPrimaryWave(self):
         """Return the primary wavelength number
 
         Equivalent to ZPL macro ``PWAV``
@@ -2501,6 +2501,10 @@ class PyZDDE(object):
         ------- 
         primary_wavelength_number : integer 
             primary wavelength number 
+
+        See Also
+        -------- 
+        zSetPrimaryWave()
         """
         return self.zGetSystemProperty(200)
 
@@ -5198,7 +5202,7 @@ class PyZDDE(object):
                                  for i,e in enumerate(rs.split(","))])
         return nscSolveData
 
-    def zSetPrimaryWave(self,primaryWaveNumber):
+    def zSetPrimaryWave(self, primaryWaveNumber):
         """Sets the wavelength data in the ZEMAX DDE server. This function emulates
         the function "zSetPrimaryWave()" of the MZDDE toolbox.
 
@@ -5219,7 +5223,9 @@ class PyZDDE(object):
         The returned tuple is exactly same in structure and contents to that
         returned by zGetWave(0).
 
-        See also zSetWave(), zSetWave(), zSetWaveTuple(), zGetWaveTuple().
+        See Also
+        -------- 
+        zGetPrimaryWave(), zSetWave(), zSetWave(), zSetWaveTuple(), zGetWaveTuple()
         """
         waveData = self.zGetWave(0)
         cmd = "SetWave,{:d},{:d},{:d}".format(0,primaryWaveNumber,waveData[1])
