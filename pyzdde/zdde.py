@@ -17,6 +17,7 @@ as ``ln = pyz.createLink()`` or ``ln = pyz.PyZDDE(); ln.zDDEInit()``.
 from __future__ import division
 from __future__ import print_function
 import sys as _sys
+import struct
 import os as _os
 import collections as _co
 import subprocess as _subprocess
@@ -7010,6 +7011,211 @@ def fnum2numAper(fn, ri=1.0):
     na : (float) Numerical aperture value
     """
     return ri*_math.sin(_math.atan(1.0/(2.0*fn)))
+
+
+def readInBeamFile(beamfilename):
+
+    """Read in a Zemax Beam file
+
+    readInBeamFile(beamfilename)-> values from the beam file
+
+    Parameters
+    ----------
+    beamfilename : (string) the filename of the beam file to read
+    
+    Returns
+    -------  
+    version    : (integer) The file format version number
+    n          : (nx,ny) The number of samples in the x and y 
+                 directions
+    ispol      : (boolean) Is the beam polarized?
+    units      : (integer) The units of the beam, 0 for mm, 1 for cm, 2 for in, 
+                 3 for m
+    d          : (dx,dy) The x and y grid spacing 
+    zposition  : (zpositionx,zpositiony) The x and y z position of the beam
+    rayleigh   : (rayleighx,rayleighy) The x and y rayleigh ranges of the beam
+    waist      : (waistx,waisty) The x and y waists of the beam    
+    lambd      : (double) The wavelength of the beam
+    index      : (double) The index of refraction in the current medium 
+    grid_pos   : (x_matrix,y_matrix) Lists of x and y positions of the grid 
+                 defining the beam
+    efield     : (Ex_real,Ex_imag,Ey_real,Ey_imag) a tuple containing two 
+                 dimensional lists with the real and imaginary parts of the 
+                 x and y polarizations of the beam                     
+    """    
+    f = open(beamfilename, "rb")
+    #zemax version number
+    version = struct.unpack('i', f.read(4))[0]
+    print("version: "+str(version))
+    nx = struct.unpack('i', f.read(4))[0]
+    ny = struct.unpack('i', f.read(4))[0]
+    print("nx, ny:"+str(nx)+" "+str(ny))
+    ispol = struct.unpack('i', f.read(4))[0]
+    print("ispol: "+str(ispol))
+    units = struct.unpack('i', f.read(4))[0]
+    print("units: "+str(units))
+    f.read(16)
+    dx = struct.unpack('d', f.read(8))[0]
+    dy = struct.unpack('d', f.read(8))[0]
+    print("dx, dy:"+str(dx)+" "+str(dy))
+    
+    if version==0:
+        zposition_x = struct.unpack('d', f.read(8))[0]
+        print("zposition x: "+str(zposition_x))
+        rayleigh_x = struct.unpack('d', f.read(8))[0]
+        print("rayleigh x: "+str(rayleigh_x))
+        lambd = struct.unpack('d', f.read(8))[0]
+        print("lambda: "+str(lambd))
+        #f.read(16)
+        zposition_y = struct.unpack('d', f.read(8))[0]
+        print("zposition_y: "+str(zposition_y))
+        rayleigh_y = struct.unpack('d', f.read(8))[0]
+        print("rayleigh_y: "+str(rayleigh_y))
+        waist_y = struct.unpack('d', f.read(8))[0]
+        print("waist_y: "+str(waist_y))
+        waist_x=struct.unpack('d', f.read(8))[0]
+        print("waist_x: "+str(waist_x))
+        index=struct.unpack('d', f.read(8))[0]
+        print("index: "+str(index))#f.read(64);
+    if version==1:
+        zposition_x = struct.unpack('d', f.read(8))[0]
+        print("zposition x: "+str(zposition_x))
+        rayleigh_x = struct.unpack('d', f.read(8))[0]
+        print("rayleigh x: "+str(rayleigh_x))
+        waist_x=struct.unpack('d', f.read(8))[0]
+        print("waist_x: "+str(waist_x))
+        #f.read(16)
+        zposition_y = struct.unpack('d', f.read(8))[0]
+        print("zposition_y: "+str(zposition_y))
+        rayleigh_y = struct.unpack('d', f.read(8))[0]
+        print("rayleigh_y: "+str(rayleigh_y))
+        waist_y = struct.unpack('d', f.read(8))[0]
+        print("waist_y: "+str(waist_y))
+        lambd = struct.unpack('d', f.read(8))[0]
+        print("lambda: "+str(lambd))
+        index=struct.unpack('d', f.read(8))[0]
+        print("index: "+str(index))#f.read(64);    
+    rawx = [0 for x in range(2*nx*ny) ]
+    for i in range(2*nx*ny):
+        rawx[i] = struct.unpack('d', f.read(8))[0]
+        #print(str(i)+" "+str(2*nx*ny)+" "+str(rawx[i]))
+    rawy = [0 for x in range(2*nx*ny) ]
+    if ispol:
+        rawy[i] = struct.unpack('d',f.read(8))[0]
+        
+    f.close()
+    xc = 1+nx/2
+    yc = 1+ny/2
+    
+    x_matrix = [[0 for x in xrange(nx)] for x in xrange(ny)]
+    y_matrix = [[0 for x in xrange(nx)] for x in xrange(ny)]
+    
+    Ex_real = [[0 for x in xrange(nx)] for x in xrange(ny)]
+    Ex_imag = [[0 for x in xrange(nx)] for x in xrange(ny)]
+    
+    Ey_real = [[0 for x in xrange(nx)] for x in xrange(ny)]
+    Ey_imag = [[0 for x in xrange(nx)] for x in xrange(ny)]
+    
+    k = 0
+    for j in range(ny):
+        for i in range(nx):
+            x_matrix[i][j] = (i-xc)*dx
+            y_matrix[i][j] = (j-yc)*dy
+            Ex_real[i][j] = rawx[k]
+            Ex_imag[i][j] = rawx[k+1]
+            if ispol:
+                Ey_real[i][j] = rawy[k]
+                Ey_imag[i][j] = rawy[k+1]
+            k = k+2
+    return (version,(nx,ny),ispol,units,(dx,dy),(zposition_x,zposition_y),(rayleigh_x,rayleigh_y),(waist_x,waist_y),lambd,index,(x_matrix,y_matrix),(Ex_real,Ex_imag,Ey_real,Ey_imag))
+               
+def writeBeamFile(beamfilename, version, n, ispol,units,d,zposition,rayleigh,waist,lambd,index,efield):
+
+    """Write a Zemax Beam file
+
+    writeInBeamFile(beamfilename)-> values from the beam file
+
+    Parameters
+    ----------
+    beamfilename : (string) the filename of the beam file to read
+    version    : (integer) The file format version number
+    n          : (nx,ny) The number of samples in the x and y 
+                 directions
+    ispol      : (boolean) Is the beam polarized?
+    units      : (integer) The units of the beam, 0 for mm, 1 for cm, 2 for in, 
+                 3 for m
+    d          : (dx,dy) The x and y grid spacing 
+    zposition  : (zpositionx,zpositiony) The x and y z position of the beam
+    rayleigh   : (rayleighx,rayleighy) The x and y rayleigh ranges of the beam
+    waist      : (waistx,waisty) The x and y waists of the beam    
+    lambd      : (double) The wavelength of the beam
+    index      : (double) The index of refraction in the current medium 
+    efield     : (Ex_real,Ex_imag,Ey_real,Ey_imag) a tuple containing two 
+                 dimensional lists with the real and imaginary parts of the 
+                 x and y polarizations of the beam  
+    
+    Returns
+    ----------
+    0 : success
+    1 : file write failure
+                       
+    """
+    try:     
+        f = open(beamfilename, "wb")
+        #zemax version number
+        f.write(struct.pack('i',version))
+        f.write(struct.pack('i',n[0]))
+        f.write(struct.pack('i',n[1]))
+        f.write(struct.pack('i',ispol))
+        f.write(struct.pack('i',units))
+        #write 16 zeroes to pad out file
+        f.write(struct.pack('4i',4,5,6,7))
+        f.write(struct.pack('d',d[0]))
+        f.write(struct.pack('d',d[1]))
+        if version==0:
+            f.write(struct.pack('d',zposition[0]))
+            f.write(struct.pack('d',rayleigh[0]))
+            f.write(struct.pack('d',lambd))
+            f.write(struct.pack('d',zposition[1]))
+            f.write(struct.pack('d',rayleigh[1]))
+            f.write(struct.pack('d',waist[0]))
+            f.write(struct.pack('d',waist[1]))
+            f.write(struct.pack('d',index))
+        if version==1:
+            f.write(struct.pack('d',zposition[0]))
+            f.write(struct.pack('d',rayleigh[0]))
+            f.write(struct.pack('d',waist[0]))
+            f.write(struct.pack('d',zposition[1]))
+            f.write(struct.pack('d',rayleigh[1]))
+            f.write(struct.pack('d',waist[1]))
+            f.write(struct.pack('d',lambd))
+            f.write(struct.pack('d',index))
+        
+        (Ex_real, Ex_imag, Ey_real, Ey_imag) = efield
+        
+        for i in range(n[0]):
+            for j in range(n[1]):
+                f.write(struct.pack('d',Ex_real[i][j]))
+                f.write(struct.pack('d',Ex_imag[i][j]))    
+        
+        if ispol:
+            for i in range(n[0]):
+                for j in range(n[1]):
+                    f.write(struct.pack('d',Ey_real[i][j]))
+                    f.write(struct.pack('d',Ey_imag[i][j]))    
+        f.close()  
+        return 0
+    except IOError as e:
+        print("I/O error({0}): {1}".format(e.errno, e.strerror))
+        return 1
+    except ValueError:
+        print("Could not convert data to an integer.")
+        return 2
+    except:
+        print("Unexpected error:", _sys.exc_info()[0])
+        return 3
+
+
 
 # ***************************************************************************
 # Helper functions to process data from ZEMAX DDE server. This is especially
