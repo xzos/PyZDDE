@@ -7101,7 +7101,8 @@ def readInBeamFile(beamfilename):
         #print(str(i)+" "+str(2*nx*ny)+" "+str(rawx[i]))
     rawy = [0 for x in range(2*nx*ny) ]
     if ispol:
-        rawy[i] = struct.unpack('d',f.read(8))[0]
+        for i in range(2*nx*ny):
+            rawy[i] = struct.unpack('d',f.read(8))[0]
         
     f.close()
     xc = 1+nx/2
