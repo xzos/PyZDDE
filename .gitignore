@@ -198,3 +198,8 @@ ZMXFILES/*.cfg
 *.SES
 *.ZMX
 *.zmx
+*.CFG
+ZMXFILES/Fiber Coupling_POPunittest.CFG
+ZMXFILES/Fiber Coupling_POPunittest_Irradiance.CFG
+ZMXFILES/Fiber Coupling_POPunittest_NoFiberCompute.CFG
+ZMXFILES/Fiber Coupling_POPunittest_Phase.CFG
