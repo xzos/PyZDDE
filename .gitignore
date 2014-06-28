@@ -191,6 +191,7 @@ Examples/*.txt
 ZMXFILES/*.zmx
 ZMXFILES/*.ZMX
 ZMXFILES/*.CFG
+ZMXFILES/*.cfg
 
 #ZEMAX settings files and sessions files
 *.CFG
