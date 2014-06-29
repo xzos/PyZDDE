@@ -48,10 +48,14 @@ class _Operands(object):
             "wavelength defined by Wave with respect to the centroid."),
     "ASIN": "Arcsine of the value of the operand defined by Op#.",
     "ASTI": ("Astigmatism in waves contributed by the surface defined by Surf at "
-            "the wavelength defined by Wave."),
+            "the wavelength defined by Wave. If Surf is zero, the sum for the "
+            "entire system is used. This is the third order astigmatism "
+            "calculated from the Seidel coefficients, and is not valid for "
+            "non-paraxial systems"),
     "ATAN": "Arctangent of the value of the operand defined by Op#.",
     "AXCL": ("Axial color, measured in lens units for focal systems and diopters "
-            "for afocal systems."),
+            "for afocal systems. This is the image separation between the two" 
+            "wavelengths defined by Wave1 and Wave2"),
     "BFSD": "Best Fit Sphere (BFS) data.",
     "BIOC": ("Biocular Convergence. Returns the convergence between two eye "
             "configurations in milliradians."),
@@ -105,7 +109,7 @@ class _Operands(object):
     "CVLT": "Curvature less than.",
     "CVOL": "Cylinder volume.",
     "CVVA": "Curvature value.",
-    "DENC": "Diffraction  Encircled  Energy  (distance). See also DENF, GENC and XENC.",
+    "DENC": "Diffraction Encircled Energy (distance). See also DENF, GENC and XENC.",
     "DENF": "Diffraction Encircled Energy (fraction). See also DENC, GENC, GENF, and XENC.",
     "DIFF": "Difference of two operands (Op#1 - Op#2).",
     "DIMX": "Distortion maximum. See also DIST,",
@@ -127,7 +131,9 @@ class _Operands(object):
     "DXDY": "Derivative of transverse x-aberration with respect to y-pupil coordinate.",
     "DYDX": "Derivative of transverse y-aberration with respect to x-pupil coordinate.",
     "DYDY": "Derivative of transverse y-aberration with respect to y-pupil coordinate.",
-    "EFFL": "Effective focal length in lens units. The wavelength used is defined by Wave.",
+    "EFFL": ("Effective focal length in lens units. The wavelength used is "
+            "defined by Wave. This is paraxial, and may not be accurate "
+            "for non-paraxial systems."),
     "EFLX": ("Effective focal length in the local x plane of the range of "
             "surfaces defined by Surf1 and Surf2 at the primary wavelength."),
     "EFLY": ("Effective focal length in the local y plane of the range of "
@@ -136,7 +142,10 @@ class _Operands(object):
     "ENDX": "End execution.",
     "ENPP": "Entrance pupil position in lens units, with respect to the first surface.",
     "EPDI": "Entrance pupil diameter in lens units.",
-    "ERFP": "Edge Response Function Position.",
+    "ERFP": ("Edge Response Function Position. This operand computes the x or "
+            "y position of the point at which the edge response function "
+            "reaches a certain relative value. For details on the edge "
+            "response function calculation, see Geometric Line/Edge Spread"),
     "EQUA": "Equal operand. See SUMM and OSUM.",
     "ETGT": "Edge thickness greater than. See also MNET.",
     "ETLT": "Edge thickness less than. See also MXET.",
@@ -203,14 +212,14 @@ class _Operands(object):
     "GPSY": "Ghost ray paraxial y coordinate.",
     "GRMN": "Gradient index minimum index.",
     "GRMX": "Gradient index maximum index.",
-    "GTCE": "Glass TCE. For non-glass surfaces, see `TCVA`.",
+    "GTCE": "Glass TCE. For non-glass surfaces, see TCVA.",
     "HACG": "Unused.",
     "HHCN": "Test for the hyperhemisphere condition.",
     "IMAE": "Image analysis data.",
-    "IMSF": "Image  Surface",
+    "IMSF": "Image Surface",
     "INDX": "Index of refraction.",
-    "InGT": "Index `n` greater than.",
-    "InLT": "Index `n` less than.",
+    "InGT": "Index n greater than.",
+    "InLT": "Index n less than.",
     "InVA": "This operand is similar to InGT except it constrains the current "
             "value of the index of refraction.",
     "ISFN": "Image space F/#. See WFNO.",
@@ -232,8 +241,12 @@ class _Operands(object):
     "MINN": "Returns the smallest value within the indicated range of operands. "
             "See MAXX.",
     "MNAB": "Minimum Abbe number. See also MXAB.",
-    "MNCA": "Minimum center thickness air. See also  MNCT  and  MNCG.",
-    "MNCG": "Minimum center thickness glass. See also MNCT and MNCA.",
+    "MNCA": ("Minimum center thickness air. This operand is used to set a "
+            "minimum axial air thickness between two surfaces. See also "
+            "MNCT and MNCG."),
+    "MNCG": ("Minimum center thickness glass. This operand is used to set "
+            "a minimum axial glass thickness between designated surfaces. "
+            "See also MNCT and MNCA."),
     "MNCT": "Minimum center thickness.",
     "MNCV": "Minimum curvature.",
     "MNDT": "Minimum diameter to thickness ratio. See also MXDT.",
@@ -241,7 +254,11 @@ class _Operands(object):
     "MNEG": "Minimum edge thickness glass. See also MNET, MNEA, ETGT, and XNEG.",
     "MNET": "Minimum edge thickness. See also MNEG, MNEA, ETGT, and XNET.",
     "MNIN": "Minimum index at d-light.",
-    "MNPD": "Minimum.",
+    "MNPD": ("Minimum partial dispersion. This boundary operand constrains "
+            "the deviation of the partial dispersion of surfaces between "
+            "Surf1 and Surf2 to be greater than the specified target value."
+            " See also MXPD. This operand controls multiple surfaces "
+            "simultaneously."),
     "MNSD": "Minimum semi-diameter.",
     "MSWA": "Modulation square-wave transfer function, average of sagittal and "
             "tangential. See MTFA for details.",
@@ -258,14 +275,16 @@ class _Operands(object):
     "MTHS": "Huygens Modulation transfer function, sagittal. See MTHA for details.",
     "MTHT": "Huygens Modulation transfer function, tangential. See MTHA for details.",
     "MXAB": "Maximum Abbe number.",
-    "MXCA": "Maximum  center  thickness air.",
-    "MXCG": "Maximum center thickness glass.",
+    "MXCA": ("Maximum center thickness air. This operand is used to set "
+            "a maximum axial air thickness between two surfaces. see MXCG"),
+    "MXCG": ("Maximum center thickness glass. This operand is used to set "
+            "a maximum glass thickness between two surfaces. see MXCA"),
     "MXCT": "Maximum center thickness.",
     "MXCV": "Maximum curvature. See also MNCV.",
     "MXDT": "Maximum diameter to thickness ratio. See also MNDT.",
     "MXEA": "Maximum edge thickness air. See also MXET, MXEG, ETLT, and XXEA.",
     "MXEG": "Maximum edge thickness glass.See also MXET, MXEA, ETLT, and XXEG.",
-    "MXET": "Maximum  edge  thickness. See also `MXEG`, `MXEA`,`ETLT`, and `XXET`.",
+    "MXET": "Maximum edge thickness. See also `MXEG`, `MXEA`,`ETLT`, and `XXET`.",
     "MXIN": "Maximum index at d-light. See also MNIN.",
     "MXPD": "Maximum. See also MNPD.",
     "MXSD": "Maximum semi-diameter.",
@@ -315,7 +334,8 @@ class _Operands(object):
             "with tilt removed at the wavelength defined by Wave.",
     "OPGT": "Operand greater than.",
     "OPLT": "Operand less than.",
-    "OPTH": "Optical path length. See PLEN.",
+    "OPTH": ("Optical path length in lens units from the first optical "
+            "surface (object at infinity) to the designated surface. See PLEN."),
     "OPVA": "Operand value.",
     "OSCD": "Offense against the sine condition (OSC) at the wavelength defined "
             "by Wave.",
@@ -333,8 +353,9 @@ class _Operands(object):
             "the surface defined by Surf at the wavelength defined by Wave.",
     "PARC": "Paraxial ray z-direction cosine of the ray after refraction from "
             "the surface defined by Surf at the wavelength defined by Wave.",
-    "PARR": "Paraxial ray radial coordinate in lens units at the surface defined "
-            "by Surf at the wavelength defined by Wave.",
+    "PARR": ("Paraxial ray radial coordinate or paraxial radial distance in "
+            "lens units from the axis at the surface defined by Surf at "
+            "the wavelength defined by Wave."),
     "PARX": "Paraxial ray x-coordinate in lens units at the surface defined by "
             "Surf at the wavelength defined by Wave.",
     "PARY": "Paraxial ray y-coordinate in lens units at the surface defined by "
@@ -450,11 +471,14 @@ class _Operands(object):
     "TGTH": "Sum of glass thicknesses from Surf1 to Surf2. See TTHI.",
     "TMAS": "Total mass.",
     "TOLR": "Tolerance data.",
-    "TOTR": "Total track (length) of lens in lens units. See `Total track`.",
-    "TRAC": "Transverse aberration radial direction measured in image space with "
-            "respect to the centroid for the wavelength  defined  by  Wave. It "
+    "TOTR": "Total track length from first optical surface to image plane in "
+            "lens units. See Total track.",
+    "TRAC": "The radial transverse aberration measured in image space "
+            "for a specified ray (field location, pupil corodinate, and color) "
+            "with respect to the centroid for the wavelength defined by Wave. It "
             "is used by the default merit function to compute how far away from "
-            "the centroid of a spot a given ray lands.",
+            "the centroid of a spot a given ray lands. TRAC is used to "
+            "minimize the RMS spot radius",
     "TRAD": "The x component of the TRAR only. TRAD has the same restrictions that "
             "TRAC does; see TRAC for a detailed discussion.",
     "TRAE": "The y component of the TRAR only. TRAE has the same restrictions that "
@@ -472,8 +496,10 @@ class _Operands(object):
             "respect to the centroid. TRCX has the same restrictions that TRAC does.",
     "TRCY": "Transverse aberration y direction measured in image space with "
             "respect to the centroid. TRCY has the same restrictions that TRAC does.",
-    "TTGT": "Total  thickness  greater  than. See TTLT and TTVA.",
-    "TTHI": "Sum of thicknesses of surfaces from Surf1 to Surf2. See TGTH.",
+    "TTGT": "Total thickness greater than. See TTLT and TTVA.",
+    "TTHI": "Sum of thicknesses of surfaces from Surf1 to Surf2. i.e. it is "
+            "the cumulative axial thickness from Surf1 to Surf2 including "
+            "the thickness of Surf2. See TGTH.",
     "TTLT": "Total thickness less than. See TTGT.",
     "TTVA": "Total thickness value. See TTGT.",
     "UDOP": ("User defined operand. Used for optimizing numerical results "
@@ -501,8 +527,8 @@ class _Operands(object):
             "Surf1 and Surf2. See MXEA.",
     "XXEG": "Maximum edge thickness for the range of glass surfaces defined by "
             "Surf1 and Surf2. See MXEG.",
-    "XXET": "Maximum  edge thickness for the range of surfaces defined by  "
-            "Surf1  and Surf2. See MXET.",
+    "XXET": "Maximum edge thickness for the range of surfaces defined by "
+            "Surf1 and Surf2. See MXET.",
     "YNIP": "YNI-paraxial. It is the product of the parax. marg. ray ht. & the "
             "index times the angle of incidence at the surface.",
     "ZERN": "Zernike Fringe coefficient.",
@@ -816,8 +842,8 @@ def findZOperand(keywords):
     previousFoundKeys = []
     for operand, description in _Operands.opt_operands.items():
         for kWord in words2find:
-            if __find(kWord,description):
-                _print_mod(_prettifyCodeDesc(operand,description))
+            if __find(kWord, description):
+                _print_mod(_prettifyCodeDesc(operand, description))
                 previousFoundKeys.append(operand)
                 break # break the inner for loop
     if previousFoundKeys:
@@ -826,8 +852,8 @@ def findZOperand(keywords):
     previousFoundKeys = []
     for operand, description in _Operands.tol_operands.items():
         for kWord in words2find:
-            if __find(kWord,description):
-                _print_mod(_prettifyCodeDesc(operand,description))
+            if __find(kWord, description):
+                _print_mod(_prettifyCodeDesc(operand, description))
                 previousFoundKeys.append(operand)
                 break # break the inner for loop
     if previousFoundKeys:
@@ -836,16 +862,16 @@ def findZOperand(keywords):
     previousFoundKeys = []
     for operand, description in _Operands.mco_operands.items():
         for kWord in words2find:
-            if __find(kWord,description):
-                _print_mod(_prettifyCodeDesc(operand,description))
+            if __find(kWord, description):
+                _print_mod(_prettifyCodeDesc(operand, description))
                 previousFoundKeys.append(operand)
                 break # break the inner for loop
     if previousFoundKeys:
         _print_mod(_boldifyText("Found ", str(len(previousFoundKeys)),
                               " Macro operands",'blue','red','blue'))
 
-def __find(word2find,instring):
-    r = _re.compile(r'\b({0})\b'.format(word2find),flags=_re.IGNORECASE)
+def __find(word2find, instring):
+    r = _re.compile(r'\b({0})\b'.format(word2find), flags=_re.IGNORECASE)
     if r.search(instring):
         return True
     else:
