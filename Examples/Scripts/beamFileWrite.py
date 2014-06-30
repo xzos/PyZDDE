@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Name:       .py
+# Name:     beamFileWrite.py
 # Purpose:  Demonstrate the function writeBeamFile()
 #           The example uses the python image library (PIL) to transfer the
 #           information from a PNG to a zemax beam file format. You might do

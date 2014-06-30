@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Name:       .py
+# Name:      beamFileRead.py
 # Purpose:   Demonstrate the function readBeamFile() that reads a zemax beam
 #            file.
 #
