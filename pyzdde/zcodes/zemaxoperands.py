@@ -243,7 +243,7 @@ class _Operands(object):
     "MNAB": "Minimum Abbe number. See also MXAB.",
     "MNCA": ("Minimum center thickness air. This operand is used to set a "
             "minimum axial air thickness between two surfaces. See also "
-            "MNCT and MNCG."),
+            "MNCG, MNCT and MXCA."),
     "MNCG": ("Minimum center thickness glass. This operand is used to set "
             "a minimum axial glass thickness between designated surfaces. "
             "See also MNCT and MNCA."),
@@ -276,17 +276,26 @@ class _Operands(object):
     "MTHT": "Huygens Modulation transfer function, tangential. See MTHA for details.",
     "MXAB": "Maximum Abbe number.",
     "MXCA": ("Maximum center thickness air. This operand is used to set "
-            "a maximum axial air thickness between two surfaces. see MXCG"),
+            "a maximum axial air thickness between two surfaces. See also MNCA, MXCG"),
     "MXCG": ("Maximum center thickness glass. This operand is used to set "
             "a maximum glass thickness between two surfaces. see MXCA"),
-    "MXCT": "Maximum center thickness.",
-    "MXCV": "Maximum curvature. See also MNCV.",
+    "MXCT": ("Maximum center thickness. This boundary operand constrains each "
+            "of the center thicknesses of surfaces from Surf1 to Surf2 to be "
+            "less than the specified target value. See also MXCG and MXCA. "
+            "This operand controls multiple surfaces simultaneously."),
+    "MXCV": ("Maximum curvature. This boundary operand constrains each of "
+            "the curvatures of surfaces from Surf1 to Surf2 to be less than"
+            " the specified target value. See also MNCV. This operand "
+            "controls multiple surfaces simultaneously"),
     "MXDT": "Maximum diameter to thickness ratio. See also MNDT.",
     "MXEA": "Maximum edge thickness air. See also MXET, MXEG, ETLT, and XXEA.",
     "MXEG": "Maximum edge thickness glass.See also MXET, MXEA, ETLT, and XXEG.",
-    "MXET": "Maximum edge thickness. See also `MXEG`, `MXEA`,`ETLT`, and `XXET`.",
+    "MXET": "Maximum edge thickness. See also MXEG, MXEA, ETLT, and XXET.",
     "MXIN": "Maximum index at d-light. See also MNIN.",
-    "MXPD": "Maximum. See also MNPD.",
+    "MXPD": ("Maximum partial dispersion. This boundary operand constrains "
+            "the deviation of the partial dispersion of surfaces between "
+            "Surf1 and Surf2 to be less than the specified target value. "
+            "See also MNPD. This operand controls multiple surfaces simultaneously."),
     "MXSD": "Maximum semi-diameter.",
     "NORD": "Normal distance to the next surface.",
     "NORX": "Normal vector x component.",

@@ -2964,7 +2964,7 @@ class PyZDDE(object):
             1 if not axial);
         rayAimingType : integer
             ray aiming type (0, 1, or 2 for off, paraxial or real)
-        adjust_index : integer
+        adjustIndex : integer
             adjust index data to environment flag (0 if false, 1 if true)
         temp : float
             the current temperature
@@ -2985,11 +2985,11 @@ class PyZDDE(object):
         zSetSystem(), zGetSystemProperty(), zGetSystemAper(),
         zGetAperture(), zSetAperture()
         """
-        sdt = _co.namedtuple('systemData' , ['numberOfSurfaces', 'unitCode',
-                                             'stopSurfaceNum', 'nonAxialFlag',
-                                             'rayAimingType', 'adjustIndexFlag',
-                                             'temperature', 'pressure',
-                                             'globalReferenceSurface'])
+        sdt = _co.namedtuple('systemData' , ['numSurf', 'unitCode',
+                                             'stopSurf', 'nonAxialFlag',
+                                             'rayAimingType', 'adjustIndex',
+                                             'temp', 'pressure',
+                                             'globalRefSurf'])
         reply = self._sendDDEcommand("GetSystem")
         rs = reply.split(',')
         systemData = sdt._make([float(elem) if (i==6) else int(float(elem))
@@ -5548,14 +5548,15 @@ class PyZDDE(object):
         surfaceNumber : integer
             surface number for which the solve is to be set.
         code : integer
-            code for surface parameter such as curvature, thickness, glass,
-            conic, semi-diameter, etc. (see the table in docstring of
-            ``zGetSolve()`` surf_param_codes_for_solve_.
+            code for surface parameter such as curvature, thickness, 
+            glass, conic, semi-diameter, etc. (see the table in docstring 
+            of ``zGetSolve()`` surf_param_codes_for_solve_.
         solveData : tuple preceded by ``*`` or a sequence of arguments
+            
             There are two ways of passing this parameter:
 
             1. As a sequence of arguments:
-               ``solvetype``, ``param1``, ``param2``, ``param3``, ``param4``
+               ``solvetype, param1, param2, param3, param4``
             2. As a tuple of the above arguments preceded by the ``*``
                operator to flatten/splatter the tuple (see example below).
 
@@ -5568,9 +5569,13 @@ class PyZDDE(object):
 
         Notes
         -----
-        The ``solvetype`` is an integer code, & the parameters have meanings
-        that depend upon the solve type; see the chapter "SOLVES" in the
-        Zemax manual for details.
+        1. The ``solvetype`` is an integer code, & the parameters have 
+           meanings that depend upon the solve type; see the chapter 
+           "SOLVES" in the Zemax manual for details. You may also directly
+           refer to the function body to quickly get an idea about the 
+           ``solvetype`` codes and parameters.
+        2. If the ``solvetype`` is fixed, then the ``value`` in the 
+           ``solveData`` is ignored.
 
         Examples
         --------
@@ -5798,44 +5803,51 @@ class PyZDDE(object):
                                               temp, pressure, globalRefSurf):
         """Sets a number of general systems property (General Lens Data)
 
-        zSetSystem(unitCode,stopSurf,rayAimingType,useenvdata,
-                     temp,pressure,globalRefSurf) -> systemData
-
         Parameters
         ----------
-        unitCode      : lens units code (0,1,2,or 3 for mm, cm, in, or M)
-        stopSurf      : the stop surface number
-        rayAimingType : ray aiming type (0,1, or 2 for off, paraxial or real)
-        useEnvData    : use environment data flag (0 or 1 for no or yes) [ignored]
-        temp          : the current temperature
-        pressure      : the current pressure
-        globalRefSurf : the global coordinate reference surface number
+        unitCode : integer
+            lens units code (0, 1, 2, or 3 for mm, cm, in, or M)
+        stopSurf : integer
+            the stop surface number
+        rayAimingType : integer
+            ray aiming type (0, 1, or 2 for off, paraxial or real)
+        useEnvData : integer
+            use environment data flag (0 or 1 for no or yes) [ignored]
+        temp : float 
+            the current temperature
+        pressure : float 
+            the current pressure
+        globalRefSurf : integer
+            the global coordinate reference surface number
 
         Returns
         -------
-        systemData : the systemData is a tuple with the following elements:
-            numSurfs      : number of surfaces
-            unitCode      : lens units code (0,1,2,or 3 for mm, cm, in, or M)
-            stopSurf      : the stop surface number
-            nonAxialFlag  : flag to indicate if system is non-axial symmetric
-                            (0 for axial, 1 if not axial)
-            rayAimingType : ray aiming type (0,1, or 2 for off, paraxial or real)
-            adjust_index  : adjust index data to environment flag (0 if false, 1 if true)
-            temp          : the current temperature
-            pressure      : the current pressure
-            globalRefSurf : the global coordinate reference surface number
-            need_save     : indicates whether the file has been modified. [Deprecated]
+        numSurfs : integer
+            number of surfaces
+        unitCode : integer
+            lens units code (0, 1, 2, or 3 for mm, cm, in, or M)
+        stopSurf : integer
+            the stop surface number
+        nonAxialFlag : integer
+            flag to indicate if system is non-axial symmetric (0 for axial,
+            1 if not axial);
+        rayAimingType : integer
+            ray aiming type (0, 1, or 2 for off, paraxial or real)
+        adjustIndex : integer
+            adjust index data to environment flag (0 if false, 1 if true)
+        temp : float
+            the current temperature
+        pressure : float
+            the current pressure
+        globalRefSurf : integer
+            the global coordinate reference surface number
 
-        Note
-        -----
-        The returned data structure is exactly similar to the data structure
-        returned by the `zGetSystem` method.
-
-        If you are interested in setting the system apeture, such as aperture type,
-        aperture value, etc, use `zSetSystemAper`.
-
-        See also `zGetSystem`, `zGetSystemAper`, `zSetSystemAper`, `zGetAperture`,
-        `zSetAperture`
+        See Also
+        --------
+        zSetSystemAper():
+            for setting the system aperture such as aperture type, aperture
+            value, etc. 
+        zGetSystem(), zGetSystemAper(), zGetAperture(), zSetAperture()
         """
         cmd = ("SetSystem,{:d},{:d},{:d},{:d},{:1.20g},{:1.20g},{:d}"
               .format(unitCode,stopSurf,rayAimingType,useEnvData,temp,pressure,
