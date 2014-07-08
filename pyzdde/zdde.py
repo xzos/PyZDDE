@@ -6590,7 +6590,7 @@ class PyZDDE(object):
         Returns
         -------
         popData : tuple
-            popData is a 1-tuple continining just ``popInfo`` (see below) if
+            popData is a 1-tuple containing just ``popInfo`` (see below) if
             ``displayData`` is ``false`` (default).
             If ``displayData`` is ``true``, ``popData`` is a 2-tuple containing
             ``popInfo`` (a tuple) and ``powerGrid`` (a 2D list):
