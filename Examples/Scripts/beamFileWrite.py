@@ -21,9 +21,9 @@ from pyzdde.zdde import writeBeamFile, readBeamFile
 import matplotlib.pyplot as plt
 import os
 import time
-
+from pylab import *
 directory = os.path.dirname(os.path.realpath(__file__))
-im = Image.open(directory+"\pikachu2.png")
+im = Image.open(directory+os.path.sep+"pikachu2.png")
 
 pix = im.load()
 #(nx, ny)  = im.size
@@ -33,12 +33,16 @@ Ex_real = [[0 for x in range(nx)] for y in range(ny)]
 Ex_imag = [[0 for x in range(nx)] for y in range(ny)]
 Ey_real = [[0 for x in range(nx)] for y in range(ny)]
 Ey_imag = [[0 for x in range(nx)] for y in range(ny)]
-
 for i in range(ny):
     for j in range(nx):
-        Ex_real[i][nx-j-1] = pix[i, j]
+        #Ex_real[i][nx-j-1] = pix[i, j]
+        Ex_real[nx-j-1][i] = pix[i, j]
         #print(pix[i,j])
 
+# I'd like to change the code so that this whows me a good pikachu ;)
+
+imshow(Ex_real)
+show()
 n=(nx,ny)
 efield = (Ex_real, Ex_imag, Ey_real, Ey_imag)
 version = 0

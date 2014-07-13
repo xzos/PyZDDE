@@ -70,31 +70,9 @@ import pyzdde.config as _config
 _global_pyver3 = _config._global_pyver3
 _global_use_unicode_text = _config._global_use_unicode_text
 
-# DDEML communication module
-import pyzdde.ddeclient as _dde
-
-if _global_pyver3:
-   _izip = zip
-   _imap = map
-   xrange = range
-else:
-    from itertools import izip as _izip, imap as _imap
-
-import pyzdde.zcodes.zemaxbuttons as zb
-import pyzdde.zcodes.zemaxoperands as zo
-import pyzdde.utils.pyzddeutils as _putils
-
 # Constants
 _DEBUG_PRINT_LEVEL = 0 # 0=No debug prints, but allow all essential prints
                        # 1 to 2 levels of debug print, 2 = print all
-
-_MAX_PARALLEL_CONV = 2  # Max no of simul. conversations possible with Zemax
-_system_aperture = {0 : 'EPD',
-                    1 : 'Image space F/#',
-                    2 : 'Object space NA',
-                    3 : 'Float by stop',
-                    4 : 'Paraxial working F/#',
-                    5 : 'Object cone angle'}
 
 # Helper function for debugging
 def _debugPrint(level, msg):
@@ -111,6 +89,36 @@ def _debugPrint(level, msg):
     global _DEBUG_PRINT_LEVEL
     if level <= _DEBUG_PRINT_LEVEL:
         print("DEBUG PRINT, module - zdde (Level " + str(level)+ "): " + msg)
+
+# DDEML communication module
+_global_ddeclient_load = False # True if module could be loaded.
+try:
+  import pyzdde.ddeclient as _dde
+except ImportError:
+  # probably I'm not on windows. Therefore windll can't be imported.
+  # only provide functions that does not interact with zemax
+  _debugPrint(1, "zdde could not be load. Therefore some functions will not work.")
+finally:
+  _global_ddeclient_load = True
+
+if _global_pyver3:
+   _izip = zip
+   _imap = map
+   xrange = range
+else:
+    from itertools import izip as _izip, imap as _imap
+
+import pyzdde.zcodes.zemaxbuttons as zb
+import pyzdde.zcodes.zemaxoperands as zo
+import pyzdde.utils.pyzddeutils as _putils
+
+_MAX_PARALLEL_CONV = 2  # Max no of simul. conversations possible with Zemax
+_system_aperture = {0 : 'EPD',
+                    1 : 'Image space F/#',
+                    2 : 'Object space NA',
+                    3 : 'Float by stop',
+                    4 : 'Paraxial working F/#',
+                    5 : 'Object cone angle'}
 
 # ***************
 # Module methods
@@ -5548,11 +5556,11 @@ class PyZDDE(object):
         surfaceNumber : integer
             surface number for which the solve is to be set.
         code : integer
-            code for surface parameter such as curvature, thickness, 
-            glass, conic, semi-diameter, etc. (see the table in docstring 
+            code for surface parameter such as curvature, thickness,
+            glass, conic, semi-diameter, etc. (see the table in docstring
             of ``zGetSolve()`` surf_param_codes_for_solve_.
         solveData : tuple preceded by ``*`` or a sequence of arguments
-            
+
             There are two ways of passing this parameter:
 
             1. As a sequence of arguments:
@@ -5569,12 +5577,12 @@ class PyZDDE(object):
 
         Notes
         -----
-        1. The ``solvetype`` is an integer code, & the parameters have 
-           meanings that depend upon the solve type; see the chapter 
+        1. The ``solvetype`` is an integer code, & the parameters have
+           meanings that depend upon the solve type; see the chapter
            "SOLVES" in the Zemax manual for details. You may also directly
-           refer to the function body to quickly get an idea about the 
+           refer to the function body to quickly get an idea about the
            ``solvetype`` codes and parameters.
-        2. If the ``solvetype`` is fixed, then the ``value`` in the 
+        2. If the ``solvetype`` is fixed, then the ``value`` in the
            ``solveData`` is ignored.
 
         Examples
@@ -5813,9 +5821,9 @@ class PyZDDE(object):
             ray aiming type (0, 1, or 2 for off, paraxial or real)
         useEnvData : integer
             use environment data flag (0 or 1 for no or yes) [ignored]
-        temp : float 
+        temp : float
             the current temperature
-        pressure : float 
+        pressure : float
             the current pressure
         globalRefSurf : integer
             the global coordinate reference surface number
@@ -5846,7 +5854,7 @@ class PyZDDE(object):
         --------
         zSetSystemAper():
             for setting the system aperture such as aperture type, aperture
-            value, etc. 
+            value, etc.
         zGetSystem(), zGetSystemAper(), zGetAperture(), zSetAperture()
         """
         cmd = ("SetSystem,{:d},{:d},{:d},{:d},{:1.20g},{:1.20g},{:d}"
@@ -8208,4 +8216,3 @@ def _get2DList(line_list, start_line, number_of_lines):
 if __name__ == "__main__":
     print("Please import this module as 'import pyzdde.zdde as pyz' ")
     _sys.exit(0)
-
