@@ -26,6 +26,44 @@ most basic settings file (created using "reset" on "LENS.ZMX" lens file) to
 return phase data in POP analysis
 
 
+RESET_SETTINGS_FFTPSF.CFG
+-------------------------
+most basic settings file (created using "reset" on "LENS.ZMX" lens file) to 
+return FFT PSF analysis
+
+
+RESET_SETTINGS_FFTPSFCS.CFG
+---------------------------
+most basic settings file (created using "reset" on "LENS.ZMX" lens file) to 
+return FFT PSF Cross section analysis
+
+
+RESET_SETTINGS_HUYGENSPSF.CFG
+-----------------------------
+most basic settings file (created using "reset" on "LENS.ZMX" lens file) to 
+return Huygens PSF analysis
+
+
+RESET_SETTINGS_HUYGENSPSFCS.CFG
+-------------------------------
+most basic settings file (created using "reset" on "LENS.ZMX" lens file) to 
+return Huygens PSF Cross section analysis
+
+RESET_SETTINGS_FFTMTF.CFG
+-------------------------
+most basic settings file (created using "reset" on "LENS.ZMX" lens file) to 
+return FFT MTF analysis
+
+RESET_SETTINGS_HUYGENSMTF.CFG
+-----------------------------
+most basic settings file (created using "reset" on "LENS.ZMX" lens file) to 
+return FFT MTF analysis
+
+RESET_SETTINGS_IMGSIM.CFG
+-------------------------
+most basic settings file (created using "reset" on "LENS.ZMX" lens file) to 
+return image simulation analysis
+
 Unit-test files
 ***************
 

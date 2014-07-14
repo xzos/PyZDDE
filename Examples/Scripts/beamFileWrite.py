@@ -29,17 +29,17 @@ pix = im.load()
 #(nx, ny)  = im.size
 (nx, ny) = (64, 64)
 
+#
 Ex_real = [[0 for x in range(nx)] for y in range(ny)]
 Ex_imag = [[0 for x in range(nx)] for y in range(ny)]
 Ey_real = [[0 for x in range(nx)] for y in range(ny)]
 Ey_imag = [[0 for x in range(nx)] for y in range(ny)]
+
 for i in range(ny):
     for j in range(nx):
-        #Ex_real[i][nx-j-1] = pix[i, j]
         Ex_real[nx-j-1][i] = pix[i, j]
-        #print(pix[i,j])
 
-# I'd like to change the code so that this whows me a good pikachu ;)
+# ATTENTION: imshow will show a flipped image. nevertheless the image will be in correct orientation in zemax
 
 imshow(Ex_real)
 

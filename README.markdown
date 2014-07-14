@@ -4,7 +4,7 @@
 
 ##### Current revision:
 
-0.7.7 (Last significant update on 06/21/2014)
+0.8.0 (Last significant update on 07/13/2014)
 
 Brief change-log is available in the [News and Updates](https://github.com/indranilsinharoy/PyZDDE/wiki/News-and-updates) page.
 
@@ -33,15 +33,21 @@ print("Hello Zemax version: ", link.zGetVersion())
 link.close()
 ```
 
-You may also see few more examples [here](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/tree/master/Examples/). 
+#### More examples
+
+You may see few examples [here](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/tree/master/Examples/). 
+
+Also, the repository [Intro2LensDesignByGeary](https://github.com/indranilsinharoy/Intro2LensDesignByGeary) contains notes from few chapters of the book "Introduction to Lens Design," by Joseph M. Geary, in the form of IPython notebooks. 
+
 
 #### Features
 
 * Functions for using all "data items" defined in Zemax manual
 * Supports both Python 2.7 and Python 3.3/3.4
 * Supports both Unicode and extended ascii text
-* Over 20 additional functions for more efficient use (more will be added in future). Examples include `zSetTimeout()`, `zExecuteZPLMacro()`, `zSpiralSpot()`, `zGetSeidelAberration()`, `zSetFieldTuple()`, `zGetFieldTuple()`, `zSetWaveTuple()`, `zGetWaveTuple()`, `zCalculateHiatus()`, `zGetPupilMagnification()`, `zGetPOP()`, `zSetPOPSettings()`, `zModifyPOPSettings()`
+* Over 25 additional functions for more efficient use (more will be added in future). Examples include `zSetTimeout()`, `zExecuteZPLMacro()`, `zSpiralSpot()`, `zGetSeidelAberration()`, `zSetFieldTuple()`, `zGetFieldTuple()`, `zSetWaveTuple()`, `zGetWaveTuple()`, `zCalculateHiatus()`, `zGetPupilMagnification()`, `zGetPOP()`, `zSetPOPSettings()`, `zModifyPOPSettings()`, `zGetPSF()`, `zGetPSFCrossSec()`, `zGetMTF()`, `zGetImageSimulation()`
 * Special functions for better interactive use with IPython notebooks. Examples include `ipzCaptureWindow()`, `ipzGetFirst()`, `ipzGetPupil()`, `ipzGetSystemAper()`, `ipzGetTextWindow()`
+* Quick generation of few simple optical systems (see `pyzdde.systems` module)
 
 
 #### Overview

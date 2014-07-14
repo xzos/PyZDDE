@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.7.7
+# Revision:    0.8.0
 #-------------------------------------------------------------------------------
 from __future__ import print_function
 import re as _re
@@ -54,7 +54,7 @@ class _Operands(object):
             "non-paraxial systems"),
     "ATAN": "Arctangent of the value of the operand defined by Op#.",
     "AXCL": ("Axial color, measured in lens units for focal systems and diopters "
-            "for afocal systems. This is the image separation between the two" 
+            "for afocal systems. This is the image separation between the two"
             "wavelengths defined by Wave1 and Wave2"),
     "BFSD": "Best Fit Sphere (BFS) data.",
     "BIOC": ("Biocular Convergence. Returns the convergence between two eye "

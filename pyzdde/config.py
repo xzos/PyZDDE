@@ -5,7 +5,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.7.6
+# Revision:    0.8.0
 #-------------------------------------------------------------------------------
 from os import path as _path
 import sys as _sys

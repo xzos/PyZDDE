@@ -248,7 +248,7 @@ for lens_file in filenames:
     textFileName = exampleDirectory + '\\' + "searchSpecAttr_Prescription.txt"
 
     #Get the Hiatus for the lens design
-    hiatus = ln.zCalculateHiatus(textFileName,keepFile=False)
+    hiatus = ln.zGetHiatus(textFileName, keepFile=False)
 
     if hiatus > HIATUS_UPPER_LIMIT:
         continue

@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.7.7
+# Revision:    0.8.0
 #-------------------------------------------------------------------------------
 """PyZDDE, which is a toolbox written in Python, is used for communicating
 with ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging
@@ -175,7 +175,7 @@ def createLink():
         link = PyZDDE()
         status = link.zDDEInit()
         if not status:
-            _global_dde_linkObj[link] = link.appName  # This can be something more useful later
+            _global_dde_linkObj[link] = link._appName  # This can be something more useful later
             _debugPrint(1,"Link created. Link Dict = {}".format(_global_dde_linkObj))
             return link
         else:
@@ -372,21 +372,22 @@ class PyZDDE(object):
         createLink()
         """
         PyZDDE.__chNum += 1   # increment channel count
-        self.appName = _getAppName(PyZDDE.__appNameDict) or '' # wicked :-)
-        self.appNum = PyZDDE.__chNum # unique & immutable identity of each instance
-        self.connection = False  # 1/0 depending on successful connection or not
-        self.macroPath = None    # variable to store macro path
+        self._appName = _getAppName(PyZDDE.__appNameDict) or '' # wicked :-)
+        self._appNum = PyZDDE.__chNum # unique & immutable identity of each instance
+        self._connection = False  # 1/0 depending on successful connection or not
+        self._macroPath = None    # variable to store macro path
+        self._filesCreated = set()   # .cfg & other files to be cleaned at session end
 
     def __repr__(self):
         return ("PyZDDE(appName=%r, appNum=%r, connection=%r, macroPath=%r)" %
-                (self.appName, self.appNum, self.connection, self.macroPath))
+                (self._appName, self._appNum, self._connection, self._macroPath))
 
     def __hash__(self):
         # for storing in internal dictionary
-        return hash(self.appNum)
+        return hash(self._appNum)
 
     def __eq__(self, other):
-        return (self.appNum == other.appNum)
+        return (self._appNum == other._appNum)
 
     # ZEMAX <--> PyZDDE client connection methods
     #--------------------------------------------
@@ -409,7 +410,7 @@ class PyZDDE(object):
         --------
         createLink(), zDDEClose(), zDDEStart(), zSetTimeout()
         """
-        _debugPrint(1,"appName = " + self.appName)
+        _debugPrint(1,"appName = " + self._appName)
         _debugPrint(1,"liveCh = " + str(PyZDDE.__liveCh))
         # do this only one time or when there is no channel
         if PyZDDE.__liveCh==0:
@@ -422,10 +423,10 @@ class PyZDDE(object):
                                  " using a DDE server!".format(err=str(err1)))
                 return -1
         # Try to create individual conversations for each ZEMAX application.
-        self.conversation = _dde.CreateConversation(PyZDDE.__server)
-        _debugPrint(2, "PyZDDE.converstation = " + str(self.conversation))
+        self._conversation = _dde.CreateConversation(PyZDDE.__server)
+        _debugPrint(2, "PyZDDE.converstation = " + str(self._conversation))
         try:
-            self.conversation.ConnectTo(self.appName," ")
+            self._conversation.ConnectTo(self._appName," ")
         except Exception as err2:
             _debugPrint(2, "Exception occured at attempt to call ConnecTo."
                         " Error = {err}".format(err=str(err2)))
@@ -443,7 +444,7 @@ class PyZDDE(object):
         else:
             _debugPrint(1,"Zemax instance successfully connected")
             PyZDDE.__liveCh += 1 # increment the number of live channels
-            self.connection = True
+            self._connection = True
             return 0
 
     def close(self):
@@ -468,12 +469,12 @@ class PyZDDE(object):
         --------
         zDDEClose() :
             PyZDDE instance method to close a link.
-            Use this method (as ``ln.zDDEClose()``) if the link was created
-            as ``ln = pyz.PyZDDE(); ln.zDDEInit()``
+            Use this method (as ``ln.zDDEClose()``) if the link was
+            created as ``ln = pyz.PyZDDE(); ln.zDDEInit()``
         closeLink() :
             A moudle level function to close a link.
-            Use this method (as ``pyz.closeLink(ln)``) or ``ln.close()`` if
-            the link was created as ``ln = pyz.createLink()``
+            Use this method (as ``pyz.closeLink(ln)``) or ``ln.close()``
+            if the link was created as ``ln = pyz.createLink()``
         """
         closeLink(self)
 
@@ -499,22 +500,24 @@ class PyZDDE(object):
         ``pyz.closeLink()`` or ``ln.close()``.
         """
         if PyZDDE.__server and not PyZDDE.__liveCh:
-            PyZDDE.__server.Shutdown(self.conversation)
+            PyZDDE.__server.Shutdown(self._conversation)
             PyZDDE.__server = 0
             _debugPrint(2,"server shutdown as ZEMAX is not running!")
-        elif PyZDDE.__server and self.connection and PyZDDE.__liveCh == 1:
-            PyZDDE.__server.Shutdown(self.conversation)
-            self.connection = False
-            PyZDDE.__appNameDict[self.appName] = False # make the name available
-            self.appName = ''
+        elif PyZDDE.__server and self._connection and PyZDDE.__liveCh == 1:
+            PyZDDE.__server.Shutdown(self._conversation)
+            self._connection = False
+            PyZDDE.__appNameDict[self._appName] = False # make the name available
+            _deleteFilesCreatedDuringSession(self)
+            self._appName = ''
             PyZDDE.__liveCh -= 1  # This will become zero now. (reset)
             PyZDDE.__server = 0   # previous server obj should be garbage collected
             _debugPrint(2,"server shutdown")
-        elif self.connection:  # if additional channels were successfully created.
-            PyZDDE.__server.Shutdown(self.conversation)
-            self.connection = False
-            PyZDDE.__appNameDict[self.appName] = False # make the name available
-            self.appName = ''
+        elif self._connection:  # if additional channels were successfully created.
+            PyZDDE.__server.Shutdown(self._conversation)
+            self._connection = False
+            PyZDDE.__appNameDict[self._appName] = False # make the name available
+            _deleteFilesCreatedDuringSession(self)
+            self._appName = ''
             PyZDDE.__liveCh -= 1
             _debugPrint(2,"liveCh decremented without shutting down DDE channel")
         else:   # if zDDEClose is called by an object which didn't have a channel
@@ -544,8 +547,8 @@ class PyZDDE(object):
         --------
         zDDEInit()
         """
-        self.conversation.SetDDETimeout(round(time))
-        return self.conversation.GetDDETimeout()
+        self._conversation.SetDDETimeout(round(time))
+        return self._conversation.GetDDETimeout()
 
 
     def zGetTimeout(self):
@@ -560,13 +563,13 @@ class PyZDDE(object):
         timeout : integer
             globally set timeout value in seconds
         """
-        return self.conversation.GetDDETimeout()
+        return self._conversation.GetDDETimeout()
 
     def _sendDDEcommand(self, cmd, timeout=None):
         """Method to send command to DDE client
         """
         global _global_pyver3
-        reply = self.conversation.Request(cmd, timeout)
+        reply = self._conversation.Request(cmd, timeout)
         if _global_pyver3:
             reply = reply.decode('ascii').rstrip()
         return reply
@@ -614,8 +617,8 @@ class PyZDDE(object):
 
         Notes
         -----
-        After deleting the configuration, all succeeding configurations are
-        re-numbered.
+        After deleting the configuration, all succeeding configurations
+        are re-numbered.
 
         See Also
         --------
@@ -654,7 +657,8 @@ class PyZDDE(object):
         return int(self._sendDDEcommand("DeleteMCO,"+str(operandNumber)))
 
     def zDeleteMFO(self, operand):
-        """Deletes an optimization operand (row) in the merit function editor
+        """Deletes an optimization operand (row) in the merit function
+        editor
 
         Parameters
         ----------
@@ -769,8 +773,8 @@ class PyZDDE(object):
              then all of them will be executed by Zemax.
         """
         status = -1
-        if self.macroPath:
-            zplMpath = self.macroPath
+        if self._macroPath:
+            zplMpath = self._macroPath
         else:
             zplMpath = _os.path.join(self.zGetPath()[0], 'Macros')
         macroList = [f for f in _os.listdir(zplMpath)
@@ -785,20 +789,24 @@ class PyZDDE(object):
                    useSolids=1, rayPattern=0, numRays=0, wave=0, field=0,
                    delVignett=1, dummyThick=1.00, split=0, scatter=0,
                    usePol=0, config=0):
-        """Export lens data in IGES/STEP/SAT format for import into CAD programs
+        """Export lens data in IGES/STEP/SAT format for import into CAD
+        programs
 
         Parameters
         ----------
         fileName : string
-            filename including extension (including full path is recommended)
+            filename including extension (including full path is
+            recommended)
         fileType : integer (0, 1, 2 or 3)
             0 = IGES; 1 = STEP (default); 2 = SAT; 3 = STL
         numSpline : integer
             number of spline segments to use (default = 32)
         firstSurf : integer
-            the first surface to export; the first object to export (in NSC mode)
+            the first surface to export; the first object to export
+            (in NSC mode)
         lastSurf : integer
-            the last surface to export; the last object to export (in NSC mode)
+            the last surface to export; the last object to export
+            (in NSC mode)
             (default = -1, i.e. image surface)
         raysLayer : integer
             layer to place ray data on (default = 1)
@@ -822,13 +830,14 @@ class PyZDDE(object):
         dummyThick : float
             dummy surface thickness in lens units; (default = 1.00)
         split : integer (0 or 1)
-            split rays from NSC sources? 1 = split sources; 0 (default) = no
+            split rays from NSC sources? 1 = split sources;
+            0 (default) = no
         scatter : integer (0 or 1)
             scatter rays from NSC sources? 1 = Scatter; 0 (deafult) = no
         usePol : integer (0 or 1)
             use polarization when tracing NSC rays? 1 = use polarization;
-            0 (default) no. Note that polarization is automatically selected
-            if ``split`` is ``1``.
+            0 (default) no. Note that polarization is automatically
+            selected if ``split`` is ``1``.
         config : integer (0 <= config <= n+3)
             n is the total number of configurations;
             0 (default) = current config;
@@ -844,14 +853,15 @@ class PyZDDE(object):
 
         Notes
         -----
-        1. Exporting lens data data may take longer than the timeout interval of
-           the DDE communication. Zemax spwans an independent thread to process
-           this request. Once the thread is launched, Zemax returns
-           "Exporting filename". However, the export may take much longer.
-           To verify the completion of export and the readiness of the file,
-           use ``zExportCheck()``, which returns ``1`` as long as the export is
-           in process, and ``0`` once completed. Generally, ``zExportCheck()``
-           should be placed in a loop, which executes until a ``0`` is returned.
+        1. Exporting lens data data may take longer than the timeout
+           interval of the DDE communication. Zemax spwans an independent
+           thread to process this request. Once the thread is launched,
+           Zemax returns "Exporting filename". However, the export may
+           take much longer. To verify the completion of export and the
+           readiness of the file, use ``zExportCheck()``, which returns
+           ``1`` as long as the export is in process, and ``0`` once
+           completed. Generally, ``zExportCheck()`` should be placed in
+           a loop, which executes until a ``0`` is returned.
 
            A typical loop-test may look like as follows: ::
 
@@ -905,7 +915,8 @@ class PyZDDE(object):
         return int(self._sendDDEcommand('ExportCheck'))
 
     def zFindLabel(self, label):
-        """Returns the surface that has the integer label associated with the it.
+        """Returns the surface that has the integer label associated with
+        the it.
 
         Parameters
         ----------
@@ -982,11 +993,13 @@ class PyZDDE(object):
 
         References
         ----------
-        The following sections from the Zemax manual should be referred for
-        details [Zemax]_:
+        The following sections from the Zemax manual should be referred
+        for details [Zemax]_:
 
-        1. "Aperture type and other aperture controls" for details on aperture
-        2. "User defined apertures and obscurations" for more on UDA extension
+        1. "Aperture type and other aperture controls" for details on
+           aperture
+        2. "User defined apertures and obscurations" for more on UDA
+           extension
 
         See Also
         --------
@@ -1002,8 +1015,8 @@ class PyZDDE(object):
         return tuple(apertureInfo)
 
     def zGetApodization(self, px, py):
-        """Computes the intensity apodization of a ray from the apodization
-        type and value.
+        """Computes the intensity apodization of a ray from the
+        apodization type and value.
 
         Parameters
         ----------
@@ -1027,15 +1040,16 @@ class PyZDDE(object):
         ----------
         filename : string
             name of the temporary file associated with the window being
-            created or updated. If the temporary file is left off, then the
-            default aspect-ratio and width (or height) is returned.
+            created or updated. If the temporary file is left off, then
+            the default aspect-ratio and width (or height) is returned.
 
         Returns
         -------
         aspect : float
             aspect ratio (height/width)
         side : float
-            width if ``aspect <= 1``; height if ``aspect > 1`` (in lens units)
+            width if ``aspect <= 1``; height if ``aspect > 1``
+            (in lens units)
         """
         asd = _co.namedtuple('aspectData', ['aspect', 'side'])
         cmd = (filename and "GetAspect,{}".format(filename)) or "GetAspect"
@@ -1248,7 +1262,8 @@ class PyZDDE(object):
 
         Examples
         --------
-        >>> # example shows the namedtuple returned by ``zGetFieldTuple``
+        This example shows the namedtuple returned by ``zGetFieldTuple``
+
         >>> ln.zGetFieldTuple()
         (fieldData(X=0.0, Y=0.0, wt=1.0, vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0),
          fieldData(X=0.0, Y=14.0, wt=1.0, vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0),
@@ -1264,7 +1279,7 @@ class PyZDDE(object):
                                           'vcx', 'vcy', 'van'])
         fieldData = []
         for i in range(fieldCount):
-            reply = self._sendDDEcommand('GetField,'+str(i+1))
+            reply = self._sendDDEcommand('GetField,' + str(i+1))
             rs = reply.split(',')
             data = fd._make([float(elem) for elem in rs])
             fieldData.append(data)
@@ -3179,23 +3194,26 @@ class PyZDDE(object):
         Parameters
         ----------
         textFileName : string
-            name of the file to be created including the full path and extension
+            name of the file to be created including the full path and
+            extension
         analysisType : string
-            3 letter case-sensitive label that indicates the type of the analysis
-            to be performed. They are identical to the button codes. If no label
-            is provided or recognized, a standard raytrace will be generated
+            3 letter case-sensitive label that indicates the type of the
+            analysis to be performed. They are identical to the button
+            codes. If no label is provided or recognized, a standard
+            raytrace will be generated
         settingsFile : string
-            If ``settingsFile`` is valid, Zemax will use or save the settings
-            used to compute the text file, depending upon the value of the flag
-            parameter
-        flag : integer (0/1/2)
+            If ``settingsFile`` is valid, Zemax will use or save the
+            settings used to compute the text file, depending upon the
+            value of the flag parameter
+        flag : integer (0, 1, or 2)
             0 = default settings used for the text;
-            1 = settings provided in the settings file, if valid, else default;
-            2 = settings provided in the settings file, if valid, will be used
-                and the settings box for the requested feature will be displayed.
-                After the user makes any changes to the settings the text will
-                then be generated using the new settings. Please see the manual
-                for more details
+            1 = settings provided in the settings file, if valid, else
+                default;
+            2 = settings provided in the settings file, if valid, will be
+                used and the settings box for the requested feature will
+                be displayed. After the user makes any changes to the
+                settings the text will then be generated using the new
+                settings. Please see the manual for more details
         timeout : integer, optional
             timeout in seconds (default=None, i.e. default timeout value)
 
@@ -3209,9 +3227,9 @@ class PyZDDE(object):
 
         Notes
         -----
-        No matter what the flag value is, if a valid file name is provided for
-        ``settingsFile``, the settings used will be written to the settings
-        file, overwriting any data in the file.
+        No matter what the flag value is, if a valid file name is provided
+        for ``settingsFile``, the settings used will be written to the
+        settings file, overwriting any data in the file.
 
         See Also
         --------
@@ -3222,7 +3240,7 @@ class PyZDDE(object):
             settingsFile = settingsFile
         else:
             settingsFile = ''
-        #Check if the file path is valid and has extension
+        # Check if the file path is valid and has extension
         if _os.path.isabs(textFileName) and _os.path.splitext(textFileName)[1]!='':
             cmd = 'GetTextFile,"{tF}",{aT},"{sF}",{fl:d}'.format(tF=textFileName,
                                     aT=analysisType,sF=settingsFile,fl=flag)
@@ -3347,8 +3365,8 @@ class PyZDDE(object):
 
     def zGetTraceDirect(self, waveNum, mode, startSurf, stopSurf, x, y, z, l, m, n):
         """Trace a (single) ray through the lens in Zemax server while
-        providing a more direct access to the Zemax ray tracing engine than
-        ``zGetTrace``.
+        providing a more direct access to the Zemax ray tracing engine
+        than ``zGetTrace``.
 
         Parameters
         ----------
@@ -4122,7 +4140,7 @@ class PyZDDE(object):
         """
         return int(self._sendDDEcommand('NewLens'))
 
-    def zNSCCoherentData(self,surfaceNumber,objectNumDisDetectr,pixel,dataType):
+    def zNSCCoherentData(self, surfaceNumber, objectNumDisDetectr, pixel, dataType):
         """Return data from an NSC detector (Non-sequential coherent data)
 
         Parameters
@@ -4144,7 +4162,7 @@ class PyZDDE(object):
         reply = self._sendDDEcommand(cmd)
         return float(reply.rstrip())
 
-    def zNSCDetectorData(self,surfaceNumber,objectNumDisDetectr,pixel,dataType):
+    def zNSCDetectorData(self, surfaceNumber, objectNumDisDetectr, pixel, dataType):
         """Return data from an NSC detector (Non-sequential incoherent intensity
         data)
 
@@ -4434,34 +4452,38 @@ class PyZDDE(object):
         return float(reply.rstrip())
 
     def zPushLens(self, update=None, timeout=None):
-        """Copy lens in the ZEMAX DDE server into the Lens Data Editor (LDE).
-
-        `zPushLens([update, timeout]) -> retVal`
+        """Copy lens in the Zemax DDE server into Lens Data Editor (LDE).
 
         Parameters
-        ---------
-        updateFlag (optional): if 0 or omitted, the open windows are not updated.
-                               if 1, then all open analysis windows are updated.
-        timeout (optional)   : if a timeout in seconds in passed, the client will
-                               wait till the timeout before returning a timeout
-                               error. If no timeout is passed, the default timeout
-                               of 3 seconds is used.
+        ----------
+        update : integer, optional
+            if 0 or omitted, the open windows in Zemax main application
+            are not updated;
+            if 1, then all open analysis windows are updated.
+        timeout : integer, optional
+            if a timeout, in seconds, in passed, the client will wait till
+            the timeout before returning a timeout error. If no timeout is
+            passed, the default timeout is used.
 
         Returns
         -------
-        retVal:
-                0: lens successfully pushed into the LDE.
-             -999: the lens could not be pushed into the LDE. (check zPushLensPermission)
-             -998: the command timed out
-            other: the update failed.
+        status : integer
+            0 = lens successfully pushed into the LDE;
+            -999 = the lens could not be pushed into the LDE. (check
+                   ``zPushLensPermission()``);
+            -998 = the command timed out;
+             other = the update failed.
 
-        Note
+        Notes
         -----
-        This operation requires the permission of the user running the ZEMAX program.
-        The proper use of `zPushLens` is to first call `zPushLensPermission`.
+        This operation requires the permission of the user running the
+        Zemax program. The proper use of ``zPushLens`` is to first call
+        ``zPushLensPermission()``.
 
-        See also `zPushLensPermission`, `zLoadFile`, `zGetUpdate`, `zGetPath`,
-        `zGetRefresh`, `zSaveFile`.
+        See Also
+        --------
+        zPushLensPermission(), zLoadFile(), zGetUpdate(), zGetPath(),
+        zGetRefresh(), zSaveFile().
         """
         reply = None
         if update == 1:
@@ -4476,50 +4498,49 @@ class PyZDDE(object):
             return -998         # if timeout reached (assumption!!)
 
     def zPushLensPermission(self):
-        """Establish if ZEMAX extensions are allowed to push lenses in the LDE.
-
-        `zPushLensPermission() -> status`
+        """Establish if Zemax extensions are allowed to push lenses in
+        the LDE.
 
         Parameters
-        ---------
+        ----------
         None
 
-        Return
-        ------
-        status:
-            1: ZEMAX is set to accept PushLens commands
-            0: Extensions are not allowed to use PushLens
+        Returns
+        -------
+        status : integer
+            1 = Zemax is set to accept PushLens commands;
+            0 = Extensions are not allowed to use ``zPushLens()``
 
-        For more details, please refer to the ZEMAX manual.
-
-        See also `zPushLens`, `zGetRefresh`
+        See Also
+        --------
+        zPushLens(), zGetRefresh()
         """
         status = None
         status = self._sendDDEcommand('PushLensPermission')
         return int(status)
 
-    def zQuickFocus(self,mode=0,centroid=0):
-        """Performs a quick best focus adjustment for the optical system by adjusting
-        the back focal distance for best focus. The "best" focus is chosen as a wave-
-        length weighted average over all fields. It adjusts the thickness of the
-        surface prior to the image surface.
+    def zQuickFocus(self, mode=0, centroid=0):
+        """Quick focus adjustment of back focal distance for best focus
 
-        `zQuickFocus([mode,centroid]) -> retVal`
+        The "best" focus is chosen as a wavelength weighted average over
+        all fields.
 
         Parameters
         ----------
-        mode:
-            0: RMS spot size (default)
-            1: spot x
-            2: spot y
-            3: wavefront OPD
-        centroid: to specify RMS reference
-            0: RMS referenced to the chief ray (default)
-            1: RMS referenced to image centroid
+        mode : integer, optional
+            0 = RMS spot size (default)
+            1 = spot x
+            2 = spot y
+            3 = wavefront OPD
+        centroid : integer, optional
+            specify RMS reference
+             0 = RMS referenced to the chief ray (default);
+             1 = RMS referenced to image centroid
 
         Returns
         -------
-        retVal: 0 for success.
+        retVal : integer
+            0 for success.
         """
         retVal = -1
         cmd = "QuickFocus,{mode:d},{cent:d}".format(mode=mode,cent=centroid)
@@ -4531,16 +4552,16 @@ class PyZDDE(object):
     def zReleaseWindow(self, tempFileName):
         """Release locked window/menu mar.
 
-        zReleaseWindow(tempFileName)->status
-
         Parameters
         ----------
-        tempFileName  : (string)
+        tempFileName : string
+            the temporary file name
 
         Returns
         -------
-        status  : 0 = no window is using the filename
-                  1 = the file is being used.
+        status : integer
+            0 = no window is using the filename;
+            1 = the file is being used.
 
         When ZEMAX calls the client to update or change the settings used by
         the client function, the menu bar is grayed out on the window to prevent
@@ -4685,16 +4706,14 @@ class PyZDDE(object):
         reply = self._sendDDEcommand(cmd)
         return int(float(reply.rstrip()))
 
-    def zSetAperture(self,surfNum,aType,aMin,aMax,xDecenter=0,yDecenter=0,
-                                                            apertureFile =' '):
-        """Sets aperture details at a ZEMAX lens surface (surface data dialog box).
-
-        zSetAperture(surfNum,aType,aMin,aMax,[xDecenter,yDecenter,apertureFile])
-                                           -> apertureInfo
+    def zSetAperture(self, surf, aType, aMin, aMax, xDecenter=0,
+                     yDecenter=0, apertureFile =' '):
+        """Sets aperture details at a lens surface (surface data dialog
+        box).
 
         Parameters
         ----------
-        surfNum      : surface number (integer)
+        surf      : surface number (integer)
         aType        : integer code to specify aperture type
                          0 = no aperture (na)
                          1 = circular aperture (ca)
@@ -4738,7 +4757,7 @@ class PyZDDE(object):
         See also zGetAperture()
         """
         cmd  = ("SetAperture,{sN:d},{aT:d},{aMn:1.20g},{aMx:1.20g},{xD:1.20g},"
-                "{yD:1.20g},{aF}".format(sN=surfNum,aT=aType,aMn=aMin,aMx=aMax,
+                "{yD:1.20g},{aF}".format(sN=surf,aT=aType,aMn=aMin,aMx=aMax,
                  xD=xDecenter,yD=yDecenter,aF=apertureFile))
         reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
@@ -4781,15 +4800,13 @@ class PyZDDE(object):
         else:
             return -1
 
-    def zSetConfig(self,configNumber):
-        """Switches the current configuration number (selected column in the MCE),
-        and updates the system.
-
-        zSetConfig(configNumber)->(currentConfig, numberOfConfigs, error)
+    def zSetConfig(self, config):
+        """Switches the current configuration number (selected column in
+        the MCE), and updates the system.
 
         Parameters
         ----------
-        configNumber : The configuration (column) number to set current
+        config : The configuration (column) number to set current
 
         Returns
         -------
@@ -4803,20 +4820,18 @@ class PyZDDE(object):
         See also zGetConfig. Use zInsertConfig to insert new configuration in the
         multi-configuration editor.
         """
-        reply = self._sendDDEcommand("SetConfig,{:d}".format(configNumber))
+        reply = self._sendDDEcommand("SetConfig,{:d}".format(config))
         rs = reply.split(',')
         return tuple([int(elem) for elem in rs])
 
-    def zSetExtra(self,surfaceNumber,columnNumber,value):
-        """Sets extra surface data (value) in the Extra Data Editor for the surface
-        indicatd by surfaceNumber.
-
-        zSetExtra(surfaceNumber,columnNumber,value)->retValue
+    def zSetExtra(self, surf, col, value):
+        """Sets extra surface data (value) in the Extra Data Editor for
+        the surface indicatd by surf.
 
         Parameters
         ----------
-        surfaceNumber : (integer) surface number
-        columnNumber  : (integer) column number
+        surf : (integer) surface number
+        col  : (integer) column number
         value         : (float) value
 
         Returns
@@ -4825,24 +4840,26 @@ class PyZDDE(object):
 
         See also zGetExtra
         """
-        cmd = ("SetExtra,{:d},{:d},{:1.20g}"
-               .format(surfaceNumber,columnNumber,value))
+        cmd = ("SetExtra,{:d},{:d},{:1.20g}".format(surf, col, value))
         reply = self._sendDDEcommand(cmd)
         return float(reply)
 
-    def zSetField(self,n,arg1,arg2,arg3=1.0,vdx=0.0,vdy=0.0,vcx=0.0,vcy=0.0,van=0.0):
-        """Sets the field data for a particular field point.
+    def zSetField(self, n, arg1, arg2, arg3=1.0,
+                  vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0):
+        """Sets the field data for a particular field point
 
         There are 2 ways of using this function:
 
-            zSetField(0, fieldType,totalNumFields,fieldNormalization)-> fieldData
+            * ``zSetField(0, fieldType, totalNumFields, normalization)``
+
              OR
-            zSetField(n,xf,yf [,wgt,vdx,vdy,vcx,vcy,van])-> fieldData
+
+            * ``zSetField(n, xf, yf [,wgt,vdx,vdy,vcx,vcy,van])``
 
         Parameters
         ----------
-        [if n == 0]:
-            0         : to set general field parameters
+        [if n == 0] :
+            0    : to set general field parameters
             arg1 : the field type
                   0 = angle, 1 = object height, 2 = paraxial image height, and
                   3 = real image height
@@ -4850,7 +4867,7 @@ class PyZDDE(object):
             arg3 : normalization type [0=radial, 1=rectangular(default)]
 
         [if 0 < n <= number of fields]:
-            arg1 (fx),arg2 (fy) : the field x and field y values
+            arg1 (fx), arg2 (fy) : the field x and field y values
             arg3 (wgt)          : field weight (default = 1.0)
             vdx,vdy,vcx,vcy,van : vignetting factors (default = 0.0), See below.
 
@@ -4898,51 +4915,62 @@ class PyZDDE(object):
                                  else float(elem) for i,elem in enumerate(rs)])
         return fieldData
 
-    def zSetFieldTuple(self,fieldType,fNormalization, iFieldDataTuple):
-        """Sets all field points from a 2D field tuple structure. This function
-        is similar to the function "zSetFieldMatrix()" in MZDDE toolbox.
-
-        zSetFieldTuple(fieldType,fNormalization, iFieldDataTuple)->oFieldDataTuple
+    def zSetFieldTuple(self, ftype, norm, fields):
+        """Sets all field points from a 2D field tuple
 
         Parameters
         ----------
-        fieldType       : the field type (0=angle, 1=object height,
-                          2=paraxial image height, and 3 = real image height
-        fNormalization  : field normalization (0=radial, 1=rectangular)
-        iFieldDataTuple : the input field data tuple is an N-D tuple (0<N<=12)
-                          with every dimension representing a single field
-                          location. It can be constructed as shown here with
-                          an example:
-        iFieldDataTuple =
-        ((0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0), # xf=0.0,yf=0.0,wgt=1.0,vdx=vdy=vcx=vcy=van=0.0
-         (0.0,5.0,1.0),                     # xf=0.0,yf=5.0,wgt=1.0
-         (0.0,10.0))                        # xf=0.0,yf=10.0
+        ftype : integer
+            the field type (0 = angle, 1 = object height, 2 = paraxial
+            image height, and 3 = real image height)
+        norm : integer 0 or 1
+            the field normalization (0=radial, 1=rectangular)
+        fields : n-tuple
+            the input field data tuple is an N-D tuple (0 < N <= 12) with
+            every dimension representing a single field location. It can
+            be constructed as shown in the example (see below)
 
         Returns
         -------
-        oFieldDataTuple: the output field data tuple is also a N-D tuple similar
-                         to the iFieldDataTuple, except that for each field location
-                         all 8 field parameters are returned.
+        fields : n-tuple
+            the output field data tuple is also a N-D tuple similar to the
+            ``fields``, except that for each field location all
+            8 field parameters are returned.
 
-        See also zSetField(), zGetField(), zGetFieldTuple()
+        Examples
+        --------
+        The following example sets 3 field points defined as angles with
+        field normalization = 1:
+
+            * xf=0.0, yf=0.0, wgt=1.0, vdx=vdy=vcx=vcy=van=0.0
+            * xf=0.0, yf=5.0, wgt=1.0
+            * xf=0.0, yf=10.0
+
+        >>> ln.zSetFieldTuple(0, 0,
+                              (0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+                              (0.0, 5.0, 1.0),
+                              (0.0, 7.0))
+
+        See Also
+        --------
+        zSetField(), zGetField(), zGetFieldTuple()
         """
-        fieldCount = len(iFieldDataTuple)
+        fieldCount = len(fields)
         if not 0 < fieldCount <= 12:
             raise ValueError('Invalid number of fields')
         cmd = ("SetField,{:d},{:d},{:d},{:d}"
-              .format(0,fieldType,fieldCount,fNormalization))
+              .format(0, ftype, fieldCount, norm))
         self._sendDDEcommand(cmd)
-        oFieldDataTuple = [ ]
+        retFields = []
         for i in range(fieldCount):
-            fieldData = self.zSetField(i+1,*iFieldDataTuple[i])
-            oFieldDataTuple.append(fieldData)
-        return tuple(oFieldDataTuple)
+            fieldData = self.zSetField(i+1,*fields[i])
+            retFields.append(fieldData)
+        return tuple(retFields)
 
     def zSetFloat(self):
-        """Sets all surfaces without surface apertures to have floating apertures.
-        Floating apertures will vignette rays which trace beyond the semi-diameter.
-
-        zSetFloat()->status
+        """Sets all surfaces without surface apertures to have floating
+        apertures. Floating apertures will vignette rays which trace
+        beyond the semi-diameter.
 
         Parameters
         ----------
@@ -4950,7 +4978,8 @@ class PyZDDE(object):
 
         Returns
         -------
-        status : 0 = success, -1 = fail
+        status : integer
+            0 = success; -1 = fail
         """
         retVal = -1
         reply = self._sendDDEcommand('SetFloat')
@@ -4958,64 +4987,71 @@ class PyZDDE(object):
             retVal = 0
         return retVal
 
-    def zSetLabel(self,surfaceNumber,label):
-        """This command associates an integer label with the specified surface.
-        The label will be retained by ZEMAX as surfaces are inserted or deleted
-        around the target surface.
+    def zSetLabel(self, surfaceNumber, label):
+        """This command associates an integer label with the specified
+        surface. The label will be retained by Zemax as surfaces are
+        inserted or deleted around the target surface.
 
-        zSetLabel(surfaceNumber, label)->assignedLabel
 
         Parameters
         ----------
-        surfaceNumber : (integer) the surface number
-        label         : (integer) the integer label
+        surfaceNumber : integer
+            the surface number
+        label : integer
+            the integer label
 
         Returns
         -------
-        assignedLabel : (integer) should be equal to label
+        assignedLabel : integer
+            should be equal to label
 
-        See also zGetLabel, zFindLabel
+        See Also
+        --------
+        zGetLabel(), zFindLabel()
         """
         reply = self._sendDDEcommand("SetLabel,{:d},{:d}"
                                           .format(surfaceNumber,label))
         return int(float(reply.rstrip()))
 
-    def zSetMacroPath(self,macroFolderPath):
+    def zSetMacroPath(self, macroFolderPath):
         """Set the full path name to the macro folder
-
-        zSetMacroPath(macroFolderPath)->status
 
         Parameters
         ----------
-        macroFolderPath : (string) full-path name of the macro folder path. Also,
-                        this folder path should match the folder path specified
-                        for Macros in the Zemax Preferences setting.
+        macroFolderPath : string
+            full-path name of the macro folder path. Also, this folder
+            path should match the folder path specified for Macros in the
+            Zemax Preferences setting.
 
         Returns
         -------
-        status : 0 = success, -1 = failure
+        status : integer
+            0 = success; -1 = failure
 
-        Note
-        ----
+        Notes
+        -----
         Use this method to set the full-path name of the macro folder
         path if it is different from the default path at <data>/Macros
 
-        See also zExecuteZPLMacro
+        See Also
+        --------
+        zExecuteZPLMacro()
         """
         if _os.path.isabs(macroFolderPath):
-            self.macroPath = macroFolderPath
+            self._macroPath = macroFolderPath
             return 0
         else:
             return -1
 
     def zSetMulticon(self, config, *multicon_args):
-        """Set data or operand type in the multi-configuration editior. Note that
-        there are 2 ways of using this function.
+        """Set data or operand type in the multi-configuration editior.
+
+        Note that there are 2 ways of using this function.
 
         USAGE TYPE - I
         ==============
-        If `config` is non-zero, then the function is used to set data in the
-        MCE using the following syntax:
+        If `config` is non-zero, then the function is used to set data in
+        the MCE using the following syntax:
 
         `zSetMulticon(config,row,value,status,pickuprow,
                       pickupconfig,scale,offset)->multiConData`
@@ -5038,9 +5074,10 @@ class PyZDDE(object):
         multiConData is a 8-tuple whose elements are:
         (value,num_config,num_row,status,pickuprow,pickupconfig,scale,offset)
 
-        The `status` integer is 0 for fixed, 1 for variable, 2 for pickup, and 3
-        for thermal pickup. If `status` is 2 or 3, the `pickuprow` and `pickupconfig`
-        values indicate the source data for the pickup solve.
+        The `status` integer is 0 for fixed, 1 for variable, 2 for pickup,
+        and 3 for thermal pickup. If `status` is 2 or 3, the `pickuprow`
+        and `pickupconfig` values indicate the source data for the pickup
+        solve.
 
 
         USAGE TYPE - II
@@ -5068,7 +5105,7 @@ class PyZDDE(object):
         multiConData is a 4-tuple whose elements are:
         (operand_type,number1,number2,number3)
 
-        NOTE:
+        Notes
         -----
         1. If there are current operands in the MCE, it is recommended to first
            use `zInsertMCO` to insert a row and then use `zSetMulticon(0,...)`. For
@@ -5209,10 +5246,8 @@ class PyZDDE(object):
                 nscObjFaceData = float(rs)
         return nscObjFaceData
 
-    def zSetNSCParameter(self,surfNumber,objNumber,parameterNumber,data):
+    def zSetNSCParameter(self, surfNumber, objNumber, parameterNumber, data):
         """Sets the parameter data for NSC objects.
-
-        zSetNSCParameter(surfNumber,objNumber,parameterNumber,data)->nscParaVal
 
         Parameters
         ----------
@@ -5238,10 +5273,8 @@ class PyZDDE(object):
             nscParaVal = float(rs)
         return nscParaVal
 
-    def zSetNSCPosition(self,surfNumber,objectNumber,code,data):
+    def zSetNSCPosition(self, surfNumber, objectNumber, code, data):
         """Returns the position data for NSC objects.
-
-        zSetNSCPosition(surfNumber,objectNumber,code,data)->nscPosData
 
         Parameters
         ----------
@@ -5318,7 +5351,7 @@ class PyZDDE(object):
         nscPropData = _process_get_set_NSCProperty(code,reply)
         return nscPropData
 
-    def zSetNSCSettings(self,nscSettingsData):
+    def zSetNSCSettings(self, nscSettingsData):
         """Sets the maximum number of intersections, segments, nesting level,
         minimum absolute intensity, minimum relative intensity, glue distance,
         miss ray distance, and ignore errors flag used for NSC ray tracing.
@@ -5485,7 +5518,7 @@ class PyZDDE(object):
         reply = self._sendDDEcommand(cmd)
         return _process_get_set_Operand(column, reply)
 
-    def zSetPolState(self,nlsPolarized,Ex,Ey,Phx,Phy):
+    def zSetPolState(self, nlsPolarized, Ex, Ey, Phx, Phy):
         """Sets the default polarization state. These parameters correspond to
         the Polarization tab under the General settings.
 
@@ -5808,7 +5841,7 @@ class PyZDDE(object):
 
 
     def zSetSystem(self, unitCode, stopSurf, rayAimingType, useEnvData,
-                                              temp, pressure, globalRefSurf):
+                   temp, pressure, globalRefSurf):
         """Sets a number of general systems property (General Lens Data)
 
         Parameters
@@ -5936,7 +5969,7 @@ class PyZDDE(object):
         sysPropData = _process_get_set_SystemProperty(code,reply)
         return sysPropData
 
-    def zSetTol(self,operandNumber,col,value):
+    def zSetTol(self, operandNumber, col, value):
         """Sets the tolerance operand data.
 
         zSetTol(operandNumber,col,value)-> toleranceData
@@ -5983,7 +6016,7 @@ class PyZDDE(object):
         # A similar function exist for Multi-Configuration editor (zInsertMCO) and
         # for Multi-function editor (zInsertMFO). May need to contact Zemax Support.
 
-    def zSetTolRow(self,operandNumber,tolType,int1,int2,int3,minT,maxT):
+    def zSetTolRow(self, operandNumber, tolType, int1, int2, int3, minT, maxT):
         """Helper function to set all the elements of a row (given by operandNumber)
         in the tolerance editor.
 
@@ -6078,7 +6111,7 @@ class PyZDDE(object):
             retVal = 0
         return retVal
 
-    def zSetWave(self,n,arg1,arg2):
+    def zSetWave(self, n, arg1, arg2):
         """Sets the wavelength data in the ZEMAX DDE server.
 
         There are 2 ways to use this function:
@@ -6129,54 +6162,54 @@ class PyZDDE(object):
             waveData = tuple([int(ele) for ele in rs])
         return waveData
 
-    def zSetWaveTuple(self,iWaveDataTuple):
-        """Sets wavelength and weight data from a matrix. This function is similar
-        to the function "zSetWaveMatrix()" in the MZDDE toolbox.
-
-        zSetWaveTuple(iWaveDataTuple)-> oWaveDataTuple
+    def zSetWaveTuple(self, waves):
+        """Sets wavelength and weight data from a matrix.
 
         Parameters
         ----------
-        iWaveDataTuple: the input wave data tuple is a 2D tuple with the first
-                        dimension (first subtuple) containing the wavelengths and
-                        the second dimension containing the weights like so:
-                        ((wave1,wave2,wave3,...,waveN),(wgt1,wgt2,wgt3,...,wgtN))
+        waves : 2-D tuple
+         the input wave data tuple is a 2D tuple with the first dimension
+         (first subtuple) containing the wavelengths and the second
+         dimension containing the weights like so:
 
-        The first wavelength (wave1) is assigned to be the primary wavelength.
-        To change the primary wavelength use zSetWavePrimary()
+            ((wave1,wave2,wave3,...,waveN),(wgt1,wgt2,wgt3,...,wgtN))
+
+        The first wavelength (wave1) is assigned to be the primary
+        wavelength. To change the primary wavelength use
+        ``zSetWavePrimary()``
 
         Returns
         -------
-        oWaveDataTuple: the output wave data tuple is also a 2D tuple similar
-                        to the iWaveDataTuple.
+        retWaves: the output wave data tuple is also a 2D tuple similar
+                        to the waves.
 
         See also zGetWaveTuple(), zSetWave(), zSetWavePrimary()
         """
-        waveCount = len(iWaveDataTuple[0])
-        oWaveDataTuple = [[],[]]
+        waveCount = len(waves[0])
+        retWaves = [[],[]]
         self.zSetWave(0,1,waveCount) # Set no. of wavelen & the wavelen to 1
         for i in range(waveCount):
             cmd = ("SetWave,{:d},{:1.20g},{:1.20g}"
-                   .format(i+1,iWaveDataTuple[0][i],iWaveDataTuple[1][i]))
+                   .format(i+1,waves[0][i],waves[1][i]))
             reply = self._sendDDEcommand(cmd)
             rs = reply.split(',')
-            oWaveDataTuple[0].append(float(rs[0])) # store the wavelength
-            oWaveDataTuple[1].append(float(rs[1])) # store the weight
-        return (tuple(oWaveDataTuple[0]),tuple(oWaveDataTuple[1]))
+            retWaves[0].append(float(rs[0])) # store the wavelength
+            retWaves[1].append(float(rs[1])) # store the weight
+        return (tuple(retWaves[0]),tuple(retWaves[1]))
 
-    def zWindowMaximize(self,windowNumber=0):
-        """Maximize the main ZEMAX window or any analysis window ZEMAX currently
-        displayed.
-
-        zWindowMaximize(windowNumber)->retVal
+    def zWindowMaximize(self, windowNumber=0):
+        """Maximize the main Zemax window or any analysis window Zemax
+        currently displayed.
 
         Parameters
         ----------
-        windowNumber  : (integer) window number. use 0 for the main ZEMAX window
+        windowNumber : integer
+            the window number. use 0 for the main Zemax window
 
         Returns
         -------
-        retVal   : 0 if success, -1 if failed.
+        retVal : integer
+            0 if success, -1 if failed.
         """
         retVal = -1
         reply = self._sendDDEcommand("WindowMaximize,{:d}".format(windowNumber))
@@ -6184,19 +6217,19 @@ class PyZDDE(object):
             retVal = 0
         return retVal
 
-    def zWindowMinimize(self,windowNumber=0):
-        """Minimize the main ZEMAX window or any analysis window ZEMAX currently
-        displayed.
-
-        zWindowMinimize(windowNumber)->retVal
+    def zWindowMinimize(self, windowNumber=0):
+        """Minimize the main Zemax window or any analysis window Zemax
+        currently
 
         Parameters
         -----------
-        windowNumber  : (integer) window number. use 0 for the main ZEMAX window
+        windowNumber : integer
+            the window number. use 0 for the main Zemax window
 
         Returns
         -------
-        retVal   : 0 if success, -1 if failed.
+        retVal : integer
+            0 if success, -1 if failed.
         """
         retVal = -1
         reply = self._sendDDEcommand("WindowMinimize,{:d}".format(windowNumber))
@@ -6204,19 +6237,19 @@ class PyZDDE(object):
             retVal = 0
         return retVal
 
-    def zWindowRestore(self,windowNumber=0):
-        """Restore the main ZEMAX window or any analysis window to it's previous
-        size and position.
-
-        zWindowRestore(windowNumber)->retVal
+    def zWindowRestore(self, windowNumber=0):
+        """Restore the main Zemax window or any analysis window to it's
+        previous size and position.
 
         Parameters
         ----------
-        windowNumber  : (integer) window number. use 0 for the main ZEMAX window
+        windowNumber : integer
+            the window number. use 0 for the main Zemax window
 
         Returns
         -------
-        retVal   : 0 if success, -1 if failed.
+        retVal : integer
+            0 if success, -1 if failed.
         """
         retVal = -1
         reply = self._sendDDEcommand("WindowRestore,{:d}".format(windowNumber))
@@ -6501,31 +6534,36 @@ class PyZDDE(object):
         return ret
 
 
-    def zCalculateHiatus(self, txtFile=None, keepFile=False):
-        """Calculate the Hiatus.
-
-        The hiatus, also known as the Null space, or nodal space, or the
-        interstitium is the distance between the two principal planes.
-
-        zCalculateHiatus([txtFile,keepFile])-> hiatus
+    def zGetHiatus(self, txtFile=None, keepFile=False):
+        """Returns the Hiatus, which is the distance between the two
+        principal planes of the optical system
 
         Parameters
         ----------
-        txtFile : (optional, string) If passed, the prescription file
-                          will be named such. Pass a specific txtFile if
-                          you want to dump the file into a separate directory.
-        keepFile        : (optional, bool) If false (default), the prescription
-                          file will be deleted after use. If true, the file
-                          will persist.
+        txtFile : string, optional
+            if passed, the prescription file will be named such. Pass a
+            specific ``txtFile`` if you want to dump the file into a
+            separate directory.
+        keepFile : bool, optional
+            if ``False`` (default), the prescription file will be deleted
+            after use.
+            If ``True``, the file will persist. If ``keepFile`` is ``True``
+            but a ``txtFile`` is not passed, the prescription file will be
+            saved in the same directory as the lens (provided the required
+            folder access permissions are available)
+
         Returns
         -------
-        hiatus          : the value of the hiatus
+        hiatus : float
+            the value of the hiatus
+
+        Notes
+        -----
+        The hiatus is also known as the Null space or nodal space or the
+        interstitium.
         """
-        if txtFile is not None:
-            textFileName = txtFile
-        else:
-            cd = _os.path.dirname(_os.path.realpath(__file__))
-            textFileName = _os.path.join(cd, "prescriptionFile.txt")
+        settings = _txtAndSettingsToUse(self, txtFile, 'None', 'Pre')
+        textFileName, _, _ = settings
         ret = self.zGetTextFile(textFileName, 'Pre', "None", 0)
         assert ret == 0
         recSystemData = self.zGetSystem()
@@ -6558,8 +6596,7 @@ class PyZDDE(object):
         if count > 0:
             principalPlane_objSpace = principalPlane_objSpace/count
             principalPlane_imgSpace = principalPlane_imgSpace/count
-            #Calculate the hiatus (only if count > 0) as
-            #hiatus = (img_surf_dist + img_surf_2_imgSpacePP_dist) - objSpacePP_dist
+            # Calculate the hiatus (only if count > 0) as
             hiatus = abs(ima_z + principalPlane_imgSpace - principalPlane_objSpace)
 
         if not keepFile:
@@ -6568,20 +6605,23 @@ class PyZDDE(object):
 
     def zGetPOP(self, settingsFile=None, displayData=False, txtFile=None,
                 keepFile=False, timeout=None):
-        """returns Physical Optics Propagation (POP) data
+        """Returns Physical Optics Propagation (POP) data
 
         Parameters
         ----------
         settingsFile : string, optional
-            * if passed, the POP will be called with this configuration file;
-            * if no ``settingsFile`` is passed, and config file ending with the
-              same name as the lens file post fixed with "_pyzdde_POP.CFG" is
-              present, the settings from this file will be used;
+            * if passed, the POP will be called with this configuration
+              file;
+            * if no ``settingsFile`` is passed, and config file ending
+              with the same name as the lens file post-fixed with
+              "_pyzdde_POP.CFG" is present, the settings from this file
+              will be used;
             * if no ``settingsFile`` and no file name post-fixed with
-              "_pyzdde_POP.CFG" is found, but a config file with the same name
-              as the lens file is present, the settings from that file will be
-              used;
-            * if no settings file is found, then a default settings will be used
+              "_pyzdde_POP.CFG" is found, but a config file with the same
+              name as the lens file is present, the settings from that
+              file will be used;
+            * if no settings file is found, then a default settings will
+              be used
         displayData : bool
             if ``true`` the function returns the 2D display data; default
             is ``false``
@@ -6590,18 +6630,22 @@ class PyZDDE(object):
             specific ``txtFile`` if you want to dump the file into a
             separate directory.
         keepFile : bool, optional
-            if false (default), the prescription file will be deleted after
-            use. If true, the file will persist.
+            if ``False`` (default), the POP text file will be deleted
+            after use.
+            If ``True``, the file will persist. If ``keepFile`` is ``True``
+            but a ``txtFile`` is not passed, the POP text file will be
+            saved in the same directory as the lens (provided the required
+            folder access permissions are available)
         timeout : integer, optional
             timeout in seconds
 
         Returns
         -------
         popData : tuple
-            popData is a 1-tuple containing just ``popInfo`` (see below) if
-            ``displayData`` is ``false`` (default).
-            If ``displayData`` is ``true``, ``popData`` is a 2-tuple containing
-            ``popInfo`` (a tuple) and ``powerGrid`` (a 2D list):
+            popData is a 1-tuple containing just ``popInfo`` (see below)
+            if ``displayData`` is ``false`` (default).
+            If ``displayData`` is ``true``, ``popData`` is a 2-tuple
+            containing ``popInfo`` (a tuple) and ``powerGrid`` (a 2D list):
 
             popInfo : tuple
                 peakIrradiance/ centerPhase : float
@@ -6610,16 +6654,16 @@ class PyZDDE(object):
                     lens unit squared. It returns center phase if the data
                     type is "Phase" in POP settings
                 totalPower : float
-                    the total power, or the integral of the irradiance over
-                    the entire beam if data type is "Irradiance" in POP
-                    settings. This field is blank for "Phase" data
+                    the total power, or the integral of the irradiance
+                    over the entire beam if data type is "Irradiance" in
+                    POP settings. This field is blank for "Phase" data
                 fiberEfficiency_system : float
                     the efficiency of power transfer through the system
                 fiberEfficiency_receiver : float
                     the efficiency of the receiving fiber
                 coupling : float
-                    the total coupling efficiency, the product of the system
-                    and receiver efficiencies
+                    the total coupling efficiency, the product of the
+                    system and receiver efficiencies
                 pilotSize : float
                     the size of the gaussian beam at the surface
                 pilotWaist : float
@@ -6638,39 +6682,24 @@ class PyZDDE(object):
                     width along Y in lens units
 
             powerGrid : 2D list/ None
-                a two-dimensional list of the powers in the analysis grid if
-                ``displayData`` is ``true``
+                a two-dimensional list of the powers in the analysis grid
+                if ``displayData`` is ``true``
 
         Notes
         -----
-        The function returns ``None`` for any field which was not found in POP
-        text file. This is most common in the case of ``fiberEfficiency_system``
-        and ``fiberEfficiency_receiver`` as they need to be set explicitly in
-        the POP settings
+        The function returns ``None`` for any field which was not
+        found in POP text file. This is most common in the case of
+        ``fiberEfficiency_system`` and ``fiberEfficiency_receiver``
+        as they need to be set explicitly in the POP settings
 
         See Also
         --------
         zSetPOPSettings(), zModifyPOPSettings()
         """
-        cd = _os.path.dirname(_os.path.realpath(__file__))
-        if txtFile != None:
-            textFileName = txtFile
-        else:
-            textFileName = _os.path.join(cd, "popData.txt")
-        # decide about what settings to use
-        if settingsFile:
-            cfgFile = settingsFile
-            getTextFlag = 1
-        else:
-            f = _os.path.splitext(self.zGetFile())[0] + '_pyzdde_POP.CFG'
-            if _checkFileExist(f): # use "*_pyzdde_POP.CFG" settings file
-                cfgFile = f
-                getTextFlag = 1
-            else: # use default settings file
-                cfgFile = ''
-                getTextFlag = 0
-
-        ret = self.zGetTextFile(textFileName, 'Pop', cfgFile, getTextFlag)
+        settings = _txtAndSettingsToUse(self, txtFile, settingsFile, 'Pop')
+        textFileName, cfgFile, getTextFlag = settings
+        ret = self.zGetTextFile(textFileName, 'Pop', cfgFile, getTextFlag,
+                                timeout)
         assert ret == 0
         # get line list
         line_list = _readLinesFromFile(_openFile(textFileName))
@@ -6714,7 +6743,8 @@ class PyZDDE(object):
                 cp = _re.search(pat_p, cp_line)
                 if cp:
                     centerPhase = float(cp.group())
-        # Pilot_size, Pilot_Waist, Pos, Rayleigh [... available for both Phase and Irr data]
+        # Pilot_size, Pilot_Waist, Pos, Rayleigh [... available for
+        # both Phase and Irr data]
         pat_fe = r'\d\.\d{6}'   # pattern for fiber efficiency
         pat_pi = r'-?\d\.\d{4,6}[Ee][-\+]\d{3}' # pattern for Pilot size/waist
         pilotSize, pilotWaist, pos, rayleigh = None, None, None, None
@@ -6789,10 +6819,10 @@ class PyZDDE(object):
                            widey=None, fibComp=None, fibFile=None, fibType=None,
                            fparamN=((),()), ignPol=None, pos=None, tiltx=None,
                            tilty=None):
-        """modify an existing POP settings file
+        """Modify an existing POP settings (configuration) file
 
-        Only those parameters with non-None or non-zero-length (in case of tuples)
-        will be set.
+        Only those parameters that are non-None or non-zero-length (in
+        case of tuples) will be set.
 
         Parameters
         ----------
@@ -6804,8 +6834,8 @@ class PyZDDE(object):
         Returns
         -------
         statusTuple : tuple or -1
-            tuple of codes returned by ``zModifySettings()`` for each non-None
-            parameters. The status codes are as follows:
+            tuple of codes returned by ``zModifySettings()`` for each
+            non-None parameters. The status codes are as follows:
             0 = no error;
             -1 = invalid file;
             -2 = incorrect version number;
@@ -6817,7 +6847,7 @@ class PyZDDE(object):
         --------
         zSetPOPSettings(), zGetPOP()
         """
-        sTuple = []
+        sTuple = [] # status tuple
         if (_os.path.isfile(settingsFile) and
             settingsFile.lower().endswith('.cfg')):
             dst = settingsFile
@@ -6882,23 +6912,24 @@ class PyZDDE(object):
                         widey=None, fibComp=None, fibFile=None, fibType=None,
                         fparamN=((),()), ignPol=None, pos=None, tiltx=None,
                         tilty=None):
-        """create and set a new settings file starting from the "reset" settings
-        state of the most basic lens in Zemax.
+        """Create and set a new settings file starting from the "reset"
+        settings state of the most basic lens in Zemax.
 
-        To modify an existing POP settings file, use ``zModifyPOPSettings()``.
-        Only those parameters with non-None or non-zero-length (in case of tuples)
-        will be set.
+        To modify an existing POP settings file, use
+        ``zModifyPOPSettings()``. Only those parameters that are non-None
+        or non-zero-length (in case of tuples) will be set.
 
         Parameters
         ----------
         data : integer
             0 = irradiance, 1 = phase
         settingsFileName : string, optional
-            name to give to the settings file to be created. It must be the full
-            file name, including path and extension of settings file.
-            If ``None``, then a CFG file with the name of the lens followed by
-            the string '_pyzdde_POP.CFG' will be created in the same directory
-            as the lens file and returned
+            name to give to the settings file to be created. It must be
+            the full file name, including path and extension of settings
+            file.
+            If ``None``, then a CFG file with the name of the lens
+            followed by the string "_pyzdde_POP.CFG" will be created in
+            the same directory as the lens file and returned
         start_surf : integer, optional
             the starting surface
         end_surf : integer, optional
@@ -6908,48 +6939,54 @@ class PyZDDE(object):
         wave : integer, optional
             the wavelength number
         auto : integer, optional
-            simulates the pressing of the "auto" button which chooses appropriate
-            X and Y beam widths based upon the sampling and other settings. Set
-            it to 1
+            simulates the pressing of the "auto" button which chooses
+            appropriate X and Y beam widths based upon the sampling and
+            other settings. Set it to 1
         beamType : integer (0...6), optional
-            0 = Gaussian Waist; 1 = Gaussian Angle; 2 = Gaussian Size + Angle;
-            3 = Top Hat; 4 = File; 5 = DLL; 6 = Multimode.
+            0 = Gaussian Waist; 1 = Gaussian Angle; 2 = Gaussian Size +
+            Angle; 3 = Top Hat; 4 = File; 5 = DLL; 6 = Multimode.
         paramN : 2-tuple, optional
-            sets beam parameter n, for example ((1, 4),(0.1, 0.5)) sets parameters
-            1 and 4 to 0.1 and 0.5 respectively. These parameter names and values
-            change depending upon the beam type setting. For example, for the
-            Gaussian Waist beam, n=1 for Waist X, 2 for Waist Y, 3 for Decenter X,
-            4 for Decenter Y, 5 for Aperture X, 6 for Aperture Y, 7 for Order X,
-            and 8 for Order Y
+            sets beam parameter n, for example ((1, 4),(0.1, 0.5)) sets
+            parameters 1 and 4 to 0.1 and 0.5 respectively. These
+            parameter names and values change depending upon the beam type
+            setting. For example, for the Gaussian Waist beam, n=1 for
+            Waist X, 2 for Waist Y, 3 for Decenter X, 4 for Decenter Y,
+            5 for Aperture X, 6 for Aperture Y, 7 for Order X, and 8 for
+            Order Y
         pIrr : float, optional
-            sets the normalization by peak irradiance. It is the initial beam peak
-            irradiance in power per area. It is an alternative to Total Power (tPow)
+            sets the normalization by peak irradiance. It is the initial
+            beam peak irradiance in power per area. It is an alternative
+            to Total Power (tPow)
         tPow : float, optional
-            sets the normalization by total beam power. It is the initial beam
-            total power. This is an alternative to Peak Irradiance (pIrr)
+            sets the normalization by total beam power. It is the initial
+            beam total power. This is an alternative to Peak Irradiance
+            (pIrr)
         sampx : integer (1...10), optional
-            the X direction sampling. 1 for 32; 2 for 64; 3 for 128; 4 for 256;
-            5 for 512; 6 for 1024; 7 for 2048; 8 for 4096; 9 for 8192; 10 for 16384;
+            the X direction sampling. 1 for 32; 2 for 64; 3 for 128;
+            4 for 256; 5 for 512; 6 for 1024; 7 for 2048; 8 for 4096;
+            9 for 8192; 10 for 16384;
         sampy : integer (1...10), optional
-            the Y direction sampling. 1 for 32; 2 for 64; 3 for 128; 4 for 256;
-            5 for 512; 6 for 1024; 7 for 2048; 8 for 4096; 9 for 8192; 10 for 16384;
+            the Y direction sampling. 1 for 32; 2 for 64; 3 for 128;
+            4 for 256; 5 for 512; 6 for 1024; 7 for 2048; 8 for 4096;
+            9 for 8192; 10 for 16384;
         srcFile : string, optional
-            The file name if the starting beam is defined by a ZBF file, DLL, or
-            multimode file
+            The file name if the starting beam is defined by a ZBF file,
+            DLL, or multimode file
         widex : float, optional
             the initial X direction width in lens units
         widey : float, optional
             the initial Y direction width in lens units
         fibComp : integer (1/0), optional
-            use 1 to check the fiber coupling integral on, 0 to check it off
+            use 1 to check the fiber coupling integral ON, 0 for OFF
         fibFile : string, optional
             the file name if the fiber mode is defined by a ZBF or DLL
         fibType : string, optional
-            use the same values as ``beamType`` above, except for multimode which
-            is not yet supported
+            use the same values as ``beamType`` above, except for
+            multimode which is not yet supported
         fparamN : 2-tuple, optional
-            sets fiber parameter n, for example ((2,3),(0.5, 0.6)) sets parameters
-            2 and 3 to 0.5 and 0.6 respectively. See the hint for ``paramN``
+            sets fiber parameter n, for example ((2,3),(0.5, 0.6)) sets
+            parameters 2 and 3 to 0.5 and 0.6 respectively. See the hint
+            for ``paramN``
         ignPol : integer (0/1), optional
             use 1 to ignore polarization, 0 to consider polarization
         pos : integer (0/1), optional
@@ -6962,20 +6999,22 @@ class PyZDDE(object):
         Returns
         -------
         settingsFile : string
-            the full name, including path and extension, of the just created
-            settings file
+            the full name, including path and extension, of the just
+            created settings file
 
         Notes
         -----
         1. Further modifications of the settings file can be made using
-           ``ln.zModifySettings()`` or ``ln.zModifyPOPSettings()`` method
+           ``zModifySettings()`` or ``zModifyPOPSettings()`` functions
         2. The function creates settings file ending with '_pyzdde_POP.CFG'
            in order to prevent overwritting any existing settings file not
            created by pyzdde for POP.
+           This file eventually gets deleted when ``ln.close()`` or
+           ``pyz.closeLink()`` or ``ln.zDDEClose()`` is called.
 
         See Also
         --------
-        zGetPOP()
+        zGetPOP(), zModifyPOPSettings()
         """
         # Create a settings file with "reset" settings
         global _pDir
@@ -6990,6 +7029,7 @@ class PyZDDE(object):
         else:
             filename_partial = _os.path.splitext(self.zGetFile())[0]
             dst =  filename_partial + '_pyzdde_POP.CFG'
+            self._filesCreated.add(dst)
         try:
             _shutil.copy(src, dst)
         except IOError:
@@ -7003,10 +7043,8 @@ class PyZDDE(object):
             return dst
 
     def zGetPupilMagnification(self):
-        """Return the pupil magnification, which is the ratio of the exit-pupil
-        diameter to the entrance pupil diameter.
-
-        zGetPupilMagnification()->pupilMag
+        """Return the pupil magnification, which is the ratio of the
+        exit-pupil diameter to the entrance pupil diameter.
 
         Parameters
         ----------
@@ -7014,7 +7052,8 @@ class PyZDDE(object):
 
         Returns
         -------
-        pupilMag    : (real value) The pupil magnification
+        pupilMag : real
+            the pupil magnification
         """
         _, _, ENPD, ENPP, EXPD, EXPP, _, _ = self.zGetPupil()
         return (EXPD/ENPD)
@@ -7022,43 +7061,46 @@ class PyZDDE(object):
     def zGetSeidelAberration(self, which='wave', txtFile=None, keepFile=False):
         """Return the Seidel Aberration coefficients
 
-        zGetSeidelAberration([which='wave', txtFile=None, keepFile=False]) -> sac
-
         Parameters
         ----------
-        which           : (string, optional)
-                          'wave' = Wavefront aberration coefficient (summary) is returned
-                          'aber' = Seidel aberration coefficients (total) is returned
-                          'both' = both Wavefront (summary) and Seidel aberration (total)
-                                   coefficients are returned
-        txtFile : (optional, string) If passed, the prescription file
-                          will be named such. Pass a specific txtFileName if
-                          you want to dump the file into a separate directory.
-        keepFile        : (optional, bool) If false (default), the prescription
-                          file will be deleted after use. If true, the file
-                          will persist.
+        which : string, optional
+            'wave' = Wavefront aberration coefficient (summary) is
+                     returned;
+            'aber' = Seidel aberration coefficients (total) is returned
+            'both' = both Wavefront (summary) and Seidel aberration
+                     (total) coefficients are returned
+        txtFile : string, optional
+            if passed, the seidel text file will be named such. Pass a
+            specific txtFile if you want to dump the file into a separate
+            directory.
+        keepFile : bool, optional
+            if ``False`` (default), the Seidel text file will be deleted
+            after use.
+            If ``True``, the file will persist. If ``keepFile`` is ``True``
+            but a ``txtFile`` is not passed, the Seidel text file will be
+            saved in the same directory as the lens (provided the required
+            folder access permissions are availabl
+
         Returns
         -------
-        sac          : the Seidel aberration coefficients
-                       if 'which' is 'wave', then a dictionary of Wavefront aberration
-                       coefficient summary is returned.
-                       if 'which' is 'aber', then a dictionary of Seidel total aberration
-                       coefficient is returned
-                       if 'which' is 'both', then a tuple of dictionaries containint Wavefront
-                       aberration coefficients and Seidel aberration coefficients is returned.
+        sac : dictionary or tuple (see below)
+            - if 'which' is 'wave', then a dictionary of Wavefront
+              aberration coefficient summary is returned;
+            - if 'which' is 'aber', then a dictionary of Seidel total
+              aberration coefficient is returned;
+            - if 'which' is 'both', then a tuple of dictionaries containing
+              Wavefront aberration coefficients and Seidel aberration
+              coefficients is returned.
         """
-        if txtFile is not None:
-            textFileName = txtFile
-        else:
-            cd = _os.path.dirname(_os.path.realpath(__file__))
-            textFileName = _os.path.join(cd, "seidelAberrationFile.txt")
-        ret = self.zGetTextFile(textFileName,'Sei', "None", 0)
+        settings = _txtAndSettingsToUse(self, txtFile, 'None', 'Sei')
+        textFileName, _, _ = settings
+        ret = self.zGetTextFile(textFileName,'Sei', 'None', 0)
         assert ret == 0
         recSystemData = self.zGetSystem() # Get the current system parameters
         numSurf = recSystemData[0]
         line_list = _readLinesFromFile(_openFile(textFileName))
         seidelAberrationCoefficients = {}         # Aberration Coefficients
-        seidelWaveAberrationCoefficients = {}     # Wavefront Aberration Coefficients
+        seidelWaveAberrationCoefficients = {}     # Wavefront Aberr. Coefficients
         for line_num, line in enumerate(line_list):
             # Get the Seidel aberration coefficients
             sectionString1 = ("Seidel Aberration Coefficients:")
@@ -7103,42 +7145,51 @@ class PyZDDE(object):
 
     def zOptimize2(self, numCycle=1, algo=0, histLen=5, precision=1e-12,
                    minMF=1e-15, tMinCycles=5, tMaxCycles=None, timeout=None):
-        """A wrapper around zOptimize() providing few control features.
-
-        zOptimize2([numCycle, algo, histLen, precision, minMF,tMinCycles,
-                  tMaxCycles])->(finalMerit, tCycles)
+        """A wrapper around zOptimize() providing few control features
 
         Parameters
         ----------
-        numCycles  : number of cycles per DDE call to optimization (default=1)
-        algo       : 0=DLS, 1=Orthogonal descent (default=0)
-        histLen    : length of the array of past merit functions returned from each
-                     DDE call to zOptimize for determining steady state of merit
-                     function values (default=5)
-        precision  : minimum acceptable absolute difference between the merit-function
-                     values in the array for steady state computation (default=1e-12)
-        minMF      : minimum Merit Function following which to the optimization loop
-                     is to be terminated even if a steady state hasn't reached.
-                     This might be useful if a target merit function is desired.
-        tMinCycles : total number of cycles to run optimization at the very least.
-                     This is NOT the number of cycles per DDE call, but it is
-                     calculated by multiplying the number of cycles per DDL optimize
-                     call to the total number of DDE calls. (default=5)
-        tMaxCycles : the maximum number of cycles after which the optimizaiton should
-                     be terminated even if a steady state hasn't reached
-        timeout    : timeout value (integer) in seconds used in each pass
+        numCycles : integer
+            number of cycles per DDE call to optimization (default=1)
+        algo : integer
+            0=DLS, 1=Orthogonal descent (default=0)
+        histLen : integer
+            length of the array of past merit functions returned from each
+            DDE call to ``zOptimize()`` for determining steady state of
+            merit function values (default=5)
+        precision : float
+            minimum acceptable absolute difference between the merit-
+            function values in the array for steady state computation
+            (default=1e-12)
+        minMF : float
+            minimum Merit Function following which to the optimization
+            loop is to be terminated even if a steady state hasn't reached.
+            This might be useful if a target merit function is desired.
+        tMinCycles : integer
+            total number of cycles to run optimization at the very least.
+            This is NOT the number of cycles per DDE call, but it is
+            calculated by multiplying the number of cycles per DDL
+            optimize call to the total number of DDE calls (default=5).
+        tMaxCycles : integer
+            the maximum number of cycles after which the optimizaiton
+            should be terminated even if a steady state hasn't reached
+        timeout : integer
+            timeout value, in seconds, used in each pass
 
         Returns
         -------
-        finalMerit : (float) the final merit function.
-        tCycles    : (integer) total number of cycles calculated by multiplying the
-                     number of cycles per DDL optimize call to the total number of
-                     DDE calls.
+        finalMerit : float
+            the final merit function.
+        tCycles : integer
+            total number of cycles calculated by multiplying the number
+            of cycles per DDL optimize call to the total number of DDE
+            calls.
 
-        Note
-        ----
-        `zOptimize2` basically calls `zOptimize` mutiple number of times in a loop.
-        It can be useful if a large number of optimization cycles are required.
+        Notes
+        -----
+        ``zOptimize2()`` basically calls ``zOptimize()`` mutiple number of
+        times in a loop. It can be useful if a large number of optimization
+        cycles are required.
         """
         mfvList = [0.0]*histLen    # create a list of zeros
         count = 0
@@ -7167,30 +7218,1427 @@ class PyZDDE(object):
             tCycles = count*numCycle
         return (finalMerit, tCycles)
 
+    def zGetPSFCrossSec(self, which='fft', settingsFile=None, txtFile=None,
+                        keepFile=False, timeout=120):
+        """Returns the cross-section data of FFT or Huygens PSF analysis
+
+        Parameters
+        ----------
+        which : string, optional
+            if 'fft' (default), then the FFT PSF cross-section data is
+            returned;
+            if 'huygens', then the Huygens PSF cross-section data is
+            returned;
+        settingsFile : string, optional
+            * if passed, the FFT/Huygens PSF analysis will be called with
+              the given configuration file (settings);
+            * if no ``settingsFile`` is passed, and config file ending
+              with the same name as the lens file post-fixed with
+              "_pyzdde_FFTPSFCS.CFG"/"_pyzdde_HUYGENSPSFCS.CFG" is present,
+              the settings from this file will be used;
+            * if no ``settingsFile`` and no file name post-fixed with
+              "_pyzdde_FFTPSFCS.CFG"/"_pyzdde_HUYGENSPSFCS.CFG" is found,
+              but a config file with the same name as the lens file is
+              present, the settings from that file will be used;
+            * if no settings file is found, then a default settings will
+              be used
+        txtFile : string, optional
+            if passed, the PSF analysis text file will be named such.
+            Pass a specific txtFile if you want to dump the file into
+            a separate directory.
+        keepFile : bool, optional
+            if ``False`` (default), the PSF text file will be deleted
+            after use.
+            If ``True``, the file will persist. If ``keepFile`` is ``True``
+            but a ``txtFile`` is not passed, the PSF text file will be
+            saved in the same directory as the lens (provided the required
+            folder access permissions are available)
+        timeout : integer, optional
+            timeout in seconds. Note that Huygens PSF calculations
+            may take few minutes to complete
+
+        Returns
+        -------
+        indices : list
+            row index of the data
+        position : list
+            position in microns
+        value : list
+            the value of the FFT/Huygens based PSF
+
+        Notes
+        -----
+        The function doesn't check for inconsistencies of results. In
+        most cases, if not all cases, the ``indices``, ``position``, and
+        ``value`` lists should be of the same length.
+
+        See Also
+        --------
+        zModifyFFTPSFCrossSecSettings(), zSetFFTPSFCrossSecSettings(),
+        zModifyHuygensPSFCrossSecSettings(), zSetHuygensPSFCrossSecSettings()
+        """
+        if which=='huygens':
+            anaType = 'Hcs'
+        else:
+            anaType = 'Pcs'
+        settings = _txtAndSettingsToUse(self, txtFile, settingsFile, anaType)
+        textFileName, cfgFile, getTextFlag = settings
+        ret = self.zGetTextFile(textFileName, anaType, cfgFile, getTextFlag,
+                                timeout)
+        assert ret == 0
+        line_list = _readLinesFromFile(_openFile(textFileName))
+        # Get Image grid size
+        img_grid_line = line_list[_getFirstLineOfInterest(line_list,
+                                 'Image grid size')]
+        _, img_grid_y = [int(i) for i in _re.findall(r'\d{2,5}', img_grid_line)]
+        pat = (r'\d{1,5}\s*(-?\d{1,3}\.\d{4,6}\s*)' + r'{{{num}}}'.format(num=2))
+        start_line = _getFirstLineOfInterest(line_list, pat)
+        data_mat = _get2DList(line_list, start_line, img_grid_y*2 + 1)
+        data_matT = _transpose2Dlist(data_mat)
+        indices = [int(i) for i in data_matT[0]]
+        position = data_matT[1]
+        value = data_matT[2]
+        if not keepFile:
+            _deleteFile(textFileName)
+        return indices, position, value
+
+    def zGetPSF(self, which='fft', settingsFile=None, txtFile=None,
+                keepFile=False, timeout=120):
+        """Returns FFT or Huygens PSF data
+
+        Parameters
+        ----------
+        which : string, optional
+            if 'fft' (default), then the FFT PSF data is returned;
+            if 'huygens', then the Huygens PSF data is returned;
+        settingsFile : string, optional
+            * if passed, the FFT/Huygens PSF analysis will be called with
+              the given configuration file (settings);
+            * if no ``settingsFile`` is passed, and config file ending
+              with the same name as the lens-file post-fixed with
+              "_pyzdde_FFTPSF.CFG"/"_pyzdde_HUYGENSPSF.CFG"is present, the
+              settings from this file will be used;
+            * if no ``settingsFile`` and no file-name post-fixed with
+              "_pyzdde_FFTPSF.CFG"/"_pyzdde_HUYGENSPSF.CFG" is found, but
+              a config file with the same name as the lens file is present,
+              the settings from that file will be used;
+            * if no settings file is found, then a default settings will
+              be used
+        txtFile : string, optional
+            if passed, the PSF analysis text file will be named such.
+            Pass a specific txtFile if you want to dump the file into
+            a separate directory.
+        keepFile : bool, optional
+            if ``False`` (default), the PSF text file will be deleted
+            after use.
+            If ``True``, the file will persist. If ``keepFile`` is ``True``
+            but a ``txtFile`` is not passed, the PSF text file will be
+            saved in the same directory as the lens (provided the required
+            folder access permissions are available)
+        timeout : integer, optional
+            timeout in seconds. Note that Huygens PSF/MTF calculations with
+            ``pupil_sample`` and/or ``image_sample`` greater than 4
+            usually take several minutes to complete
+
+        Returns
+        -------
+        psfInfo : named tuple
+            meta data about the PSF analysis data, such as data spacing,
+            pupil and image grid sizes, and center point information
+        psfGridData : 2D list
+            the two-dimensional list of the PSF data
+
+        See Also
+        --------
+        zModifyFFTPSFSettings(), zSetFFTPSFSettings(),
+        zModifyHuygensPSFSettings(), zSetHuygensPSFSettings()
+        """
+        if which=='huygens':
+            anaType = 'Hps'
+        else:
+            anaType = 'Fps'
+        settings = _txtAndSettingsToUse(self, txtFile, settingsFile, anaType)
+        textFileName, cfgFile, getTextFlag = settings
+        ret = self.zGetTextFile(textFileName, anaType, cfgFile, getTextFlag,
+                                timeout)
+        assert ret == 0
+        line_list = _readLinesFromFile(_openFile(textFileName))
+
+        # Meta data
+        data_spacing_line = line_list[_getFirstLineOfInterest(line_list, 'Data spacing')]
+        data_spacing = float(_re.search(r'\d{1,3}\.\d{2,6}', data_spacing_line).group())
+        img_grid_line = line_list[_getFirstLineOfInterest(line_list, 'Image grid size')]
+        img_grid_x, img_grid_y = [int(i) for i in _re.findall(r'\d{2,5}', img_grid_line)]
+        pupil_grid_line = line_list[_getFirstLineOfInterest(line_list, 'Pupil grid size')]
+        pupil_grid_x, pupil_grid_y = [int(i) for i in _re.findall(r'\d{2,5}', pupil_grid_line)]
+        center_point_line = line_list[_getFirstLineOfInterest(line_list, 'Center point')]
+        center_point_x, center_point_y = [int(i) for i in _re.findall(r'\d{2,5}', center_point_line)]
+        # The 2D data
+        pat = (r'(-?\d\.\d{4,6}[Ee][-\+]\d{3}\s*)' + r'{{{num}}}'
+               .format(num=img_grid_x))
+        start_line = _getFirstLineOfInterest(line_list, pat)
+        psfGridData = _get2DList(line_list, start_line, img_grid_y)
+
+        psfi = _co.namedtuple('PSFinfo', ['dataSpacing', 'pupilGridX',
+                                          'pupilGridY', 'imgGridX', 'imgGridY',
+                                          'centerPtX', 'centerPtY'])
+        psfInfo = psfi(data_spacing, pupil_grid_x, pupil_grid_y, img_grid_x,
+                       img_grid_y, center_point_x, center_point_y)
+        if not keepFile:
+            _deleteFile(textFileName)
+        return (psfInfo, psfGridData)
+
+    def zModifyFFTPSFCrossSecSettings(self, settingsFile, dtype=None, row=None,
+                                      sample=None, wave=None, field=None,
+                                      pol=None, norm=None, scale=None):
+        """Modify an existing FFT PSF Cross section analysis settings
+        (configuration) file
+
+        Parameters
+        ----------
+        settingsFile : string
+            filename of the settings file including path and extension
+        others :
+            see the parameter definitions of
+            ``zSetFFTPSFCrossSecSettings()``
+
+        Returns
+        -------
+        statusTuple : tuple or -1
+            tuple of codes returned by ``zModifySettings()`` for each
+            non-None parameters. The status codes are as follows:
+            0 = no error;
+            -1 = invalid file;
+            -2 = incorrect version number;
+            -3 = file access conflict
+
+            The function returns -1 if ``settingsFile`` is invalid.
+
+        See Also
+        --------
+        zSetFFTPSFCrossSecSettings() :
+            to create and set FFT PSF Crosssection settings
+        zGetPSFCrossSec(),
+        """
+        sTuple = [] # status tuple
+        if (_os.path.isfile(settingsFile) and
+            settingsFile.lower().endswith('.cfg')):
+            dst = settingsFile
+        else:
+            return -1
+        if dtype is not None:
+            sTuple.append(self.zModifySettings(dst, "PSF_TYPE", dtype))
+        if row is not None:
+            sTuple.append(self.zModifySettings(dst, "PSF_ROW", row))
+        if sample is not None:
+            sTuple.append(self.zModifySettings(dst, "PSF_SAMP", sample))
+        if wave is not None:
+            sTuple.append(self.zModifySettings(dst, "PSF_WAVE", wave))
+        if field is not None:
+            sTuple.append(self.zModifySettings(dst, "PSF_FIELD", field))
+        if pol is not None:
+            sTuple.append(self.zModifySettings(dst, "PSF_POLARIZATION", pol))
+        if norm is not None:
+            sTuple.append(self.zModifySettings(dst, "PSF_NORMALIZE", norm))
+        if scale is not None:
+            sTuple.append(self.zModifySettings(dst, "PSF_PLOTSCALE", scale))
+        return tuple(sTuple)
+
+    def zSetFFTPSFCrossSecSettings(self, settingsFileName=None, dtype=None, row=None,
+                                   sample=None, wave=None, field=None, pol=None,
+                                   norm=None, scale=None):
+        """create and set a new FFT PSF Crosssection settings file starting
+        from the "reset" settings state of the most basic lens in Zemax
+
+        To modify an existing FFT PSF Crosssection settings file, use
+        ``zModifyFFTPSFCrossSecSettings()``. Only those parameters with
+        non-None will be set
+
+        Parameters
+        ----------
+        settingsFileName : string, optional
+            name to give to the settings file to be created. It must be
+            the full file name, including path and extension of the
+            settings file.
+            If ``None``, then a CFG file with the name of the lens
+            followed by the string '_pyzdde_FFTPSFCS.CFG' will be created
+            in the same directory as the lens file and returned
+        dtype : integer (0-9), optional
+            0 = x-linear, 1 = y-linear, 2 = x-log, 3 = y-log, 4 = x-phase,
+            5 = y-phase, 6 = x-real, 7 = y-real, 8 = x-imaginary,
+            9 = y-imaginary.
+        row : integer, optional
+            the row number (for x scan) or column number (for y scan) or
+            use 0 for center.
+        sample : integer, optional
+            the sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128; 4 = 256x256;
+            5 = 512x512; 6 = 1024x1024; 7 = 2048x2048; 8 = 4096x4096;
+            9 = 8192x8192; 10 = 16384x16384;
+        wave : integer, optional
+            the wavelength number, use 0 for polychromatic.
+        field : integer, optional
+            the field number
+        pol : integer (0/1), optional
+            the polarization. 0 for unpolarized, 1 for polarized.
+        norm : integer (0/1), optional
+            normalization. 0 for unnormalized, 1 for unity normalization
+        scale : float, optional
+            the plot scale
+
+        Returns
+        -------
+        settingsFile : string
+            the full name, including path and extension, of the just
+            created settings file
+
+        Notes
+        -----
+        1. Further modifications of the settings file can be made using
+           ``zModifySettings()`` or ``zModifyFFTPSFCrossSecSettings()``
+           functions
+        2. The function creates settings file ending with
+           '_pyzdde_FFTPSFCS.CFG' in order to prevent overwritting any
+           existing settings file not created by pyzdde for FFT PSF Cross
+           section analysis.
+           This file eventually gets deleted when ``ln.close()`` or
+           ``pyz.closeLink()`` or ``ln.zDDEClose()`` is called.
+
+        See Also
+        --------
+        zGetPSFCrossSec(), zModifyFFTPSFCrossSecSettings()
+        """
+        clean_cfg = 'RESET_SETTINGS_FFTPSFCS.CFG'
+        src = _os.path.join(_pDir, 'ZMXFILES', clean_cfg)
+        if settingsFileName:
+            dst = settingsFileName
+        else:
+            filename_partial = _os.path.splitext(self.zGetFile())[0]
+            dst =  filename_partial + '_pyzdde_FFTPSFCS.CFG'
+            self._filesCreated.add(dst)
+        try:
+            _shutil.copy(src, dst)
+        except IOError:
+            print("ERROR: Invalid settingsFile {}".format(dst))
+            return
+        else:
+            self.zModifyFFTPSFCrossSecSettings(dst, dtype, row, sample, wave,
+                                               field, pol, norm, scale)
+            return dst
+
+    def zModifyFFTPSFSettings(self, settingsFile, dtype=None, sample=None,
+                              wave=None, field=None, surf=None, pol=None,
+                              norm=None, imgDelta=None):
+        """Modify an existing FFT PSF analysis settings (configuration)
+        file
+
+        Only those parameters that are non-None will be set.
+
+        Parameters
+        ----------
+        settingsFile : string
+            filename of the settings file including path and extension
+        others :
+            see the parameter definitions of ``zSetFFTPSFSettings()``
+
+        Returns
+        -------
+        statusTuple : tuple or -1
+            tuple of codes returned by ``zModifySettings()`` for each
+            non-None parameters. The status codes are as follows:
+            0 = no error;
+            -1 = invalid file;
+            -2 = incorrect version number;
+            -3 = file access conflict
+
+            The function returns -1 if ``settingsFile`` is invalid.
+
+        Notes
+        -----
+        See the notes of ``zSetFFTPSFSettings()``
+
+        See Also
+        --------
+        zSetFFTPSFSettings(), zGetPSF()
+        """
+        sTuple = [] # status tuple
+        if (_os.path.isfile(settingsFile) and
+            settingsFile.lower().endswith('.cfg')):
+            dst = settingsFile
+        else:
+            return -1
+        if dtype is not None:
+            sTuple.append(self.zModifySettings(dst, "PSF_TYPE", dtype))
+        if sample is not None:
+            sTuple.append(self.zModifySettings(dst, "PSF_SAMP", sample))
+        if wave is not None:
+            sTuple.append(self.zModifySettings(dst, "PSF_WAVE", wave))
+        if field is not None:
+            sTuple.append(self.zModifySettings(dst, "PSF_FIELD", field))
+        if surf is not None:
+            sTuple.append(self.zModifySettings(dst, "PSF_SURFACE", surf))
+        if pol is not None:
+            sTuple.append(self.zModifySettings(dst, "PSF_POLARIZATION", pol))
+        if norm is not None:
+            sTuple.append(self.zModifySettings(dst, "PSF_NORMALIZE", norm))
+        if imgDelta is not None:
+            sTuple.append(self.zModifySettings(dst, "PSF_IMAGEDELTA", imgDelta))
+        return tuple(sTuple)
+
+    def zSetFFTPSFSettings(self, settingsFileName=None, dtype=None, sample=None,
+                           wave=None, field=None, surf=None, pol=None,
+                           norm=None, imgDelta=None):
+        """create and set a new FFT PSF analysis settings file starting
+        from the "reset" settings state of the most basic lens in Zemax
+
+        To modify an existing FFT PSF settings file, use
+        ``zModifyFFTPSFSettings()``. Only those parameters that are
+        non-None will be set
+
+        Parameters
+        ----------
+        settingsFileName : string, optional
+            name to give to the settings file to be created. It must be
+            the full file name, including path and extension of the
+            settings file.
+            If ``None``, then a CFG file with the name of the lens
+            followed by the string '_pyzdde_FFTPSF.CFG' will be created
+            in the same directory as the lens file and returned
+        dtype : integer (0-4), optional
+            0 = linear, 1 = log, 2 = phase, 3 = real, 4 = imaginary.
+        sample : integer, optional
+            the (pupil) sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128;
+            4 = 256x256; 5 = 512x512; 6 = 1024x1024; 7 = 2048x2048;
+            8 = 4096x4096; 9 = 8192x8192; 10 = 16384x16384;
+        wave : integer, optional
+            the wavelength number, use 0 for polychromatic.
+        field : integer, optional
+            the field number
+        surf : integer, optional
+            the surface number. Use 0 for image
+        pol : integer (0/1), optional
+            the polarization. 0 for unpolarized, 1 for polarized.
+        norm : integer (0/1), optional
+            normalization. 0 for unnormalized, 1 for unity normalization
+        imgDelta : float, optional
+            the image point spacing in micrometers
+
+        Returns
+        -------
+        settingsFile : string
+            the full name, including path and extension, of the just
+            created settings file
+
+        Notes
+        -----
+        1. Currently, Zemax doesn't provide a way to change the image
+           sampling parameter for this function. It seems that the image
+           sampling value is set to twice the value set for pupil sampling.
+        2. Further modifications of the settings file can be made using
+           ``zModifySettings()`` or ``zModifyFFTPSFSettings()`` functions
+        3. The function creates settings file ending with
+           '_pyzdde_FFTPSF.CFG' in order to prevent overwritting any
+           existing settings file not created by pyzdde for FFT PSF.
+           This file eventually gets deleted when ``ln.close()`` or
+           ``pyz.closeLink()`` or ``ln.zDDEClose()`` is called.
+
+        See Also
+        --------
+        zGetPSF(), zModifyFFTPSFSettings()
+        """
+        clean_cfg = 'RESET_SETTINGS_FFTPSF.CFG'
+        src = _os.path.join(_pDir, 'ZMXFILES', clean_cfg)
+        if settingsFileName:
+            dst = settingsFileName
+        else:
+            filename_partial = _os.path.splitext(self.zGetFile())[0]
+            dst =  filename_partial + '_pyzdde_FFTPSF.CFG'
+            self._filesCreated.add(dst)
+        try:
+            _shutil.copy(src, dst)
+        except IOError:
+            print("ERROR: Invalid settingsFile {}".format(dst))
+            return
+        else:
+            self.zModifyFFTPSFSettings(dst, dtype, sample, wave, field, surf, pol,
+                                       norm, imgDelta)
+            return dst
+
+    def zModifyHuygensPSFCrossSecSettings(self, settingsFile, pupilSample=None,
+                                          imgSample=None, wave=None, field=None,
+                                          imgDelta=None, dtype=None):
+        """Modify an existing Huygens PSF Cross section analysis settings
+        (configuration) file
+
+        Parameters
+        ----------
+        settingsFile : string
+            filename of the settings file including path and extension
+        others :
+            see the parameter definitions of
+            ``zSetHuygensPSFCrossSecSettings()``
+
+        Returns
+        -------
+        statusTuple : tuple or -1
+            tuple of codes returned by ``zModifySettings()`` for each
+            non-None parameters. The status codes are as follows:
+            0 = no error;
+            -1 = invalid file;
+            -2 = incorrect version number;
+            -3 = file access conflict
+
+            The function returns -1 if ``settingsFile`` is invalid.
+
+        See Also
+        --------
+        zSetHuygensPSFCrossSecSettings() :
+            to create and set Huygens PSF Crosssection settings
+        zGetPSFCrossSec(),
+        """
+        sTuple = [] # status tuple
+        if (_os.path.isfile(settingsFile) and
+            settingsFile.lower().endswith('.cfg')):
+            dst = settingsFile
+        else:
+            return -1
+        if pupilSample is not None:
+            sTuple.append(self.zModifySettings(dst, "HPC_PUPILSAMP", pupilSample))
+        if imgSample is not None:
+            sTuple.append(self.zModifySettings(dst, "HPC_IMAGESAMP", imgSample))
+        if wave is not None:
+            sTuple.append(self.zModifySettings(dst, "HPC_WAVE", wave))
+        if field is not None:
+            sTuple.append(self.zModifySettings(dst, "HPC_FIELD", field))
+        if imgDelta is not None:
+            sTuple.append(self.zModifySettings(dst, "HPC_IMAGEDELTA", imgDelta))
+        if dtype is not None:
+            sTuple.append(self.zModifySettings(dst, "HPC_TYPE", dtype))
+        return tuple(sTuple)
+
+    def zSetHuygensPSFCrossSecSettings(self, settingsFileName=None, pupilSample=None,
+                                       imgSample=None, wave=None, field=None,
+                                       imgDelta=None, dtype=None):
+        """create and set a new Huygens PSF Crosssection settings file
+        starting from the "reset" settings state of the most basic lens in
+        Zemax.
+
+        To modify an existing Huygens PSF Crosssection settings file, use
+        ``zModifyHuygensPSFCrossSecSettings()``. Only those parameters
+        with non-None will be set
+
+        Parameters
+        ----------
+        settingsFileName : string, optional
+            name to give to the settings file to be created. It must be
+            the full file name, including path and extension of the
+            settings file.
+            If ``None``, then a CFG file with the name of the lens
+            followed by the string '_pyzdde_HUYGENSPSFCS.CFG' will be
+            created in the same directory as the lens file and returned
+        pupilSample : integer, optional
+            the pupil sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128;
+            4 = 256x256; 5 = 512x512; 6 = 1024x1024; 7 = 2048x2048;
+            8 = 4096x4096; 9 = 8192x8192; 10 = 16384x16384;
+        imgSample : integer, optional
+            the image sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128;
+            4 = 256x256; 5 = 512x512; 6 = 1024x1024; 7 = 2048x2048;
+            8 = 4096x4096; 9 = 8192x8192; 10 = 16384x16384;
+        wave : integer, optional
+            the wavelength number, use 0 for polychromatic
+        field : integer, optional
+            the field number
+        imgDelta : float, optional
+            the image point spacing in micrometers
+        dtype : integer (0-9), optional
+            0 = x-linear, 1 = y-log, 2 = y-linear, 3 = y-log, 4 = x-real,
+            5 = y-real, 6 = x-imaginary, 7 = y-imaginary, 8 = x-phase,
+            9 = y-phase.
+
+        Returns
+        -------
+        settingsFile : string
+            the full name, including path and extension, of the just
+            created settings file
+
+        Notes
+        -----
+        1. Further modifications of the settings file can be made using
+           ``zModifySettings()`` or ``zModifyHuygensPSFCrosSecSettings()``
+           functions
+        2. The function creates settings file ending with
+           '_pyzdde_HUYGENSPSFCS.CFG' in order to prevent overwritting any
+           existing settings file not created by pyzdde for Huygens PSF
+           Crosssection analysis.
+           This file eventually gets deleted when ``ln.close()`` or
+           ``pyz.closeLink()`` or ``ln.zDDEClose()`` is called.
+
+        See Also
+        --------
+        zGetPSFCrossSec(), zModifyHuygensPSFCrossSecSettings()
+        """
+        clean_cfg = 'RESET_SETTINGS_HUYGENSPSFCS.CFG'
+        src = _os.path.join(_pDir, 'ZMXFILES', clean_cfg)
+        if settingsFileName:
+            dst = settingsFileName
+        else:
+            filename_partial = _os.path.splitext(self.zGetFile())[0]
+            dst =  filename_partial + '_pyzdde_HUYGENSPSFCS.CFG'
+            self._filesCreated.add(dst)
+        try:
+            _shutil.copy(src, dst)
+        except IOError:
+            print("ERROR: Invalid settingsFile {}".format(dst))
+            return
+        else:
+            self.zModifyHuygensPSFCrossSecSettings(dst, pupilSample, imgSample,
+                                                   wave, field, imgDelta, dtype)
+            return dst
+
+    def zModifyHuygensPSFSettings(self, settingsFile, pupilSample=None,
+                                  imgSample=None, wave=None, field=None,
+                                  imgDelta=None, dtype=None):
+        """Modify an existing Huygens PSF analysis settings (configuration)
+        file
+
+        Only those parameters that are non-None will be set.
+
+        Parameters
+        ----------
+        settingsFile : string
+            filename of the settings file including path and extension
+        others :
+            see the parameter definitions of ``zSetHuygensPSFSettings()``
+
+        Returns
+        -------
+        statusTuple : tuple or -1
+            tuple of codes returned by ``zModifySettings()`` for each
+            non-None parameters. The status codes are as follows:
+            0 = no error;
+            -1 = invalid file;
+            -2 = incorrect version number;
+            -3 = file access conflict
+
+            The function returns -1 if ``settingsFile`` is invalid.
+
+        See Also
+        --------
+        zSetHuygensPSFSettings(), zGetPSF()
+        """
+        sTuple = [] # status tuple
+        if (_os.path.isfile(settingsFile) and
+            settingsFile.lower().endswith('.cfg')):
+            dst = settingsFile
+        else:
+            return -1
+        if pupilSample is not None:
+            sTuple.append(self.zModifySettings(dst, "HPS_PUPILSAMP", pupilSample))
+        if imgSample is not None:
+            sTuple.append(self.zModifySettings(dst, "HPS_IMAGESAMP", imgSample))
+        if wave is not None:
+            sTuple.append(self.zModifySettings(dst, "HPS_WAVE", wave))
+        if field is not None:
+            sTuple.append(self.zModifySettings(dst, "HPS_FIELD", field))
+        if imgDelta is not None:
+            sTuple.append(self.zModifySettings(dst, "HPS_IMAGEDELTA", imgDelta))
+        if dtype is not None:
+            sTuple.append(self.zModifySettings(dst, "HPS_TYPE", dtype))
+        return tuple(sTuple)
+
+    def zSetHuygensPSFSettings(self, settingsFileName=None, pupilSample=None,
+                               imgSample=None, wave=None, field=None,
+                               imgDelta=None, dtype=None):
+        """create and set a new Huygens PSF analysis settings file starting
+        from the "reset" settings state of the most basic lens in Zemax
+
+        To modify an existing Huygens PSF settings file, use
+        ``zModifyHuygensPSFSettings()``. Only those parameters that are
+        non-None will be set
+
+        Parameters
+        ----------
+        settingsFileName : string, optional
+            name to give to the settings file to be created. It must be
+            the full file name, including path and extension of the
+            settings file.
+            If ``None``, then a CFG file with the name of the lens
+            followed by the string '_pyzdde_HUYGENSPSF.CFG' will be
+            created in the same directory as the lens file and returned
+        pupilSample : integer, optional
+            the pupil sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128;
+            4 = 256x256; 5 = 512x512; 6 = 1024x1024; 7 = 2048x2048;
+            8 = 4096x4096; 9 = 8192x8192; 10 = 16384x16384;
+        imgSample : integer, optional
+            the image sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128;
+            4 = 256x256; 5 = 512x512; 6 = 1024x1024; 7 = 2048x2048;
+            8 = 4096x4096; 9 = 8192x8192; 10 = 16384x16384;
+        wave : integer, optional
+            the wavelength number, use 0 for polychromatic
+        field : integer, optional
+            the field number
+        imgDelta : float, optional
+            the image point spacing in micrometers
+        dtype : integer (0-8), optional
+            0 = linear, 1 = log -1, 2 = log -2, 3 = log -3, 4 = log -4,
+            5 = log -5, 6 = real, 7 = imaginary, 8 = phase.
+
+        Returns
+        -------
+        settingsFile : string
+            the full name, including path and extension, of the just
+            created settings file
+
+        Notes
+        -----
+        1. Further modifications of the settings file can be made using
+           ``zModifySettings()`` or ``zModifyHuygensPSFSettings()``
+           functions
+        2. The function creates settings file ending with
+           '_pyzdde_HUYGENSPSF.CFG' in order to prevent overwritting any
+           existing settings file not created by pyzdde for Huygens PSF
+           analysis.
+           This file eventually gets deleted when ``ln.close()`` or
+           ``pyz.closeLink()`` or ``ln.zDDEClose()`` is called.
+
+        See Also
+        --------
+        zGetPSF(), zModifyHuygensPSFSettings()
+        """
+        clean_cfg = 'RESET_SETTINGS_HUYGENSPSF.CFG'
+        src = _os.path.join(_pDir, 'ZMXFILES', clean_cfg)
+        if settingsFileName:
+            dst = settingsFileName
+        else:
+            filename_partial = _os.path.splitext(self.zGetFile())[0]
+            dst =  filename_partial + '_pyzdde_HUYGENSPSF.CFG'
+            self._filesCreated.add(dst)
+        try:
+            _shutil.copy(src, dst)
+        except IOError:
+            print("ERROR: Invalid settingsFile {}".format(dst))
+            return
+        else:
+            self.zModifyHuygensPSFSettings(dst, pupilSample, imgSample, wave,
+                                           field, imgDelta, dtype)
+            return dst
+
+    def zGetMTF(self, which='fft', settingsFile=None, txtFile=None,
+                keepFile=False, timeout=120):
+        """Returns FFT or Huygens MTF data
+
+        Parameters
+        ----------
+        which : string, optional
+            if 'fft' (default), then the FFT MTF data is returned;
+            if 'huygens', then the Huygens MTF data is returned;
+        settingsFile : string, optional
+            * if passed, the FFT/Huygens MTF analysis will be called with
+              the given configuration file (settings);
+            * if no ``settingsFile`` is passed, and config file ending
+              with the same name as the lens-file post-fixed with
+              "_pyzdde_FFTMTF.CFG"/"_pyzdde_HUYGENSMTF.CFG"is present, the
+              settings from this file will be used;
+            * if no ``settingsFile`` and no file name post-fixed with
+              "_pyzdde_FFTMTF.CFG"/"_pyzdde_HUYGENSMTF.CFG" is found, but
+              a config file with the same name as the lens file is present,
+              the settings from that file will be used;
+            * if no settings file is found, then a default settings will
+              be used
+        txtFile : string, optional
+            if passed, the MTF analysis text file will be named such.
+            Pass a specific txtFile if you want to dump the file into
+            a separate directory.
+        keepFile : bool, optional
+            if ``False`` (default), the MTF text file will be deleted
+            after use.
+            If ``True``, the file will persist. If ``keepFile`` is ``True``
+            but a ``txtFile`` is not passed, the MTF text file will be
+            saved in the same directory as the lens (provided the required
+            folder access permissions are available)
+        timeout : integer, optional
+            timeout in seconds. Note that Huygens PSF/MTF calculations with
+            ``pupil_sample`` and/or ``image_sample`` greater than 4
+            usuallly take several minutes to complete
+
+        Returns
+        -------
+        mtfs : tuple of tuples
+            the tuple contains MTF data for the number of fields defined
+            in the MTF analysis configuration/settings. The len of the
+            tuple equals the number of fields. Each sub-tuple is a named
+            tuple that contains Spatial frequency, Tangential, and
+            Sagittal MTF values. The information can be retrieved as shown
+            in the example below.
+
+        Examples
+        --------
+        The following example plots the MTFs for each defined field points
+        of a Zemax lens
+
+        >>> mtfs = ln.zGetMTF()
+        >>> for field, mtf in enumerate(mtfs):
+        >>>     plt.plot(mtf.SpatialFreq, mtf.Tangential, label='F-{}, T'.format(field + 1))
+        >>>     plt.plot(mtf.SpatialFreq, mtf.Sagittal, label='F-{}, S'.format(field + 1))
+        >>>     plt.xlabel('Spatial Frequency in cycles per mm')
+        >>>     plt.ylabel('Modulus of the OTF')
+        >>>     plt.grid('on')
+        >>> plt.legend(frameon=False)
+        >>> plt.show()
+
+        See Also
+        --------
+        zModifyFFTMTFSettings(), zSetFFTMTFSettings(),
+        zModifyHuygensMTFSettings(), zSetHuygensMTFSettings()
+        """
+        if which=='huygens':
+            anaType = 'Hmf'
+        else:
+            anaType = 'Mtf'
+        settings = _txtAndSettingsToUse(self, txtFile, settingsFile, anaType)
+        textFileName, cfgFile, getTextFlag = settings
+        ret = self.zGetTextFile(textFileName, anaType, cfgFile, getTextFlag,
+                                timeout)
+        assert ret == 0
+        line_list = _readLinesFromFile(_openFile(textFileName))
+        pat = r'Field:\s-?\d{1,3}\.\d{1,5},?\s?'
+        fields = _getRePatPosInLineList(line_list, pat)
+        if len(fields) > 1:
+            data_start_pos = [p + 2 for p in fields]
+            data_len = [fields[1] - fields[0] - 3]*len(fields)
+        else:
+            data_start_pos = [fields[0] + 2,]
+            data_len = [len(line_list) - data_start_pos[0],]
+        mtfs = []
+        mtf = _co.namedtuple('MTF', ['SpatialFreq', 'Tangential', 'Sagittal'])
+        for start, length in zip(data_start_pos, data_len):
+            data_mat = _get2DList(line_list, start, length)
+            data_matT = _transpose2Dlist(data_mat)
+            spat_freq = data_matT[0]
+            mtf_tang = data_matT[1]
+            mtf_sagi = data_matT[2]
+            mtfs.append(mtf(spat_freq, mtf_tang, mtf_sagi))
+        if not keepFile:
+            _deleteFile(textFileName)
+        return tuple(mtfs)
+
+    def zModifyFFTMTFSettings(self, settingsFile, sample=None, wave=None,
+                              field=None, dtype=None, surf=None, maxFreq=None,
+                              showDiff=None, pol=None, useDash=None):
+        """Modify an existing FFT MTF analysis settings (configuration)
+        file
+
+        Parameters
+        ----------
+        settingsFile : string
+            filename of the settings file including path and extension
+        others :
+            see the parameter definitions of
+            ``zSetFFTMTFSettings()``
+
+        Returns
+        -------
+        statusTuple : tuple or -1
+            tuple of codes returned by ``zModifySettings()`` for each
+            non-None parameters. The status codes are as follows:
+            0 = no error;
+            -1 = invalid file;
+            -2 = incorrect version number;
+            -3 = file access conflict
+
+            The function returns -1 if ``settingsFile`` is invalid.
+
+        See Also
+        --------
+        zSetFFTMTFSettings() :
+            to create and set FFT MTF settings/configuration file
+        zGetMTF(),
+        """
+        sTuple = [] # status tuple
+        if (_os.path.isfile(settingsFile) and
+            settingsFile.lower().endswith('.cfg')):
+            dst = settingsFile
+        else:
+            return -1
+        if sample is not None:
+            sTuple.append(self.zModifySettings(dst, "MTF_SAMP", sample))
+        if wave is not None:
+            sTuple.append(self.zModifySettings(dst, "MTF_WAVE", wave))
+        if field is not None:
+            sTuple.append(self.zModifySettings(dst, "MTF_FIELD", field))
+        if dtype is not None:
+            sTuple.append(self.zModifySettings(dst, "MTF_TYPE", dtype))
+        if surf is not None:
+            sTuple.append(self.zModifySettings(dst, "MTF_SURF", surf))
+        if maxFreq is not None:
+            sTuple.append(self.zModifySettings(dst, "MTF_MAXF", maxFreq))
+        if showDiff is not None:
+            sTuple.append(self.zModifySettings(dst, "MTF_SDLI", showDiff))
+        if pol is not None:
+            sTuple.append(self.zModifySettings(dst, "MTF_POLAR", pol))
+        if useDash is not None:
+            sTuple.append(self.zModifySettings(dst, "MTF_DASH", useDash))
+        return tuple(sTuple)
+
+    def zSetFFTMTFSettings(self, settingsFileName=None, sample=None, wave=None,
+                           field=None, dtype=None, surf=None, maxFreq=None,
+                           showDiff=None, pol=None, useDash=None):
+        """create and set a new FFT MTF analysis settings file starting
+        from the "reset" settings state of the most basic lens in Zemax
+
+        To modify an existing FFT MTF settings file, use
+        ``zModifyFFTMTFSettings()``. Only those parameters that are
+        non-None will be set
+
+        Parameters
+        ----------
+        settingsFileName : string, optional
+            name to give to the settings file to be created. It must be
+            the full file name, including path and extension of the
+            settings file.
+            If ``None``, then a CFG file with the name of the lens
+            followed by the string '_pyzdde_FFTMTF.CFG' will be created
+            in the same directory as the lens file and returned
+        sample : integer, optional
+            the sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128; 4 = 256x256;
+            5 = 512x512; 6 = 1024x1024; 7 = 2048x2048; 8 = 4096x4096;
+            9 = 8192x8192; 10 = 16384x16384;
+        wave : integer, optional
+            the wavelength number, use 0 for polychromatic.
+        field : integer, optional
+            the field number, 0 for all
+        dtype : integer (0-4), optional
+            0 = modulation, 1 = real, 2 = imaginary, 3 = phase, 4 = square
+            wave.
+        surf : integer, optional
+            the surface number. Use 0 for image
+        maxFreq : real, optional
+            the maximum frequency, use 0 for default
+        showDiff : integer (0/1)
+            show diffraction limit, 0 for no, 1 for yes
+        pol : integer (0/1), optional
+            the polarization. 0 for unpolarized, 1 for polarized.
+        useDash : integer (0/1)
+            use dashes, 0 for no, 1 for yes
+
+        Returns
+        -------
+        settingsFile : string
+            the full name, including path and extension, of the just
+            created settings file
+
+        Notes
+        -----
+        1. Further modifications of the settings file can be made using
+           ``zModifySettings()`` or ``zModifyFFTMTFSettings()`` functions
+        2. The function creates settings file ending with
+           '_pyzdde_FFTMTF.CFG' in order to prevent overwritting any
+           existing settings file not created by pyzdde for FFT MTF.
+           This file eventually gets deleted when ``ln.close()`` or
+           ``pyz.closeLink()`` or ``ln.zDDEClose()`` is called.
+
+        See Also
+        --------
+        zGetMTF(), zModifyFFTMTFSettings()
+        """
+        clean_cfg = 'RESET_SETTINGS_FFTMTF.CFG'
+        src = _os.path.join(_pDir, 'ZMXFILES', clean_cfg)
+        if settingsFileName:
+            dst = settingsFileName
+        else:
+            filename_partial = _os.path.splitext(self.zGetFile())[0]
+            dst =  filename_partial + '_pyzdde_FFTMTF.CFG'
+            self._filesCreated.add(dst)
+        try:
+            _shutil.copy(src, dst)
+        except IOError:
+            print("ERROR: Invalid settingsFile {}".format(dst))
+            return
+        else:
+            self.zModifyFFTMTFSettings(dst, sample, wave, field, dtype, surf,
+                                       maxFreq, showDiff, pol, useDash)
+            return dst
+
+    def zModifyHuygensMTFSettings(self, settingsFile, pupilSample=None,
+                                  imgSample=None, imgDelta=None, config=None,
+                                  wave=None, field=None, dtype=None, maxFreq=None,
+                                  pol=None, useDash=None):
+        """Modify an existing Huygens MTF analysis settings (configuration)
+        file
+
+        Only those parameters that are non-None will be set.
+
+        Parameters
+        ----------
+        settingsFile : string
+            filename of the settings file including path and extension
+        others :
+            see the parameter definitions of ``zSetHuygensMTFSettings()``
+
+        Returns
+        -------
+        statusTuple : tuple or -1
+            tuple of codes returned by ``zModifySettings()`` for each
+            non-None parameters. The status codes are as follows:
+            0 = no error;
+            -1 = invalid file;
+            -2 = incorrect version number;
+            -3 = file access conflict
+
+            The function returns -1 if ``settingsFile`` is invalid.
+
+        See Also
+        --------
+        zSetHuygensMTFSettings(), zGetMTF()
+        """
+        sTuple = [] # status tuple
+        if (_os.path.isfile(settingsFile) and
+            settingsFile.lower().endswith('.cfg')):
+            dst = settingsFile
+        else:
+            return -1
+        if pupilSample is not None:
+            sTuple.append(self.zModifySettings(dst, "HMF_PUPILSAMP", pupilSample))
+        if imgSample is not None:
+            sTuple.append(self.zModifySettings(dst, "HMF_IMAGESAMP", imgSample))
+        if imgDelta is not None:
+            sTuple.append(self.zModifySettings(dst, "HMF_IMAGEDELTA", imgDelta))
+        if config is not None:
+            sTuple.append(self.zModifySettings(dst, "HMF_CONFIG", config))
+        if wave is not None:
+            sTuple.append(self.zModifySettings(dst, "HMF_WAVE", wave))
+        if field is not None:
+            sTuple.append(self.zModifySettings(dst, "HMF_FIELD", field))
+        if dtype is not None:
+            sTuple.append(self.zModifySettings(dst, "HMF_TYPE", dtype))
+        if maxFreq is not None:
+            sTuple.append(self.zModifySettings(dst, "HMF_MAXF", maxFreq))
+        if pol is not None:
+            sTuple.append(self.zModifySettings(dst, "HMF_POLAR", pol))
+        if useDash is not None:
+            sTuple.append(self.zModifySettings(dst, "HMF_DASH", useDash))
+        return tuple(sTuple)
+
+    def zSetHuygensMTFSettings(self, settingsFileName=None, pupilSample=None,
+                               imgSample=None, imgDelta=None, config=None,
+                               wave=None, field=None, dtype=None, maxFreq=None,
+                               pol=None, useDash=None):
+        """create and set a new Huygens MTF analysis settings file starting
+        from the "reset" settings state of the most basic lens in Zemax
+
+        To modify an existing Huygens MTF settings file, use
+        ``zModifyHuygensMTFSettings()``. Only those parameters that are
+        non-None will be set
+
+        Parameters
+        ----------
+        settingsFileName : string, optional
+            name to give to the settings file to be created. It must be
+            the full file name, including path and extension of the
+            settings file.
+            If ``None``, then a CFG file with the name of the lens
+            followed by the string '_pyzdde_HUYGENSMTF.CFG' will be
+            created in the same directory as the lens file and returned
+        pupilSample : integer, optional
+            the pupil sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128;
+            4 = 256x256; 5 = 512x512; 6 = 1024x1024; 7 = 2048x2048;
+            8 = 4096x4096; 9 = 8192x8192; 10 = 16384x16384;
+        imgSample : integer, optional
+            the image sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128;
+            4 = 256x256; 5 = 512x512; 6 = 1024x1024; 7 = 2048x2048;
+            8 = 4096x4096; 9 = 8192x8192; 10 = 16384x16384;
+        imgDelta : float, optional
+            the image point spacing in micrometers
+        config : integer, optional
+            the configuration number. Use 0 for all, 1 for current, etc.
+        wave : integer, optional
+            the wavelength number. Use 0 for polychromatic
+        field : integer, optional
+            the field number
+        dtype : integer, optional
+            the data type. Currently only 0 is supported
+        maxFreq : float, optional
+            the maximum spatial frequency
+        pol : integer, optional
+            polarization. 0 for no, 1 for yes
+        useDash : integer, optional
+            use dashes. 0 for no, 1 for yes
+
+        Returns
+        -------
+        settingsFile : string
+            the full name, including path and extension, of the just
+            created settings file
+
+        Notes
+        -----
+        1. Further modifications of the settings file can be made using
+           ``zModifySettings()`` or ``zModifyHuygensMTFSettings()``
+           functions
+        2. The function creates settings file ending with
+           '_pyzdde_HUYGENSMTF.CFG' in order to prevent overwritting any
+           existing settings file not created by pyzdde for Huygens MTF
+           analysis.
+           This file eventually gets deleted when ``ln.close()`` or
+           ``pyz.closeLink()`` or ``ln.zDDEClose()`` is called.
+
+        See Also
+        --------
+        zGetMTF(), zModifyHuygensMTFSettings()
+        """
+        clean_cfg = 'RESET_SETTINGS_HUYGENSMTF.CFG'
+        src = _os.path.join(_pDir, 'ZMXFILES', clean_cfg)
+        if settingsFileName:
+            dst = settingsFileName
+        else:
+            filename_partial = _os.path.splitext(self.zGetFile())[0]
+            dst =  filename_partial + '_pyzdde_HUYGENSMTF.CFG'
+            self._filesCreated.add(dst)
+        try:
+            _shutil.copy(src, dst)
+        except IOError:
+            print("ERROR: Invalid settingsFile {}".format(dst))
+            return
+        else:
+            self.zModifyHuygensMTFSettings(dst, pupilSample, imgSample, imgDelta,
+                                           config, wave, field, dtype, maxFreq,
+                                           pol, useDash)
+            return dst
+
+    def zGetImageSimulation(self, settingsFile=None, txtFile=None, keepFile=False,
+                            timeout=120):
+        """Returns image simulation analysis results
+
+        Parameters
+        ----------
+        settingsFile : string, optional
+            * if passed, the image simulation analysis will be called with
+              the given configuration file (settings);
+            * if no ``settingsFile`` is passed, and config file ending
+              with the same name as the lens-file post-fixed with
+              "_pyzdde_IMGSIM.CFG" is present, the settings from this file
+              will be used;
+            * if no ``settingsFile`` and no file-name post-fixed with
+              "_pyzdde_IMGSIM.CFG" is found, but a config file with the
+              same name as the lens file is present, the settings from
+              that file will be used;
+            * if no settings file is found, then a default settings will
+              be used
+        txtFile : string, optional
+            if passed, the image simulation analysis text file will be
+            named such. Pass a specific txtFile if you want to dump the
+            file into a separate directory.
+        keepFile : bool, optional
+            if ``False`` (default), the image simulation text file will be
+            deleted after use.
+            If ``True``, the file will persist. If ``keepFile`` is ``True``
+            but a ``txtFile`` is not passed, the text file will be
+            saved in the same directory as the lens (provided the required
+            folder access permissions are available)
+        timeout : integer, optional
+            timeout in seconds.
+
+        Returns
+        -------
+        imgInfo : named tuple
+            meta data about the image analysis data containing 'xpix',
+            'ypix', 'objHeight', 'fieldPos', 'imgW', and 'imgH'
+        imgData : 3D list
+            the 3D list containing the RGB values of the output image.
+            The first dimension of ``imgData`` represents height (rows),
+            the second dimension represents width (cols), and the third
+            dimension represents the channel (r, g, b)
+
+        Examples
+        --------
+        In the following example the image simulation function is called
+        with default arguments, and the returned data is plotted using
+        matplotlib's imshow function after converting the data into a
+        Numpy (np) array.
+
+        >>> img_info, img_data = ln.zGetImageSimulationData()
+        >>> img_data_np = np.array(img_data, dtype='uint8')
+        >>> left, right = -img_info.imgW/2, img_info.imgW/2
+        >>> bottom, top = -img_info.imgH/2, img_info.imgH/2
+        >>> plt.imshow(img_data_np, extent=[left, right, bottom, top])
+
+        See Also
+        --------
+        zModifyImageSimulationSettings(), zSetImageSimulationSettings()
+        """
+        settings = _txtAndSettingsToUse(self, txtFile, settingsFile, 'Sim')
+        textFileName, cfgFile, getTextFlag = settings
+        ret = self.zGetTextFile(textFileName, 'Sim', cfgFile, getTextFlag,
+                                timeout)
+        assert ret == 0
+        line_list = _readLinesFromFile(_openFile(textFileName))
+
+        # Meta data
+        bm_ht_line = line_list[_getFirstLineOfInterest(line_list, 'Bitmap Height')]
+        bm_ht = int(_re.search(r'\b\d{1,5}\b', bm_ht_line).group()) # pixels
+        bm_wd_line = line_list[_getFirstLineOfInterest(line_list, 'Bitmap Width')]
+        bm_wd = int(_re.search(r'\b\d{1,5}\b', bm_wd_line).group())   # pixels
+        obj_ht_line = line_list[_getFirstLineOfInterest(line_list, 'Object Height')]
+        obj_ht = float(_re.search(r'\b-?\d{1,3}\.\d{1,5}\b', obj_ht_line).group())
+        fld_pos_line = line_list[_getFirstLineOfInterest(line_list, 'Field position')]
+        fld_pos = float(_re.search(r'\b-?\d{1,3}\.\d{1,5}\b', fld_pos_line).group())
+        img_siz_line = line_list[_getFirstLineOfInterest(line_list, 'Image Size')]
+        pat = r'\d{1,3}\.\d{4,6}'
+        img_wd, img_ht = [float(i) for i in _re.findall(pat, img_siz_line)] # physical units
+        img_info = _co.namedtuple('ImgSimInfo', ['xpix', 'ypix', 'objHeight',
+                                  'fieldPos', 'imgW', 'imgH'])
+        img_info_data = img_info._make([bm_wd, bm_ht, obj_ht, fld_pos, img_wd, img_ht])
+        img_data = [[[0 for c in range(3)] for i in range(bm_wd)] for j in range(bm_ht)]
+        r, g, b = 0, 1, 2
+        pat = r'xpix\s{1,4}ypix\s{1,4}R\s{1,4}G\s{1,4}B'
+        start = _getFirstLineOfInterest(line_list, pat) + 1
+        for xpix in range(bm_wd):      # along width
+            for ypix in range(bm_ht):  # along height
+                pixel_data = line_list[start + xpix*bm_ht + ypix].split()[2:]
+                pix_r, pix_g, pix_b = pixel_data
+                img_data[ypix][xpix][r] = int(pix_r)
+                img_data[ypix][xpix][g] = int(pix_g)
+                img_data[ypix][xpix][b] = int(pix_b)
+        if not keepFile:
+            _deleteFile(textFileName)
+        return img_info_data, img_data
+
+    def zModifyImageSimulationSettings(self, settingsFile, image=None, height=None,
+                                       over=None, guard=None, flip=None, rotate=None,
+                                       wave=None, field=None, pupilSample=None,
+                                       imgSample=None, psfx=None, psfy=None, aberr=None,
+                                       pol=None, fixedAper=None, illum=None, showAs=None,
+                                       reference=None, suppress=None, pixelSize=None,
+                                       xpix=None, ypix=None, flipSimImg=None, outFile=None):
+        """Modify an existing image simulation analysis settings
+        (configuration) file
+
+        Only those parameters that are non-None will be set.
+
+        Parameters
+        ----------
+        settingsFile : string
+            filename of the settings file including path and extension
+        others :
+            see the parameter definitions of
+            ``zSetImageSimulationSettings()``
+
+        Returns
+        -------
+        statusTuple : tuple or -1
+            tuple of codes returned by ``zModifySettings()`` for each
+            non-None parameters. The status codes are as follows:
+            0 = no error;
+            -1 = invalid file;
+            -2 = incorrect version number;
+            -3 = file access conflict
+
+            The function returns -1 if ``settingsFile`` is invalid.
+
+        See Also
+        --------
+        zSetImageSimulationSettings(), zGetImageSimulation()
+        """
+        sTuple = [] # status tuple
+        if (_os.path.isfile(settingsFile) and
+            settingsFile.lower().endswith('.cfg')):
+            dst = settingsFile
+        else:
+            return -1
+        if image is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_INPUTFILE", image))
+        if height is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_FIELDHEIGHT", height))
+        if over is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_OVERSAMPLING", over))
+        if guard is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_GUARDBAND", guard))
+        if flip is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_FLIP", flip))
+        if rotate is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_ROTATE", rotate))
+        if wave is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_WAVE", wave))
+        if field is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_FIELD", field))
+        if pupilSample is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_PSAMP", pupilSample))
+        if imgSample is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_ISAMP", imgSample))
+        if psfx is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_PSFX", psfx))
+        if psfy is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_PSFY", psfy))
+        if aberr is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_ABERRATIONS", aberr))
+        if pol is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_POLARIZATION", pol))
+        if fixedAper is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_FIXEDAPERTURES", fixedAper))
+        if illum is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_USERI", illum))
+        if showAs is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_SHOWAS", showAs))
+        if reference is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_REFERENCE", reference))
+        if suppress is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_SUPPRESS", suppress))
+        if pixelSize is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_PIXELSIZE", pixelSize))
+        if xpix is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_XSIZE", xpix))
+        if ypix is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_YSIZE", ypix))
+        if flipSimImg is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_FLIPIMAGE", flipSimImg))
+        if outFile is not None:
+            sTuple.append(self.zModifySettings(dst, "ISM_OUTPUTFILE", outFile))
+        return tuple(sTuple)
+
+    def zSetImageSimulationSettings(self, settingsFileName=None, image=None, height=None,
+                                    over=None, guard=None, flip=None, rotate=None,
+                                    wave=None, field=None, pupilSample=None,
+                                    imgSample=None, psfx=None, psfy=None, aberr=None,
+                                    pol=None, fixedAper=None, illum=None, showAs=None,
+                                    reference=None, suppress=None, pixelSize=None,
+                                    xpix=None, ypix=None, flipSimImg=None, outFile=None):
+        """create and set a new image simulation analysis settings file
+        starting from the "reset" settings state of the most basic lens in
+        Zemax
+
+        To modify an existing image simulation analysis settings file, use
+        ``zModifyImageSimulationSettings()``. Only those parameters that
+        are non-None will be set
+
+        Parameters
+        ----------
+        settingsFileName : string, optional
+            name to give to the settings file to be created. It must be
+            the full file name, including path and extension of the
+            settings file.
+            If ``None``, then a CFG file with the name of the lens
+            followed by the string '_pyzdde_IMGSIM.CFG' will be created
+            in the same directory as the lens file and returned
+        image : string, optional
+            The input file name. This should be specified without a path.
+        height : float, optional
+            The Y field height.
+        over : integer, optional
+            Oversample value. Use 0 for none, 1 for 2X, 2 for 4x, etc.
+        guard : integer, optional
+            Guard band value. Use 0 for none, 1 for 2X, 2 for 4x, etc.
+        flip : integer, optional
+            Flip Source. Use 0 for none, 1 for TB, 2 for LR, 3 for TB&LR.
+        rotate : integer, optional
+            Rotate Source. Use 0 for none, 1 for 90, 2 for 180, 3 for 270.
+        wave : integer, optional
+            Wavelength. Use 0 for RGB, 1 for 1+2+3, 2 for wave #1, 3 for
+            wave #2, etc.
+        field : integer, optional
+            Field number.
+        pupilSample : integer, optional
+            Pupil Sampling. Use 1 for 32x32, 2 for 64x64, etc.
+        imgSample : integer, optional
+            Image Sampling. Use 1 for 32x32, 2 for 64x64, etc.
+        psfx, psfy : integer, optional
+            The number of PSF grid points.
+        aberr : integer, optional
+            Use 0 for none, 1 for geometric, 2 for diffraction.
+        pol : integer, optional
+            Polarization. Use 0 for no, 1 for yes.
+        fixedAper : integer, optional
+            Apply fixed aperture? Use 0 for no, 1 for yes (apply fixed
+            aperture).
+        illum : integer, optional
+            Relative illumination. Use 0 for no, 1 for yes.
+        showAs : integer, optional
+            Use 0 for Simulated Image, 1 for Source Bitmap, and 2 for PSF
+            Grid.
+        reference : integer, optional
+            Use 0 for chief ray, 1 for vertex, 2 for primary chief ray.
+        suppress : integer, optional
+            Use 0 for no, 1 for yes.
+        pixelSize : integer, optional
+            Use 0 for default or the size in lens units.
+        xpix, ypix : integer, optional
+            Use 0 for default or the number of pixels.
+        flipSimImg : integer, optional
+            Use 0 for none, 1 for top-bottom, etc.
+        outFile : string, optional
+            The output file name or empty string for no output file.
+
+        Returns
+        -------
+        settingsFile : string
+            the full name, including path and extension, of the just
+            created settings file
+
+        Notes
+        -----
+        1. Further modifications of the settings file can be made using
+           ``zModifySettings()`` or ``zModifyImageSimulationSettings()``
+           functions
+        2. The function creates settings file ending with
+           '_pyzdde_IMGSIM.CFG' in order to prevent overwritting any
+           existing settings file not created by pyzdde for image
+           simulation.
+           This file eventually gets deleted when ``ln.close()`` or
+           ``pyz.closeLink()`` or ``ln.zDDEClose()`` is called.
+
+        See Also
+        --------
+        zGetImageSimulation(), zModifyImageSimulationSettings()
+    """
+        clean_cfg = 'RESET_SETTINGS_IMGSIM.CFG'
+        src = _os.path.join(_pDir, 'ZMXFILES', clean_cfg)
+        if settingsFileName:
+            dst = settingsFileName
+        else:
+            filename_partial = _os.path.splitext(self.zGetFile())[0]
+            dst =  filename_partial + '_pyzdde_IMGSIM.CFG'
+            self._filesCreated.add(dst)
+        try:
+            _shutil.copy(src, dst)
+        except IOError:
+            print("ERROR: Invalid settingsFile {}".format(dst))
+            return
+        else:
+            self.zModifyImageSimulationSettings(dst, image, height, over, guard,
+                                                flip, rotate, wave, field, pupilSample,
+                                                imgSample, psfx, psfy, aberr, pol,
+                                                fixedAper, illum, showAs, reference,
+                                                suppress, pixelSize, xpix, ypix,
+                                                flipSimImg, outFile)
+            return dst
 
 # ***************************************************************
 #              IPYTHON NOTEBOOK UTILITY FUNCTIONS
 # ***************************************************************
     def ipzCaptureWindowLQ(self, num=1, *args, **kwargs):
-        """Capture graphic window from Zemax and display in IPython (Low Quality)
+        """Capture graphic window from Zemax and display in IPython
+        (Low Quality)
 
         ipzCaptureWindowLQ(num [, *args, **kwargs])-> displayGraphic
 
         Parameters
         ----------
-        num: The graphic window to capture is indicated by the window number `num`.
+        num : integer
+            the graphic window to capture is indicated by the window
+            number ``num``.
 
-        This function is useful for quickly capturing a graphic window, and
-        embedding into a IPython notebook or QtConsole. The quality of JPG
-        image is limited by the JPG export quality from Zemax.
+        Returns
+        -------
+        None (embeds image in IPython cell)
 
-        NOTE:
-        ----
-        In order to use this function, please copy the ZPL macros from
-        PyZDDE\ZPLMacros to the macro directory where Zemax is expecting (i.e.
-        as set in Zemax->Preference->Folders)
-
-        For earlier versions (before 2010) please use ipzCaptureWindow().
+        Notes
+        -----
+        1. This function is useful for quickly capturing a graphic window,
+           and embedding into a IPython notebook or QtConsole. The quality
+           of JPG image is limited by the JPG export quality from Zemax.
+        2. In order to use this function, please copy the ZPL macros from
+           PyZDDE\ZPLMacros to the macro directory where Zemax is expecting
+           (i.e. as set in Zemax->Preference->Folders)
+        3. For earlier versions (before 2010) please use
+           ``ipzCaptureWindow()``.
         """
         global _global_IPLoad
         if _global_IPLoad:
@@ -7207,17 +8655,17 @@ class PyZDDE(object):
                     print("The specified graphic window may not be open in ZEMAX!")
             else:
                 print("ZPL Macro execution failed.\nZPL Macro path in PyZDDE is set to {}."
-                      .format(self.macroPath))
-                if not self.macroPath:
+                      .format(self._macroPath))
+                if not self._macroPath:
                     print("Use zSetMacroPath() to set the correct macro path.")
         else:
             print("Couldn't import IPython modules.")
 
     def ipzCaptureWindow2(self, *args, **kwargs):
-        """Capture any analysis window from Zemax main window, using 3-letter
-        analysis code. Same as ipzCaptureWindow().
+        """Capture any analysis window from Zemax main window, using
+        3-letter analysis code. Same as ``ipzCaptureWindow()``.
 
-        Note
+        Notes
         -----
         This function is now present only for backward compatibility.
         """
@@ -7226,53 +8674,52 @@ class PyZDDE(object):
     def ipzCaptureWindow(self, analysisType, percent=12, MFFtNum=0, blur=1,
                          gamma=0.35, settingsFile=None, flag=0, retArr=False,
                          wait=10):
-        """Capture any analysis window from Zemax main window, using 3-letter
-        analysis code.
-
-        ipzCaptureWindow(analysisType [,percent=12,MFFtNum=0,blur=1, gamma=0.35,
-                         settingsFile=None, flag=0, retArr=False])
-                         -> displayGraphic
+        """Capture any analysis window from Zemax main window, using
+        3-letter analysis code.
 
         Parameters
         ----------
         analysisType : string
-                       3-letter button code for the type of analysis
+            3-letter button code for the type of analysis
         percent : float
-                  percentage of the Zemax metafile to display (default=12).
-                  Used for resizing the large metafile.
+            percentage of the Zemax metafile to display (default=12). Used
+            for resizing the large metafile.
         MFFtNum : integer
-                  type of metafile. 0 = Enhanced Metafile, 1 = Standard Metafile
+            type of metafile. 0 = Enhanced Metafile; 1 = Standard Metafile
         blur : float
-               amount of blurring to use for antialiasing during resizing of
-               metafile (default=1)
+            amount of blurring to use for antialiasing during resizing of
+            metafile (default=1)
         gamma : float
-                gamma for the PNG image (default = 0.35). Use a gamma value of
-                around 0.9 for color surface plots.
+            gamma for the PNG image (default = 0.35). Use a gamma value of
+            around 0.9 for color surface plots.
         settingsFile : string
-                           If a valid file name is used for the `settingsFile`,
-                           ZEMAX will use or save the settings used to compute
-                           the  metafile, depending upon the value of the flag
-                           parameter.
+            If a valid file name is used for the ``settingsFile``, Zemax
+            will use or save the settings used to compute the  metafile,
+            depending upon the value of the flag parameter.
         flag : integer
-                0 = default settings used for the metafile graphic
-                1 = settings provided in the settings file, if valid, else
-                    default settings used
-                2 = settings provided in the settings file, if valid, will be
-                    used and the settings box for the requested feature will be
-                    displayed. After the user makes any changes to the settings
-                    the graphic will then be generated using the new settings.
+            * 0 = default settings used for the metafile graphic;
+            * 1 = settings provided in the settings file, if valid, else
+                  default settings used;
+            * 2 = settings provided in the settings file, if valid, will
+                  be used and the settings box for the requested feature
+                  will be displayed. After the user makes any changes to
+                  the settings the graphic will then be generated using
+                  the new settings.
         retArr : boolean
-                whether to return the image as an array or not.
-                If `False` (default), the image is embedded and no array is returned.
-                If `True`, an numpy array is returned that may be plotted using Matpotlib.
-        wait : time in sec
-            time given to Zemax for the requested analysis to complete and produce
-            a file.
+            whether to return the image as an array or not.
+            If ``False`` (default), the image is embedded and no array is
+            returned;
+            If ``True``, an numpy array is returned that may be plotted
+            using Matpotlib.
+        wait : integer
+            time in sec sent to Zemax for the requested analysis to
+            complete and produce a file.
 
         Returns
         -------
-        None if `retArr` is False (default). The graphic is embedded into the notebook,
-        else `pixel_array` (ndarray) if `retArr` is True.
+        None if ``retArr`` is ``False`` (default). The graphic is embedded
+        into the notebook, else ``pixel_array`` (ndarray) if ``retArr``
+        is ``True``.
         """
         global _global_IPLoad, _global_mpl_img_load
         if _global_IPLoad:
@@ -7341,33 +8788,35 @@ class PyZDDE(object):
 
     def ipzGetTextWindow(self, analysisType, sln=0, eln=None, settingsFile=None,
                          flag=0, *args, **kwargs):
-        """Print the text output of a Zemax analysis type into a IPython cell.
-
-        ipzGetTextWindow(analysisType [,settingsFile, flag, *args, **kwargs])->
-                                                                      textOutput
+        """Print the text output of a Zemax analysis type into a IPython
+        cell.
 
         Parameters
         ----------
-        analysisType : 3 letter case-sensitive label that indicates the
-                       type of the analysis to be performed. They are identical
-                       to those used for the button bar in Zemax. The labels
-                       are case sensitive. If no label is provided or recognized,
-                       a standard raytrace will be generated.
-        sln          : starting line number (integer) `default=0`
-        eln          : ending line number (integer) `default=None`. If `None` all
-                       lines in the file are printed.
-        settingsFile : If a valid file name is used for the "settingsFile",
-                           ZEMAX will use or save the settings used to compute the
-                           text file, depending upon the value of the flag parameter.
-        flag        :  0 = default settings used for the text
-                       1 = settings provided in the settings file, if valid,
-                           else default settings used
-                       2 = settings provided in the settings file, if valid,
-                           will be used and the settings box for the requested
-                           feature will be displayed. After the user makes any
-                           changes to the settings the text will then be
-                           generated using the new settings.
-                       Please see the ZEMAX manual for more details.
+        analysisType : string
+            3 letter case-sensitive label that indicates the type of the
+            analysis to be performed. They are identical to those used for
+            the button bar in Zemax. The labels are case sensitive. If no
+            label is provided or recognized, a standard raytrace will be
+            generated.
+        sln : integer, optional
+            starting line number (default = 0)
+        eln : integer, optional
+            ending line number (default = None). If ``None`` all lines in
+            the file are printed.
+        settingsFile : string, optional
+            If a valid file name is used for the ``settingsFile``, Zemax
+            will use or save the settings used to compute the text file,
+            depending upon the value of the flag parameter.
+        flag : integer, optional
+            0 = default settings used for the text;
+            1 = settings provided in the settings file, if valid, else
+                default settings used
+            2 = settings provided in the settings file, if valid, will
+                be used and the settings box for the requested feature
+                will be displayed. After the user makes any changes to
+                the settings the text will then be generated using the
+                new settings. Please see the ZEMAX manual for details.
 
         Returns
         -------
@@ -7401,8 +8850,8 @@ class PyZDDE(object):
         Parameters
         ----------
         pprint : boolean
-            If True (default), the parameters are printed, else a dictionary
-            is returned
+            If True (default), the parameters are printed, else a
+            dictionary is returned
 
         Returns
         -------
@@ -7422,7 +8871,7 @@ class PyZDDE(object):
             return first
 
     def ipzGetMFE(self, start_row=1, end_row=2, pprint=True):
-        """prints or returns the Oper, Target, Weight and Value parameters
+        """Prints or returns the Oper, Target, Weight and Value parameters
         in the MFE for the specified rows in an IPython notebook cell
 
         Parameters
@@ -7432,8 +8881,8 @@ class PyZDDE(object):
         end_row : integer, optional
             end row in the MFE to print (default=2)
         pprint : boolean
-            If True (default), the parameters are printed, else a dictionary
-            is returned.
+            If True (default), the parameters are printed, else a
+            dictionary is returned.
 
         Returns
         -------
@@ -7472,8 +8921,8 @@ class PyZDDE(object):
         Parameters
         ----------
         pprint : boolean
-            If True (default), the parameters are printed, else a dictionary
-            is returned
+            If True (default), the parameters are printed, else a
+            dictionary is returned
 
         Returns
         -------
@@ -7505,13 +8954,14 @@ class PyZDDE(object):
         Parameters
         ----------
         pprint : boolean
-            If True (default), the parameters are printed, else a dictionary
-            is returned
+            If True (default), the parameters are printed, else a
+            dictionary is returned
 
         Returns
         -------
-        Print or return dictionary containing system aperture information in
-        human readable form that meant to be used in interactive environment.
+        Print or return dictionary containing system aperture information
+        in human readable form that meant to be used in interactive
+        environment.
         """
         sysAperData = self.zGetSystemAper()
         sysaper = {}
@@ -7527,21 +8977,22 @@ class PyZDDE(object):
             return sysaper
 
     def ipzGetSurfaceData(self, surfaceNumber, pprint=True):
-        """Print or return basic (not all) surface data in human readable form
+        """Print or return basic (not all) surface data in human readable
+        form
 
         Parameters
         ----------
         surfaceNumber : integer
             surface number
         pprint : boolean
-            If True (default), the parameters are printed, else a dictionary
-            is returned.
+            If True (default), the parameters are printed, else a
+            dictionary is returned.
 
         Returns
         -------
-        Print or return dictionary containing basic surface data (radius of curvature,
-        thickness, glass, semi-diameter, and conic) in human readable form that
-        meant to be used in interactive environment.
+        Print or return dictionary containing basic surface data (radius
+        of curvature, thickness, glass, semi-diameter, and conic) in human
+        readable form that meant to be used in interactive environment.
         """
         surfdata = {}
         surfdata['Radius of curvature'] = 1.0/self.zGetSurfaceData(surfaceNumber, 2)
@@ -7597,8 +9048,8 @@ class PyZDDE(object):
 #   OTHER HELPER FUNCTIONS THAT DO NOT REQUIRE A RUNNING ZEMAX SESSION
 # ***********************************************************************
 def numAper(aperConeAngle, rIndex=1.0):
-    """Returns the Numerical Aperture (NA) for the associated aperture cone
-    angle
+    """Returns the Numerical Aperture (NA) for the associated aperture
+    cone angle
 
     Parameters
     ----------
@@ -7657,8 +9108,8 @@ def fresnelNumber(r, z, wl=550e-6, approx=False):
         radius of the aperture in units of length (usually mm)
     z : float
         distance of the observation plane from the aperture. this is equal
-        to the focal length of the lens for infinite conjugate, or the image
-        plane distance, in the same units of length as ``r``
+        to the focal length of the lens for infinite conjugate, or the
+        image plane distance, in the same units of length as ``r``
     wl : float
         wavelength of light (default=550e-6 mm)
     approx : boolean
@@ -7674,9 +9125,9 @@ def fresnelNumber(r, z, wl=550e-6, approx=False):
     1. The Fresnel number is calculated based on a circular aperture or a
        an unaberrated rotationally symmetric beam with finite extent [Zemax]_.
     2. From the Huygens-Fresnel principle perspective, the Fresnel number
-       represents the number of annular Fresnel zones in the aperture opening
-       [Wolf2011]_, or from the center of the beam to the edge in case of a
-       propagating beam [Zemax]_.
+       represents the number of annular Fresnel zones in the aperture
+       opening [Wolf2011]_, or from the center of the beam to the edge in
+       case of a propagating beam [Zemax]_.
 
     References
     ----------
@@ -8007,6 +9458,18 @@ def _deleteFile(fileName, n=10):
             status = True
     return status
 
+def _deleteFilesCreatedDuringSession(self):
+    """Helper function to clean up files creatd by PyZDDE during a session.
+    Examples of such files include configuration files, etc.
+    """
+    filesToDelete = self._filesCreated
+    filesNotDeleted = set()
+    for filename in filesToDelete:
+        if not _deleteFile(filename):
+            filesNotDeleted.add(filename)
+    remaining = filesToDelete.intersection(filesNotDeleted)
+    self._filesCreated = remaining
+
 def _process_get_set_NSCProperty(code, reply):
     """Process reply for functions zGetNSCProperty and zSETNSCProperty"""
     rs = reply.rstrip()
@@ -8203,14 +9666,142 @@ def _get2DList(line_list, start_line, number_of_lines):
     Returns
     -------
     data : list
-        data is a 2-D list of float type data read from the lines in line_list
+        data is a 2-d list of float type data read from the lines in
+        line_list
     """
     data = []
-    end_Line = start_line + number_of_lines
+    end_line = start_line + number_of_lines - 1
     for lineNum, row in enumerate(line_list):
-        if start_line <= lineNum <= end_Line:
-            data.append([float(i) for i in row.split('\t')])
+        if start_line <= lineNum <= end_line:
+            data.append([float(i) for i in row.split()])
     return data
+
+def _transpose2Dlist(mat):
+    """transpose a matrix that is constructed as a list of lists in pure
+    Python
+
+    The inner lists represents rows.
+
+    Parameters
+    ----------
+    mat : list of lists (2-d list)
+        the 2D list represented as
+        | [[a_00, a_01, ..., a_0n],
+        |  [a_10, a_11, ..., a_1n],
+        |            ...          ,
+        |  [a_m0, a_m1, ..., a_mn]]
+
+    Returns
+    -------
+    matT : list of lists (2-d list)
+        transposed of ``mat``
+
+    Notes
+    -----
+    The function assumes that all the inner lists are of the same lengths.
+    It doesn't do any error checking.
+    """
+    cols = len(mat[0])
+    matT = []
+    for i in range(cols):
+        matT.append([row[i] for row in mat])
+    return matT
+
+def _getRePatPosInLineList(line_list, re_pattern):
+    """internal helper function for retrieving the positions of specific
+    patterns in a list of lines read from a file
+
+    Parameters
+    ----------
+    line_list : list
+        list of lines read from a file
+    re_pattern : string
+        regular expression pattern to loop for
+
+    Returns
+    -------
+    positions : list
+        the list containing the position of the pattern in the input list
+    """
+    positions = []
+    for line_number, line in enumerate(line_list):
+        if _re.search(re_pattern, line):
+            positions.append(line_number)
+    return positions
+
+def _txtAndSettingsToUse(self, txtFile, settingsFile, anaType):
+    """internal helper function for use by zGet type of functions
+    that call ``zGetTextFile()``, to decide the type of settings
+    file and settings flag to use
+
+    Parameters
+    ----------
+    self : object
+        pyzdde link object
+    txtFile : string
+        text file that may have been passed by the user
+    settingsFile : string
+        settings file that may have been passed by the user
+    anaType : string
+        3-letter analysis code
+
+    Returns
+    -------
+    cfgFile : string
+        full name and path of the configuration/ settings file to
+        use for calling ``zGetTextFile()``
+    getTextFlag : integer
+        flag to be used for calling ``zGetTextFile()``
+    """
+    # note to the developer -- maintain exactly same keys in both
+    # txtFileDict and anaCfgDict. Note that some analysis have common
+    # txt file and settings files associated with them. Of course they
+    # may be changed if required in future.
+    txtFileDict =  {'Pop':'popData.txt',
+                    'Hcs':'HuygensPsfCSAnalysisFile.txt', # Huygens PSF cross-section
+                    'Hps':'HuygensPsfAnalysisFile.txt', # Huygens PSF
+                    'Hmf':'HuygensMtfAnalysisFile.txt', # Huygens MTF
+                    'Pcs':'FFTPsfCSAnalysisFile.txt', # FFT PSF cross-section
+                    'Fps':'FFTPsfAnalysisFile.txt', # FFT PSF
+                    'Mtf':'FFTMtfAnalysisFile.txt', # FFT MTF
+                    'Sei':'seidelAberrationFile.txt',
+                    'Pre':'prescriptionFile.txt',
+                    'Sim':'imageSimulationAnalysisFile.txt',
+                    }
+
+    anaCfgDict  = {'Pop':'_pyzdde_POP.CFG',
+                   'Hcs':'_pyzdde_HUYGENSPSFCS.CFG',
+                   'Hps':'_pyzdde_HUYGENSPSF.CFG',
+                   'Hmf':'_pyzdde_HUYGENSMTF.CFG',
+                   'Pcs':'_pyzdde_FFTPSFCS.CFG',
+                   'Fps':'_pyzdde_FFTPSF.CFG',
+                   'Mtf':'_pyzdde_FFTMTF.CFG',
+                   'Sei':'None',
+                   'Pre':'None',  # change this to the appropriate file when implemented
+                   'Sim':'_pyzdde_IMGSIM.CFG',
+                   }
+    assert txtFileDict.keys() == anaCfgDict.keys(), \
+           "Dicts don't have matching keys" # for code integrity
+    assert anaType in anaCfgDict
+
+    #fdir = _os.path.dirname(_os.path.realpath(__file__))
+    fdir = _os.path.dirname(self.zGetFile())
+    if txtFile != None:
+        textFileName = txtFile
+    else:
+        textFileName = _os.path.join(fdir, txtFileDict[anaType])
+    if settingsFile:
+        cfgFile = settingsFile
+        getTextFlag = 1
+    else:
+        f = _os.path.splitext(self.zGetFile())[0] + anaCfgDict[anaType]
+        if _checkFileExist(f): # use "*_pyzdde_XXX.CFG" settings file
+            cfgFile = f
+            getTextFlag = 1
+        else: # use default settings file
+            cfgFile = ''
+            getTextFlag = 0
+    return textFileName, cfgFile, getTextFlag
 #
 #
 if __name__ == "__main__":
