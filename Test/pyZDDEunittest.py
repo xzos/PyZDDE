@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.7.7
+# Revision:    0.8.0
 #-------------------------------------------------------------------------------
 from __future__ import division
 from __future__ import print_function
@@ -55,7 +55,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def tearDown(self):
         # Tear down unit test
-        if self.link0.connection:
+        if self.link0._connection:
             self.link0.zDDEClose()
         else:
             print("Server was already terminated")

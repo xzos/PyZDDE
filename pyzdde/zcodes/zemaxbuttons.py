@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.7.7
+# Revision:    0.8.0
 #-------------------------------------------------------------------------------
 from __future__ import print_function
 import re as _re
@@ -128,8 +128,7 @@ class _Buttons(object):
     "MFE": "Merit Function Editor",
     "Mfl": "Merit Function List",
     "Mfo": "Make Focal",
-    "Mgm": "Geometric MTF Map",
-    "Mtf": "Modulation TF",
+    "Mtf": "Modulation Transfer Function (FFT MTF)",
     "Mth": "MTF vs. Field",
     "NCE": "Non-Sequential Editor",
     "New": "New File",

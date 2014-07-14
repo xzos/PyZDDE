@@ -29,6 +29,7 @@ pix = im.load()
 #(nx, ny)  = im.size
 (nx, ny) = (64, 64)
 
+#
 Ex_real = [[0 for x in range(nx)] for y in range(ny)]
 Ex_imag = [[0 for x in range(nx)] for y in range(ny)]
 Ey_real = [[0 for x in range(nx)] for y in range(ny)]
@@ -36,8 +37,7 @@ Ey_imag = [[0 for x in range(nx)] for y in range(ny)]
 
 for i in range(ny):
     for j in range(nx):
-        Ex_real[i][nx-j-1] = pix[i, j]
-        #print(pix[i,j])
+        Ex_real[nx-j-1][i] = pix[i, j]
 
 n=(nx,ny)
 efield = (Ex_real, Ex_imag, Ey_real, Ey_imag)

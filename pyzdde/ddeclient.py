@@ -10,7 +10,7 @@
 # Copyright:   (c) David Naylor
 # Licence:     New BSD license (Please see the file Notice.txt for further details)
 # Website:     http://code.activestate.com/recipes/577654-dde-client/
-# Revision:    0.7.6
+# Revision:    0.8.0
 #-------------------------------------------------------------------------------
 from __future__ import print_function
 import sys
@@ -212,10 +212,10 @@ class CreateConversation(object):
         try:
             reply = self.ddec.request(item, int(timeout*1000)) # convert timeout into milliseconds
         except DDEError:
-            err_str = sys.exc_info()[1]
+            err_str = str(sys.exc_info()[1])
             error =  err_str[err_str.find('err=')+4:err_str.find('err=')+10]
             if error == hex(DMLERR_DATAACKTIMEOUT):
-                print("Timeout reached. Please use a higher timeout.\n")
+                print("TIMEOUT REACHED. Please use a higher timeout.\n")
         return reply
 
     def RequestArrayTrace(self, ddeRayData, timeout=None):
