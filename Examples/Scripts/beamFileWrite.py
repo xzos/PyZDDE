@@ -42,6 +42,7 @@ for i in range(ny):
 # I'd like to change the code so that this whows me a good pikachu ;)
 
 imshow(Ex_real)
+
 show()
 n=(nx,ny)
 efield = (Ex_real, Ex_imag, Ey_real, Ey_imag)
@@ -55,7 +56,7 @@ waist = (3.0,3.0)
 lamda = 0.00055
 index = 1.0
 
-beamfilename = directory+"\pikachu2.zbf"
+beamfilename = directory+path.os.sep+"pikachu2.zbf"
 
 # Write the beam file
 writeBeamFile(beamfilename, version, n, ispol, units, d, zposition,
