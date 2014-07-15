@@ -4145,20 +4145,20 @@ class PyZDDE(object):
 
         Parameters
         ----------
-        surfaceNumber : integer 
+        surfaceNumber : integer
             the surface number of the NSC group (1 for pure NSC systems).
-        detectorObjectNumber : integer 
+        detectorObjectNumber : integer
             the object number of the desired detector.
-        pixel : integer 
-            0 = the sum of the data for all pixels for that detector 
-                object is returned; 
-            +ve int = the data from the specified pixel is returned. 
-        dtype : integer 
+        pixel : integer
+            0 = the sum of the data for all pixels for that detector
+                object is returned;
+            +ve int = the data from the specified pixel is returned.
+        dtype : integer
             0 = real; 1 = imaginary; 2 = amplitude; 3 = power
 
         Returns
-        ------- 
-        
+        -------
+
         """
         cmd = ("NSCCoherentData,{:d},{:d},{:d},{:d}"
                .format(surfaceNumber, detectorObjectNumber, pixel, dtype))
@@ -4166,58 +4166,58 @@ class PyZDDE(object):
         return float(reply.rstrip())
 
     def zNSCDetectorData(self, surfaceNumber, detectorObjectNumber, pixel, dtype):
-        """Return data from an NSC detector (Non-sequential incoherent 
+        """Return data from an NSC detector (Non-sequential incoherent
         intensity data)
 
         Parameters
         ----------
-        surfaceNumber : integer 
+        surfaceNumber : integer
             the surface number of the NSC group (1 for pure NSC systems).
-        detectorObjectNumber : integer 
+        detectorObjectNumber : integer
             the object number of the desired detector.
-            0 = all detectors are cleared; 
-            -ve int = only the detector defined by the absolute value of 
+            0 = all detectors are cleared;
+            -ve int = only the detector defined by the absolute value of
             ``detectorObjectNumber`` is cleared
-        pixel : integer 
+        pixel : integer
             the ``pixel`` argument is interpreted differently depending
             upon the type of detector as follows:
 
-            1. For Detector Rectangles, Detector Surfaces, & all faceted 
+            1. For Detector Rectangles, Detector Surfaces, & all faceted
                detectors (type 1):
-            
+
                 * +ve int = the data from the specified pixel is returned.
-                * 0 = the sum of the total flux in position space, average 
-                  flux/area in position space, or total flux in angle 
-                  space for all pixels for that detector object, for 
+                * 0 = the sum of the total flux in position space, average
+                  flux/area in position space, or total flux in angle
+                  space for all pixels for that detector object, for
                   Data = 0, 1, or 2, respectively.
                 * -1 = Maximum flux or flux/area.
                 * -2 = Minimum flux or flux/area.
                 * -3 = Number of rays striking the detector.
-                * -4 = Standard deviation (RMS from the mean) of all the 
+                * -4 = Standard deviation (RMS from the mean) of all the
                   non-zero pixel data.
                 * -5 = The mean value of all the non-zero pixel data.
-                * -6,-7,-8 = The x, y, or z coordinate of the position or 
+                * -6,-7,-8 = The x, y, or z coordinate of the position or
                   angle Irradiance or Intensity  centroid, resp.
-                * -9,-10,-11,-12,-13 = The RMS radius, x, y, z, or xy 
-                  cross term distance or angle of all the pixel data 
-                  with respect to the centroid. These are the second 
+                * -9,-10,-11,-12,-13 = The RMS radius, x, y, z, or xy
+                  cross term distance or angle of all the pixel data
+                  with respect to the centroid. These are the second
                   moments r^2, x^2, y^2, z^2, & xy, respectively.
-        
-            2. For Detector volumes (type 2) ``pixel`` is interpreted as 
-               the voxel number. if ``pixel == 0``,  the value returned 
-               is the sum for all pixels. 
 
-        dtype : integer 
-            0 = flux or incident flux for type 1 and type 2 detectors 
+            2. For Detector volumes (type 2) ``pixel`` is interpreted as
+               the voxel number. if ``pixel == 0``,  the value returned
+               is the sum for all pixels.
+
+        dtype : integer
+            0 = flux or incident flux for type 1 and type 2 detectors
                 respectively.
-            1 = flux/area for type 1 detectors. Equals absorbed flux for 
+            1 = flux/area for type 1 detectors. Equals absorbed flux for
                 type 2 detectors.
-            2 = flux/solid angle pixel for type 1 detectors. Equals 
-                absorbed flux per unit volume for type 2 detectors. 
-                   
+            2 = flux/solid angle pixel for type 1 detectors. Equals
+                absorbed flux per unit volume for type 2 detectors.
+
         Notes
-        ----- 
-        Only ``dtype`` values 0 & 1 (for flux & flux/area) are supported 
+        -----
+        Only ``dtype`` values 0 & 1 (for flux & flux/area) are supported
         for faceted detectors.
         """
         cmd = ("NSCDetectorData,{:d},{:d},{:d},{:d}"
@@ -4225,7 +4225,7 @@ class PyZDDE(object):
         reply = self._sendDDEcommand(cmd)
         return float(reply.rstrip())
 
-    def zNSCLightningTrace(self, surfNumber, source, raySampling, edgeSampling, 
+    def zNSCLightningTrace(self, surfNumber, source, raySampling, edgeSampling,
                            timeout=60):
         """Traces rays from one or all NSC sources using Lighting Trace
 
@@ -4234,26 +4234,26 @@ class PyZDDE(object):
         surfNumber : integer
             surface number. use 1 for pure NSC mode
         source : integer
-            object number of the desired source. If ``0``, all sources 
+            object number of the desired source. If ``0``, all sources
             will be traced.
-        raySampling : integer  
+        raySampling : integer
             resolution of the LightningTrace mesh with valid values
             between 0 (= "Low (1X)") and 5 (= "1024X").
-        edgeSampling : integer 
+        edgeSampling : integer
             resolution used in refining the LightningTrace mesh near
             the edges of objects, with valid values between 0 ("Low (1X)")
             and 4 ("256X").
-        timeout : integer 
+        timeout : integer
             timeout value in seconds. Default=60sec
 
         Returns
-        ------- 
-        status : integer 
+        -------
+        status : integer
 
         Notes
-        ----- 
-        ``zNSCLightningTrace()`` always updates the lens before executing 
-        a LightningTrace to make certain all objects are correctly loaded 
+        -----
+        ``zNSCLightningTrace()`` always updates the lens before executing
+        a LightningTrace to make certain all objects are correctly loaded
         and updated.
         """
         cmd = ("NSCLightningTrace,{:d},{:d},{:d},{:d}"
@@ -4269,53 +4269,53 @@ class PyZDDE(object):
     def zNSCTrace(self, surfNum, objNumSrc, split=0, scatter=0, usePolar=0,
                   ignoreErrors=0, randomSeed=0, save=0, saveFilename=None,
                   oFilter=None, timeout=60):
-        """Traces rays from one or all NSC sources with various optional 
+        """Traces rays from one or all NSC sources with various optional
         arguments.
-        
-        This function always updates the lens before tracing rays to make 
+
+        This function always updates the lens before tracing rays to make
         certain all objects are correctly loaded and updated.
 
         Parameters
         ----------
-        surfNum : integer 
+        surfNum : integer
             the surface number of the NSC group (1 for pure NSC systems).
-        objNumSrc : integer 
-            the object number of the desired source. Use 0 to trace all 
+        objNumSrc : integer
+            the object number of the desired source. Use 0 to trace all
             sources.
         split : integer, optional
             0 = splitting is OFF (default); otherwise splitting is ON
-        scatter : integer, optional 
+        scatter : integer, optional
             0 = scattering is OFF (default); otherwise scattering is ON
-        usePolar : integer 
-            0 = polarization is OFF (default); otherwise polarization is 
+        usePolar : integer
+            0 = polarization is OFF (default); otherwise polarization is
             ON. If splitting is ON polarization is automatically selected.
-        ignoreErrors : integer, optional 
+        ignoreErrors : integer, optional
             0 = ray errors will terminate the NSC trace & macro execution
-            and an error will be reported (default). Otherwise erros will 
+            and an error will be reported (default). Otherwise erros will
             be ignored
         randomSeed : integer, optional
-            0 or omitted = the random number generator will be seeded with 
-            a random value, & every call to ``zNSCTrace()`` will produce 
-            different random rays (default). Any integer other than zero 
-            will ensure that the random number generator be seeded with 
-            the specified value, and every call to ``zNSCTrace()`` using 
+            0 or omitted = the random number generator will be seeded with
+            a random value, & every call to ``zNSCTrace()`` will produce
+            different random rays (default). Any integer other than zero
+            will ensure that the random number generator be seeded with
+            the specified value, and every call to ``zNSCTrace()`` using
             the same seed will produce identical rays.
         save : integer, optional
             0 or omitted = the parameters ``saveFilename`` and ``oFilter``
-            need not be supplied (default). Otherwise the rays will be 
-            saved in a ``ZRD`` file. The ``ZRD`` file will have the name 
-            specified by the ``saveFilename``, and will be placed in the 
-            same directory as the lens file. The extension of 
-            ``saveFilename`` should be ``ZRD``, and no path should be 
+            need not be supplied (default). Otherwise the rays will be
+            saved in a ``ZRD`` file. The ``ZRD`` file will have the name
+            specified by the ``saveFilename``, and will be placed in the
+            same directory as the lens file. The extension of
+            ``saveFilename`` should be ``ZRD``, and no path should be
             specified.
-        saveFilename : string, optional  
+        saveFilename : string, optional
             (see above)
-        oFilter : string, optional 
-            if ``save`` is not zero, then the optional filter name is 
-            either a string variable with the filter, or the literal 
-            filter in double quotes. For information on filter strings 
+        oFilter : string, optional
+            if ``save`` is not zero, then the optional filter name is
+            either a string variable with the filter, or the literal
+            filter in double quotes. For information on filter strings
             see "The filter string" in the Zemax manual.
-        timeout : integer 
+        timeout : integer
             timeout in seconds (default = 60 seconds)
 
         Returns
@@ -4328,23 +4328,23 @@ class PyZDDE(object):
         --------
         >>> zNSCTrace(1, 2, 1, 0, 1, 1)
 
-        The above command traces rays in NSC group 1, from source 2, with 
-        ray splitting, no ray scattering, using polarization and ignoring 
+        The above command traces rays in NSC group 1, from source 2, with
+        ray splitting, no ray scattering, using polarization and ignoring
         errors.
 
         >>> zNSCTrace(1, 2, 1, 0, 1, 1, 33, 1, "myrays.ZRD", "h2")
 
-        Same as above, only a random seed of 33 is given and the data is 
+        Same as above, only a random seed of 33 is given and the data is
         saved to the file "myrays.ZRD" after filtering as per h2.
 
         >>> zNSCTrace(1, 2)
 
-        The above command traces rays in NSC group 1, from source 2, 
-        witout ray splitting, no ray scattering, without using 
+        The above command traces rays in NSC group 1, from source 2,
+        witout ray splitting, no ray scattering, without using
         polarization and will not ignore errors.
         """
         requiredArgs = ("{:d},{:d},{:d},{:d},{:d},{:d},{:d},{:d}"
-        .format(surfNum,objNumSrc, split, scatter, usePolar, ignoreErrors, 
+        .format(surfNum,objNumSrc, split, scatter, usePolar, ignoreErrors,
                 randomSeed, save))
         if save:
             isAbsPath = _os.path.isabs(saveFilename)
@@ -4373,36 +4373,36 @@ class PyZDDE(object):
         Parameters
         ----------
         analysisType : string
-            the 3-letter button code corresponding to the analysis. A list 
-            of these codes can be seen by calling ``pyz.showZButtons()`` 
+            the 3-letter button code corresponding to the analysis. A list
+            of these codes can be seen by calling ``pyz.showZButtons()``
             function in an interactive shell.
         zplMacro : bool, optional
-            ``True`` if the ``analysisType`` code is the first 3-letters 
-            of a ZPL macro name, else ``False`` (default). 
-        timeout : integer, optional 
+            ``True`` if the ``analysisType`` code is the first 3-letters
+            of a ZPL macro name, else ``False`` (default).
+        timeout : integer, optional
             timeout value in seconds.
 
         Returns
         -------
-        status : integer 
-            0 = successful; -1 = incorrect analysis code; -999 = fail 
+        status : integer
+            0 = successful; -1 = incorrect analysis code; -999 = fail
 
         Notes
         -----
-        1. This function checks if the ``analysisType`` code is a valid 
-           code or not in order to prevent the calling program from 
-           getting stalled. However, it doesn't check the ``analysisType`` 
-           code validity if it is a ZPL macro. If the ``analysisType`` is 
-           ZPL macro, please make sure that the macro exist in the 
-           ``<data>/Macros`` folder. 
+        1. This function checks if the ``analysisType`` code is a valid
+           code or not in order to prevent the calling program from
+           getting stalled. However, it doesn't check the ``analysisType``
+           code validity if it is a ZPL macro. If the ``analysisType`` is
+           ZPL macro, please make sure that the macro exist in the
+           ``<data>/Macros`` folder.
         2. You may also use ``zExecuteZPLMacro()`` to execute a ZPL macro.
 
         See Also
-        -------- 
+        --------
         zGetMetaFile(), zExecuteZPLMacro()
         """
-        if zb.isZButtonCode(analysisType) ^ zplMacro:  
-            reply = self._sendDDEcommand("OpenWindow,{}".format(analysisType), 
+        if zb.isZButtonCode(analysisType) ^ zplMacro:
+            reply = self._sendDDEcommand("OpenWindow,{}".format(analysisType),
                                          timeout)
             if 'OK' in reply.split():
                 return 0
@@ -4411,19 +4411,19 @@ class PyZDDE(object):
             else:
                 return int(float(reply.rstrip()))  # error code from Zemax
         else:
-            return -1 
+            return -1
 
     def zOperandValue(self, operandType, *values):
-        """Returns the value of any optimization operand, even if the 
+        """Returns the value of any optimization operand, even if the
         operand is not currently in the merit function.
 
         Parameters
         ----------
         operandType : string
             a valid optimization operand
-        *values : flattened sequence 
-            a sequence of arguments. Possible arguments include: 
-            ``int1``, ``int2``, ``data1``, ``data2``, ``data3``, 
+        *values : flattened sequence
+            a sequence of arguments. Possible arguments include:
+            ``int1``, ``int2``, ``data1``, ``data2``, ``data3``,
             ``data4``, ``data5``, ``data6``
 
         Returns
@@ -4446,15 +4446,15 @@ class PyZDDE(object):
 
         Parameters
         ----------
-        numOfCycles : integer, optional 
-            the number of cycles to run. If ``numOfCycles == 0`` 
-            (default), optimization runs in automatic mode. Else if 
-            ``numOfCycles < 0``, ``zOptimize()`` updates all operands 
+        numOfCycles : integer, optional
+            the number of cycles to run. If ``numOfCycles == 0``
+            (default), optimization runs in automatic mode. Else if
+            ``numOfCycles < 0``, ``zOptimize()`` updates all operands
             in the merit function and returns the current merit function
             without performing optimization.
         algorithm : integer, optional
             0 = Damped Least Squares; 1 = Orthogonal descent
-        timeout : integer, optional 
+        timeout : integer, optional
             timeout value in seconds
 
         Returns
@@ -4464,20 +4464,20 @@ class PyZDDE(object):
 
         Notes
         -----
-        1. If the merit function value returned is 9.0E+009, the 
-           optimization failed, usually because the lens or merit function 
+        1. If the merit function value returned is 9.0E+009, the
+           optimization failed, usually because the lens or merit function
            could not be evaluated.
-        2. The number of cycles should be kept small enough to allow the 
-           algorithm to complete and return before the DDE communication 
-           times out, or an error will occur. One possible way to achieve 
-           high number of cycles could be to call ``zOptimize()`` multiple 
-           times in a loop, each time comparing the returned merit 
-           function with few of the previously returned (and stored) merit 
-           function values to determine if an optimum has been attained. 
+        2. The number of cycles should be kept small enough to allow the
+           algorithm to complete and return before the DDE communication
+           times out, or an error will occur. One possible way to achieve
+           high number of cycles could be to call ``zOptimize()`` multiple
+           times in a loop, each time comparing the returned merit
+           function with few of the previously returned (and stored) merit
+           function values to determine if an optimum has been attained.
            For an example implementation, see ``zOptimize2()``
 
         See Also
-        -------- 
+        --------
         zHammer(), zLoadMerit(), zsaveMerit(), zOptimize2()
         """
         cmd = "Optimize,{:1.2g},{:d}".format(numOfCycles,algorithm)
@@ -4596,18 +4596,18 @@ class PyZDDE(object):
             0 = no window is using the filename;
             1 = the file is being used.
 
-        When Zemax calls the client to update or change the settings used 
-        by the client function, the menu bar is grayed out on the window 
-        to prevent multiple updates or setting changes from being 
-        requested simultaneously. Normally, when the client code calls 
-        the functions ``zMakeTextWindow()`` or ``zMakeGraphicWindow()``, 
-        the menu bar is once again activated. However, if during an update 
-        or setting change, the new data cannot be computed, then the 
-        window must be released. The ``zReleaseWindow()`` function serves 
-        just this one purpose. If the user selects "Cancel" when changing 
-        the settings, the client code should send a ``zReleaseWindow()`` 
-        call to release the lock out of the menu bar. If this command is 
-        not sent, the window cannot be closed, which will prevent 
+        When Zemax calls the client to update or change the settings used
+        by the client function, the menu bar is grayed out on the window
+        to prevent multiple updates or setting changes from being
+        requested simultaneously. Normally, when the client code calls
+        the functions ``zMakeTextWindow()`` or ``zMakeGraphicWindow()``,
+        the menu bar is once again activated. However, if during an update
+        or setting change, the new data cannot be computed, then the
+        window must be released. The ``zReleaseWindow()`` function serves
+        just this one purpose. If the user selects "Cancel" when changing
+        the settings, the client code should send a ``zReleaseWindow()``
+        call to release the lock out of the menu bar. If this command is
+        not sent, the window cannot be closed, which will prevent
         Zemax from terminating normally.
         """
         reply = self._sendDDEcommand("ReleaseWindow,{}".format(tempFileName))
@@ -9174,6 +9174,28 @@ def fresnelNumber(r, z, wl=550e-6, approx=False):
         return (r**2)/(wl*z)
     else:
         return 2.0*(_math.sqrt(z**2 + r**2) - z)/wl
+
+# scales to SI-meter
+#                 mm  , cm  , inch  , m
+_zbf_unit_factors = [1e-3, 1e-2, 0.0254, 1]
+
+def zUnitToMeter(zemaxUnitId, value):
+    """Converts a zemax_unit to SI-meter.
+
+    Parameters
+    ----------
+    zemaxUnitId : int
+        0: mm
+        1: cm
+        2: inch
+        3: m
+
+    Returns
+    -------
+    value in meter(m)
+    """
+    return _zbf_unit_factors[zemaxUnitId] * value
+
 
 def readBeamFile(beamfilename):
     """Read in a Zemax Beam file
