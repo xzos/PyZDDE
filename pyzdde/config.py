@@ -21,12 +21,13 @@ def setTextEncoding(txt_encoding=0):
 
     Parameters
     ----------
-    txt_encoding (integer) : 0 = ASCII
-                             1 = UNICODE
+    txt_encoding : integer
+        0 = ASCII; 1 = UNICODE
 
     Returns
     -------
-    status : True if success; False if fail
+    status : bool
+        ``True`` if success; ``False`` if fail
     """
     global _global_use_unicode_text
     status = False
@@ -47,7 +48,9 @@ def setTextEncoding(txt_encoding=0):
     return status
 
 def getTextEncoding():
-    """returns the current text encoding set in PyZDDE """
+    """returns the current text encoding set in PyZDDE
+    This is an internal helper function
+    """
     return getEncodingConfiguration(encoding_type=0)
 
 def getSettingsFileFullName():
@@ -62,11 +65,13 @@ def getEncodingConfiguration(encoding_type=0):
 
     Parameters
     ----------
-    encoding_type (integer) : 0 = Text encoding; 1 = File encoding
+    encoding_type : integer
+        0 = Text encoding; 1 = File encoding
 
-    Return
-    ------
-    encoding (string) : 'ascii' or 'unicode'
+    Returns
+    -------
+    encoding : string
+        'ascii' or 'unicode'
     """
     parser = SafeConfigParser()
     parser.read(getSettingsFileFullName())
@@ -81,12 +86,15 @@ def changeEncodingConfiguration(encoding_type=0, encoding=0):
 
     Parameters
     ----------
-    encoding_type (integer) : 0 = Text encoding; 1 = File encoding
-    encoding (integer) : 0 = ascii; 1 = unicode
+    encoding_type : integer
+        0 = Text encoding; 1 = File encoding
+    encoding : integer
+        0 = ascii; 1 = unicode
 
-    Return
-    ------
-    success_status (bool) : True = success; False = failed
+    Returns
+    -------
+    status : bool
+        True = success; False = failed
     """
     parser = SafeConfigParser()
     parser.read(getSettingsFileFullName())
@@ -110,6 +118,70 @@ def changeEncodingConfiguration(encoding_type=0, encoding=0):
         status = False
     return status
 
+def getImageMagickSettings():
+    """return the use-flag and imageMagick installation directory
+    settings
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    use_flag : bool
+        if ``True``, then PyZDDE uses the installed version of ImageMagick
+        software. If ``False``, then the version of ImageMagick that
+        comes with PyZDDE will be used.
+    imageMagick_dir : string
+        ImageMagick installation directory.
+    """
+    parser = SafeConfigParser()
+    parser.read(getSettingsFileFullName())
+    image_magick_settings = parser.items('imageMagick_config')
+    use_flag_index, dir_index, value_index = 0, 1, 1
+    use_flag = eval(image_magick_settings[use_flag_index][value_index])
+    imageMagick_dir = image_magick_settings[dir_index][value_index]
+    return use_flag, imageMagick_dir
+
+
+def setImageMagickSettings(use_installed_ImageMagick,
+                          imageMagick_dir=None):
+    """set the use-flag and imageMagick installation directory settings
+
+    Parameters
+    ----------
+    use_installed_ImageMagick : bool
+        boolean flag to indicate whether to use installed version
+        of ImageMagick (``True``) or not (``False``)
+    imageMagick_dir : string, optional
+        full path to the installation directory. For example:
+        ``C:\\Program Files\\ImageMagick-6.8.9-Q8``
+
+    Returns
+    -------
+    status : bool
+        ``True`` = success; ``False`` = fail
+    """
+    status = True
+    parser = SafeConfigParser()
+    parser.read(getSettingsFileFullName())
+    parser.set(section='imageMagick_config',
+               option='useInstalled',
+               value=str(use_installed_ImageMagick))
+    if imageMagick_dir:
+        parser.set(section='imageMagick_config',
+                   option='imgMagickIinstallDir',
+                   value=imageMagick_dir)
+    try:
+        cfgfile = open(getSettingsFileFullName(), 'w')
+        parser.write(cfgfile)
+        cfgfile.close()
+    except:
+        status = False
+    return status
+
+
+# -------------------------------------------------------
 # Get Zemax text encoding variable from settings .ini file
 text_encoding = getEncodingConfiguration(encoding_type=0)
 if text_encoding == 'unicode':
@@ -119,7 +191,6 @@ else:
     _global_use_unicode_text = False
     #print('config.py:: text setting is ASCII')
 
-
 # Python version variable
 _global_pyver3 = None
 # Check Python version and set the global version variable
@@ -127,5 +198,3 @@ if _sys.version_info[0] < 3:
     _global_pyver3 = False
 else:
     _global_pyver3 = True
-
-

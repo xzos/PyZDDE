@@ -69,6 +69,9 @@ if _pDir not in _sys.path:
 import pyzdde.config as _config
 _global_pyver3 = _config._global_pyver3
 _global_use_unicode_text = _config._global_use_unicode_text
+imageMagickSettings = _config.getImageMagickSettings()
+_global_use_installed_imageMagick = imageMagickSettings[0]
+_global_imageMagick_dir = imageMagickSettings[1]
 
 # DDEML communication module
 import pyzdde.ddeclient as _dde
@@ -279,6 +282,56 @@ def getTextEncoding():
     setTextEncoding
     """
     return _config.getTextEncoding()
+
+def setImageMagickSettings(use_installed_ImageMagick, imageMagick_dir=None):
+    """Set the use-flag and imageMagick installation directory settings
+
+    Parameters
+    ----------
+    use_installed_ImageMagick : bool
+        boolean flag to indicate whether to use installed version
+        of ImageMagick (``True``) or not (``False``)
+    imageMagick_dir : string, optional
+        full path to the installation directory. For example:
+        ``C:\\Program Files\\ImageMagick-6.8.9-Q8``
+
+    Returns
+    -------
+    imageMagick_settings : tuple
+        updated imageMagick settings
+    """
+    global _global_use_installed_imageMagick
+    global _global_imageMagick_dir
+    if not isinstance(use_installed_ImageMagick, bool):
+        raise ValueError, "Expecting bool"
+    if imageMagick_dir and not _os.path.isdir(imageMagick_dir):
+        raise ValueError, "Expecting valid directory or None"
+    if imageMagick_dir and not _os.path.isfile(_os.path.join(imageMagick_dir, 
+                                              'convert.exe')):
+        raise ValueError, "Couldn't find program convert.exe in the path!"
+    _config.setImageMagickSettings(use_installed_ImageMagick, imageMagick_dir)
+    imageMagickSettings = _config.getImageMagickSettings()
+    _global_use_installed_imageMagick = imageMagickSettings[0]
+    _global_imageMagick_dir = imageMagickSettings[1]
+    return (_global_use_installed_imageMagick, _global_imageMagick_dir)
+
+def getImageMagickSettings():
+    """Return the use-flag and imageMagick installation directory settings
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    use_flag : bool
+        if ``True``, then PyZDDE uses the installed version of ImageMagick
+        software. If ``False``, then the version of ImageMagick that comes
+        with PyZDDE will be used.
+    imageMagick_dir : string
+        ImageMagick installation directory.
+    """
+    return _config.getImageMagickSettings()
 
 # PyZDDE class' utility function (for internal use)
 def _createAppNameDict(maxElements):
@@ -8698,9 +8751,8 @@ class PyZDDE(object):
         """
         return self.ipzCaptureWindow(*args, **kwargs)
 
-    def ipzCaptureWindow(self, analysisType, percent=12, MFFtNum=0, blur=1,
-                         gamma=0.35, settingsFile=None, flag=0, retArr=False,
-                         wait=10):
+    def ipzCaptureWindow(self, analysisType, percent=12, MFFtNum=0, gamma=0.35,
+                         settingsFile=None, flag=0, retArr=False, wait=10):
         """Capture any analysis window from Zemax main window, using
         3-letter analysis code.
 
@@ -8713,9 +8765,6 @@ class PyZDDE(object):
             for resizing the large metafile.
         MFFtNum : integer
             type of metafile. 0 = Enhanced Metafile; 1 = Standard Metafile
-        blur : float
-            amount of blurring to use for antialiasing during resizing of
-            metafile (default=1)
         gamma : float
             gamma for the PNG image (default = 0.35). Use a gamma value of
             around 0.9 for color surface plots.
@@ -8726,12 +8775,11 @@ class PyZDDE(object):
         flag : integer
             * 0 = default settings used for the metafile graphic;
             * 1 = settings provided in the settings file, if valid, else
-                  default settings used;
-            * 2 = settings provided in the settings file, if valid, will
-                  be used and the settings box for the requested feature
-                  will be displayed. After the user makes any changes to
-                  the settings the graphic will then be generated using
-                  the new settings.
+              default settings used;
+            * 2 = settings in the settings file, if valid, will be used &
+              the settings box for the requested feature will be displayed.
+              After the user changes the settings, the graphic will be
+              generated using the new settings.
         retArr : boolean
             whether to return the image as an array or not.
             If ``False`` (default), the image is embedded and no array is
@@ -8747,54 +8795,48 @@ class PyZDDE(object):
         None if ``retArr`` is ``False`` (default). The graphic is embedded
         into the notebook, else ``pixel_array`` (ndarray) if ``retArr``
         is ``True``.
+
+        Notes
+        -----
+        1. In some environments, Zemax outputs large EMF files [1]_.
+           Converting large files may take some time (around 10 sec.)
+           to complete.
+        2. If the function doesn't work as expected, please check the
+           EMF to PNG conversion command being used and the output of
+           executing this command by setting the debug print level to
+           1 as ``pyz._DEBUG_PRINT_LEVEL=1``, and running the function
+           again.
+
+        References
+        ----------
+        .. [1] https://github.com/indranilsinharoy/PyZDDE/issues/34
         """
         global _global_IPLoad, _global_mpl_img_load
+        global _global_use_installed_imageMagick
+        global _global_imageMagick_dir
         if _global_IPLoad:
-            # Use the lens file path to store and process temporary images
-            # tmpImgPath = self.zGetPath()[1]  # lens file path (default) ...
-            # don't use the default lens path, as in earlier versions (before 2009)
-            # of ZEMAX this path is in `C:\Program Files\Zemax\Samples`. Accessing
-            # this folder to create the temporary file and then delete will most
-            # likely not work due to permission issues.
-            tmpImgPath = _os.path.dirname(self.zGetFile())  # directory of the lens file
+            tmpImgPath = _os.path.dirname(self.zGetFile())  # dir of the lens file
             if MFFtNum==0:
                 ext = 'EMF'
             else:
                 ext = 'WMF'
-            tmpMetaImgName = "{tip}\\TEMPGPX.{ext}".format(tip=tmpImgPath,
-                                                               ext=ext)
+            tmpMetaImgName = "{tip}\\TEMPGPX.{ext}".format(tip=tmpImgPath, ext=ext)
             tmpPngImgName = "{tip}\\TEMPGPX.png".format(tip=tmpImgPath)
-            # Get the directory where PyZDDE (and thus `convert`) is located
-            #cd = _os.path.dirname(_os.path.realpath(__file__))
-            # Create the ImageMagick command. At this time, we need two different
-            # types of command because in Zemax:
-            # 1. The Standard metafile export (as .WMF) seems to only work for
-            #    layout analysis window, completely restricting its use
-            # 2. The pen width setting in Zemax for the Enhanced metafile (as .EMF)
-            #    is not functioning.
-            IMAGICK_INSTALLED = True
-            if IMAGICK_INSTALLED:
-                cd = r'C:\Program Files\ImageMagick-6.8.9-Q8'  # See ref: http://savage.net.au/ImageMagick/html/install-convert.html
+
+            if _global_use_installed_imageMagick:
+                cd = _global_imageMagick_dir
             else:
                 cd = _os.path.dirname(_os.path.realpath(__file__))
             if MFFtNum==0:
-#                imagickCmd = ("{cd}convert \"{MetaImg}\" -flatten -blur {bl} "
-#                              "-resize {per}% -gamma {ga} \"{PngImg}\""
-#                              .format(cd=cd,MetaImg=tmpMetaImgName,bl=blur,
-#                                      per=percent,ga=gamma,PngImg=tmpPngImgName))
-#                imagickCmd = (r'convert \"{MetaImg}\" -flatten -blur {bl} -resize {per}% -gamma {ga} \"{PngImg}\"'
-#                              .format(MetaImg=tmpMetaImgName,bl=blur,per=percent,ga=gamma,PngImg=tmpPngImgName))
-
                 imagickCmd = ('{cd}\convert.exe \"{MetaImg}\" -flatten '
                               '-resize {per}% -gamma {ga} \"{PngImg}\"'
                               .format(cd=cd,MetaImg=tmpMetaImgName,per=percent,
                                       ga=gamma,PngImg=tmpPngImgName))
-
             else:
-                imagickCmd = ("{cd}\convert \"{MetaImg}\" -resize {per}% \"{PngImg}\""
+                imagickCmd = ("{cd}\convert.exe \"{MetaImg}\" -resize {per}% \"{PngImg}\""
                               .format(cd=cd,MetaImg=tmpMetaImgName,per=percent,
                                       PngImg=tmpPngImgName))
-            print('debug:', imagickCmd)
+            _debugPrint(1, "imagickCmd = {}".format(imagickCmd))
             # Get the metafile and display the image
             if not self.zGetMetaFile(tmpMetaImgName,analysisType,
                                      settingsFile,flag):
@@ -8807,7 +8849,8 @@ class PyZDDE(object):
                                              stderr=_subprocess.PIPE,
                                              startupinfo=startupinfo)
                     msg = proc.communicate()
-                    print('debug:', msg)
+                    _debugPrint(1, "imagickCmd execution return message = "
+                                "{}".format(msg))
                     if _checkFileExist(tmpPngImgName, timeout=10):
                         _time.sleep(0.2)
                         if retArr:
