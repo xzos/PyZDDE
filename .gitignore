@@ -170,10 +170,10 @@ pip-log.txt
 .coverage
 .tox
 
-#Translations
+# Translations
 *.mo
 
-#Mr Developer
+# Mr Developer
 .mr.developer.cfg
 
 
@@ -187,13 +187,17 @@ Test/Prescription_unitTest_00.txt
 Test/Prescription_unitTest_01.txt
 Examples/*.txt
 
-#Although the following files are in the repository for the unit-test, we don't need to commit changes in them everytime
+# The settings.ini file should be synced every time
+pyzdde/settings.ini
+
+# Although the following files are in the repository for the unit-test, we 
+# don't need to commit changes in them everytime
 ZMXFILES/*.zmx
 ZMXFILES/*.ZMX
 ZMXFILES/*.CFG
 ZMXFILES/*.cfg
 
-#ZEMAX settings files and sessions files
+# ZEMAX settings files and sessions files
 *.CFG
 *.SES
 *.ZMX
@@ -204,3 +208,4 @@ ZMXFILES/Fiber Coupling_POPunittest_Irradiance.CFG
 ZMXFILES/Fiber Coupling_POPunittest_NoFiberCompute.CFG
 ZMXFILES/Fiber Coupling_POPunittest_Phase.CFG
 Examples/Scripts/pikachu2.zbf
+*.ini
