@@ -66,6 +66,11 @@ if _pDir not in _sys.path:
 
 # The first module to import that is not one of the standard modules MUST
 # be the config module as it sets up the different global and settings variables
+settings_file = _os.path.join(_currDir, "settings.ini")
+if not _os.path.isfile(settings_file):
+    src = _os.path.join(_currDir, "settings.ini-dist")
+    _shutil.copy(src, settings_file)
+
 import pyzdde.config as _config
 _global_pyver3 = _config._global_pyver3
 _global_use_unicode_text = _config._global_use_unicode_text
@@ -306,7 +311,7 @@ def setImageMagickSettings(use_installed_ImageMagick, imageMagick_dir=None):
         raise ValueError, "Expecting bool"
     if imageMagick_dir and not _os.path.isdir(imageMagick_dir):
         raise ValueError, "Expecting valid directory or None"
-    if imageMagick_dir and not _os.path.isfile(_os.path.join(imageMagick_dir, 
+    if imageMagick_dir and not _os.path.isfile(_os.path.join(imageMagick_dir,
                                               'convert.exe')):
         raise ValueError, "Couldn't find program convert.exe in the path!"
     _config.setImageMagickSettings(use_installed_ImageMagick, imageMagick_dir)
