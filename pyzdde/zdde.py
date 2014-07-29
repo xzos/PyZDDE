@@ -1003,19 +1003,18 @@ class PyZDDE(object):
                                     .format(addressLineNumber))
         return str(reply)
 
-    def zGetAperture(self, surfNum):
+    def zGetAperture(self, surf):
         """Get the surface aperture data for a given surface
 
         Parameters
         ----------
-        surfNum : integer
+        surf : integer
             the surface-number of a surface
 
         Returns
         -------
         aType : integer
             integer codes of aperture types which are:
-
                 * 0 = no aperture (na);
                 * 1 = circular aperture (ca);
                 * 2 = circular obscuration (co);
@@ -1027,13 +1026,12 @@ class PyZDDE(object):
                 * 8 = user defined aperture (uda);
                 * 9 = user defined obscuration (udo);
                 * 10 = floating aperture (fa);
-
         aMin : float
-            min radius(ca); min radius(co); width of arm(s); X-half width
-            (ra); X-half width(ro); X-half width(ea); X-half width(eo)
+            min radius(ca); min radius(co); width of arm(s); x-half width
+            (ra); x-half width(ro); x-half width(ea); x-half width(eo)
         aMax : float
-            max radius(ca); max radius(co); number of arm(s); X-half
-            width(ra); X-half width(ro); X-half width(ea); X-half width(eo)
+            max radius(ca); max radius(co); number of arm(s); y-half
+            width(ra); y-half width(ro); y-half width(ea); y-half width(eo)
         xDecenter : float
             amount of decenter in x from current optical axis (lens units)
         yDecenter : float
@@ -1057,12 +1055,15 @@ class PyZDDE(object):
             For system aperture instead of the aperture of surface.
         zSetAperture()
         """
-        reply = self._sendDDEcommand("GetAperture,"+str(surfNum))
+        reply = self._sendDDEcommand("GetAperture," + str(surf))
         rs = reply.split(',')
         apertureInfo = [int(rs[i]) if i==5 else float(rs[i])
                                              for i in range(len(rs[:-1]))]
         apertureInfo.append(rs[-1].rstrip()) # append the test file (string)
-        return tuple(apertureInfo)
+        ainfo = _co.namedtuple('ApertureInfo', ['aType', 'aMin', 'aMax', 
+                                                'xDecenter', 'yDecenter',
+                                                'apertureFile'])
+        return ainfo._make(apertureInfo)
 
     def zGetApodization(self, px, py):
         """Computes the intensity apodization of a ray from the
@@ -1235,42 +1236,47 @@ class PyZDDE(object):
         return float(reply)
 
     def zGetField(self, n):
-        """Returns field data from Zemax DDE server
+        """Returns field data for lens in Zemax DDE server
 
         Parameters
         ----------
         n : integer
-            field number
+            the field number
 
         Returns
         -------
-        fieldData : tuple
-            exact elements of the tuple depeds on the value of ``n``
+        [Case: ``n=0``] 
+        
+        type : integer 
+            0 = angles in degrees; 1 = object height; 2 = paraxial image 
+            height, 3 = real image height
+        numFields : integer 
+            number of fields currently defined
+        maxX : float 
+            values used to normalize x field coordinate
+        maxY : float 
+            values used to normalize y field coordinate
+        normMethod : integer  
+            normalization method (0 = radial, 1 = rectangular)
 
-            if ``n = 0``
-                fieldData is a tuple containing the following:
+        [Case: ``0 < n <= number-of-fields``]
 
-                  - type : integer (0 = angles in degrees, \
-                                    1 = object height, \
-                                    2 = paraxial image height, \
-                                    3 = real image height)
-                  - numFields : number of fields currently defined
-                  - max_x_field : value used to normalize x field coordinate
-                  - max_y_field : value used to normalize y field coordinate
-                  - normalization_method : field normalization method
-                    (0 = radial, 1 = rectangular)
-
-            if ``0 < n <= number_of_fields``
-                fieldData is a tuple containing the following:
-
-                  - x : the field x value
-                  - y : the field y value
-                  - wt : field weight
-                  - vdx : decenter x vignetting factor
-                  - vdy : decenter y vignetting factor
-                  - vcx : compression x vignetting factor
-                  - vcy : compression y vignetting factor
-                  - van : angle vignetting factor
+        xf : float 
+            the field-x value
+        yf : float 
+            the field-y value
+        wgt : float 
+            field weight value 
+        vdx : float 
+            decenter-x vignetting factor
+        vdy : float 
+            decenter-y vignetting factor
+        vcx : float 
+            compression-x vignetting factor
+        vcy : float 
+            compression-y vignetting factor
+        van : float 
+            angle vignetting factor
 
         Notes
         -----
@@ -1282,19 +1288,19 @@ class PyZDDE(object):
         zSetField()
         """
         if n: # n > 0
-            fd = _co.namedtuple('fieldData', ['X', 'Y', 'wt',
+            fd = _co.namedtuple('fieldData', ['xf', 'yf', 'wgt',
                                               'vdx', 'vdy',
                                               'vcx', 'vcy', 'van'])
         else: # n = 0
             fd = _co.namedtuple('fieldData', ['type', 'numFields',
-                                              'Xmax', 'Ymax', 'normMethod'])
+                                              'maxX', 'maxY', 'normMethod'])
         reply = self._sendDDEcommand('GetField,'+ str(n))
         rs = reply.split(',')
         if n: # n > 0
             fieldData = fd._make([float(elem) for elem in rs])
         else: # n = 0
-            fieldData = fd._make([int(elem) if (i==0 or i==1)
-                                 else float(elem) for i,elem in enumerate(rs)])
+            fieldData = fd._make([int(elem) if (i==0 or i==1 or i==4)
+                                 else float(elem) for i, elem in enumerate(rs)])
         return fieldData
 
     def zGetFieldTuple(self):
@@ -1306,25 +1312,25 @@ class PyZDDE(object):
 
         Returns
         -------
-        fieldDataTuple: n-tuple (0 < n <= 12)
+        fieldDataTuple: n-tuple (``0 < n <= 12``)
             the tuple elements represent field loactions with each element
             containing all 8 field parameters.
 
         Examples
         --------
-        This example shows the namedtuple returned by ``zGetFieldTuple``
+        This example shows the namedtuple returned by ``zGetFieldTuple()``
 
         >>> ln.zGetFieldTuple()
-        (fieldData(X=0.0, Y=0.0, wt=1.0, vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0),
-         fieldData(X=0.0, Y=14.0, wt=1.0, vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0),
-         fieldData(X=0.0, Y=20.0, wt=1.0, vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0))
+        (fieldData(xf=0.0, yf=0.0, wgt=1.0, vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0),
+         fieldData(xf=0.0, yf=14.0, wgt=1.0, vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0),
+         fieldData(xf=0.0, yf=20.0, wgt=1.0, vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0))
 
         See Also
         --------
         zGetField(), zSetField(), zSetFieldTuple()
         """
         fieldCount = self.zGetField(0)[1]
-        fd = _co.namedtuple('fieldData', ['X', 'Y', 'wt',
+        fd = _co.namedtuple('fieldData', ['xf', 'yf', 'wgt',
                                           'vdx', 'vdy',
                                           'vcx', 'vcy', 'van'])
         fieldData = []
@@ -3374,12 +3380,12 @@ class PyZDDE(object):
             the first surface where the ray was vignetted. Unless an error
             occurs at that surface or subsequent to that surface, the ray
             will continue to trace to the requested surface.
-        x,y,z : reals
+        x, y, z : reals
             coordinates of the ray on the requested surface
-        l,m,n : reals
+        l, m, n : reals
             the direction cosines after refraction into the media following
             the requested surface.
-        l2,m2,n2 : reals
+        l2, m2, n2 : reals
             the surface intercept direction normals at requested surface
         intensity : real
             the relative transmitted intensity of the ray, including any
@@ -3434,9 +3440,9 @@ class PyZDDE(object):
             starting surface of the ray
         stopSurf : integer
             stopping surface of the ray
-        x,y,z, : floats
+        x, y, z, : floats
             coordinates of the ray at the starting surface
-        l,m,n : floats
+        l, m, n : floats
             direction cosines to the entrance pupil aim point for the x-,
             y-, z- direction cosines respectively
 
@@ -3451,12 +3457,12 @@ class PyZDDE(object):
             the first surface where the ray was vignetted. Unless an error
             occurs at that surface or subsequent to that surface, the ray
             will continue to trace to the requested surface.
-        x,y,z : reals
+        x, y, z : reals
             coordinates of the ray on the requested surface
-        l,m,n : reals
+        l, m, n : reals
             the direction cosines after refraction into the media following
             the requested surface.
-        l2,m2,n2 : reals
+        l2, m2, n2 : reals
             the surface intercept direction normals at requested surface
         intensity : real
             the relative transmitted intensity of the ray, including any
@@ -4652,6 +4658,8 @@ class PyZDDE(object):
             0 = no window is using the filename;
             1 = the file is being used.
 
+        Notes
+        ----- 
         When Zemax calls the client to update or change the settings used
         by the client function, the menu bar is grayed out on the window
         to prevent multiple updates or setting changes from being
@@ -4670,9 +4678,7 @@ class PyZDDE(object):
         return int(float(reply.rstrip()))
 
     def zRemoveVariables(self):
-        """Sets all currently defined variables to fixed status.
-
-        zRemoveVariables()->status
+        """Sets all currently defined solve variables to fixed status
 
         Parameters
         ----------
@@ -4680,7 +4686,8 @@ class PyZDDE(object):
 
         Returns
         -------
-        status : 0 = successful.
+        status : integer 
+            0 = successful; -1 = fail 
         """
         reply = self._sendDDEcommand('RemoveVariables')
         if 'OK' in reply.split():
@@ -4689,25 +4696,27 @@ class PyZDDE(object):
             return -1
 
     def zSaveDetector(self, surfaceNumber, objectNumber, fileName):
-        """Saves the data currently on an NSC Detector Rectangle, Detector Color,
-        Detector Polar, or Detector Volume object to a file.
-
-        zSaveDetector(surfaceNumber, objectNumber, fileName)->status
+        """Saves the data currently on an NSC Detector Rectangle, Detector 
+        Color, Detector Polar, or Detector Volume object to a file.
 
         Parameters
         ----------
-        surfNumber   : (integer) surface number of the non-sequential group.
-                       Use 1 if the program mode is Non-Sequential.
-        objectNumber : (integer) object number of the detector object
-        fileName     : (string) The filename may include the full path, if no
-                       path is provided the path of the current lens file is
-                       used. The extension should be DDR, DDC, DDP, or DDV for
-                       Detector Rectangle, Color, Polar, and Volume objects,
-                       respectively.
+        surfNumber : integer
+            surface number of the non-sequential group. Use 1 if the 
+            program mode is Non-Sequential.
+        objectNumber : integer
+            object number of the detector object
+        fileName : string
+            the filename may include the full path; if no path is provided 
+            the path of the current lens file is used. The extension should 
+            be DDR, DDC, DDP, or DDV for Detector Rectangle, Color, Polar, 
+            and Volume objects, respectively.
+        
         Returns
         -------
-        status       : 0 if save was successful
-                       Error code (such as -1,-2) if failed.
+        status : integer 
+            0 if save was successful; 
+            Error code (such as -1,-2) if failed.
         """
         isRightExt = _os.path.splitext(fileName)[1] in ('.ddr','.DDR','.ddc','.DDC',
                                                     '.ddp','.DDP','.ddv','.DDV')
@@ -4722,23 +4731,25 @@ class PyZDDE(object):
             return -1
 
     def zSaveFile(self, fileName):
-        """Saves the lens currently loaded in the server to a ZEMAX file.
-
-        zSaveFile(fileName)-> status
+        """Saves the lens currently loaded in the server to a Zemax file.
 
         Parameters
         ----------
-        fileName : (string) file name, including full path with extension.
+        fileName : string
+            file name, including full path with extension.
 
         Returns
         -------
-        status   :    0 = Zemax successfully saved the lens file & updated the
-                          newly saved lens
-                   -999 = Zemax couldn't save the file
-                     -1 = Incorrect file name
-                   Any other value = update failed.
+        status : integer 
+            0 = Zemax successfully saved the lens file & updated the
+            newly saved lens; 
+            -999 = Zemax couldn't save the file; 
+            -1 = Incorrect file name; 
+            Any other value = update failed.
 
-        See also zGetPath, zGetRefresh, zLoadFile, zPushLens.
+        See Also
+        -------- 
+        zGetPath(), zGetRefresh(), zLoadFile(), zPushLens().
         """
         isAbsPath = _os.path.isabs(fileName)
         isRightExt = _os.path.splitext(fileName)[1] in ('.zmx','.ZMX')
@@ -4750,21 +4761,22 @@ class PyZDDE(object):
             return -1
 
     def zSaveMerit(self, fileName):
-        """Saves the current merit function to a ZEMAX .MF file.
-
-        zSaveMerit(fileName)->meritData
+        """Saves the current merit function to a Zemax .MF file
 
         Parameters
         ----------
-        fileName  : (string) name of the merit function file with full path and
-                     extension.
+        fileName : string
+            name of the merit function file with full path and extension.
+        
         Returns
         -------
-        meritData : If successful, it is the number of operands in the merit
-                    function
-                    If meritData = -1, saving failed.
+        meritData : integer
+            If successful, it is the number of operands in the merit
+            function; If ``meritData`` = -1, saving failed.
 
-        See also: zOptimize, zLoadMerit
+        See Also
+        -------- 
+        zOptimize(), zLoadMerit()
         """
         isAbsPath = _os.path.isabs(fileName)
         isRightExt = _os.path.splitext(fileName)[1] in ('.mf','.MF')
@@ -4778,111 +4790,143 @@ class PyZDDE(object):
     def zSaveTolerance(self, fileName):
         """Saves the tolerances of the current lens to a file.
 
-        saveTolerance(fileName)->numTolOperands
-
         Parameters
         ----------
-        fileName : (string) file name of the file to save the tolerance data.
-                   If no path is provided in the filename, the <data>\Tolerance
-                   folder is assumed. Although it is not enforced, it is
-                   useful to use ".tol" as extension.
+        fileName : string
+            filename of the file to save the tolerance data. If no path 
+            is provided, the ``<data>\Tolerance`` folder is assumed. 
+            Although it is not enforced, it is useful to use ".tol" as 
+            extension.
 
         Returns
         -------
-        numTolOperands : (integer) number of tolerance operands saved.
+        numTolOperands : integer
+            number of tolerance operands saved.
 
-        See also zLoadTolerance.
+        See Also
+        -------- 
+        zLoadTolerance()
         """
         cmd = "SaveTolerance,{}".format(fileName)
         reply = self._sendDDEcommand(cmd)
         return int(float(reply.rstrip()))
 
-    def zSetAperture(self, surf, aType, aMin, aMax, xDecenter=0,
-                     yDecenter=0, apertureFile =' '):
-        """Sets aperture details at a lens surface (surface data dialog
-        box).
+    def zSetAperture(self, surf, aType, aMin, aMax, xDecenter=0, yDecenter=0,
+                     apertureFile=''):
+        """Set aperture characteristics at a lens surface (surface data
+        dialog box)
 
         Parameters
         ----------
-        surf      : surface number (integer)
-        aType        : integer code to specify aperture type
-                         0 = no aperture (na)
-                         1 = circular aperture (ca)
-                         2 = circular obscuration (co)
-                         3 = spider (s)
-                         4 = rectangular aperture (ra)
-                         5 = rectangular obscuration (ro)
-                         6 = elliptical aperture (ea)
-                         7 = elliptical obscuration (eo)
-                         8 = user defined aperture (uda)
-                         9 = user defined obscuration (udo)
-                        10 = floating aperture (fa)
-        aMin         : min radius(ca), min radius(co),width of arm(s),
-                       X-half width(ra),X-half width(ro),X-half width(ea),
-                       X-half width(eo)
-        aMax         : max radius(ca), max radius(co),number of arm(s),
-                       X-half width(ra),X-half width(ro),X-half width(ea),
-                       X-half width(eo)
-                       see "Aperture type and other aperture controls" for more
-                       details.
-        xDecenter    : amount of decenter from current optical axis (lens units)
-        yDecenter    : amount of decenter from current optical axis (lens units)
-        apertureFile : a text file with .UDA extention. see "User defined
-                       apertures and obscurations" in ZEMAX manual for more details.
+        surf : integer
+            surface number
+        aType : integer
+            code to specify aperture type
+                * 0 = no aperture (na)
+                * 1 = circular aperture (ca)
+                * 2 = circular obscuration (co)
+                * 3 = spider (s)
+                * 4 = rectangular aperture (ra)
+                * 5 = rectangular obscuration (ro)
+                * 6 = elliptical aperture (ea)
+                * 7 = elliptical obscuration (eo)
+                * 8 = user defined aperture (uda)
+                * 9 = user defined obscuration (udo)
+                * 10 = floating aperture (fa)
+        aMin : float
+            min radius (ca), min radius (co), width of arm (s), x-half
+            width (ra), x-half width (ro), x-half width (ea), x-half
+            width (eo)
+        aMax : float
+            max radius (ca), max radius (co), number of arm (s),
+            y-half width (ra), y-half width (ro), y-half width (ea),
+            y-half width(eo). See [AT]_ for details.
+        xDecenter : float, optional
+            amount of decenter from current optical axis (lens units)
+        yDecenter : float, optional
+            amount of decenter from current optical axis (lens units)
+        apertureFile : string, optional
+            a text file with .UDA extention. See [UDA]_ for detils.
 
         Returns
         -------
-        apertureInfo: apertureInfo is a tuple containing the following:
-            aType     : (see above)
-            aMin      : (see above)
-            aMax      : (see above)
-            xDecenter : (see above)
-            yDecenter : (see above)
+        apertureInfo : tuple
+            apertureInfo is a tuple containing the following:
+                * aType : (see above)
+                * aMin  : (see above)
+                * aMax  : (see above)
+                * xDecenter : (see above)
+                * yDecenter : (see above)
 
-        Example:
-        -------
-        apertureInfo = zSetAperture(2,1,5,10,0.5,0,'apertureFile.uda')
+        Examples
+        --------
+        >>> apertureInfo = ln.zSetAperture(2, 1, 5, 10, 0.5, 0, 'apertureFile.uda')
         or
-        apertureInfo = zSetAperture(2,1,5,10)
+        >>> apertureInfo = ln.zSetAperture(2, 1, 5, 10)
 
-        See also zGetAperture()
+        Notes
+        ----- 
+        1. The ``aMin`` and ``aMax`` values have different meanings for  
+           the elliptical, rectangular, and spider apertures than for
+           circular apertures
+        2. If ``zSetAperture()`` is used to set user defined apertures 
+           or obscurations, the ``aperturefile`` must be the name of a
+           file which lists the x, y, coordinates of the user defined 
+           aperture file in a two column format. For more information
+           on user defined apertures, see [UDA]_
+
+        References
+        ----------
+        .. [AT] "Aperture type and other aperture controls," Zemax manual.
+        .. [UDA]  "User defined apertures and obscurations," Zemax manual.
+
+        See Also
+        --------
+        zGetAperture()
         """
         cmd  = ("SetAperture,{sN:d},{aT:d},{aMn:1.20g},{aMx:1.20g},{xD:1.20g},"
-                "{yD:1.20g},{aF}".format(sN=surf,aT=aType,aMn=aMin,aMx=aMax,
-                 xD=xDecenter,yD=yDecenter,aF=apertureFile))
+                "{yD:1.20g},{aF}".format(sN=surf, aT=aType, aMn=aMin, aMx=aMax,
+                 xD=xDecenter, yD=yDecenter, aF=apertureFile))
         reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
-        apertureInfo = tuple([float(elem) for elem in rs])
+        ainfo = _co.namedtuple('ApertureInfo', ['aType', 'aMin', 'aMax', 
+                                                'xDecenter', 'yDecenter'])
+        apertureInfo = ainfo._make([float(elem) for elem in rs])
         return apertureInfo
 
     def zSetBuffer(self, bufferNumber, textData):
-        """Used to store client specific data with the window being created or
-        updated. The buffer data can be used to store user selected options,
-        instead of using the settings data on the command line of the zMakeTextWindow
-        or zMakeGraphicWindow functions. The data must be in a string format.
+        """Used to store client specific data with the window being 
+        created or updated. 
 
-        zSetBuffer(bufferNumber, textData)->status
+        The buffer data can be used to store user selected options 
+        instead of using the settings data on the command line of the 
+        ``zMakeTextWindow()`` or ``zMakeGraphicWindow()`` functions. 
+        The data must be in a string format.
 
         Parameters
         ----------
-        bufferNumber  : (integer) numbers between 0 and 15 inclusive (for 16
-                       buffers provided)
-        textData      : (string) is the only text that is stored, maximum of
-                      240 characters
+        bufferNumber : integer
+            number between 0 and 15 inclusive (for 16 buffers provided)
+        textData : string
+            is the only text that is stored, maximum of 240 characters
 
         Returns
         -------
-        status        : 0 if successful, else -1
+        status : integer 
+            0 if successful, else -1
 
-        Note
+        Notes
         -----
-        The buffer data is not associated with any particular window until either
-        the  zMakeTextWindow() or zMakeGraphicWindow() functions are issued. Once
-        ZEMAX receives the MakeTextWindow or MakeGraphicWindow item, the buffer
-        data is then copied to the appropriate window memory, and then may later
-        be retrieved from that window's buffer using zGetBuffer() function.
+        The buffer data is not associated with any particular window until 
+        either the ``zMakeTextWindow()`` or ``zMakeGraphicWindow()`` 
+        functions are issued. Once Zemax receives the ``MakeTextWindow`` 
+        or ``MakeGraphicWindow`` items, the buffer data is then copied to 
+        the appropriate window memory, and then may later be retrieved 
+        from that window's buffer using ``zGetBuffer()`` function.
 
-        See also zGetBuffer.
+        See Also
+        --------
+        zGetBuffer()
         """
         if (0 < len(textData) < 240) and (0 <= bufferNumber < 16):
             cmd = "SetBuffer,{:d},{}".format(bufferNumber,str(textData))
@@ -4897,19 +4941,28 @@ class PyZDDE(object):
 
         Parameters
         ----------
-        config : The configuration (column) number to set current
+        config : integer 
+            The configuration (column) number to set current
 
         Returns
         -------
-        3-tuple containing the following elements:
-         currentConfig    : current configuration (column) number in MCE
-                            1 <= currentConfig <= numberOfConfigs
-         numberOfConfigs  : number of configs (columns).
-         error            : 0  = successful; new current config is traceable
-                            -1 = failure
+        currentConfig : integer 
+            the current configuration (column) number in MCE 
+            ``1 <= currentConfig <= numberOfConfigs``
+         numberOfConfigs : integer 
+            number of configurations (columns)
+         error : integer 
+            0 = successful (i.e. new current config is traceable); 
+            -1 = failure
 
-        See also zGetConfig. Use zInsertConfig to insert new configuration in the
+        Notes
+        ----- 
+        Use ``zInsertConfig()`` to insert new configuration in the
         multi-configuration editor.
+
+        See Also
+        -------- 
+        zGetConfig()
         """
         reply = self._sendDDEcommand("SetConfig,{:d}".format(config))
         rs = reply.split(',')
@@ -4917,93 +4970,136 @@ class PyZDDE(object):
 
     def zSetExtra(self, surf, col, value):
         """Sets extra surface data (value) in the Extra Data Editor for
-        the surface indicatd by surf.
+        the surface indicatd by ``surf``
 
         Parameters
         ----------
-        surf : (integer) surface number
-        col  : (integer) column number
-        value         : (float) value
+        surf : integer
+            the surface number
+        col : integer
+            the column number
+        value : float
+            the value
 
         Returns
         -------
-        retValue      : (float) numeric data value
+        retValue : float
+            the numeric data value
 
-        See also zGetExtra
+        See Also
+        -------- 
+        zGetExtra()
         """
         cmd = ("SetExtra,{:d},{:d},{:1.20g}".format(surf, col, value))
         reply = self._sendDDEcommand(cmd)
         return float(reply)
 
-    def zSetField(self, n, arg1, arg2, arg3=1.0,
-                  vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0):
+    def zSetField(self, n, arg1, arg2, arg3=None, vdx=0.0, vdy=0.0, 
+                  vcx=0.0, vcy=0.0, van=0.0):
         """Sets the field data for a particular field point
 
-        There are 2 ways of using this function:
+        There are 2 ways of using this function (the parameters ``arg1``, 
+        ``arg2`` and ``arg3`` have different meanings depending on ``n``):
 
-            * ``zSetField(0, fieldType, totalNumFields, normalization)``
+            * ``zSetField(0, fieldType, totalNumFields, normMethod)``
 
              OR
 
-            * ``zSetField(n, xf, yf [,wgt,vdx,vdy,vcx,vcy,van])``
+            * ``zSetField(n, xf, yf [,wgt, vdx, vdy, vcx, vcy, van])``
 
         Parameters
         ----------
-        [if n == 0] :
-            0    : to set general field parameters
-            arg1 : the field type
-                  0 = angle, 1 = object height, 2 = paraxial image height, and
-                  3 = real image height
-            arg2 : total number of fields
-            arg3 : normalization type [0=radial, 1=rectangular(default)]
+        [Case: ``n = 0``]
 
-        [if 0 < n <= number of fields]:
-            arg1 (fx), arg2 (fy) : the field x and field y values
-            arg3 (wgt)          : field weight (default = 1.0)
-            vdx,vdy,vcx,vcy,van : vignetting factors (default = 0.0), See below.
+        n : 0
+            to set general field parameters
+        arg1 : integer 
+            the field type. 0 = angle, 1 = object height, 2 = paraxial 
+            image height, and 3 = real image height
+        arg2 : integer 
+            total number of fields
+        arg3 : integer (0 or 1), optional 
+            normalization type. 0 = radial (default), 1 = rectangular
+
+        [Case: ``0 < n <= number_of_fields``]
+
+        n : integer (greater than 0)
+            the field number 
+        arg1 (fx) : float 
+            the field-x value
+        arg2 (fy) : float 
+            the field-y value
+        arg3 (wgt) : float, optional  
+            the field weight (default = 1.0)
+        vdx, vdy, vcx, vcy, van : floats, optional  
+            the vignetting factors (default = 0.0). See below.
 
         Returns
         -------
-        [if n=0]: fieldData is a tuple containing the following
-            type                 : integer (0=angles in degrees, 1=object height
-                                            2=paraxial image height,
-                                            3=real image height)
-            number               : number of fields currently defined
-            max_x_field          : values used to normalize x field coordinate
-            max_y_field          : values used to normalize y field coordinate
-            normalization_method : field normalization method (0=radial, 1=rectangular)
+        [Case: ``n=0``] 
+        
+        type : integer 
+            0 = angles in degrees; 1 = object height; 2 = paraxial image 
+            height, 3 = real image height
+        number : integer 
+            number of fields currently defined
+        maxX : float 
+            values used to normalize x field coordinate
+        maxY : float 
+            values used to normalize y field coordinate
+        normMethod : integer
+            normalization method (0 = radial, 1 = rectangular)
 
-        [if 0 < n <= number of fields]: fieldData is a tuple containing the following
-            xf     : the field x value
-            yf     : the field y value
-            wgt    : field weight
-            vdx    : decenter x vignetting factor
-            vdy    : decenter y vignetting factor
-            vcx    : compression x vignetting factor
-            vcy    : compression y vignetting factor
-            van    : angle vignetting factor
+        [Case: ``0 < n <= number-of-fields``]
 
-        Note
+        xf : float 
+            the field-x value
+        yf : float 
+            the field-y value
+        wgt : float 
+            field weight value 
+        vdx : float 
+            decenter-x vignetting factor
+        vdy : float 
+            decenter-y vignetting factor
+        vcx : float 
+            compression-x vignetting factor
+        vcy : float 
+            compression-y vignetting factor
+        van : float 
+            angle vignetting factor
+
+        Notes
         -----
-        The returned tuple's content and structure is exactly same as that
-        of zGetField()
+        1. In Zemax main application, the default field normalization type
+           is radial. However, the default field normalization 
+        2. The returned tuple's content and structure is exactly same as 
+           that of ``zGetField()``
 
-        See also zGetField()
+        See Also
+        -------- 
+        zGetField()
         """
         if n:
+            fd = _co.namedtuple('fieldData', ['xf', 'yf', 'wgt',
+                                              'vdx', 'vdy',
+                                              'vcx', 'vcy', 'van'])
+            arg3 = 1.0 if arg3 is None else arg3 # default weight
             cmd = ("SetField,{:d},{:1.20g},{:1.20g},{:1.20g},{:1.20g},{:1.20g}"
                    ",{:1.20g},{:1.20g},{:1.20g}"
-                   .format(n,arg1,arg2,arg3,vdx,vdy,vcx,vcy,van))
+                   .format(n, arg1, arg2, arg3, vdx, vdy, vcx, vcy, van))
         else:
-            cmd = ("SetField,{:d},{:d},{:d},{:.0f}".format(0,arg1,arg2,arg3))
-
+            fd = _co.namedtuple('fieldData', ['type', 'numFields',
+                                              'maxX', 'maxY', 'normMethod'])
+            arg3 = 0 if arg3 is None else arg3 # default normalization
+            cmd = ("SetField,{:d},{:d},{:d},{:d}".format(0, arg1, arg2, arg3))
         reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
         if n:
-            fieldData = tuple([float(elem) for elem in rs])
+            fieldData = fd._make([float(elem) for elem in rs])
         else:
-            fieldData = tuple([int(elem) if (i==0 or i==1)
-                                 else float(elem) for i,elem in enumerate(rs)])
+            fieldData = fd._make([int(elem) if (i==0 or i==1 or i==4)
+                                 else float(elem) for i, elem in enumerate(rs)])
         return fieldData
 
     def zSetFieldTuple(self, ftype, norm, fields):
@@ -5139,73 +5235,98 @@ class PyZDDE(object):
 
         Note that there are 2 ways of using this function.
 
-        USAGE TYPE - I
-        ==============
-        If `config` is non-zero, then the function is used to set data in
-        the MCE using the following syntax:
+        [``USAGE TYPE - I``]
 
-        `zSetMulticon(config,row,value,status,pickuprow,
-                      pickupconfig,scale,offset)->multiConData`
+        If ``config > 0``, then the function is used to set data in the 
+        MCE using the following syntax:
 
-        Example: `multiConData = zSetMulticon(1,5,5.6,0,0,0,1.0,0.0)`
+        ``ln.zSetMulticon(config, row, value, status, pickuprow, pickupConfig, scale, offset) -> multiConData``
 
         Parameters
         ----------
-        config        : (int) configuration number (column)
-        row           : (int) row or operand number
-        value         : (float) value to set
-        status        : (int) see below
-        pickuprow     : (int) see below
-        pickupconfig  : (int) see below
-        scale         : (float)
-        offset        : (float)
+        config : integer (``> 0``) 
+            configuration number (column)
+        row : integer 
+            the row or operand number
+        value : float
+            the value to set
+        status : integer 
+            the ``status`` is 0 for fixed, 1 for variable, 2 for pickup,
+            and 3 for thermal pickup. 
+            If ``status`` is 2 or 3, the ``pickuprow`` and ``pickupconfig`` 
+            values indicate the source data for the pickup solve.
+        pickuprow : integer 
+            see ``status``
+        pickupconfig : integer 
+            see ``status`` 
+        scale : float
+            ?
+        offset : float
+            ?
 
         Returns
         -------
-        multiConData is a 8-tuple whose elements are:
-        (value,num_config,num_row,status,pickuprow,pickupconfig,scale,offset)
-
-        The `status` integer is 0 for fixed, 1 for variable, 2 for pickup,
-        and 3 for thermal pickup. If `status` is 2 or 3, the `pickuprow`
-        and `pickupconfig` values indicate the source data for the pickup
-        solve.
+        multiConData : tuple 
+            the ``multiConData`` is a 8-tuple whose elements are:
+            (value, num_config, num_row, status, pickuprow, 
+            pickupconfig, scale, offset)
 
 
-        USAGE TYPE - II
-        ===============
-        If the `config` = 0 , `zSetMulticon` may be used to set the operand type
-        and number data using the following syntax:
+        [``USAGE TYPE - II``]
 
-        `zSetMulticon(0,row,operand_type,number1,number2,number3)-> multiConData`
+        If the ``config = 0``, the function may be used to set the operand 
+        type and number data using the following syntax:
 
-        Example: `multiConData = zSetMulticon(0,5,'THIC',15,0,0)`
+        ``ln.zSetMulticon(0, row, operand_type, number1, number2, number3) -> multiConData``
 
         Parameters
         ----------
-        config       : 0
-        row          : (int) row or operand number in the MCE
-        operand_type : (string) operand type, such as 'THIC', 'WLWT', etc.
-        number1      : (int)
-        number2      : (int)
-        number3      : (int)
-                       Please refer to "SUMMARY OF MULTI-CONFIGURATION OPERANDS"
-                       in the Zemax manual.
+        config : 0
+            for usage type II
+        row : integer 
+            row or operand number in the MCE
+        operand_type : string
+            the operand type, such as 'THIC', 'WLWT', etc.
+        number1 : integer
+            number data. See [MCO]_  
+        number2 : integer 
+            number data. See [MCO]_ 
+        number3 : integer 
+            number data. See [MCO]_
 
         Returns
         -------
         multiConData is a 4-tuple whose elements are:
         (operand_type,number1,number2,number3)
 
+        Examples
+        -------- 
+        The following example shows the USEAGE TYPE - I:
+
+        >>> multiConData = ln.zSetMulticon(1, 5, 5.6, 0, 0, 0, 1.0, 0.0)
+
+        The following example shows the USAGE TYPE - II:
+
+        >>> multiConData = ln.zSetMulticon(0, 5, 'THIC', 15, 0, 0)
+
         Notes
         -----
-        1. If there are current operands in the MCE, it is recommended to first
-           use `zInsertMCO` to insert a row and then use `zSetMulticon(0,...)`. For
-           example use `zInsertMCO(5)` and then use `zSetMulticon(0,5,'THIC',15,0,0)`.
-           If a row is not inserted first, then existing rows may be overwritten.
-        2. The functions raises an exception if it determines the arguments
+        1. If there are current operands in the MCE, it is recommended to 
+           first use ``zInsertMCO()`` to insert a row, and then use 
+           ``zSetMulticon(0,...)``. For example, use ``zInsertMCO(5)`` 
+           and then use ``zSetMulticon(0, 5, 'THIC', 15, 0, 0)``.
+           If a row is not inserted first, then existing rows may be 
+           overwritten.
+        2. The function raises an exception if it determines the arguments
            to be invalid.
 
-        See also `zGetMulticon`
+        References
+        ----------
+        .. [MCO] "Summary of Multi-Configuration Operands," Zemax manual.
+
+        See Also
+        -------- 
+        zGetMulticon()
         """
         if config > 0 and len(multicon_args) == 7:
             (row,value,status,pickuprow,pickupconfig,scale,offset) = multicon_args
@@ -5245,15 +5366,17 @@ class PyZDDE(object):
         data : string/integer/float
             data to set NSC object
 
-            Refer table nsc-object-data-codes_ in the docstring of
-            ``zGetNSCObjectData()`` for ``code`` and ``data`` specific details.
-
         Returns
         -------
         nscObjectData : string/integer/float
             the returned data (same as returned by ``zGetNSCObjectData()``)
             depends on the ``code``. If the command fails, it returns ``-1``.
             Refer table nsc-object-data-codes_.
+
+        Notes
+        ----- 
+        Refer table nsc-object-data-codes_ in the docstring of
+        ``zGetNSCObjectData()`` for ``code`` and ``data`` specific details.
 
         See Also
         --------
@@ -5299,15 +5422,17 @@ class PyZDDE(object):
         data : float/integer/string
             data to set NSC object face
 
-            Refer table nsc-object-face-data-codes_ in the docstring of
-            ``zGetNSCObjectData()`` for ``code`` and ``data`` specific details.
-
         Returns
         -------
         nscObjFaceData  : string/integer/float
             the returned data (same as returned by ``zGetNSCObjectFaceData()``)
             depends on the ``code``. If the command fails, it returns ``-1``.
             Refer table nsc-object-face-data-codes_.
+
+        Notes
+        ----- 
+        Refer table nsc-object-face-data-codes_ in the docstring of
+        ``zGetNSCObjectData()`` for ``code`` and ``data`` specific details.
 
         See Also
         --------
@@ -5342,17 +5467,23 @@ class PyZDDE(object):
 
         Parameters
         ----------
-        surfNumber      : (integer) surface number. Use 1 if
-                          the program mode is Non-Sequential.
-        objNumber       : (integer) object number
-        parameterNumber : (integer) parameter number
-        data            : (float) new numeric value for the parameterNumber
+        surfNumber : integer
+            the surface number. Use 1 if Non-Sequential program mode 
+        objNumber : integer
+            the object number
+        parameterNumber : integer
+            the parameter number
+        data : float
+            the new numeric value for the ``parameterNumber``
 
         Returns
         -------
-        nscParaVal     : (float) parameter value
+        nscParaVal : float
+            the parameter value
 
-        See also zGetNSCParameter
+        See Also
+        -------- 
+        zGetNSCParameter()
         """
         cmd = ("SetNSCParameter,{:d},{:d},{:d},{:1.20g}"
               .format(surfNumber,objNumber,parameterNumber,data))
@@ -5369,18 +5500,24 @@ class PyZDDE(object):
 
         Parameters
         ----------
-        surfNumber   : (integer) surface number. Use 1 if
-                       the program mode is Non-Sequential.
-        objectNumber : (integer) object number
-        code         : (integer) 1-7 for x, y, z, tilt-x, tilt-y, tilt-z, and
-                       material, respectively.
-        data         : numeric (float) for codes 1-6, string for material (code-7)
+        surfNumber : integer
+            the surface number. Use 1 if Non-Sequential program mode
+        objectNumber : integer
+            the object number
+        code : integer
+            1-7 for x, y, z, tilt-x, tilt-y, tilt-z, and material, 
+            respectively.
+        data : float or string 
+            numeric (float) for codes 1-6, string for material (code-7)
 
         Returns
         -------
-        nscPosData is a 7-tuple containing x,y,z,tilt-x,tilt-y,tilt-z,material
+        nscPosData : tuple 
+            a 7-tuple containing x, y, z, tilt-x, tilt-y, tilt-z, material
 
-        See also zGetNSCPosition
+        See Also
+        -------- 
+        zGetNSCPosition()
         """
         if code == 7:
             cmd = ("SetNSCPosition,{:d},{:d},{:d},{}"
@@ -5415,15 +5552,17 @@ class PyZDDE(object):
         value : string/integer/float
             value to set NSC property
 
-            Refer table nsc-property-codes_ in the docstring of ``zGetNSCProperty()``
-            for ``code`` and ``value`` specific details.
-
         Returns
         -------
         nscPropData : string/float/integer
-            the returned data (same as returned by ``zGetNSCProperty()``) depends
-            on the ``code``. If the command fails, it returns ``-1``.
-            Refer table nsc-property-codes_.
+            the returned data (same as returned by ``zGetNSCProperty()``) 
+            depends on the ``code``. If the command fails, it returns 
+            ``-1``. Refer table nsc-property-codes_.
+
+        Notes
+        ----- 
+        Refer table nsc-property-codes_ in the docstring of 
+        ``zGetNSCProperty()`` for ``code`` and ``value`` specific details.
 
         See Also
         --------
@@ -5443,35 +5582,38 @@ class PyZDDE(object):
         return nscPropData
 
     def zSetNSCSettings(self, nscSettingsData):
-        """Sets the maximum number of intersections, segments, nesting level,
-        minimum absolute intensity, minimum relative intensity, glue distance,
-        miss ray distance, and ignore errors flag used for NSC ray tracing.
-
-        zSetNSCSettings(nscSettingsData)->nscSettingsDataRet
+        """Sets the maximum number of intersections, segments, nesting 
+        level, minimum absolute intensity, minimum relative intensity, 
+        glue distance, miss ray distance, and ignore errors flag used 
+        for NSC ray tracing.
 
         Parameters
         ---------
-        nscSettingsData is an 8-tuple with the following elements
-        maxInt     : (integer) maximum number of intersections
-        maxSeg     : (integer) maximum number of segments
-        maxNest    : (integer) maximum nesting level
-        minAbsI    : (float) minimum absolute intensity
-        minRelI    : (float) minimum relative intensity
-        glueDist   : (float) glue distance
-        missRayLen : (float) miss ray distance
-        ignoreErr  : (integer) 1 if true, 0 if false
+        nscSettingsData : 8-tuple
+            * maxInt : (integer) maximum number of intersections
+            * maxSeg : (integer) maximum number of segments
+            * maxNest : (integer) maximum nesting level
+            * minAbsI : (float) minimum absolute intensity
+            * minRelI : (float) minimum relative intensity
+            * glueDist : (float) glue distance
+            * missRayLen : (float) miss ray distance
+            * ignoreErr  : (integer) 1 if true, 0 if false
 
         Returns
         -------
-        nscSettingsDataRet is also an 8-tuple with the same elements as
-        nscSettingsData.
+        nscSettingsDataRet : 8-tuple 
+            the returned tuple is also an 8-tuple with the same elements 
+            as ``nscSettingsData``.
 
-        NOTE:
-        -----
-        Since the `maxSeg` value may require large amounts of RAM, verify
-        that the new value was accepted by checking the returned tuple.
+        Notes
+        ----- 
+        Since the ``maxSeg`` value may require large amounts of RAM, 
+        verify that the new value was accepted by checking the returned 
+        tuple.
 
-        See also zGetNSCSettings
+        See Also
+        -------- 
+        zGetNSCSettings()
         """
         (maxInt,maxSeg,maxNest,minAbsI,minRelI,glueDist,missRayLen,
                                                  ignoreErr) = nscSettingsData
@@ -5722,7 +5864,7 @@ class PyZDDE(object):
 
         See Also
         --------
-        zGetSolve(), zGetNSCSolve(), zSetNSCSolve().
+        zGetSolve(), zGetNSCSolve(), zSetNSCSolve(), zRemoveVariables().
         """
         if not solveData:
             print("Error [zSetSolve] No solve data passed.")
@@ -8859,10 +9001,17 @@ class PyZDDE(object):
 
         Notes
         -----
-        1. In some environments, Zemax outputs large EMF files [1]_.
+        1. PyZDDE uses ImageMagick's convert program to resize and 
+           convert the meta file produced by Zemax into a smaller PNG
+           file suitable for embedding into IPython cells. A copy of 
+           convert.exe comes along with PyZDDE. However, the user may 
+           choose to use a version of ImageMagick that is installed in 
+           the system already. Please use the module level function 
+           ``pyz.setImageMagickSettings()`` to do so. 
+        2. In some environments, Zemax outputs large EMF files [1]_.
            Converting large files may take some time (around 10 sec.)
            to complete.
-        2. If the function doesn't work as expected, please check the
+        3. If the function doesn't work as expected, please check the
            EMF to PNG conversion command being used and the output of
            executing this command by setting the debug print level to
            1 as ``pyz._DEBUG_PRINT_LEVEL=1``, and running the function
@@ -8871,6 +9020,15 @@ class PyZDDE(object):
         References
         ----------
         .. [1] https://github.com/indranilsinharoy/PyZDDE/issues/34
+
+        See Also
+        -------- 
+        ipzCaptureWindowLQ():
+            low quality screen-shot of a graphic window 
+        pyz.setImageMagickSettings():
+            set ImageMagick settings 
+        pyz.getImageMagickSettings():
+            view current ImageMagick settings  
         """
         global _global_IPLoad, _global_mpl_img_load
         global _global_use_installed_imageMagick
