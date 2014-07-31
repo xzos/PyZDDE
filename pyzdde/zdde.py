@@ -6945,9 +6945,7 @@ class PyZDDE(object):
 
     def zGetOpticalPathLength(self, surf1=0, surf2=2, hx=0, hy=0, px=0, py=0):
         """Returns the total optical path length (OPL) between surfaces
-        surf1 and surf2 for the specified ray
-
-        The ray is traced at the premary wavelength
+        surf1 and surf2 for a ray traced at primary wavelength
 
         Parameters
         ----------
@@ -6974,9 +6972,58 @@ class PyZDDE(object):
         -----
         The function uses the optimization operand "PLEN" to retrieve
         the value of the optical path length
+
+        See Also
+        -------- 
+        zGetOpticalPathDifference()
         """
         oplen = self.zOperandValue('PLEN', surf1, surf2, hx, hy, px, py)
         return oplen
+
+    def zGetOpticalPathDifference(self, hx=0, hy=0, px=0, py=0, ref=0, wave=None):
+        """Returns the optical path difference (OPD) with respect to the 
+        chief ray or mean OPD in waves
+
+        Parameters
+        ---------- 
+        hx : float, optional
+            normalized field coordinate along x
+        hy : float, optional
+            normalized field coordinate along y
+        px : float, optional
+            normalized pupil coordinate along x
+        py : float, optional
+            normalized pupil coordinate along y 
+        ref : integer, optional 
+            integer code to indicate reference ray/OPD. 
+            0 = chief ray (Default); 1 = mean OPD over the pupil; 
+            2 = mean OPD over the pupil with tilt removed 
+        wave : integer, optional    
+            wavelength number to trace ray. If ``None``, the ray is 
+            traced at the primary wavelength.
+
+        Returns
+        ------- 
+        opd : float 
+            optical path difference 
+
+        See Also
+        -------- 
+        zGetOpticalPathLength()
+        """
+        if ref == 2:
+            code = 'OPDX'
+        elif ref == 1:
+            code = 'OPDM'
+        elif ref == 0:
+            code = 'OPDC'
+        else:
+            raise ValueError, 'Unexpected ref input value'
+        if wave is None:
+            wave = self.zGetWave(self.zGetPrimaryWave()).wavelength
+        opd = self.zOperandValue(code, 0, wave, hx, hy, px, py)
+        return opd 
+
 
     def zGetPOP(self, settingsFile=None, displayData=False, txtFile=None,
                 keepFile=False, timeout=None):
