@@ -600,7 +600,6 @@ class PyZDDE(object):
         self._conversation.SetDDETimeout(round(time))
         return self._conversation.GetDDETimeout()
 
-
     def zGetTimeout(self):
         """Returns the current value of the global timeout in seconds
 
@@ -629,8 +628,9 @@ class PyZDDE(object):
         _debugPrint(2,"Destructor called")
         self.zDDEClose()
 
-    # ZEMAX control/query methods
-    #----------------------------
+    # ****************************************************************
+    #               ZEMAX DATA ITEM BASED METHODS
+    # ****************************************************************
     def zCloseUDOData(self, bufferCode):
         """Close the User Defined Operand buffer allowing optimizer to
         proceed
@@ -782,57 +782,6 @@ class PyZDDE(object):
         cmd = "DeleteSurface,{:d}".format(surfaceNumber)
         reply = self._sendDDEcommand(cmd)
         return int(float(reply))
-
-    def zExecuteZPLMacro(self, zplMacroCode, timeout=None):
-        """Executes a ZPL macro present in the <data>/Macros folder.
-
-        Parameters
-        ----------
-        zplMacroCode : string
-            The first 3 letters (case-sensitive) of the ZPL macro present
-            in the <data>/Macros folder
-        timeout : integer
-            timeout value in seconds
-
-        Returns
-        --------
-        status : integer (0 or 1)
-            0 = successfully executed the ZPL macro;
-            -1 = macro code is incorrect & error code returned by Zemax
-
-        Notes
-        -----
-        If the macro path is different from the default macro path at \
-        ``<data>/Macros``, then first use ``zSetMacroPath()`` to set the \
-        macropath and then use ``zExecuteZPLMacro()``.
-
-        .. warning::
-
-          1. can only "execute" an existing ZPL macro. i.e. you can't \
-             create a ZPL macro on-the-fly and execute it.
-          2. If it is required to redirect the result of executing the ZPL \
-             to a text file, modify the ZPL macro in the following way:
-
-            -   Add the following two lines at the beginning of the file:
-                ``CLOSEWINDOW`` # to suppress the display of default text window
-                ``OUTPUT "full_path_with_extension_of_result_fileName"``
-            -   Add the following line at the end of the file:
-                ``OUTPUT SCREEN`` # close the file and re-enable screen printing
-
-          3. If there are more than two macros which have the same first 3 letters
-             then all of them will be executed by Zemax.
-        """
-        status = -1
-        if self._macroPath:
-            zplMpath = self._macroPath
-        else:
-            zplMpath = _os.path.join(self.zGetPath()[0], 'Macros')
-        macroList = [f for f in _os.listdir(zplMpath)
-                     if f.endswith(('.zpl','.ZPL')) and f.startswith(zplMacroCode)]
-        if macroList:
-            zplCode = macroList[0][:3]
-            status = self.zOpenWindow(zplCode, True, timeout)
-        return status
 
     def zExportCAD(self, fileName, fileType=1, numSpline=32, firstSurf=1,
                    lastSurf=-1, raysLayer=1, lensLayer=0, exportDummy=0,
@@ -1303,44 +1252,6 @@ class PyZDDE(object):
                                  else float(elem) for i, elem in enumerate(rs)])
         return fieldData
 
-    def zGetFieldTuple(self):
-        """Get all field data in a single n-tuple.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        fieldDataTuple: n-tuple (``0 < n <= 12``)
-            the tuple elements represent field loactions with each element
-            containing all 8 field parameters.
-
-        Examples
-        --------
-        This example shows the namedtuple returned by ``zGetFieldTuple()``
-
-        >>> ln.zGetFieldTuple()
-        (fieldData(xf=0.0, yf=0.0, wgt=1.0, vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0),
-         fieldData(xf=0.0, yf=14.0, wgt=1.0, vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0),
-         fieldData(xf=0.0, yf=20.0, wgt=1.0, vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0))
-
-        See Also
-        --------
-        zGetField(), zSetField(), zSetFieldTuple()
-        """
-        fieldCount = self.zGetField(0)[1]
-        fd = _co.namedtuple('fieldData', ['xf', 'yf', 'wgt',
-                                          'vdx', 'vdy',
-                                          'vcx', 'vcy', 'van'])
-        fieldData = []
-        for i in range(fieldCount):
-            reply = self._sendDDEcommand('GetField,' + str(i+1))
-            rs = reply.split(',')
-            data = fd._make([float(elem) for elem in rs])
-            fieldData.append(data)
-        return tuple(fieldData)
-
     def zGetFile(self):
         """Returns the full name of the zmx lens file in Zemax server
 
@@ -1459,46 +1370,6 @@ class PyZDDE(object):
         globalMatrix = gmd._make([float(elem) for elem in rs.split(',')])
         return globalMatrix
 
-    def zGetImageSpaceNA(self):
-        """Return the Image Space Numerical Aperture (ISNA) of the lens
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        isna : real
-            image space numerical aperture
-
-        Notes
-        -----
-        1. The ISNA is calculated using paraxial ray tracing. It is defined
-           as the index of the image space multiplied by the sine of the
-           angle between the paraxial on-axis chief ray and the paraxial
-           on-axis +y marginal ray calculated at the defined conjugates for
-           the primary wavelength [UPRT]_.
-        2. Relation to F-number :
-           ``isna = pyz.fnum2numAper(paraxial_working_fnumber)``
-
-        References
-        ----------
-        .. [UPRT] Understanding Paraxial Ray-Tracing, Mark Nicholson, Zemax
-                  Knowledgebase, July 21, 2005.
-        """
-        prim_wave_num = self.zGetPrimaryWave()
-        last_surf = self.zGetNumSurf()
-        # Trace paraxial on-axis chief ray at primary wavelength
-        chief_ray_dat = self.zGetTrace(prim_wave_num, mode=1, surf=last_surf,
-                                       hx=0, hy=0, px=0, py=0)
-        chief_angle = _math.asin(chief_ray_dat[6])
-        # Trace paraxial marginal ray at primary wavelength
-        margi_ray_dat = self.zGetTrace(prim_wave_num, mode=1, surf=last_surf,
-                                       hx=0, hy=0, px=0, py=1)
-        margi_angle = _math.asin(margi_ray_dat[6])
-        index = self.zGetIndexPrimWave(last_surf)
-        return index*_math.sin(chief_angle - margi_angle)
-
     def zGetIndex(self, surfaceNumber):
         """Returns the index of refraction data for the specified surface
 
@@ -1523,29 +1394,6 @@ class PyZDDE(object):
         rs = reply.split(",")
         indexData = [float(rs[i]) for i in range(len(rs))]
         return tuple(indexData)
-
-    def zGetIndexPrimWave(self, surfaceNumber):
-        """Returns the index of refraction at primary wavelength for the
-        specified surface
-
-        Emulates the ZPL macro ``INDX(surface)``
-
-        Parameters
-        ----------
-        surfaceNumber : integer
-            surface number
-
-        Returns
-        -------
-        index : float
-            index of refraction at primary wavelength
-
-        See Also
-        --------
-        zGetIndex()
-        """
-        prime_wave_num = self.zGetPrimaryWave()
-        return self.zGetIndex(surfaceNumber)[prime_wave_num-1]
 
     def zGetLabel(self, surfaceNumber):
         """Returns the integer label associated with the specified surface.
@@ -1634,46 +1482,6 @@ class PyZDDE(object):
             print("Invalid analysis code '{}' passed to zGetMetaFile."
                   .format(analysisType))
         return retVal
-
-    def _zGetMode(self):
-        """Returns the mode (Sequential, Non-sequential or Mixed) of the current
-        lens in the DDE server
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        zmxModeInformation : 2-tuple (mode, nscSurfNums)
-            mode (0 = Sequential; 1 = Non-sequential; 2 = Mixed mode)
-            nscSurfNums = (tuple of integers) the surfaces (in mixed mode)
-            that are non-sequential. In Non-sequential mode and in purely
-            sequential mode, this tuple is empty (of length 0).
-
-        Notes
-        -----
-        This only works when a zmx file is loaded into the server. Currently this
-        function is meant to be used for internal purpose only.
-
-        For the purpose of this function, "Sequential" implies that there are no
-        non-sequential surfaces in the LDE.
-        """
-        nscSurfNums = []
-        nscData = self.zGetNSCData(1, 0)
-        if nscData > 0: # Non-sequential mode
-            mode = 1
-        else:          # Not Non-sequential mode
-            numSurf = self.zGetSystem()[0]
-            for i in range(1,numSurf+1):
-                surfType = self.zGetSurfaceData(i, 0)
-                if surfType == 'NONSEQCO':
-                    nscSurfNums.append(i)
-            if len(nscSurfNums) > 0:
-                mode = 2  # mixed mode
-            else:
-                mode = 0  # sequential
-        return (mode,tuple(nscSurfNums))
 
     def zGetMulticon(self, config, row):
         """Returns data from the multi-configuration editor
@@ -2302,67 +2110,15 @@ class PyZDDE(object):
                                  for i,e in enumerate(rs.split(","))])
         return nscSolveData
 
-    def zGetNumField(self):
-        """Returns the total number of fields defined
-
-        Equivalent to ZPL macro ``NFLD``
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        nfld : integer
-            number of fields defined
-        """
-        return self.zGetSystemProperty(101)
-
-    def zGetNumSurf(self):
-        """Return the total number of surfaces defined
-
-        Equivalent to ZPL macro ``NSUR``
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        nsur : integer
-            number of surfaces defined
-
-        Notes
-        -----
-        The count doesn't include the object (OBJ) surface.
-        """
-        return self.zGetSystem()[0]
-
-    def zGetNumWave(self):
-        """Return the total number of wavelengths defined
-
-        Equivalent to ZPL macro ``NWAV``
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        nwav : integer
-            number of wavelengths defined
-        """
-        return self.zGetSystemProperty(201)
-
     def zGetOperand(self, row, column):
         """Return the operand data from the Merit Function Editor
 
         Parameters
         ----------
         row : integer
-            row operand number in the MFE
+            operand row number in the MFE
         column : integer
-            column
+            column number 
 
         Returns
         -------
@@ -2399,6 +2155,8 @@ class PyZDDE(object):
 
         See Also
         --------
+        zGetOperandRow():
+            Returns all values from a row in MFE 
         zOperandValue():
             Returns the value of any optimization operand, even if the
             operand is not currently in the merit function.
@@ -2627,32 +2385,6 @@ class PyZDDE(object):
         rayPolTraceData = tuple([int(elem) if i==0 else float(elem)
                                    for i,elem in enumerate(rs)])
         return rayPolTraceData
-
-    def zGetPrimaryWave(self):
-        """Return the primary wavelength number
-
-        Equivalent to ZPL macro ``PWAV``
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        primary_wave_number : integer
-            primary wavelength number
-
-        Notes
-        -----
-        To get the primary wavelength do the following:
-
-        >>> ln.zGetWave(ln.zGetPrimaryWave()).wavelength
-
-        See Also
-        --------
-        zSetPrimaryWave()
-        """
-        return self.zGetSystemProperty(200)
 
     def zGetPupil(self):
         """Return the pupil data such as aperture type, ENPD, EXPD, etc.
@@ -3033,7 +2765,6 @@ class PyZDDE(object):
                .format(sN=surfaceNumber,p=parameter))
         reply = self._sendDDEcommand(cmd)
         return float(reply)
-
 
     def zGetSystem(self):
         """Returns a number of general system data (General Lens Data)
@@ -3618,47 +3349,6 @@ class PyZDDE(object):
             waveData = wtd._make([int(ele) for ele in rs])
         return waveData
 
-    def zGetWaveTuple(self):
-        """Gets data on all defined wavelengths
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        waveDataTuple : 2D tuple
-            the first dimension (first subtuple) contains the wavelengths
-            and the second dimension containing the weights as follows:
-            ((wave1, wave2, wave3 ,..., waveN),(wgt1, wgt2, wgt3,..., wgtN))
-
-        Notes
-        -----
-        This function is similar to "zGetWaveDataMatrix()" in MZDDE.
-
-        Examples
-        --------
-        This example shows the named tuple returned by the function
-
-        >>> ln.zGetWaveTuple()
-        waveDataTuple(wavelengths=(0.48, 0.55, 0.65), weights=(0.800000012, 1.0, 0.800000012))
-
-        See Also
-        --------
-        zSetWaveTuple(), zGetWave(), zSetWave()
-        """
-        waveCount = self.zGetWave(0)[1]
-        waveData = [[],[]]
-        wdt = _co.namedtuple('waveDataTuple', ['wavelengths', 'weights'])
-        for i in range(waveCount):
-            cmd = "GetWave,{wC:d}".format(wC=i+1)
-            reply = self._sendDDEcommand(cmd)
-            rs = reply.split(',')
-            waveData[0].append(float(rs[0])) # store the wavelength
-            waveData[1].append(float(rs[1])) # store the weight
-        waveDataTuple = wdt(tuple(waveData[0]),tuple(waveData[1]))
-        return waveDataTuple
-
     def zHammer(self, numOfCycles, algorithm, timeout=60):
         """Calls the Hammer optimizer
 
@@ -3723,7 +3413,6 @@ class PyZDDE(object):
         reply = self._sendDDEcommand(cmd)
         return reply.rstrip()
         # !!! FIX determine what is the currect return
-
 
     def zInsertConfig(self, configNumber):
         """Insert a new configuration (column) in the multi-configuration
@@ -5126,58 +4815,6 @@ class PyZDDE(object):
                                  else float(elem) for i, elem in enumerate(rs)])
         return fieldData
 
-    def zSetFieldTuple(self, ftype, norm, fields):
-        """Sets all field points from a 2D field tuple
-
-        Parameters
-        ----------
-        ftype : integer
-            the field type (0 = angle, 1 = object height, 2 = paraxial
-            image height, and 3 = real image height)
-        norm : integer 0 or 1
-            the field normalization (0=radial, 1=rectangular)
-        fields : n-tuple
-            the input field data tuple is an N-D tuple (0 < N <= 12) with
-            every dimension representing a single field location. It can
-            be constructed as shown in the example (see below)
-
-        Returns
-        -------
-        fields : n-tuple
-            the output field data tuple is also a N-D tuple similar to the
-            ``fields``, except that for each field location all
-            8 field parameters are returned.
-
-        Examples
-        --------
-        The following example sets 3 field points defined as angles with
-        field normalization = 1:
-
-            * xf=0.0, yf=0.0, wgt=1.0, vdx=vdy=vcx=vcy=van=0.0
-            * xf=0.0, yf=5.0, wgt=1.0
-            * xf=0.0, yf=10.0
-
-        >>> ln.zSetFieldTuple(0, 0,
-                              (0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0),
-                              (0.0, 5.0, 1.0),
-                              (0.0, 7.0))
-
-        See Also
-        --------
-        zSetField(), zGetField(), zGetFieldTuple()
-        """
-        fieldCount = len(fields)
-        if not 0 < fieldCount <= 12:
-            raise ValueError('Invalid number of fields')
-        cmd = ("SetField,{:d},{:d},{:d},{:d}"
-              .format(0, ftype, fieldCount, norm))
-        self._sendDDEcommand(cmd)
-        retFields = []
-        for i in range(fieldCount):
-            fieldData = self.zSetField(i+1,*fields[i])
-            retFields.append(fieldData)
-        return tuple(retFields)
-
     def zSetFloat(self):
         """Sets all surfaces without surface apertures to have floating
         apertures. Floating apertures will vignette rays which trace
@@ -5223,36 +4860,6 @@ class PyZDDE(object):
         reply = self._sendDDEcommand("SetLabel,{:d},{:d}"
                                           .format(surfaceNumber,label))
         return int(float(reply.rstrip()))
-
-    def zSetMacroPath(self, macroFolderPath):
-        """Set the full path name to the macro folder
-
-        Parameters
-        ----------
-        macroFolderPath : string
-            full-path name of the macro folder path. Also, this folder
-            path should match the folder path specified for Macros in the
-            Zemax Preferences setting.
-
-        Returns
-        -------
-        status : integer
-            0 = success; -1 = failure
-
-        Notes
-        -----
-        Use this method to set the full-path name of the macro folder
-        path if it is different from the default path at <data>/Macros
-
-        See Also
-        --------
-        zExecuteZPLMacro()
-        """
-        if _os.path.isabs(macroFolderPath):
-            self._macroPath = macroFolderPath
-            return 0
-        else:
-            return -1
 
     def zSetMulticon(self, config, *multicon_args):
         """Set data or operand type in the multi-configuration editior.
@@ -5710,40 +5317,13 @@ class PyZDDE(object):
                                  for i,e in enumerate(rs.split(","))])
         return nscSolveData
 
-    def zSetPrimaryWave(self, waveNum):
-        """Sets the primary wavelength for the lens in Zemax DDE server.
-
-        Parameters
-        ----------
-        waveNum : integer
-            the wavelength number to set as primary
-
-        Returns
-        -------
-        primary : integer
-            number indicating the primary wavelength
-        number : integer
-            number of wavelengths currently defined
-
-        See Also
-        --------
-        zGetPrimaryWave(), zSetWave(), zSetWave(), zSetWaveTuple(),
-        zGetWaveTuple()
-        """
-        waveData = self.zGetWave(0)
-        cmd = "SetWave,{:d},{:d},{:d}".format(0, waveNum, waveData[1])
-        reply = self._sendDDEcommand(cmd)
-        rs = reply.split(',')
-        waveData = tuple([int(elem) for elem in rs])
-        return waveData
-
     def zSetOperand(self, row, column, value):
         """Sets the operand data in the Merit Function Editor
 
         Parameters
         ----------
         row : integer
-            row operand number in the MFE
+            operand row number in the MFE
         column : integer
             column number
         value : string/integer/float
@@ -5766,6 +5346,8 @@ class PyZDDE(object):
 
         See Also
         --------
+        zSetOperandRow():
+            sets an entire row of the MFE 
         zGetOperand(), zOptimize(), zInsertMFO()
         """
         if column == 1:
@@ -6308,45 +5890,6 @@ class PyZDDE(object):
         # A similar function exist for Multi-Configuration editor (zInsertMCO) and
         # for Multi-function editor (zInsertMFO). May need to contact Zemax Support.
 
-    def zSetTolRow(self, operandNumber, tolType, int1, int2, int3, minT, maxT):
-        """Helper function to set all the elements of a row (given
-        by ``operandNumber``) in the tolerance editor.
-
-        Parameters
-        ----------
-        operandNumber : integer (> 0)
-            the tolerance operand number (row number in the tolerance
-            editor)
-        tolType : string
-            4-character string (tolerancing operand code)
-        int1 : integer
-            'int1' parameter
-        int2 : integer
-            'int2' parameter
-        int3 : integer
-            'int3' parameter
-        minT : float
-            minimum value
-        maxT : float
-            maximum value
-
-        Returns
-        -------
-        tolData : tolerance data or errorCode
-            the data for the row indicated by the ``operandNumber``
-            if successful, else -1
-        """
-        tolData = self.zSetTol(operandNumber, 1, tolType)
-        if tolData != -1:
-            self.zSetTol(operandNumber, 2, int1)
-            self.zSetTol(operandNumber, 3, int2)
-            self.zSetTol(operandNumber, 4, int3)
-            self.zSetTol(operandNumber, 5, minT)
-            self.zSetTol(operandNumber, 6, maxT)
-            return self.zGetTol(operandNumber)
-        else:
-            return -1
-
     def zSetUDOItem(self, bufferCode, dataNumber, data):
         """This function is used to pass just one datum computed by the
         client program to the Zemax optimizer.
@@ -6491,44 +6034,6 @@ class PyZDDE(object):
             waveData = tuple([int(ele) for ele in rs])
         return waveData
 
-    def zSetWaveTuple(self, waves):
-        """Sets wavelength and weight data from a matrix.
-
-        Parameters
-        ----------
-        waves : 2-D tuple
-            the input wave data tuple is a 2D tuple with the first
-            dimension (first sub-tuple) containing the wavelengths
-            and the second dimension containing the weights as:
-
-            ``((wave1,wave2,wave3,...,waveN),(wgt1,wgt2,wgt3,...,wgtN))``
-
-            The first wavelength (wave1) is assigned to be the primary
-            wavelength. To change the primary wavelength use
-            ``zSetWavePrimary()``
-
-        Returns
-        -------
-        retWaves : 2-D tuple
-            the output wave data tuple is also a 2D tuple similar to the
-            ``waves``.
-
-        See Also
-        --------
-        zGetWaveTuple(), zSetWave(), zSetWavePrimary()
-        """
-        waveCount = len(waves[0])
-        retWaves = [[],[]]
-        self.zSetWave(0,1,waveCount) # Set no. of wavelen & the wavelen to 1
-        for i in range(waveCount):
-            cmd = ("SetWave,{:d},{:1.20g},{:1.20g}"
-                   .format(i+1,waves[0][i],waves[1][i]))
-            reply = self._sendDDEcommand(cmd)
-            rs = reply.split(',')
-            retWaves[0].append(float(rs[0])) # store the wavelength
-            retWaves[1].append(float(rs[1])) # store the weight
-        return (tuple(retWaves[0]),tuple(retWaves[1]))
-
     def zWindowMaximize(self, windowNumber=0):
         """Maximize the main Zemax window or any analysis window Zemax
         currently displayed.
@@ -6590,8 +6095,483 @@ class PyZDDE(object):
         return retVal
 
 # ****************************************************************
-#                      EXTRA FUNCTIONS
+#                      ADDITIONAL FUNCTIONS 
 # ****************************************************************
+
+# -------------------
+# Editor functions 
+# -------------------
+    def zGetOperandRow(self, row):
+        """Returns a row of the Multi Function Editor 
+
+        Parameters
+        ---------- 
+        row : integer
+            the operand row number 
+
+        Returns
+        -------
+        opertype : string 
+            operand type, column 1 in MFE
+        int1 : integer
+            column 2 in MFE
+        int2 : integer
+            column 3 in MFE 
+        data1 : float
+            column 4 in MFE
+        data2 : float
+            column 5 in MFE 
+        data3 : float
+            column 6 in MFE 
+        data4 : float
+            column 7 in MFE 
+        data5 : float
+            column 12 in MFE 
+        data6 : float
+            column 13 in MFE 
+        tgt : float
+            target 
+        wgt : float
+            weight 
+        value : float 
+            value 
+        percentage : float 
+            percentage contribution 
+
+        See Also
+        -------- 
+        zGetOperand(), zSetOperandRow()
+        """
+        operData = []
+        for i in range(1,8):
+            operData.append(self.zGetOperand(row=row, column=i))
+        for i in range(12, 14):
+            operData.append(self.zGetOperand(row=row, column=i))
+        for i in range(8, 12):
+            operData.append(self.zGetOperand(row=row, column=i))
+        rowdat = _co.namedtuple('OperandData', ['opertype', 'int1', 'int2', 'data1', 
+                                'data2', 'data3', 'data4', 'data5', 'data6', 'tgt', 
+                                'wgt', 'value', 'percentage'])
+        return rowdat._make(operData)
+
+    def zSetOperandRow(self, row, opertype, int1=None, int2=None, data1=None, data2=None,
+                     data3=None, data4=None, data5=None, data6=None, tgt=None, wgt=None):
+        """Sets a row in the Merit Function Editor 
+
+        Parameters
+        ---------- 
+        row : integer
+            operand row number in the MFE
+        opertype : string 
+            operand type 
+        int1 : integer, optional 
+            column 2 in MFE
+        int2 : integer, optional 
+            column 3 in MFE 
+        data1 : float, optional 
+            column 4 in MFE
+        data2 : float, optional 
+            column 5 in MFE 
+        data3 : float, optional 
+            column 6 in MFE 
+        data4 : float, optional 
+            column 7 in MFE 
+        data5 : float, optional 
+            column 12 in MFE 
+        data6 : float, optional 
+            column 13 in MFE 
+        tgt : float, optional 
+            target 
+        wgt : float, optional 
+            weight 
+
+        Returns
+        -------    
+        the contents of the row. (same as that returned by 
+        ``zGetOperandRow()``) 
+
+        Notes
+        ----- 
+        1. Use ``zInsertMFO()`` to insert a new row in the MFE at a 
+           specified row number.
+        2. To update the merit function after calling ``zSetOperand()``,
+           call ``zOptimize()`` with the number of cycles set to -1. 
+
+        See Also
+        -------- 
+        zInsertMFO(), zSetOperand(), zOperandValue(), zGetOperand()
+        """
+        values1_9 = (opertype, int1, int2, data1, data2, data3, data4, tgt, wgt)
+        values12_13 = (data5, data6)
+        for i, val in enumerate(values1_9):
+            if val is not None:
+                self.zSetOperand(row=row, column=i+1, value=val)
+        for i, val in enumerate(values12_13):
+            if val is not None:
+                self.zSetOperand(row=row, column=i+12, value=val)
+        return self.zGetOperandRow(row)
+
+# -------------------
+# System functions 
+# -------------------
+    def zGetNumField(self):
+        """Returns the total number of fields defined
+
+        Equivalent to ZPL macro ``NFLD``
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        nfld : integer
+            number of fields defined
+        """
+        return self.zGetSystemProperty(101)
+
+    def zGetFieldTuple(self):
+        """Get all field data in a single n-tuple.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        fieldDataTuple: n-tuple (``0 < n <= 12``)
+            the tuple elements represent field loactions with each element
+            containing all 8 field parameters.
+
+        Examples
+        --------
+        This example shows the namedtuple returned by ``zGetFieldTuple()``
+
+        >>> ln.zGetFieldTuple()
+        (fieldData(xf=0.0, yf=0.0, wgt=1.0, vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0),
+         fieldData(xf=0.0, yf=14.0, wgt=1.0, vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0),
+         fieldData(xf=0.0, yf=20.0, wgt=1.0, vdx=0.0, vdy=0.0, vcx=0.0, vcy=0.0, van=0.0))
+
+        See Also
+        --------
+        zGetField(), zSetField(), zSetFieldTuple()
+        """
+        fieldCount = self.zGetField(0)[1]
+        fd = _co.namedtuple('fieldData', ['xf', 'yf', 'wgt',
+                                          'vdx', 'vdy',
+                                          'vcx', 'vcy', 'van'])
+        fieldData = []
+        for i in range(fieldCount):
+            reply = self._sendDDEcommand('GetField,' + str(i+1))
+            rs = reply.split(',')
+            data = fd._make([float(elem) for elem in rs])
+            fieldData.append(data)
+        return tuple(fieldData)
+
+    def zSetFieldTuple(self, ftype, norm, fields):
+        """Sets all field points from a 2D field tuple
+
+        Parameters
+        ----------
+        ftype : integer
+            the field type (0 = angle, 1 = object height, 2 = paraxial
+            image height, and 3 = real image height)
+        norm : integer 0 or 1
+            the field normalization (0=radial, 1=rectangular)
+        fields : n-tuple
+            the input field data tuple is an N-D tuple (0 < N <= 12) with
+            every dimension representing a single field location. It can
+            be constructed as shown in the example (see below)
+
+        Returns
+        -------
+        fields : n-tuple
+            the output field data tuple is also a N-D tuple similar to the
+            ``fields``, except that for each field location all
+            8 field parameters are returned.
+
+        Examples
+        --------
+        The following example sets 3 field points defined as angles with
+        field normalization = 1:
+
+            * xf=0.0, yf=0.0, wgt=1.0, vdx=vdy=vcx=vcy=van=0.0
+            * xf=0.0, yf=5.0, wgt=1.0
+            * xf=0.0, yf=10.0
+
+        >>> ln.zSetFieldTuple(0, 0,
+                              (0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+                              (0.0, 5.0, 1.0),
+                              (0.0, 7.0))
+
+        See Also
+        --------
+        zSetField(), zGetField(), zGetFieldTuple()
+        """
+        fieldCount = len(fields)
+        if not 0 < fieldCount <= 12:
+            raise ValueError('Invalid number of fields')
+        cmd = ("SetField,{:d},{:d},{:d},{:d}"
+              .format(0, ftype, fieldCount, norm))
+        self._sendDDEcommand(cmd)
+        retFields = []
+        for i in range(fieldCount):
+            fieldData = self.zSetField(i+1,*fields[i])
+            retFields.append(fieldData)
+        return tuple(retFields)
+
+    def zGetNumSurf(self):
+        """Return the total number of surfaces defined
+
+        Equivalent to ZPL macro ``NSUR``
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        nsur : integer
+            number of surfaces defined
+
+        Notes
+        -----
+        The count doesn't include the object (OBJ) surface.
+        """
+        return self.zGetSystem()[0]
+
+    def zGetNumWave(self):
+        """Return the total number of wavelengths defined
+
+        Equivalent to ZPL macro ``NWAV``
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        nwav : integer
+            number of wavelengths defined
+        """
+        return self.zGetSystemProperty(201)
+
+    def zGetPrimaryWave(self):
+        """Return the primary wavelength number
+
+        Equivalent to ZPL macro ``PWAV``
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        primary_wave_number : integer
+            primary wavelength number
+
+        Notes
+        -----
+        To get the primary wavelength do the following:
+
+        >>> ln.zGetWave(ln.zGetPrimaryWave()).wavelength
+
+        See Also
+        --------
+        zSetPrimaryWave()
+        """
+        return self.zGetSystemProperty(200)
+
+    def zSetPrimaryWave(self, waveNum):
+        """Sets the primary wavelength for the lens in Zemax DDE server.
+
+        Parameters
+        ----------
+        waveNum : integer
+            the wavelength number to set as primary
+
+        Returns
+        -------
+        primary : integer
+            number indicating the primary wavelength
+        number : integer
+            number of wavelengths currently defined
+
+        See Also
+        --------
+        zGetPrimaryWave(), zSetWave(), zSetWave(), zSetWaveTuple(),
+        zGetWaveTuple()
+        """
+        waveData = self.zGetWave(0)
+        cmd = "SetWave,{:d},{:d},{:d}".format(0, waveNum, waveData[1])
+        reply = self._sendDDEcommand(cmd)
+        rs = reply.split(',')
+        waveData = tuple([int(elem) for elem in rs])
+        return waveData
+
+    def zGetWaveTuple(self):
+        """Gets data on all defined wavelengths
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        waveDataTuple : 2D tuple
+            the first dimension (first subtuple) contains the wavelengths
+            and the second dimension containing the weights as follows:
+            ((wave1, wave2, wave3 ,..., waveN),(wgt1, wgt2, wgt3,..., wgtN))
+
+        Notes
+        -----
+        This function is similar to "zGetWaveDataMatrix()" in MZDDE.
+
+        Examples
+        --------
+        This example shows the named tuple returned by the function
+
+        >>> ln.zGetWaveTuple()
+        waveDataTuple(wavelengths=(0.48, 0.55, 0.65), weights=(0.800000012, 1.0, 0.800000012))
+
+        See Also
+        --------
+        zSetWaveTuple(), zGetWave(), zSetWave()
+        """
+        waveCount = self.zGetWave(0)[1]
+        waveData = [[],[]]
+        wdt = _co.namedtuple('waveDataTuple', ['wavelengths', 'weights'])
+        for i in range(waveCount):
+            cmd = "GetWave,{wC:d}".format(wC=i+1)
+            reply = self._sendDDEcommand(cmd)
+            rs = reply.split(',')
+            waveData[0].append(float(rs[0])) # store the wavelength
+            waveData[1].append(float(rs[1])) # store the weight
+        waveDataTuple = wdt(tuple(waveData[0]),tuple(waveData[1]))
+        return waveDataTuple
+
+    def zSetWaveTuple(self, waves):
+        """Sets wavelength and weight data from a matrix.
+
+        Parameters
+        ----------
+        waves : 2-D tuple
+            the input wave data tuple is a 2D tuple with the first
+            dimension (first sub-tuple) containing the wavelengths
+            and the second dimension containing the weights as:
+
+            ``((wave1,wave2,wave3,...,waveN),(wgt1,wgt2,wgt3,...,wgtN))``
+
+            The first wavelength (wave1) is assigned to be the primary
+            wavelength. To change the primary wavelength use
+            ``zSetWavePrimary()``
+
+        Returns
+        -------
+        retWaves : 2-D tuple
+            the output wave data tuple is also a 2D tuple similar to the
+            ``waves``.
+
+        See Also
+        --------
+        zGetWaveTuple(), zSetWave(), zSetWavePrimary()
+        """
+        waveCount = len(waves[0])
+        retWaves = [[],[]]
+        self.zSetWave(0,1,waveCount) # Set no. of wavelen & the wavelen to 1
+        for i in range(waveCount):
+            cmd = ("SetWave,{:d},{:1.20g},{:1.20g}"
+                   .format(i+1,waves[0][i],waves[1][i]))
+            reply = self._sendDDEcommand(cmd)
+            rs = reply.split(',')
+            retWaves[0].append(float(rs[0])) # store the wavelength
+            retWaves[1].append(float(rs[1])) # store the weight
+        return (tuple(retWaves[0]),tuple(retWaves[1]))
+
+    def zSetTolRow(self, operandNumber, tolType, int1, int2, int3, minT, maxT):
+        """Helper function to set all the elements of a row (given
+        by ``operandNumber``) in the tolerance editor.
+
+        Parameters
+        ----------
+        operandNumber : integer (> 0)
+            the tolerance operand number (row number in the tolerance
+            editor)
+        tolType : string
+            4-character string (tolerancing operand code)
+        int1 : integer
+            'int1' parameter
+        int2 : integer
+            'int2' parameter
+        int3 : integer
+            'int3' parameter
+        minT : float
+            minimum value
+        maxT : float
+            maximum value
+
+        Returns
+        -------
+        tolData : tolerance data or errorCode
+            the data for the row indicated by the ``operandNumber``
+            if successful, else -1
+        """
+        tolData = self.zSetTol(operandNumber, 1, tolType)
+        if tolData != -1:
+            self.zSetTol(operandNumber, 2, int1)
+            self.zSetTol(operandNumber, 3, int2)
+            self.zSetTol(operandNumber, 4, int3)
+            self.zSetTol(operandNumber, 5, minT)
+            self.zSetTol(operandNumber, 6, maxT)
+            return self.zGetTol(operandNumber)
+        else:
+            return -1
+
+    def _zGetMode(self):
+        """Returns the mode (Sequential, Non-sequential or Mixed) of the current
+        lens in the DDE server
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        zmxModeInformation : 2-tuple (mode, nscSurfNums)
+            mode (0 = Sequential; 1 = Non-sequential; 2 = Mixed mode)
+            nscSurfNums = (tuple of integers) the surfaces (in mixed mode)
+            that are non-sequential. In Non-sequential mode and in purely
+            sequential mode, this tuple is empty (of length 0).
+
+        Notes
+        -----
+        This only works when a zmx file is loaded into the server. Currently this
+        function is meant to be used for internal purpose only.
+
+        For the purpose of this function, "Sequential" implies that there are no
+        non-sequential surfaces in the LDE.
+        """
+        nscSurfNums = []
+        nscData = self.zGetNSCData(1, 0)
+        if nscData > 0: # Non-sequential mode
+            mode = 1
+        else:          # Not Non-sequential mode
+            numSurf = self.zGetSystem()[0]
+            for i in range(1,numSurf+1):
+                surfType = self.zGetSurfaceData(i, 0)
+                if surfType == 'NONSEQCO':
+                    nscSurfNums.append(i)
+            if len(nscSurfNums) > 0:
+                mode = 2  # mixed mode
+            else:
+                mode = 0  # sequential
+        return (mode,tuple(nscSurfNums))
+
+# -------------------
+# Analysis functions 
+# -------------------
+
+# Spot diagram analysis functions
     def zSpiralSpot(self, hx, hy, waveNum, spirals, rays, mode=0):
         """Returns positions and intensity of rays traced in a spiral
         over the entrance pupil to the image surface.
@@ -6644,387 +6624,7 @@ class PyZDDE(object):
                 # !!! FIX raise an error here
         return (x, y, z, intensity)
 
-    def zLensScale(self, factor=2.0, ignoreSurfaces=None):
-        """Scale the lens design by factor specified.
-
-        ``Usage: zLensScale([factor,ignoreSurfaces]) -> ret``
-
-        Parameters
-        ----------
-        factor : float
-            the scale factor. If no factor are passed, the design will
-            be scaled by a factor of 2.0
-        ignoreSurfaces : tuple
-            a tuple of surfaces that are not to be scaled. Such as
-            (0,2,3) to ignore surfaces 0 (object surface), 2 and 3.
-            Or (OBJ, 2, STO, IMG) to ignore object surface, surface
-            number 2, stop surface and image surface.
-
-        Returns
-        -------
-        status : integer
-            0 = success; 1 = success with warning; -1 = failure;
-
-        .. warning::
-
-            1. This function implementation is not yet complete.
-                * Not all surfaces have been implemented.
-                * ``ignoreSurface`` not implemented yet.
-            2. (Limitations) Cannot scale pupil shift x,y, and z in the
-               General settings as Zemax hasn't provided any command to
-               do so using the extensions. The pupil shift values are also
-               scaled, when a lens design is scaled, when the ray-aiming
-               is on. However, this is not a serious limitation for most
-               cases.
-        """
-        ret = 0 # assuming successful return
-        lensFile = self.zGetFile()
-        if factor == 1:
-            return ret
-        #Scale the "system aperture" appropriately
-        sysAperData = self.zGetSystemAper()
-        if sysAperData[0] == 0:   # System aperture if EPD
-            stopSurf = sysAperData[1]
-            aptVal = sysAperData[2]
-            self.zSetSystemAper(0,stopSurf,factor*aptVal)
-        elif sysAperData[0] in (1,2,4): # Image Space F/#, Object Space NA, Working Para F/#
-            ##print(Warning: Scaling of aperture may be incorrect)
-            pass
-        elif sysAperData[0] == 3: # System aperture if float by stop
-            pass
-        elif sysAperData[0] == 5: # Object Cone Angle
-            print(("WARNING: Scaling OCA aperture type may be incorrect for {lF}"
-                   .format(lF=lensFile)))
-            ret = 1
-        #Get the number of surfaces
-        numSurf = 0
-        recSystemData_g = self.zGetSystem() #Get the current system parameters
-        numSurf = recSystemData_g[0]
-        #print("Number of surfaces in the lens: ", numSurf)
-        if recSystemData_g[4] > 0:
-            print("Warning: Ray aiming is ON in {lF}. But cannot scale"
-                  " Pupil Shift values.".format(lF=lensFile))
-
-        #Scale individual surface properties in the LDE
-        for surfNum in range(0,numSurf+1): #Start from the object surface ... to scale thickness if not infinity
-            #Scale the basic data common to all surface types such as radius, thickness
-            #and semi-diameter
-            surfName = self.zGetSurfaceData(surfNum,0)
-            curv = self.zGetSurfaceData(surfNum,2)
-            thickness = self.zGetSurfaceData(surfNum,3)
-            semiDiam = self.zGetSurfaceData(surfNum,5)
-            ##print("Surf#:",surfNum,"Name:",surfName,"Curvature:",curv,"Thickness:",thickness,"Semi-Diameter:", semiDiam)
-            #scale the basic data
-            scaledCurv = self.zSetSurfaceData(surfNum,2,curv/factor)
-            if thickness < 1.0E+10: #Scale the thickness if it not Infinity (-1.0E+10 in Zemax)
-                scaledThickness = self.zSetSurfaceData(surfNum,3,factor*thickness)
-            scaledSemiDiam = self.zSetSurfaceData(surfNum,5,factor*semiDiam)
-            ##print("scaled", surfNum,surfName,scaledCurv,scaledThickness,scaledSemiDiam)
-
-            #scaling parameters of surface individually
-            if surfName == 'STANDARD': #Std surface - plane, spherical, or conic aspheric
-                pass #Nothing to do
-            elif surfName in ('BINARY_1','BINARY_2'):
-                binSurMaxNum = {'BINARY_1':233,'BINARY_2':243}
-                for pNum in range(1,9): # from Par 1 to Par 8
-                    par = self.zGetSurfaceParameter(surfNum,pNum)
-                    self.zSetSurfaceParameter(surfNum,pNum,
-                                                         factor**(1-2.0*pNum)*par)
-                #Scale norm radius in the extra data editor
-                epar2 = self.zGetExtra(surfNum,2) #Norm radius
-                self.zSetExtra(surfNum,2,factor*epar2)
-                #scale the coefficients of the Zernike Fringe polynomial terms in the EDE
-                numBTerms = int(self.zGetExtra(surfNum,1))
-                if numBTerms > 0:
-                    for i in range(3,binSurMaxNum[surfName]): # scaling of terms 3 to 232, p^480
-                                                              # for Binary1 and Binary 2 respectively
-                        if i > numBTerms + 2: #(+2 because the terms starts from par 3)
-                            break
-                        else:
-                            epar = self.zGetExtra(surfNum,i)
-                            self.zSetExtra(surfNum,i,factor*epar)
-            elif surfName == 'BINARY_3':
-                #Scaling of parameters in the LDE
-                par1 = self.zGetSurfaceParameter(surfNum,1) # R2
-                self.zSetSurfaceParameter(surfNum,1,factor*par1)
-                par4 = self.zGetSurfaceParameter(surfNum,4) # A2, need to scale A2 before A1,
-                                                            # because A2>A1>0.0 always
-                self.zSetSurfaceParameter(surfNum,4,factor*par4)
-                par3 = self.zGetSurfaceParameter(surfNum,3) # A1
-                self.zSetSurfaceParameter(surfNum,3,factor*par3)
-                numBTerms = int(self.zGetExtra(surfNum,1))    #Max possible is 60
-                for i in range(2,243,4):  #242
-                    if i > 4*numBTerms + 1: #(+1 because the terms starts from par 2)
-                        break
-                    else:
-                        par_r1 = self.zGetExtra(surfNum,i)
-                        self.zSetExtra(surfNum,i,par_r1/factor**(i/2))
-                        par_p1 = self.zGetExtra(surfNum,i+1)
-                        self.zSetExtra(surfNum,i+1,factor*par_p1)
-                        par_r2 = self.zGetExtra(surfNum,i+2)
-                        self.zSetExtra(surfNum,i+2,par_r2/factor**(i/2))
-                        par_p2 = self.zGetExtra(surfNum,i+3)
-                        self.zSetExtra(surfNum,i+3,factor*par_p2)
-
-            elif surfName == 'COORDBRK': #Coordinate break,
-                par = self.zGetSurfaceParameter(surfNum,1) # decenter X
-                self.zSetSurfaceParameter(surfNum,1,factor*par)
-                par = self.zGetSurfaceParameter(surfNum,2) # decenter Y
-                self.zSetSurfaceParameter(surfNum,2,factor*par)
-            elif surfName == 'EVENASPH': #Even Asphere,
-                for pNum in range(1,9): # from Par 1 to Par 8
-                    par = self.zGetSurfaceParameter(surfNum,pNum)
-                    self.zSetSurfaceParameter(surfNum,pNum,
-                                                         factor**(1-2.0*pNum)*par)
-            elif surfName == 'GRINSUR1': #Gradient1
-                par1 = self.zGetSurfaceParameter(surfNum,1) #Delta T
-                self.zSetSurfaceParameter(surfNum,1,factor*par1)
-                par3 = self.zGetSurfaceParameter(surfNum,3) #coeff of radial quadratic index
-                self.zSetSurfaceParameter(surfNum,3,par3/(factor**2))
-                par4 = self.zGetSurfaceParameter(surfNum,4) #index of radial linear index
-                self.zSetSurfaceParameter(surfNum,4,par4/factor)
-            elif surfName == 'GRINSUR9': #Gradient9
-                par = self.zGetSurfaceParameter(surfNum,1) #Delta T
-                self.zSetSurfaceParameter(surfNum,1,factor*par)
-            elif surfName == 'GRINSU11': #Grid Gradient surface with 1 parameter
-                par = self.zGetSurfaceParameter(surfNum,1) #Delta T
-                self.zSetSurfaceParameter(surfNum,1,factor*par)
-            elif surfName == 'PARAXIAL': #Paraxial
-                par = self.zGetSurfaceParameter(surfNum,1) #Focal length
-                self.zSetSurfaceParameter(surfNum,1,factor*par)
-            elif surfName == 'PARAX_XY': #Paraxial XY
-                par = self.zGetSurfaceParameter(surfNum,1) # X power
-                self.zSetSurfaceParameter(surfNum,1,par/factor)
-                par = self.zGetSurfaceParameter(surfNum,2) # Y power
-                self.zSetSurfaceParameter(surfNum,2,par/factor)
-            elif surfName == 'PERIODIC':
-                par = self.zGetSurfaceParameter(surfNum,1) #Amplitude/ peak to valley height
-                self.zSetSurfaceParameter(surfNum,1,factor*par)
-                par = self.zGetSurfaceParameter(surfNum,2) #spatial frequency of oscillation in x
-                self.zSetSurfaceParameter(surfNum,2,par/factor)
-                par = self.zGetSurfaceParameter(surfNum,3) #spatial frequency of oscillation in y
-                self.zSetSurfaceParameter(surfNum,3,par/factor)
-            elif surfName == 'POLYNOMI':
-                for pNum in range(1,5): # from Par 1 to Par 4 for x then Par 5 to Par 8 for y
-                    parx = self.zGetSurfaceParameter(surfNum,pNum)
-                    pary = self.zGetSurfaceParameter(surfNum,pNum+4)
-                    self.zSetSurfaceParameter(surfNum,pNum,
-                                                      factor**(1-2.0*pNum)*parx)
-                    self.zSetSurfaceParameter(surfNum,pNum+4,
-                                                         factor**(1-2.0*pNum)*pary)
-            elif surfName == 'TILTSURF': #Tilted surface
-                pass           #No parameters to scale
-            elif surfName == 'TOROIDAL':
-                par = self.zGetSurfaceParameter(surfNum,1) #Radius of rotation
-                self.zSetSurfaceParameter(surfNum, 1, factor*par)
-                for pNum in range(2,9): # from Par 1 to Par 8
-                    par = self.zGetSurfaceParameter(surfNum,pNum)
-                    self.zSetSurfaceParameter(surfNum,pNum,
-                                              factor**(1-2.0*(pNum-1))*par)
-                #scale parameters from the extra data editor
-                epar = self.zGetExtra(surfNum, 2)
-                self.zSetExtra(surfNum, 2, factor*epar)
-            elif surfName == 'FZERNSAG': # Zernike fringe sag
-                for pNum in range(1,9): # from Par 1 to Par 8
-                    par = self.zGetSurfaceParameter(surfNum,pNum)
-                    self.zSetSurfaceParameter(surfNum,pNum,
-                                              factor**(1-2.0*pNum)*par)
-                par9 = self.zGetSurfaceParameter(surfNum,9) # decenter X
-                self.zSetSurfaceParameter(surfNum,9,factor*par9)
-                par10 = self.zGetSurfaceParameter(surfNum,10) # decenter Y
-                self.zSetSurfaceParameter(surfNum,10,factor*par10)
-                #Scale norm radius in the extra data editor
-                epar2 = self.zGetExtra(surfNum,2) #Norm radius
-                self.zSetExtra(surfNum,2,factor*epar2)
-                #scale the coefficients of the Zernike Fringe polynomial terms in the EDE
-                numZerTerms = int(self.zGetExtra(surfNum,1))
-                if numZerTerms > 0:
-                    epar3 = self.zGetExtra(surfNum,3) #Zernike Term 1
-                    self.zSetExtra(surfNum,3,factor*epar3)
-                    #Zernike terms 2,3,4,5 and 6 are not scaled.
-                    for i in range(9,40): #scaling of Zernike terms 7 to 37
-                        if i > numZerTerms + 2: #(+2 because the Zernike terms starts from par 3)
-                            break
-                        else:
-                            epar = self.zGetExtra(surfNum,i)
-                            self.zSetExtra(surfNum,i,factor*epar)
-            else:
-                print(("WARNING: Scaling for surf type {sN} in file {lF} not implemented!!"
-                      .format(sN=surfName,lF=lensFile)))
-                ret = -1
-                pass
-
-        #Scale appropriate parameters in the Multi-configuration editor, such as THIC, APER ...
-        #maybe, use GetConfig(), SetConfig() and GetMulticon
-
-        #Scale appropriate parameters in the Tolerance Data Editor
-
-        #Scale the parameters in the Field data Editor if the field positions are
-        #NOT of angle type.
-        (fType,fNum,fxMax,fyMax,fNorm) = self.zGetField(0)
-        if fType != 0:
-            fieldDataTuple = self.zGetFieldTuple()
-            fieldDataTupleScaled = []
-            for i in range(fNum):
-                tField = list(fieldDataTuple[i])
-                tField[0],tField[1] = factor*tField[0],factor*tField[1]
-                fieldDataTupleScaled.append(tuple(tField))
-            fieldDataTupleScaled = self.zSetFieldTuple(fType,fNorm,
-                                                 tuple(fieldDataTupleScaled))
-        return ret
-
-
-    def zGetHiatus(self, txtFile=None, keepFile=False):
-        """Returns the Hiatus, which is the distance between the two
-        principal planes of the optical system
-
-        Parameters
-        ----------
-        txtFile : string, optional
-            if passed, the prescription file will be named such. Pass a
-            specific ``txtFile`` if you want to dump the file into a
-            separate directory.
-        keepFile : bool, optional
-            if ``False`` (default), the prescription file will be deleted
-            after use.
-            If ``True``, the file will persist. If ``keepFile`` is ``True``
-            but a ``txtFile`` is not passed, the prescription file will be
-            saved in the same directory as the lens (provided the required
-            folder access permissions are available)
-
-        Returns
-        -------
-        hiatus : float
-            the value of the hiatus
-
-        Notes
-        -----
-        The hiatus is also known as the Null space or nodal space or the
-        interstitium.
-        """
-        settings = _txtAndSettingsToUse(self, txtFile, 'None', 'Pre')
-        textFileName, _, _ = settings
-        ret = self.zGetTextFile(textFileName, 'Pre', "None", 0)
-        assert ret == 0
-        recSystemData = self.zGetSystem()
-        numSurf = recSystemData[0]
-
-        # The number of expected Principal planes in each Pre file is equal to the
-        # number of wavelengths in the general settings of the lens design
-        line_list = _readLinesFromFile(_openFile(textFileName))
-
-        principalPlane_objSpace = 0.0
-        principalPlane_imgSpace = 0.0
-        hiatus = 0.0
-        count = 0
-
-        for line_num, line in enumerate(line_list):
-            # Extract the image surface distance from the global ref sur (surface 1)
-            sectionString = ("GLOBAL VERTEX COORDINATES, ORIENTATIONS,"
-                             " AND ROTATION/OFFSET MATRICES:")
-            if line.rstrip() == sectionString:
-                ima_3 = line_list[line_num + numSurf*4 + 6]
-                ima_z = float(ima_3.split()[3])
-
-            # Extract the Principal plane distances.
-            if "Principal Planes" in line and "Anti" not in line:
-                principalPlane_objSpace += float(line.split()[3])
-                principalPlane_imgSpace += float(line.split()[4])
-                count +=1  #Increment (wavelength) counter for averaging
-
-        # Calculate the average (for all wavelengths) of the principal plane distances
-        if count > 0:
-            principalPlane_objSpace = principalPlane_objSpace/count
-            principalPlane_imgSpace = principalPlane_imgSpace/count
-            # Calculate the hiatus (only if count > 0) as
-            hiatus = abs(ima_z + principalPlane_imgSpace - principalPlane_objSpace)
-
-        if not keepFile:
-            _deleteFile(textFileName)
-        return hiatus
-
-    def zGetOpticalPathLength(self, surf1=0, surf2=2, hx=0, hy=0, px=0, py=0):
-        """Returns the total optical path length (OPL) between surfaces
-        surf1 and surf2 for a ray traced at primary wavelength
-
-        Parameters
-        ----------
-        surf1 : integer, optional
-            start surface number
-        surf2 : integer, optional
-            end surface number
-        hx : float, optional
-            normalized field coordinate along x
-        hy : float, optional
-            normalized field coordinate along y
-        px : float, optional
-            normalized pupil coordinate along x
-        py : float, optional
-            normalized pupil coordinate along y
-
-        Returns
-        -------
-        oplen : float
-            total optical path length (including refraction and phase
-            surfaces) between surfaces
-
-        Notes
-        -----
-        The function uses the optimization operand "PLEN" to retrieve
-        the value of the optical path length
-
-        See Also
-        -------- 
-        zGetOpticalPathDifference()
-        """
-        oplen = self.zOperandValue('PLEN', surf1, surf2, hx, hy, px, py)
-        return oplen
-
-    def zGetOpticalPathDifference(self, hx=0, hy=0, px=0, py=0, ref=0, wave=None):
-        """Returns the optical path difference (OPD) with respect to the 
-        chief ray or mean OPD in waves
-
-        Parameters
-        ---------- 
-        hx : float, optional
-            normalized field coordinate along x
-        hy : float, optional
-            normalized field coordinate along y
-        px : float, optional
-            normalized pupil coordinate along x
-        py : float, optional
-            normalized pupil coordinate along y 
-        ref : integer, optional 
-            integer code to indicate reference ray/OPD. 
-            0 = chief ray (Default); 1 = mean OPD over the pupil; 
-            2 = mean OPD over the pupil with tilt removed 
-        wave : integer, optional    
-            wavelength number to trace ray. If ``None``, the ray is 
-            traced at the primary wavelength.
-
-        Returns
-        ------- 
-        opd : float 
-            optical path difference 
-
-        See Also
-        -------- 
-        zGetOpticalPathLength()
-        """
-        if ref == 2:
-            code = 'OPDX'
-        elif ref == 1:
-            code = 'OPDM'
-        elif ref == 0:
-            code = 'OPDC'
-        else:
-            raise ValueError, 'Unexpected ref input value'
-        if wave is None:
-            wave = self.zGetWave(self.zGetPrimaryWave()).wavelength
-        opd = self.zOperandValue(code, 0, wave, hx, hy, px, py)
-        return opd 
-
-
+# POP analysis functions
     def zGetPOP(self, settingsFile=None, displayData=False, txtFile=None,
                 keepFile=False, timeout=None):
         """Returns Physical Optics Propagation (POP) data
@@ -7464,182 +7064,7 @@ class PyZDDE(object):
                                     fibType, fparamN, ignPol, pos, tiltx, tilty)
             return dst
 
-    def zGetPupilMagnification(self):
-        """Return the pupil magnification, which is the ratio of the
-        exit-pupil diameter to the entrance pupil diameter.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        pupilMag : real
-            the pupil magnification
-        """
-        _, _, ENPD, ENPP, EXPD, EXPP, _, _ = self.zGetPupil()
-        return (EXPD/ENPD)
-
-    def zGetSeidelAberration(self, which='wave', txtFile=None, keepFile=False):
-        """Return the Seidel Aberration coefficients
-
-        Parameters
-        ----------
-        which : string, optional
-            'wave' = Wavefront aberration coefficient (summary) is
-                     returned;
-            'aber' = Seidel aberration coefficients (total) is returned
-            'both' = both Wavefront (summary) and Seidel aberration
-                     (total) coefficients are returned
-        txtFile : string, optional
-            if passed, the seidel text file will be named such. Pass a
-            specific txtFile if you want to dump the file into a separate
-            directory.
-        keepFile : bool, optional
-            if ``False`` (default), the Seidel text file will be deleted
-            after use.
-            If ``True``, the file will persist. If ``keepFile`` is ``True``
-            but a ``txtFile`` is not passed, the Seidel text file will be
-            saved in the same directory as the lens (provided the required
-            folder access permissions are availabl
-
-        Returns
-        -------
-        sac : dictionary or tuple (see below)
-            - if 'which' is 'wave', then a dictionary of Wavefront
-              aberration coefficient summary is returned;
-            - if 'which' is 'aber', then a dictionary of Seidel total
-              aberration coefficient is returned;
-            - if 'which' is 'both', then a tuple of dictionaries containing
-              Wavefront aberration coefficients and Seidel aberration
-              coefficients is returned.
-        """
-        settings = _txtAndSettingsToUse(self, txtFile, 'None', 'Sei')
-        textFileName, _, _ = settings
-        ret = self.zGetTextFile(textFileName,'Sei', 'None', 0)
-        assert ret == 0
-        recSystemData = self.zGetSystem() # Get the current system parameters
-        numSurf = recSystemData[0]
-        line_list = _readLinesFromFile(_openFile(textFileName))
-        seidelAberrationCoefficients = {}         # Aberration Coefficients
-        seidelWaveAberrationCoefficients = {}     # Wavefront Aberr. Coefficients
-        for line_num, line in enumerate(line_list):
-            # Get the Seidel aberration coefficients
-            sectionString1 = ("Seidel Aberration Coefficients:")
-            if line.rstrip()== sectionString1:
-                sac_keys_tmp = line_list[line_num + 2].rstrip()[7:] # remove "Surf" and "\n" from start and end
-                sac_keys = sac_keys_tmp.split('    ')
-                sac_vals = line_list[line_num + numSurf+3].split()[1:]
-            # Get the Seidel Wavefront Aberration Coefficients (swac)
-            sectionString2 = ("Wavefront Aberration Coefficient Summary:")
-            if line.rstrip()== sectionString2:
-                swac_keys01 = line_list[line_num + 2].split()     # names
-                swac_vals01 = line_list[line_num + 3].split()[1:] # values
-                swac_keys02 = line_list[line_num + 5].split()     # names
-                swac_vals02 = line_list[line_num + 6].split()[1:] # values
-                break
-        else:
-            raise Exception("Could not find section strings '{}'"
-            " and '{}' in seidel aberrations file. "
-            " \n\nPlease check if there is a mismatch in text encoding between"
-            " Zemax and PyZDDE.".format(sectionString1, sectionString2))
-        # Assert if the lengths of key-value lists are not equal
-        assert len(sac_keys) == len(sac_vals)
-        assert len(swac_keys01) == len(swac_vals01)
-        assert len(swac_keys02) == len(swac_vals02)
-        # Create the dictionary
-        for k, v in zip(sac_keys, sac_vals):
-            seidelAberrationCoefficients[k] = float(v)
-        for k, v in zip(swac_keys01, swac_vals01):
-            seidelWaveAberrationCoefficients[k] = float(v)
-        for k, v in zip(swac_keys02, swac_vals02):
-            seidelWaveAberrationCoefficients[k] = float(v)
-        if not keepFile:
-            _deleteFile(textFileName)
-        if which == 'wave':
-            return seidelWaveAberrationCoefficients
-        elif which == 'aber':
-            return seidelAberrationCoefficients
-        elif which == 'both':
-            return seidelWaveAberrationCoefficients, seidelAberrationCoefficients
-        else:
-            return None
-
-    def zOptimize2(self, numCycle=1, algo=0, histLen=5, precision=1e-12,
-                   minMF=1e-15, tMinCycles=5, tMaxCycles=None, timeout=None):
-        """A wrapper around zOptimize() providing few control features
-
-        Parameters
-        ----------
-        numCycles : integer
-            number of cycles per DDE call to optimization (default=1)
-        algo : integer
-            0=DLS, 1=Orthogonal descent (default=0)
-        histLen : integer
-            length of the array of past merit functions returned from each
-            DDE call to ``zOptimize()`` for determining steady state of
-            merit function values (default=5)
-        precision : float
-            minimum acceptable absolute difference between the merit-
-            function values in the array for steady state computation
-            (default=1e-12)
-        minMF : float
-            minimum Merit Function following which to the optimization
-            loop is to be terminated even if a steady state hasn't reached.
-            This might be useful if a target merit function is desired.
-        tMinCycles : integer
-            total number of cycles to run optimization at the very least.
-            This is NOT the number of cycles per DDE call, but it is
-            calculated by multiplying the number of cycles per DDL
-            optimize call to the total number of DDE calls (default=5).
-        tMaxCycles : integer
-            the maximum number of cycles after which the optimizaiton
-            should be terminated even if a steady state hasn't reached
-        timeout : integer
-            timeout value, in seconds, used in each pass
-
-        Returns
-        -------
-        finalMerit : float
-            the final merit function.
-        tCycles : integer
-            total number of cycles calculated by multiplying the number
-            of cycles per DDL optimize call to the total number of DDE
-            calls.
-
-        Notes
-        -----
-        ``zOptimize2()`` basically calls ``zOptimize()`` mutiple number of
-        times in a loop. It can be useful if a large number of optimization
-        cycles are required.
-        """
-        mfvList = [0.0]*histLen    # create a list of zeros
-        count = 0
-        mfvSettled = False
-        finalMerit = 9e9
-        tCycles = 0
-        if not tMaxCycles:
-            tMaxCycles = 2**31 - 1   # Largest plain positive integer value
-        while not mfvSettled and (finalMerit > minMF) and (tCycles < tMaxCycles):
-            finalMerit = self.zOptimize(numCycle, algo, timeout)
-            self.zOptimize(-1,algo) # update all the operands in the MFE (not necessary?)
-            if finalMerit > 8.9999e9: # optimization failure (Zemax returned 9.0E+009)
-                break
-            # populate mfvList in circular fashion
-            mfvList[count % histLen] = finalMerit
-            if (tCycles >= tMinCycles-1): # only after the minimum number of cycles are over,
-                # test to see if the merit-function has settled down
-                mfvList_shifted = mfvList[:-1]
-                mfvList_shifted.append(mfvList[0])
-                for i,j in zip(mfvList,mfvList_shifted):
-                    if abs(i-j) >= precision:
-                        break
-                else:
-                    mfvSettled = True
-            count += 1
-            tCycles = count*numCycle
-        return (finalMerit, tCycles)
-
+# FFT and Huygens PSF, MTF analysis functions
     def zGetPSFCrossSec(self, which='fft', settingsFile=None, txtFile=None,
                         keepFile=False, timeout=120):
         """Returns the cross-section data of FFT or Huygens PSF analysis
@@ -8729,6 +8154,7 @@ class PyZDDE(object):
                                            pol, useDash)
             return dst
 
+# Image simulation functions
     def zGetImageSimulation(self, settingsFile=None, txtFile=None, keepFile=False,
                             timeout=120):
         """Returns image simulation analysis results
@@ -9037,6 +8463,716 @@ class PyZDDE(object):
                                                 suppress, pixelSize, xpix, ypix,
                                                 flipSimImg, outFile)
             return dst
+
+# -------------------
+# Tools functions 
+# -------------------
+
+# System modification functions
+    def zLensScale(self, factor=2.0, ignoreSurfaces=None):
+        """Scale the lens design by factor specified.
+
+        ``Usage: zLensScale([factor,ignoreSurfaces]) -> ret``
+
+        Parameters
+        ----------
+        factor : float
+            the scale factor. If no factor are passed, the design will
+            be scaled by a factor of 2.0
+        ignoreSurfaces : tuple
+            a tuple of surfaces that are not to be scaled. Such as
+            (0,2,3) to ignore surfaces 0 (object surface), 2 and 3.
+            Or (OBJ, 2, STO, IMG) to ignore object surface, surface
+            number 2, stop surface and image surface.
+
+        Returns
+        -------
+        status : integer
+            0 = success; 1 = success with warning; -1 = failure;
+
+        .. warning::
+
+            1. This function implementation is not yet complete.
+                * Not all surfaces have been implemented.
+                * ``ignoreSurface`` not implemented yet.
+            2. (Limitations) Cannot scale pupil shift x,y, and z in the
+               General settings as Zemax hasn't provided any command to
+               do so using the extensions. The pupil shift values are also
+               scaled, when a lens design is scaled, when the ray-aiming
+               is on. However, this is not a serious limitation for most
+               cases.
+        """
+        ret = 0 # assuming successful return
+        lensFile = self.zGetFile()
+        if factor == 1:
+            return ret
+        #Scale the "system aperture" appropriately
+        sysAperData = self.zGetSystemAper()
+        if sysAperData[0] == 0:   # System aperture if EPD
+            stopSurf = sysAperData[1]
+            aptVal = sysAperData[2]
+            self.zSetSystemAper(0,stopSurf,factor*aptVal)
+        elif sysAperData[0] in (1,2,4): # Image Space F/#, Object Space NA, Working Para F/#
+            ##print(Warning: Scaling of aperture may be incorrect)
+            pass
+        elif sysAperData[0] == 3: # System aperture if float by stop
+            pass
+        elif sysAperData[0] == 5: # Object Cone Angle
+            print(("WARNING: Scaling OCA aperture type may be incorrect for {lF}"
+                   .format(lF=lensFile)))
+            ret = 1
+        #Get the number of surfaces
+        numSurf = 0
+        recSystemData_g = self.zGetSystem() #Get the current system parameters
+        numSurf = recSystemData_g[0]
+        #print("Number of surfaces in the lens: ", numSurf)
+        if recSystemData_g[4] > 0:
+            print("Warning: Ray aiming is ON in {lF}. But cannot scale"
+                  " Pupil Shift values.".format(lF=lensFile))
+
+        #Scale individual surface properties in the LDE
+        for surfNum in range(0,numSurf+1): #Start from the object surface ... to scale thickness if not infinity
+            #Scale the basic data common to all surface types such as radius, thickness
+            #and semi-diameter
+            surfName = self.zGetSurfaceData(surfNum,0)
+            curv = self.zGetSurfaceData(surfNum,2)
+            thickness = self.zGetSurfaceData(surfNum,3)
+            semiDiam = self.zGetSurfaceData(surfNum,5)
+            ##print("Surf#:",surfNum,"Name:",surfName,"Curvature:",curv,"Thickness:",thickness,"Semi-Diameter:", semiDiam)
+            #scale the basic data
+            scaledCurv = self.zSetSurfaceData(surfNum,2,curv/factor)
+            if thickness < 1.0E+10: #Scale the thickness if it not Infinity (-1.0E+10 in Zemax)
+                scaledThickness = self.zSetSurfaceData(surfNum,3,factor*thickness)
+            scaledSemiDiam = self.zSetSurfaceData(surfNum,5,factor*semiDiam)
+            ##print("scaled", surfNum,surfName,scaledCurv,scaledThickness,scaledSemiDiam)
+
+            #scaling parameters of surface individually
+            if surfName == 'STANDARD': #Std surface - plane, spherical, or conic aspheric
+                pass #Nothing to do
+            elif surfName in ('BINARY_1','BINARY_2'):
+                binSurMaxNum = {'BINARY_1':233,'BINARY_2':243}
+                for pNum in range(1,9): # from Par 1 to Par 8
+                    par = self.zGetSurfaceParameter(surfNum,pNum)
+                    self.zSetSurfaceParameter(surfNum,pNum,
+                                                         factor**(1-2.0*pNum)*par)
+                #Scale norm radius in the extra data editor
+                epar2 = self.zGetExtra(surfNum,2) #Norm radius
+                self.zSetExtra(surfNum,2,factor*epar2)
+                #scale the coefficients of the Zernike Fringe polynomial terms in the EDE
+                numBTerms = int(self.zGetExtra(surfNum,1))
+                if numBTerms > 0:
+                    for i in range(3,binSurMaxNum[surfName]): # scaling of terms 3 to 232, p^480
+                                                              # for Binary1 and Binary 2 respectively
+                        if i > numBTerms + 2: #(+2 because the terms starts from par 3)
+                            break
+                        else:
+                            epar = self.zGetExtra(surfNum,i)
+                            self.zSetExtra(surfNum,i,factor*epar)
+            elif surfName == 'BINARY_3':
+                #Scaling of parameters in the LDE
+                par1 = self.zGetSurfaceParameter(surfNum,1) # R2
+                self.zSetSurfaceParameter(surfNum,1,factor*par1)
+                par4 = self.zGetSurfaceParameter(surfNum,4) # A2, need to scale A2 before A1,
+                                                            # because A2>A1>0.0 always
+                self.zSetSurfaceParameter(surfNum,4,factor*par4)
+                par3 = self.zGetSurfaceParameter(surfNum,3) # A1
+                self.zSetSurfaceParameter(surfNum,3,factor*par3)
+                numBTerms = int(self.zGetExtra(surfNum,1))    #Max possible is 60
+                for i in range(2,243,4):  #242
+                    if i > 4*numBTerms + 1: #(+1 because the terms starts from par 2)
+                        break
+                    else:
+                        par_r1 = self.zGetExtra(surfNum,i)
+                        self.zSetExtra(surfNum,i,par_r1/factor**(i/2))
+                        par_p1 = self.zGetExtra(surfNum,i+1)
+                        self.zSetExtra(surfNum,i+1,factor*par_p1)
+                        par_r2 = self.zGetExtra(surfNum,i+2)
+                        self.zSetExtra(surfNum,i+2,par_r2/factor**(i/2))
+                        par_p2 = self.zGetExtra(surfNum,i+3)
+                        self.zSetExtra(surfNum,i+3,factor*par_p2)
+
+            elif surfName == 'COORDBRK': #Coordinate break,
+                par = self.zGetSurfaceParameter(surfNum,1) # decenter X
+                self.zSetSurfaceParameter(surfNum,1,factor*par)
+                par = self.zGetSurfaceParameter(surfNum,2) # decenter Y
+                self.zSetSurfaceParameter(surfNum,2,factor*par)
+            elif surfName == 'EVENASPH': #Even Asphere,
+                for pNum in range(1,9): # from Par 1 to Par 8
+                    par = self.zGetSurfaceParameter(surfNum,pNum)
+                    self.zSetSurfaceParameter(surfNum,pNum,
+                                                         factor**(1-2.0*pNum)*par)
+            elif surfName == 'GRINSUR1': #Gradient1
+                par1 = self.zGetSurfaceParameter(surfNum,1) #Delta T
+                self.zSetSurfaceParameter(surfNum,1,factor*par1)
+                par3 = self.zGetSurfaceParameter(surfNum,3) #coeff of radial quadratic index
+                self.zSetSurfaceParameter(surfNum,3,par3/(factor**2))
+                par4 = self.zGetSurfaceParameter(surfNum,4) #index of radial linear index
+                self.zSetSurfaceParameter(surfNum,4,par4/factor)
+            elif surfName == 'GRINSUR9': #Gradient9
+                par = self.zGetSurfaceParameter(surfNum,1) #Delta T
+                self.zSetSurfaceParameter(surfNum,1,factor*par)
+            elif surfName == 'GRINSU11': #Grid Gradient surface with 1 parameter
+                par = self.zGetSurfaceParameter(surfNum,1) #Delta T
+                self.zSetSurfaceParameter(surfNum,1,factor*par)
+            elif surfName == 'PARAXIAL': #Paraxial
+                par = self.zGetSurfaceParameter(surfNum,1) #Focal length
+                self.zSetSurfaceParameter(surfNum,1,factor*par)
+            elif surfName == 'PARAX_XY': #Paraxial XY
+                par = self.zGetSurfaceParameter(surfNum,1) # X power
+                self.zSetSurfaceParameter(surfNum,1,par/factor)
+                par = self.zGetSurfaceParameter(surfNum,2) # Y power
+                self.zSetSurfaceParameter(surfNum,2,par/factor)
+            elif surfName == 'PERIODIC':
+                par = self.zGetSurfaceParameter(surfNum,1) #Amplitude/ peak to valley height
+                self.zSetSurfaceParameter(surfNum,1,factor*par)
+                par = self.zGetSurfaceParameter(surfNum,2) #spatial frequency of oscillation in x
+                self.zSetSurfaceParameter(surfNum,2,par/factor)
+                par = self.zGetSurfaceParameter(surfNum,3) #spatial frequency of oscillation in y
+                self.zSetSurfaceParameter(surfNum,3,par/factor)
+            elif surfName == 'POLYNOMI':
+                for pNum in range(1,5): # from Par 1 to Par 4 for x then Par 5 to Par 8 for y
+                    parx = self.zGetSurfaceParameter(surfNum,pNum)
+                    pary = self.zGetSurfaceParameter(surfNum,pNum+4)
+                    self.zSetSurfaceParameter(surfNum,pNum,
+                                                      factor**(1-2.0*pNum)*parx)
+                    self.zSetSurfaceParameter(surfNum,pNum+4,
+                                                         factor**(1-2.0*pNum)*pary)
+            elif surfName == 'TILTSURF': #Tilted surface
+                pass           #No parameters to scale
+            elif surfName == 'TOROIDAL':
+                par = self.zGetSurfaceParameter(surfNum,1) #Radius of rotation
+                self.zSetSurfaceParameter(surfNum, 1, factor*par)
+                for pNum in range(2,9): # from Par 1 to Par 8
+                    par = self.zGetSurfaceParameter(surfNum,pNum)
+                    self.zSetSurfaceParameter(surfNum,pNum,
+                                              factor**(1-2.0*(pNum-1))*par)
+                #scale parameters from the extra data editor
+                epar = self.zGetExtra(surfNum, 2)
+                self.zSetExtra(surfNum, 2, factor*epar)
+            elif surfName == 'FZERNSAG': # Zernike fringe sag
+                for pNum in range(1,9): # from Par 1 to Par 8
+                    par = self.zGetSurfaceParameter(surfNum,pNum)
+                    self.zSetSurfaceParameter(surfNum,pNum,
+                                              factor**(1-2.0*pNum)*par)
+                par9 = self.zGetSurfaceParameter(surfNum,9) # decenter X
+                self.zSetSurfaceParameter(surfNum,9,factor*par9)
+                par10 = self.zGetSurfaceParameter(surfNum,10) # decenter Y
+                self.zSetSurfaceParameter(surfNum,10,factor*par10)
+                #Scale norm radius in the extra data editor
+                epar2 = self.zGetExtra(surfNum,2) #Norm radius
+                self.zSetExtra(surfNum,2,factor*epar2)
+                #scale the coefficients of the Zernike Fringe polynomial terms in the EDE
+                numZerTerms = int(self.zGetExtra(surfNum,1))
+                if numZerTerms > 0:
+                    epar3 = self.zGetExtra(surfNum,3) #Zernike Term 1
+                    self.zSetExtra(surfNum,3,factor*epar3)
+                    #Zernike terms 2,3,4,5 and 6 are not scaled.
+                    for i in range(9,40): #scaling of Zernike terms 7 to 37
+                        if i > numZerTerms + 2: #(+2 because the Zernike terms starts from par 3)
+                            break
+                        else:
+                            epar = self.zGetExtra(surfNum,i)
+                            self.zSetExtra(surfNum,i,factor*epar)
+            else:
+                print(("WARNING: Scaling for surf type {sN} in file {lF} not implemented!!"
+                      .format(sN=surfName,lF=lensFile)))
+                ret = -1
+                pass
+
+        #Scale appropriate parameters in the Multi-configuration editor, such as THIC, APER ...
+        #maybe, use GetConfig(), SetConfig() and GetMulticon
+
+        #Scale appropriate parameters in the Tolerance Data Editor
+
+        #Scale the parameters in the Field data Editor if the field positions are
+        #NOT of angle type.
+        (fType,fNum,fxMax,fyMax,fNorm) = self.zGetField(0)
+        if fType != 0:
+            fieldDataTuple = self.zGetFieldTuple()
+            fieldDataTupleScaled = []
+            for i in range(fNum):
+                tField = list(fieldDataTuple[i])
+                tField[0],tField[1] = factor*tField[0],factor*tField[1]
+                fieldDataTupleScaled.append(tuple(tField))
+            fieldDataTupleScaled = self.zSetFieldTuple(fType,fNorm,
+                                                 tuple(fieldDataTupleScaled))
+        return ret
+
+# Design functions
+    def zOptimize2(self, numCycle=1, algo=0, histLen=5, precision=1e-12,
+                   minMF=1e-15, tMinCycles=5, tMaxCycles=None, timeout=None):
+        """A wrapper around zOptimize() providing few control features
+
+        Parameters
+        ----------
+        numCycles : integer
+            number of cycles per DDE call to optimization (default=1)
+        algo : integer
+            0=DLS, 1=Orthogonal descent (default=0)
+        histLen : integer
+            length of the array of past merit functions returned from each
+            DDE call to ``zOptimize()`` for determining steady state of
+            merit function values (default=5)
+        precision : float
+            minimum acceptable absolute difference between the merit-
+            function values in the array for steady state computation
+            (default=1e-12)
+        minMF : float
+            minimum Merit Function following which to the optimization
+            loop is to be terminated even if a steady state hasn't reached.
+            This might be useful if a target merit function is desired.
+        tMinCycles : integer
+            total number of cycles to run optimization at the very least.
+            This is NOT the number of cycles per DDE call, but it is
+            calculated by multiplying the number of cycles per DDL
+            optimize call to the total number of DDE calls (default=5).
+        tMaxCycles : integer
+            the maximum number of cycles after which the optimizaiton
+            should be terminated even if a steady state hasn't reached
+        timeout : integer
+            timeout value, in seconds, used in each pass
+
+        Returns
+        -------
+        finalMerit : float
+            the final merit function.
+        tCycles : integer
+            total number of cycles calculated by multiplying the number
+            of cycles per DDL optimize call to the total number of DDE
+            calls.
+
+        Notes
+        -----
+        ``zOptimize2()`` basically calls ``zOptimize()`` mutiple number of
+        times in a loop. It can be useful if a large number of optimization
+        cycles are required.
+        """
+        mfvList = [0.0]*histLen    # create a list of zeros
+        count = 0
+        mfvSettled = False
+        finalMerit = 9e9
+        tCycles = 0
+        if not tMaxCycles:
+            tMaxCycles = 2**31 - 1   # Largest plain positive integer value
+        while not mfvSettled and (finalMerit > minMF) and (tCycles < tMaxCycles):
+            finalMerit = self.zOptimize(numCycle, algo, timeout)
+            self.zOptimize(-1,algo) # update all the operands in the MFE (not necessary?)
+            if finalMerit > 8.9999e9: # optimization failure (Zemax returned 9.0E+009)
+                break
+            # populate mfvList in circular fashion
+            mfvList[count % histLen] = finalMerit
+            if (tCycles >= tMinCycles-1): # only after the minimum number of cycles are over,
+                # test to see if the merit-function has settled down
+                mfvList_shifted = mfvList[:-1]
+                mfvList_shifted.append(mfvList[0])
+                for i,j in zip(mfvList,mfvList_shifted):
+                    if abs(i-j) >= precision:
+                        break
+                else:
+                    mfvSettled = True
+            count += 1
+            tCycles = count*numCycle
+        return (finalMerit, tCycles)
+
+# Other functions
+    def zExecuteZPLMacro(self, zplMacroCode, timeout=None):
+        """Executes a ZPL macro present in the <data>/Macros folder.
+
+        Parameters
+        ----------
+        zplMacroCode : string
+            The first 3 letters (case-sensitive) of the ZPL macro present
+            in the <data>/Macros folder
+        timeout : integer
+            timeout value in seconds
+
+        Returns
+        --------
+        status : integer (0 or 1)
+            0 = successfully executed the ZPL macro;
+            -1 = macro code is incorrect & error code returned by Zemax
+
+        Notes
+        -----
+        If the macro path is different from the default macro path at \
+        ``<data>/Macros``, then first use ``zSetMacroPath()`` to set the \
+        macropath and then use ``zExecuteZPLMacro()``.
+
+        .. warning::
+
+          1. can only "execute" an existing ZPL macro. i.e. you can't \
+             create a ZPL macro on-the-fly and execute it.
+          2. If it is required to redirect the result of executing the ZPL \
+             to a text file, modify the ZPL macro in the following way:
+
+            -   Add the following two lines at the beginning of the file:
+                ``CLOSEWINDOW`` # to suppress the display of default text window
+                ``OUTPUT "full_path_with_extension_of_result_fileName"``
+            -   Add the following line at the end of the file:
+                ``OUTPUT SCREEN`` # close the file and re-enable screen printing
+
+          3. If there are more than two macros which have the same first 3 letters
+             then all of them will be executed by Zemax.
+        """
+        status = -1
+        if self._macroPath:
+            zplMpath = self._macroPath
+        else:
+            zplMpath = _os.path.join(self.zGetPath()[0], 'Macros')
+        macroList = [f for f in _os.listdir(zplMpath)
+                     if f.endswith(('.zpl','.ZPL')) and f.startswith(zplMacroCode)]
+        if macroList:
+            zplCode = macroList[0][:3]
+            status = self.zOpenWindow(zplCode, True, timeout)
+        return status
+
+    def zSetMacroPath(self, macroFolderPath):
+        """Set the full path name to the macro folder
+
+        Parameters
+        ----------
+        macroFolderPath : string
+            full-path name of the macro folder path. Also, this folder
+            path should match the folder path specified for Macros in the
+            Zemax Preferences setting.
+
+        Returns
+        -------
+        status : integer
+            0 = success; -1 = failure
+
+        Notes
+        -----
+        Use this method to set the full-path name of the macro folder
+        path if it is different from the default path at <data>/Macros
+
+        See Also
+        --------
+        zExecuteZPLMacro()
+        """
+        if _os.path.isabs(macroFolderPath):
+            self._macroPath = macroFolderPath
+            return 0
+        else:
+            return -1
+
+# -------------------
+# Report functions 
+# -------------------
+    def zGetImageSpaceNA(self):
+        """Return the Image Space Numerical Aperture (ISNA) of the lens
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        isna : real
+            image space numerical aperture
+
+        Notes
+        -----
+        1. The ISNA is calculated using paraxial ray tracing. It is defined
+           as the index of the image space multiplied by the sine of the
+           angle between the paraxial on-axis chief ray and the paraxial
+           on-axis +y marginal ray calculated at the defined conjugates for
+           the primary wavelength [UPRT]_.
+        2. Relation to F-number :
+           ``isna = pyz.fnum2numAper(paraxial_working_fnumber)``
+
+        References
+        ----------
+        .. [UPRT] Understanding Paraxial Ray-Tracing, Mark Nicholson, Zemax
+                  Knowledgebase, July 21, 2005.
+        """
+        prim_wave_num = self.zGetPrimaryWave()
+        last_surf = self.zGetNumSurf()
+        # Trace paraxial on-axis chief ray at primary wavelength
+        chief_ray_dat = self.zGetTrace(prim_wave_num, mode=1, surf=last_surf,
+                                       hx=0, hy=0, px=0, py=0)
+        chief_angle = _math.asin(chief_ray_dat[6])
+        # Trace paraxial marginal ray at primary wavelength
+        margi_ray_dat = self.zGetTrace(prim_wave_num, mode=1, surf=last_surf,
+                                       hx=0, hy=0, px=0, py=1)
+        margi_angle = _math.asin(margi_ray_dat[6])
+        index = self.zGetIndexPrimWave(last_surf)
+        return index*_math.sin(chief_angle - margi_angle)
+
+    def zGetIndexPrimWave(self, surfaceNumber):
+        """Returns the index of refraction at primary wavelength for the
+        specified surface
+
+        Emulates the ZPL macro ``INDX(surface)``
+
+        Parameters
+        ----------
+        surfaceNumber : integer
+            surface number
+
+        Returns
+        -------
+        index : float
+            index of refraction at primary wavelength
+
+        See Also
+        --------
+        zGetIndex()
+        """
+        prime_wave_num = self.zGetPrimaryWave()
+        return self.zGetIndex(surfaceNumber)[prime_wave_num-1]
+
+    def zGetHiatus(self, txtFile=None, keepFile=False):
+        """Returns the Hiatus, which is the distance between the two
+        principal planes of the optical system
+
+        Parameters
+        ----------
+        txtFile : string, optional
+            if passed, the prescription file will be named such. Pass a
+            specific ``txtFile`` if you want to dump the file into a
+            separate directory.
+        keepFile : bool, optional
+            if ``False`` (default), the prescription file will be deleted
+            after use.
+            If ``True``, the file will persist. If ``keepFile`` is ``True``
+            but a ``txtFile`` is not passed, the prescription file will be
+            saved in the same directory as the lens (provided the required
+            folder access permissions are available)
+
+        Returns
+        -------
+        hiatus : float
+            the value of the hiatus
+
+        Notes
+        -----
+        The hiatus is also known as the Null space or nodal space or the
+        interstitium.
+        """
+        settings = _txtAndSettingsToUse(self, txtFile, 'None', 'Pre')
+        textFileName, _, _ = settings
+        ret = self.zGetTextFile(textFileName, 'Pre', "None", 0)
+        assert ret == 0
+        recSystemData = self.zGetSystem()
+        numSurf = recSystemData[0]
+
+        # The number of expected Principal planes in each Pre file is equal to the
+        # number of wavelengths in the general settings of the lens design
+        line_list = _readLinesFromFile(_openFile(textFileName))
+
+        principalPlane_objSpace = 0.0
+        principalPlane_imgSpace = 0.0
+        hiatus = 0.0
+        count = 0
+
+        for line_num, line in enumerate(line_list):
+            # Extract the image surface distance from the global ref sur (surface 1)
+            sectionString = ("GLOBAL VERTEX COORDINATES, ORIENTATIONS,"
+                             " AND ROTATION/OFFSET MATRICES:")
+            if line.rstrip() == sectionString:
+                ima_3 = line_list[line_num + numSurf*4 + 6]
+                ima_z = float(ima_3.split()[3])
+
+            # Extract the Principal plane distances.
+            if "Principal Planes" in line and "Anti" not in line:
+                principalPlane_objSpace += float(line.split()[3])
+                principalPlane_imgSpace += float(line.split()[4])
+                count +=1  #Increment (wavelength) counter for averaging
+
+        # Calculate the average (for all wavelengths) of the principal plane distances
+        if count > 0:
+            principalPlane_objSpace = principalPlane_objSpace/count
+            principalPlane_imgSpace = principalPlane_imgSpace/count
+            # Calculate the hiatus (only if count > 0) as
+            hiatus = abs(ima_z + principalPlane_imgSpace - principalPlane_objSpace)
+
+        if not keepFile:
+            _deleteFile(textFileName)
+        return hiatus
+
+    def zGetPupilMagnification(self):
+        """Return the pupil magnification, which is the ratio of the
+        exit-pupil diameter to the entrance pupil diameter.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        pupilMag : real
+            the pupil magnification
+        """
+        _, _, ENPD, ENPP, EXPD, EXPP, _, _ = self.zGetPupil()
+        return (EXPD/ENPD)
+
+    def zGetOpticalPathLength(self, surf1=0, surf2=2, hx=0, hy=0, px=0, py=0):
+        """Returns the total optical path length (OPL) between surfaces
+        surf1 and surf2 for a ray traced at primary wavelength
+
+        Parameters
+        ----------
+        surf1 : integer, optional
+            start surface number
+        surf2 : integer, optional
+            end surface number
+        hx : float, optional
+            normalized field coordinate along x
+        hy : float, optional
+            normalized field coordinate along y
+        px : float, optional
+            normalized pupil coordinate along x
+        py : float, optional
+            normalized pupil coordinate along y
+
+        Returns
+        -------
+        oplen : float
+            total optical path length (including refraction and phase
+            surfaces) between surfaces
+
+        Notes
+        -----
+        The function uses the optimization operand "PLEN" to retrieve
+        the value of the optical path length
+
+        See Also
+        -------- 
+        zGetOpticalPathDifference()
+        """
+        oplen = self.zOperandValue('PLEN', surf1, surf2, hx, hy, px, py)
+        return oplen
+
+    def zGetOpticalPathDifference(self, hx=0, hy=0, px=0, py=0, ref=0, wave=None):
+        """Returns the optical path difference (OPD) with respect to the 
+        chief ray or mean OPD in waves
+
+        Parameters
+        ---------- 
+        hx : float, optional
+            normalized field coordinate along x
+        hy : float, optional
+            normalized field coordinate along y
+        px : float, optional
+            normalized pupil coordinate along x
+        py : float, optional
+            normalized pupil coordinate along y 
+        ref : integer, optional 
+            integer code to indicate reference ray/OPD. 
+            0 = chief ray (Default); 1 = mean OPD over the pupil; 
+            2 = mean OPD over the pupil with tilt removed 
+        wave : integer, optional    
+            wavelength number to trace ray. If ``None``, the ray is 
+            traced at the primary wavelength.
+
+        Returns
+        ------- 
+        opd : float 
+            optical path difference 
+
+        See Also
+        -------- 
+        zGetOpticalPathLength()
+        """
+        if ref == 2:
+            code = 'OPDX'
+        elif ref == 1:
+            code = 'OPDM'
+        elif ref == 0:
+            code = 'OPDC'
+        else:
+            raise ValueError, 'Unexpected ref input value'
+        if wave is None:
+            wave = self.zGetWave(self.zGetPrimaryWave()).wavelength
+        opd = self.zOperandValue(code, 0, wave, hx, hy, px, py)
+        return opd 
+
+    def zGetSeidelAberration(self, which='wave', txtFile=None, keepFile=False):
+        """Return the Seidel Aberration coefficients
+
+        Parameters
+        ----------
+        which : string, optional
+            'wave' = Wavefront aberration coefficient (summary) is
+                     returned;
+            'aber' = Seidel aberration coefficients (total) is returned
+            'both' = both Wavefront (summary) and Seidel aberration
+                     (total) coefficients are returned
+        txtFile : string, optional
+            if passed, the seidel text file will be named such. Pass a
+            specific txtFile if you want to dump the file into a separate
+            directory.
+        keepFile : bool, optional
+            if ``False`` (default), the Seidel text file will be deleted
+            after use.
+            If ``True``, the file will persist. If ``keepFile`` is ``True``
+            but a ``txtFile`` is not passed, the Seidel text file will be
+            saved in the same directory as the lens (provided the required
+            folder access permissions are availabl
+
+        Returns
+        -------
+        sac : dictionary or tuple (see below)
+            - if 'which' is 'wave', then a dictionary of Wavefront
+              aberration coefficient summary is returned;
+            - if 'which' is 'aber', then a dictionary of Seidel total
+              aberration coefficient is returned;
+            - if 'which' is 'both', then a tuple of dictionaries containing
+              Wavefront aberration coefficients and Seidel aberration
+              coefficients is returned.
+        """
+        settings = _txtAndSettingsToUse(self, txtFile, 'None', 'Sei')
+        textFileName, _, _ = settings
+        ret = self.zGetTextFile(textFileName,'Sei', 'None', 0)
+        assert ret == 0
+        recSystemData = self.zGetSystem() # Get the current system parameters
+        numSurf = recSystemData[0]
+        line_list = _readLinesFromFile(_openFile(textFileName))
+        seidelAberrationCoefficients = {}         # Aberration Coefficients
+        seidelWaveAberrationCoefficients = {}     # Wavefront Aberr. Coefficients
+        for line_num, line in enumerate(line_list):
+            # Get the Seidel aberration coefficients
+            sectionString1 = ("Seidel Aberration Coefficients:")
+            if line.rstrip()== sectionString1:
+                sac_keys_tmp = line_list[line_num + 2].rstrip()[7:] # remove "Surf" and "\n" from start and end
+                sac_keys = sac_keys_tmp.split('    ')
+                sac_vals = line_list[line_num + numSurf+3].split()[1:]
+            # Get the Seidel Wavefront Aberration Coefficients (swac)
+            sectionString2 = ("Wavefront Aberration Coefficient Summary:")
+            if line.rstrip()== sectionString2:
+                swac_keys01 = line_list[line_num + 2].split()     # names
+                swac_vals01 = line_list[line_num + 3].split()[1:] # values
+                swac_keys02 = line_list[line_num + 5].split()     # names
+                swac_vals02 = line_list[line_num + 6].split()[1:] # values
+                break
+        else:
+            raise Exception("Could not find section strings '{}'"
+            " and '{}' in seidel aberrations file. "
+            " \n\nPlease check if there is a mismatch in text encoding between"
+            " Zemax and PyZDDE.".format(sectionString1, sectionString2))
+        # Assert if the lengths of key-value lists are not equal
+        assert len(sac_keys) == len(sac_vals)
+        assert len(swac_keys01) == len(swac_vals01)
+        assert len(swac_keys02) == len(swac_vals02)
+        # Create the dictionary
+        for k, v in zip(sac_keys, sac_vals):
+            seidelAberrationCoefficients[k] = float(v)
+        for k, v in zip(swac_keys01, swac_vals01):
+            seidelWaveAberrationCoefficients[k] = float(v)
+        for k, v in zip(swac_keys02, swac_vals02):
+            seidelWaveAberrationCoefficients[k] = float(v)
+        if not keepFile:
+            _deleteFile(textFileName)
+        if which == 'wave':
+            return seidelWaveAberrationCoefficients
+        elif which == 'aber':
+            return seidelAberrationCoefficients
+        elif which == 'both':
+            return seidelWaveAberrationCoefficients, seidelAberrationCoefficients
+        else:
+            return None
+
 
 # ***************************************************************
 #              IPYTHON NOTEBOOK UTILITY FUNCTIONS

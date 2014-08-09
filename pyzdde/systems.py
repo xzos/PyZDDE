@@ -147,3 +147,112 @@ def zMakeIdealCollimator(ddeLn, fl=50, fn=5, ima_dist=10, opd_mode=1, zmx_mode=0
     ddeLn.zSetSurfaceData(surfaceNumber=1, code=3, value=ima_dist)
     ddeLn.zSetSurfaceParameter(surfaceNumber=1, parameter=1, value=fl) # focallength
     ddeLn.zSetSurfaceParameter(surfaceNumber=1, parameter=2, value=opd_mode)
+
+def zMakeBeamExpander(ddeLn, inDia=5.0, outDia=10.0, expGlass='N-BK7', expThick=10.0,
+                      colGlass='N-BK7', colThick=10.0, preExpThick=5.0, preColThick=200.0,
+                      preImgThick=10.0, insertAfter=None, insertOperandRow=1, epd=None,
+                      setSysAper=True, afocal=True):
+    """Creates a basic beam expander system consisting of a expander and
+    a collimator lens (totally 5 surfaces excluding OBJ and IMA)
+
+    Parameters
+    ----------
+    inDia : float, optional
+        input beam diameter in lens units (Default = 5.0 mm)
+    outDia : float
+        output beam diameter in lens units  (Default = 10.0 mm)
+    expGlass : string
+        expander glass type (Default = 'N-BK7')
+    expThick : float, optional
+        thickness of the expander surface (Default = 10.0 mm)
+    colGlass : string, optional
+        collimator glass type (Default = 'N-BK7')
+    preExpThick : float, optional
+        thickness of surface before the first collimator surface, in mm.
+        (Default = 5.0 mm)
+    preColThick : float, optional
+        thickness of the surface before collimator lens (between expander
+        and collimator, Default = 200.0 mm)
+    preImgThick : float, optional
+        thickness of the surface after collimator (Default = 10.0 mm)
+    insertAfter : integer, optional
+        surface number after which to insert beam expander system
+    insertOperandRow : integer, optional
+        row number in MFE to insert the "REAY" operand for output beam
+    epd : float, optional
+        entrance pupil diameter, if desirable to set a value different
+        from ``inDia``. If not provided, the ``EPD`` value of the system
+        is set to ``inDia`` value.
+    setSysAper : bool, optional
+        by default the system aperture is set in the fucntion, such that
+        the system aperture is "Entrance pupil diameter", and the value
+        of the EPD is dependent on ``inDia`` and ``epd``.
+    afocal : bool, optional
+        by default the system is set to be image space afocal system. If
+        False, then this setting is skipped.
+
+    Returns
+    -------
+    None
+
+    Examples
+    --------
+    >>> import pyzdde.zdde as pyz
+    >>> ln = pyz.createLink()
+    >>> optsys.zMakeBeamExpander(ln)
+
+    Notes
+    -----
+    The system created by this function is not optimized. It only sets up
+    the system and places variable solves on the radii of the appropriate
+    surfaces. Please set up the MFE as described in [HTA]_ and optimize.
+
+    References
+    ----------
+    The beam expander created by this function is similar to the one shown
+    in the Zemax knowledgebase article [HTA]_
+
+
+    .. [HTA] How to design Afocal Systems. Link: http://kb-en.radiantzemax.com/Knowledgebase/How-to-Design-Afocal-Systems
+    """
+    epd = inDia if epd is None else epd
+    # the stop surface is the first surface of the Expander
+    stop_surf = ddeLn.zGetSystemAper().stopSurf
+    if insertAfter is None:
+        ddeLn.zNewLens()
+    if setSysAper:
+        ddeLn.zSetSystemAper(aType=0, stopSurf=stop_surf, apertureValue=epd)
+    if afocal:
+        ddeLn.zSetSystemProperty(code=18, value1=1) # Afocal Image Space
+    # instert surfaces
+    if insertAfter:
+        in_beam_surf = insertAfter + 1
+        ddeLn.zInsertSurface(in_beam_surf)
+    else:
+        in_beam_surf = stop_surf
+    ddeLn.zSetSurfaceData(in_beam_surf, code=1, value="input beam")
+    ddeLn.zSetSurfaceData(in_beam_surf, code=3, value=preExpThick)
+    exp_ft_surf, exp_bk_surf = in_beam_surf + 1, in_beam_surf + 2
+    col_ft_surf, col_bk_surf = in_beam_surf + 3, in_beam_surf + 4
+    ddeLn.zInsertSurface(exp_ft_surf)
+    ddeLn.zSetSurfaceData(exp_ft_surf, code=1, value="expander")
+    ddeLn.zSetSurfaceData(exp_ft_surf, code=3, value=expThick)
+    ddeLn.zSetSurfaceData(exp_ft_surf, code=4, value=expGlass)
+    ddeLn.zInsertSurface(exp_bk_surf)
+    ddeLn.zSetSurfaceData(exp_bk_surf, code=1, value=" ")
+    ddeLn.zSetSurfaceData(exp_bk_surf, code=3, value=preColThick)
+    ddeLn.zInsertSurface(col_ft_surf)
+    ddeLn.zSetSurfaceData(col_ft_surf, code=1, value="collimator")
+    ddeLn.zSetSurfaceData(col_ft_surf, code=3, value=colThick)
+    ddeLn.zSetSurfaceData(col_ft_surf, code=4, value=colGlass)
+    ddeLn.zInsertSurface(col_bk_surf)
+    ddeLn.zSetSurfaceData(col_bk_surf, code=1, value=" ")
+    ddeLn.zSetSurfaceData(col_bk_surf, code=3, value=preImgThick)
+    # Set variable solves on the Radii of the
+    for surf in [exp_ft_surf, exp_bk_surf, col_ft_surf, col_bk_surf]:
+        ddeLn.zSetSolve(surf, 0, 1)
+    # Set MFE operand on for the output diameter of the beam
+    pWave = ddeLn.zGetPrimaryWave()
+    ddeLn.zInsertMFO(insertOperandRow)
+    ddeLn.zSetOperandRow(insertOperandRow, 'REAY', int1=col_bk_surf+1,
+                         int2=pWave, data4=1.0, tgt=outDia/2.0, wgt=1.0)
