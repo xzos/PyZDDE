@@ -5,7 +5,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.8.0
+# Revision:    0.8.01
 #-------------------------------------------------------------------------------
 """simple optical systems for quick setup with PyZDDE & Zemax. The docstring
 examples assume that PyZDDe is imported as ``import pyzdde.zdde as pyz``,
