@@ -85,7 +85,7 @@ try:
 except ImportError:
   # probably I'm not on windows. Therefore windll can't be imported.
   # only provide functions that does not interact with zemax
-  _debugPrint(1, "zdde could not be load. Therefore some functions will not work.")
+  print(1, "zdde could not be load. Therefore some functions will not work.")
 finally:
   _global_ddeclient_load = True
 
@@ -316,12 +316,12 @@ def setImageMagickSettings(use_installed_ImageMagick, imageMagick_dir=None):
     global _global_use_installed_imageMagick
     global _global_imageMagick_dir
     if not isinstance(use_installed_ImageMagick, bool):
-        raise ValueError, "Expecting bool"
+        raise ValueError("Expecting bool")
     if imageMagick_dir and not _os.path.isdir(imageMagick_dir):
-        raise ValueError, "Expecting valid directory or None"
+        raise ValueError("Expecting valid directory or None")
     if imageMagick_dir and not _os.path.isfile(_os.path.join(imageMagick_dir,
                                               'convert.exe')):
-        raise ValueError, "Couldn't find program convert.exe in the path!"
+        raise ValueError("Couldn't find program convert.exe in the path!")
     _config.setImageMagickSettings(use_installed_ImageMagick, imageMagick_dir)
     imageMagickSettings = _config.getImageMagickSettings()
     _global_use_installed_imageMagick = imageMagickSettings[0]
@@ -2126,7 +2126,7 @@ class PyZDDE(object):
         row : integer
             operand row number in the MFE
         column : integer
-            column number 
+            column number
 
         Returns
         -------
@@ -2164,7 +2164,7 @@ class PyZDDE(object):
         See Also
         --------
         zGetOperandRow():
-            Returns all values from a row in MFE 
+            Returns all values from a row in MFE
         zOperandValue():
             Returns the value of any optimization operand, even if the
             operand is not currently in the merit function.
@@ -5355,7 +5355,7 @@ class PyZDDE(object):
         See Also
         --------
         zSetOperandRow():
-            sets an entire row of the MFE 
+            sets an entire row of the MFE
         zGetOperand(), zOptimize(), zInsertMFO()
         """
         if column == 1:
@@ -6103,51 +6103,51 @@ class PyZDDE(object):
         return retVal
 
 # ****************************************************************
-#                      ADDITIONAL FUNCTIONS 
+#                      ADDITIONAL FUNCTIONS
 # ****************************************************************
 
 # -------------------
-# Editor functions 
+# Editor functions
 # -------------------
     def zGetOperandRow(self, row):
-        """Returns a row of the Multi Function Editor 
+        """Returns a row of the Multi Function Editor
 
         Parameters
-        ---------- 
+        ----------
         row : integer
-            the operand row number 
+            the operand row number
 
         Returns
         -------
-        opertype : string 
+        opertype : string
             operand type, column 1 in MFE
         int1 : integer
             column 2 in MFE
         int2 : integer
-            column 3 in MFE 
+            column 3 in MFE
         data1 : float
             column 4 in MFE
         data2 : float
-            column 5 in MFE 
+            column 5 in MFE
         data3 : float
-            column 6 in MFE 
+            column 6 in MFE
         data4 : float
-            column 7 in MFE 
+            column 7 in MFE
         data5 : float
-            column 12 in MFE 
+            column 12 in MFE
         data6 : float
-            column 13 in MFE 
+            column 13 in MFE
         tgt : float
-            target 
+            target
         wgt : float
-            weight 
-        value : float 
-            value 
-        percentage : float 
-            percentage contribution 
+            weight
+        value : float
+            value
+        percentage : float
+            percentage contribution
 
         See Also
-        -------- 
+        --------
         zGetOperand(), zSetOperandRow()
         """
         operData = []
@@ -6157,56 +6157,56 @@ class PyZDDE(object):
             operData.append(self.zGetOperand(row=row, column=i))
         for i in range(8, 12):
             operData.append(self.zGetOperand(row=row, column=i))
-        rowdat = _co.namedtuple('OperandData', ['opertype', 'int1', 'int2', 'data1', 
-                                'data2', 'data3', 'data4', 'data5', 'data6', 'tgt', 
+        rowdat = _co.namedtuple('OperandData', ['opertype', 'int1', 'int2', 'data1',
+                                'data2', 'data3', 'data4', 'data5', 'data6', 'tgt',
                                 'wgt', 'value', 'percentage'])
         return rowdat._make(operData)
 
     def zSetOperandRow(self, row, opertype, int1=None, int2=None, data1=None, data2=None,
                      data3=None, data4=None, data5=None, data6=None, tgt=None, wgt=None):
-        """Sets a row in the Merit Function Editor 
+        """Sets a row in the Merit Function Editor
 
         Parameters
-        ---------- 
+        ----------
         row : integer
             operand row number in the MFE
-        opertype : string 
-            operand type 
-        int1 : integer, optional 
+        opertype : string
+            operand type
+        int1 : integer, optional
             column 2 in MFE
-        int2 : integer, optional 
-            column 3 in MFE 
-        data1 : float, optional 
+        int2 : integer, optional
+            column 3 in MFE
+        data1 : float, optional
             column 4 in MFE
-        data2 : float, optional 
-            column 5 in MFE 
-        data3 : float, optional 
-            column 6 in MFE 
-        data4 : float, optional 
-            column 7 in MFE 
-        data5 : float, optional 
-            column 12 in MFE 
-        data6 : float, optional 
-            column 13 in MFE 
-        tgt : float, optional 
-            target 
-        wgt : float, optional 
-            weight 
+        data2 : float, optional
+            column 5 in MFE
+        data3 : float, optional
+            column 6 in MFE
+        data4 : float, optional
+            column 7 in MFE
+        data5 : float, optional
+            column 12 in MFE
+        data6 : float, optional
+            column 13 in MFE
+        tgt : float, optional
+            target
+        wgt : float, optional
+            weight
 
         Returns
-        -------    
-        the contents of the row. (same as that returned by 
-        ``zGetOperandRow()``) 
+        -------
+        the contents of the row. (same as that returned by
+        ``zGetOperandRow()``)
 
         Notes
-        ----- 
-        1. Use ``zInsertMFO()`` to insert a new row in the MFE at a 
+        -----
+        1. Use ``zInsertMFO()`` to insert a new row in the MFE at a
            specified row number.
         2. To update the merit function after calling ``zSetOperand()``,
-           call ``zOptimize()`` with the number of cycles set to -1. 
+           call ``zOptimize()`` with the number of cycles set to -1.
 
         See Also
-        -------- 
+        --------
         zInsertMFO(), zSetOperand(), zOperandValue(), zGetOperand()
         """
         values1_9 = (opertype, int1, int2, data1, data2, data3, data4, tgt, wgt)
@@ -6220,7 +6220,7 @@ class PyZDDE(object):
         return self.zGetOperandRow(row)
 
 # -------------------
-# System functions 
+# System functions
 # -------------------
     def zGetNumField(self):
         """Returns the total number of fields defined
@@ -6576,7 +6576,7 @@ class PyZDDE(object):
         return (mode,tuple(nscSurfNums))
 
 # -------------------
-# Analysis functions 
+# Analysis functions
 # -------------------
 
 # Spot diagram analysis functions
@@ -8473,7 +8473,7 @@ class PyZDDE(object):
             return dst
 
 # -------------------
-# Tools functions 
+# Tools functions
 # -------------------
 
 # System modification functions
@@ -8865,7 +8865,7 @@ class PyZDDE(object):
             return -1
 
 # -------------------
-# Report functions 
+# Report functions
 # -------------------
     def zGetImageSpaceNA(self):
         """Return the Image Space Numerical Aperture (ISNA) of the lens
@@ -9046,18 +9046,18 @@ class PyZDDE(object):
         the value of the optical path length
 
         See Also
-        -------- 
+        --------
         zGetOpticalPathDifference()
         """
         oplen = self.zOperandValue('PLEN', surf1, surf2, hx, hy, px, py)
         return oplen
 
     def zGetOpticalPathDifference(self, hx=0, hy=0, px=0, py=0, ref=0, wave=None):
-        """Returns the optical path difference (OPD) with respect to the 
+        """Returns the optical path difference (OPD) with respect to the
         chief ray or mean OPD in waves
 
         Parameters
-        ---------- 
+        ----------
         hx : float, optional
             normalized field coordinate along x
         hy : float, optional
@@ -9065,22 +9065,22 @@ class PyZDDE(object):
         px : float, optional
             normalized pupil coordinate along x
         py : float, optional
-            normalized pupil coordinate along y 
-        ref : integer, optional 
-            integer code to indicate reference ray/OPD. 
-            0 = chief ray (Default); 1 = mean OPD over the pupil; 
-            2 = mean OPD over the pupil with tilt removed 
-        wave : integer, optional    
-            wavelength number to trace ray. If ``None``, the ray is 
+            normalized pupil coordinate along y
+        ref : integer, optional
+            integer code to indicate reference ray/OPD.
+            0 = chief ray (Default); 1 = mean OPD over the pupil;
+            2 = mean OPD over the pupil with tilt removed
+        wave : integer, optional
+            wavelength number to trace ray. If ``None``, the ray is
             traced at the primary wavelength.
 
         Returns
-        ------- 
-        opd : float 
-            optical path difference 
+        -------
+        opd : float
+            optical path difference
 
         See Also
-        -------- 
+        --------
         zGetOpticalPathLength()
         """
         if ref == 2:
@@ -9090,11 +9090,11 @@ class PyZDDE(object):
         elif ref == 0:
             code = 'OPDC'
         else:
-            raise ValueError, 'Unexpected ref input value'
+            raise ValueError('Unexpected ref input value')
         if wave is None:
             wave = self.zGetWave(self.zGetPrimaryWave()).wavelength
         opd = self.zOperandValue(code, 0, wave, hx, hy, px, py)
-        return opd 
+        return opd
 
     def zGetSeidelAberration(self, which='wave', txtFile=None, keepFile=False):
         """Return the Seidel Aberration coefficients
