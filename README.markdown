@@ -4,7 +4,7 @@
 
 ##### Current revision:
 
-0.8.0 (Last significant update on 07/13/2014)
+0.8.01 (Last significant update on 07/13/2014)
 
 Brief change-log is available in the [News and Updates](https://github.com/indranilsinharoy/PyZDDE/wiki/News-and-updates) page.
 
@@ -35,9 +35,9 @@ link.close()
 
 #### More examples
 
-You may see few examples [here](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/tree/master/Examples/). 
+You can find few examples [here](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/tree/master/Examples/). 
 
-Also, the repository [Intro2LensDesignByGeary](https://github.com/indranilsinharoy/Intro2LensDesignByGeary) contains notes from few chapters of the book "Introduction to Lens Design," by Joseph M. Geary, in the form of IPython notebooks. 
+In addition, the repository [Intro2LensDesignByGeary](https://github.com/indranilsinharoy/Intro2LensDesignByGeary) contains notes from few chapters of the book "Introduction to Lens Design," by Joseph M. Geary, in the form of IPython notebooks. 
 
 
 #### Features

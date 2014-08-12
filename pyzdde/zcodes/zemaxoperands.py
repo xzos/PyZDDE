@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.8.0
+# Revision:    0.8.01
 #-------------------------------------------------------------------------------
 from __future__ import print_function
 import re as _re
@@ -343,8 +343,12 @@ class _Operands(object):
             "with tilt removed at the wavelength defined by Wave.",
     "OPGT": "Operand greater than.",
     "OPLT": "Operand less than.",
-    "OPTH": ("Optical path length in lens units from the first optical "
-            "surface (object at infinity) to the designated surface. See PLEN."),
+    "OPTH": ("Optical path length. This is the distance, in lens units, the "
+            "specified ray travels to the surface defined by Surf at the wavelength "
+            "defined by Wave. The distance is measured from the object for finite "
+            "conjugates; otherwise the distance is referenced to the first surface. "
+            "The optical path accounts for the index of refraction of the media, "
+            "and for phase adding surfaces such as gratings and binary optics See PLEN."),
     "OPVA": "Operand value.",
     "OSCD": "Offense against the sine condition (OSC) at the wavelength defined "
             "by Wave.",
@@ -379,7 +383,11 @@ class _Operands(object):
             "by Wave.",
     "PIMH": "Paraxial image height at the paraxial image surface at the "
             "wavelength defined by Wave.",
-    "PLEN": "Path length. See OPTH.",
+    "PLEN": ("Path length. This operand computes the total optical path length "
+            "(including index of refraction and phase surfaces) between surfaces "
+            "Surf1 and Surf2 for the specified ray, which is always traced at the "
+            "primary wavelength. PLEN is essentially the difference between two "
+            "OPTH operands. See OPTH."),
     "PMAG": "Paraxial magnification.",
     "PMGT": "Parameter greater than.",
     "PMLT": "Parameter less than.",
