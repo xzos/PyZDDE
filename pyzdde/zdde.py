@@ -9247,7 +9247,7 @@ def readBeamFile(beamfilename):
     f.read(16)
     dx = _struct.unpack('d', f.read(8))[0]
     dy = _struct.unpack('d', f.read(8))[0]
-    print("dx, dy:"+str(dx)+" "+str(dy))
+    print("dx, dy: "+str(dx)+" "+str(dy))
 
     if version==0:
         zposition_x = _struct.unpack('d', f.read(8))[0]
