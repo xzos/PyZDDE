@@ -308,12 +308,12 @@ def setImageMagickSettings(use_installed_ImageMagick, imageMagick_dir=None):
     global _global_use_installed_imageMagick
     global _global_imageMagick_dir
     if not isinstance(use_installed_ImageMagick, bool):
-        raise ValueError, "Expecting bool"
+        raise ValueError("Expecting bool")
     if imageMagick_dir and not _os.path.isdir(imageMagick_dir):
-        raise ValueError, "Expecting valid directory or None"
+        raise ValueError("Expecting valid directory or None")
     if imageMagick_dir and not _os.path.isfile(_os.path.join(imageMagick_dir,
                                               'convert.exe')):
-        raise ValueError, "Couldn't find program convert.exe in the path!"
+        raise ValueError("Couldn't find program convert.exe in the path!")
     _config.setImageMagickSettings(use_installed_ImageMagick, imageMagick_dir)
     imageMagickSettings = _config.getImageMagickSettings()
     _global_use_installed_imageMagick = imageMagickSettings[0]
@@ -9082,7 +9082,7 @@ class PyZDDE(object):
         elif ref == 0:
             code = 'OPDC'
         else:
-            raise ValueError, 'Unexpected ref input value'
+            raise ValueError("Unexpected ref input value")
         if wave is None:
             wave = self.zGetWave(self.zGetPrimaryWave()).wavelength
         opd = self.zOperandValue(code, 0, wave, hx, hy, px, py)

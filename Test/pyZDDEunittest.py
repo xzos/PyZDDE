@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.8.0
+# Revision:    0.8.01
 #-------------------------------------------------------------------------------
 from __future__ import division
 from __future__ import print_function
@@ -55,8 +55,10 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def tearDown(self):
         # Tear down unit test
+        #self.link0.zNewLens()
         if self.link0._connection:
             self.link0.zDDEClose()
+            #print("Tearing Down")
         else:
             print("Server was already terminated")
 
@@ -694,6 +696,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         if TestPyZDDEFunctions.pRetVar:
             print('zGetPupil test successful')
 
+    @unittest.skip("To implement")
     def test_zGetRefresh(self):
         print("\nTEST: zGetRefresh()")
         # Load & then push a lens file into the LDE
@@ -702,11 +705,14 @@ class TestPyZDDEFunctions(unittest.TestCase):
         ret = self.link0.zPushLens(1)
         # Copy the lens data from the LDE into the stored copy of the ZEMAX server.
         ret = self.link0.zGetRefresh()
-        self.assertIn(ret,(-998,-1,0))
+        self.assertIn(ret,(-998, -1, 0))
         if ret == -1:
             print("MSG: ZEMAX couldn't copy the lens data to the LDE")
         if ret == -998:
             print("MSG: zGetRefresh() function timed out")
+        # Push new lens to the LDE
+        self.link0.zNewLens()
+        self.link0.zPushLens(1)
         if TestPyZDDEFunctions.pRetVar:
             print("zGetRefresh return value", ret)
             print('zGetRefresh test successful')
@@ -940,6 +946,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zGetUDOSystem(self):
         print("\nTEST: zGetUDOSystem()")
 
+    #@unittest.skip("To implement")
     def test_zGetUpdate(self):
         print("\nTEST: zGetUpdate()")
         # Load & then push a lens file into the LDE
@@ -949,11 +956,15 @@ class TestPyZDDEFunctions(unittest.TestCase):
         ret = self.link0.zPushLens(update=1)
         # Update the lens to recompute
         ret = self.link0.zGetUpdate()
-        self.assertIn(ret,(-998,-1,0))
+        self.assertIn(ret,(-998, -1, 0))
         if ret == -1:
             print("MSG: ZEMAX couldn't update the lens")
         if ret == -998:
             print("MSG: zGetUpdate() function timed out")
+        # Push new lens to the LDE
+        self.link0.zNewLens()
+        self.link0.zGetUpdate()
+        self.link0.zPushLens(1)
         if TestPyZDDEFunctions.pRetVar:
             print("zGetUpdate return value", ret)
             print('zGetUpdate test successful')
@@ -1180,13 +1191,14 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zOptimize2(self):
         print("\nTEST: zOptimize2()")
 
+    #@unittest.skip("No push lens permission")
     def test_zPushLens(self):
         print("\nTEST: zPushLens()")
         # push a lens with an invalid flag, should rise ValueError exception
-        self.assertRaises(ValueError,self.link0.zPushLens,update=10)
+        self.assertRaises(ValueError, self.link0.zPushLens, update=10)
         # push a lens with valid flag.
         ret = self.link0.zPushLens()
-        self.assertIn(ret,(0,-999,-998))
+        self.assertIn(ret,(0, -999, -998))
         ret = self.link0.zPushLens(update=1)
         self.assertIn(ret,(0,-999,-998))
         # Notify depending on return type
@@ -1196,6 +1208,9 @@ class TestPyZDDEFunctions(unittest.TestCase):
             print("MSG: Lens could not be pushed into the LDE (check PushLensPermission)")
         if ret == -998:
             print("MSG: zPushLens() function timed out")
+        # Push new lens to the LDE
+        self.link0.zNewLens()
+        self.link0.zPushLens(1)
         if TestPyZDDEFunctions.pRetVar:
             print("zPushLens return value:", ret)
             print('zPushLens test successful')
