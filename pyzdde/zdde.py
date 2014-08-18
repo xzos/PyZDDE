@@ -82,12 +82,11 @@ _global_imageMagick_dir = imageMagickSettings[1]
 _global_ddeclient_load = False # True if module could be loaded.
 try:
   import pyzdde.ddeclient as _dde
+  _global_ddeclient_load = True
 except ImportError:
   # probably I'm not on windows. Therefore windll can't be imported.
   # only provide functions that does not interact with zemax
-  print(1, "zdde could not be load. Therefore some functions will not work.")
-finally:
-  _global_ddeclient_load = True
+  print(1, "DDE client couldn't be loaded. All functions that start with \"z\" or \"ipz\" will not work")
 
 if _global_pyver3:
    _izip = zip
@@ -9090,7 +9089,7 @@ class PyZDDE(object):
         elif ref == 0:
             code = 'OPDC'
         else:
-            raise ValueError('Unexpected ref input value')
+            raise ValueError("Unexpected ref input value")
         if wave is None:
             wave = self.zGetWave(self.zGetPrimaryWave()).wavelength
         opd = self.zOperandValue(code, 0, wave, hx, hy, px, py)
@@ -9737,7 +9736,7 @@ def fresnelNumber(r, z, wl=550e-6, approx=False):
         return 2.0*(_math.sqrt(z**2 + r**2) - z)/wl
 
 # scales to SI-meter
-#                 mm  , cm  , inch  , m
+#                    mm  , cm  , inch  , m
 _zbf_unit_factors = [1e-3, 1e-2, 0.0254, 1]
 
 def zUnitToMeter(zemaxUnitId, value):
