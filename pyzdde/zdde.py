@@ -86,7 +86,7 @@ try:
 except ImportError:
   # probably I'm not on windows. Therefore windll can't be imported.
   # only provide functions that does not interact with zemax
-  print(1, "DDE client couldn't be loaded. All functions that start with \"z\" or \"ipz\" will not work")
+  print(1, "DDE client couldn't be loaded. All functions that start with \"z\" or \"ipz\" will not work.")
 
 if _global_pyver3:
    _izip = zip
@@ -9739,8 +9739,8 @@ def fresnelNumber(r, z, wl=550e-6, approx=False):
 #                    mm  , cm  , inch  , m
 _zbf_unit_factors = [1e-3, 1e-2, 0.0254, 1]
 
-def zUnitToMeter(zemaxUnitId, value):
-    """Converts a zemax_unit to SI-meter.
+def zemaxUnitToMeter(zemaxUnitId, value):
+    """Converts a zemax unit to SI-meter.
 
     Parameters
     ----------
