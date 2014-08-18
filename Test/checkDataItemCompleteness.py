@@ -35,7 +35,7 @@ def main():
 
     # Get data items from textfile
     dataItemSet_zemax = []
-    dataItemFile = open(testdirectory+"\zemaxDataItems.txt","r")
+    dataItemFile = open(testdirectory+os.path.sep+"zemaxDataItems.txt","r")
     for line in dataItemFile:
         if line.rstrip() is not '':
             if not line.rstrip().startswith('#'):
