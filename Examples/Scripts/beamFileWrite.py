@@ -21,7 +21,7 @@ from pyzdde.zdde import writeBeamFile, readBeamFile
 import matplotlib.pyplot as plt
 import os
 import time
-from pylab import *
+
 directory = os.path.dirname(os.path.realpath(__file__))
 im = Image.open(directory+os.path.sep+"pikachu2.png")
 
@@ -39,11 +39,10 @@ for i in range(ny):
     for j in range(nx):
         Ex_real[nx-j-1][i] = pix[i, j]
 
-# ATTENTION: imshow will show a flipped image. nevertheless the image will be in correct orientation in zemax
+# ATTENTION: imshow will show a flipped image. Nevertheless the image will be in correct orientation in zemax.
+plt.imshow(Ex_real)
+plt.show()
 
-imshow(Ex_real)
-
-show()
 n=(nx,ny)
 efield = (Ex_real, Ex_imag, Ey_real, Ey_imag)
 version = 0
@@ -56,7 +55,7 @@ waist = (3.0,3.0)
 lamda = 0.00055
 index = 1.0
 
-beamfilename = directory+path.os.sep+"pikachu2.zbf"
+beamfilename = directory+os.path.sep+"pikachu2.zbf"
 
 # Write the beam file
 writeBeamFile(beamfilename, version, n, ispol, units, d, zposition,
