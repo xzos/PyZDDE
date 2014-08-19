@@ -86,7 +86,7 @@ try:
 except ImportError:
   # probably I'm not on windows. Therefore windll can't be imported.
   # only provide functions that does not interact with zemax
-  print(1, "DDE client couldn't be loaded. All functions that start with \"z\" or \"ipz\" will not work.")
+  print("DDE client couldn't be loaded. All functions that start with \"z\" or \"ipz\" will not work.")
 
 if _global_pyver3:
    _izip = zip
