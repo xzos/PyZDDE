@@ -9832,6 +9832,8 @@ def readBeamFile(beamfilename):
         print("waist_x: "+str(waist_x))
         index=_struct.unpack('d', f.read(8))[0]
         print("index: "+str(index))#f.read(64);
+        receiver_eff = 0
+        system_eff = 0
     if version==1:
         zposition_x = _struct.unpack('d', f.read(8))[0]
         print("zposition x: "+str(zposition_x))
