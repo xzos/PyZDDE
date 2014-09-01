@@ -9787,15 +9787,15 @@ def readBeamFile(beamfilename):
         the wavelength of the beam
     index : double
         the index of refraction in the current medium
+    receiver_eff : double
+        the receiver efficiency. Zero if fiber coupling is not computed
+    system_eff : double
+        the system efficiency. Zero if fiber coupling is not computed.
     grid_pos : 2-tuple of lists, (x_matrix, y_matrix)
         lists of x and y positions of the grid defining the beam
     efield : 4-tuple of 2D lists, (Ex_real, Ex_imag, Ey_real, Ey_imag)
         a tuple containing two dimensional lists with the real and
         imaginary parts of the x and y polarizations of the beam
-    receiver_eff : double
-        the receiver efficiency. Zero if fiber coupling is not computed
-    system_eff : double
-        the system efficiency. Zero if fiber coupling is not computed.
 
     """
     f = open(beamfilename, "rb")
@@ -9892,11 +9892,11 @@ def readBeamFile(beamfilename):
                 Ey_imag[i][j] = rawy[k+1]
             k = k+2
     return (version, (nx, ny), ispol, units, (dx, dy), (zposition_x, zposition_y),
-        (rayleigh_x, rayleigh_y), (waist_x, waist_y), lamda, index,
-        (x_matrix, y_matrix), (Ex_real, Ex_imag, Ey_real, Ey_imag), receiver_eff, system_eff)
+        (rayleigh_x, rayleigh_y), (waist_x, waist_y), lamda, index, receiver_eff, system_eff,
+        (x_matrix, y_matrix), (Ex_real, Ex_imag, Ey_real, Ey_imag))
 
 def writeBeamFile(beamfilename, version, n, ispol, units, d, zposition, rayleigh,
-                 waist, lamda, index, efield, receiver_eff=0, system_eff=0):
+                 waist, lamda, index, receiver_eff, system_eff, efield):
     """Write a Zemax Beam file
 
     Parameters
@@ -9923,13 +9923,13 @@ def writeBeamFile(beamfilename, version, n, ispol, units, d, zposition, rayleigh
         the wavelength of the beam
     index : double
         the index of refraction in the current medium
-    efield : 4-tuple of 2D lists, (Ex_real, Ex_imag, Ey_real, Ey_imag)
-        a tuple containing two dimensional lists with the real and
-        imaginary parts of the x and y polarizations of the beam
     receiver_eff : double
         the receiver efficiency. Zero if fiber coupling is not computed
     system_eff : double
         the system efficiency. Zero if fiber coupling is not computed.
+    efield : 4-tuple of 2D lists, (Ex_real, Ex_imag, Ey_real, Ey_imag)
+        a tuple containing two dimensional lists with the real and
+        imaginary parts of the x and y polarizations of the beam
 
     Returns
     -------

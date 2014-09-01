@@ -20,8 +20,8 @@ beamfilename = directory+os.sep+"type2spdc.zbf"
 beamData = readBeamFile(beamfilename)
 
 (version, (nx, ny), ispol, units, (dx,dy), (zposition_x, zposition_y),
- (rayleigh_x, rayleigh_y), (waist_x, waist_y), lamda, index,
- (x_matrix, y_matrix), (Ex_real, Ex_imag, Ey_real, Ey_imag), re, se) = beamData
+ (rayleigh_x, rayleigh_y), (waist_x, waist_y), lamda, index, re, se,
+ (x_matrix, y_matrix), (Ex_real, Ex_imag, Ey_real, Ey_imag)) = beamData
 
 xlabels = [-nx*dx/2+x*dx for x in range(0, nx)]
 ylabels = [-ny*dy/2+y*dy for y in range(0, ny)]
