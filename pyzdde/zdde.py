@@ -9792,6 +9792,11 @@ def readBeamFile(beamfilename):
     efield : 4-tuple of 2D lists, (Ex_real, Ex_imag, Ey_real, Ey_imag)
         a tuple containing two dimensional lists with the real and
         imaginary parts of the x and y polarizations of the beam
+    receiver_eff : double
+        the receiver efficiency. Zero if fiber coupling is not computed
+    system_eff : double
+        the system efficiency. Zero if fiber coupling is not computed.
+
     """
     f = open(beamfilename, "rb")
     # zemax version number
@@ -9844,7 +9849,13 @@ def readBeamFile(beamfilename):
         lamda = _struct.unpack('d', f.read(8))[0]
         print("lambda: "+str(lamda))
         index=_struct.unpack('d', f.read(8))[0]
-        print("index: "+str(index))#f.read(64);
+        print("index: "+str(index))
+        receiver_eff=_struct.unpack('d', f.read(8))[0]
+        print("receiver efficiency: "+str(index))
+        system_eff=_struct.unpack('d', f.read(8))[0]
+        print("system efficiency: "+str(index))
+        f.read(64)  # 8 empty doubles
+        # TODO: I'm not sure if one must use them in the version==0 block too. Same with receiver and system eff. Documentation of zbf-version 0 migth help.
     rawx = [0 for x in range(2*nx*ny) ]
     for i in range(2*nx*ny):
         rawx[i] = _struct.unpack('d', f.read(8))[0]
@@ -9880,10 +9891,10 @@ def readBeamFile(beamfilename):
             k = k+2
     return (version, (nx, ny), ispol, units, (dx, dy), (zposition_x, zposition_y),
         (rayleigh_x, rayleigh_y), (waist_x, waist_y), lamda, index,
-        (x_matrix, y_matrix), (Ex_real, Ex_imag, Ey_real, Ey_imag))
+        (x_matrix, y_matrix), (Ex_real, Ex_imag, Ey_real, Ey_imag), receiver_eff, system_eff)
 
 def writeBeamFile(beamfilename, version, n, ispol, units, d, zposition, rayleigh,
-                 waist, lamda, index, efield):
+                 waist, lamda, index, efield, receiver_eff=0, system_eff=0):
     """Write a Zemax Beam file
 
     Parameters
@@ -9913,6 +9924,10 @@ def writeBeamFile(beamfilename, version, n, ispol, units, d, zposition, rayleigh
     efield : 4-tuple of 2D lists, (Ex_real, Ex_imag, Ey_real, Ey_imag)
         a tuple containing two dimensional lists with the real and
         imaginary parts of the x and y polarizations of the beam
+    receiver_eff : double
+        the receiver efficiency. Zero if fiber coupling is not computed
+    system_eff : double
+        the system efficiency. Zero if fiber coupling is not computed.
 
     Returns
     -------
@@ -9950,6 +9965,9 @@ def writeBeamFile(beamfilename, version, n, ispol, units, d, zposition, rayleigh
             f.write(_struct.pack('d',waist[1]))
             f.write(_struct.pack('d',lamda))
             f.write(_struct.pack('d',index))
+            f.write(_struct.pack('d',receiver_eff))
+            f.write(_struct.pack('d',system_eff))
+            f.write(_struct.pack('8d',1,2,3,4,5,6,7,8))
 
         (Ex_real, Ex_imag, Ey_real, Ey_imag) = efield
 
