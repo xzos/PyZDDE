@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 directory = os.path.dirname(os.path.realpath(__file__))
 
-beamfilename = directory+"\\type2spdc.zbf"
+beamfilename = directory+os.sep+"type2spdc.zbf"
 
 beamData = readBeamFile(beamfilename)
 
