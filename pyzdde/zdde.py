@@ -9857,7 +9857,7 @@ def readBeamFile(beamfilename):
         system_eff=_struct.unpack('d', f.read(8))[0]
         print("system efficiency: "+str(index))
         f.read(64)  # 8 empty doubles
-        # TODO: I'm not sure if one must use them in the version==0 block too. Same with receiver and system eff. Documentation of zbf-version 0 migth help.
+
     rawx = [0 for x in range(2*nx*ny) ]
     for i in range(2*nx*ny):
         rawx[i] = _struct.unpack('d', f.read(8))[0]
