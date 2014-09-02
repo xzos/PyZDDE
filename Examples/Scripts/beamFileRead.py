@@ -15,12 +15,12 @@ import matplotlib.pyplot as plt
 
 directory = os.path.dirname(os.path.realpath(__file__))
 
-beamfilename = directory+"\\type2spdc.zbf"
+beamfilename = directory+os.sep+"type2spdc.zbf"
 
 beamData = readBeamFile(beamfilename)
 
 (version, (nx, ny), ispol, units, (dx,dy), (zposition_x, zposition_y),
- (rayleigh_x, rayleigh_y), (waist_x, waist_y), lamda, index,
+ (rayleigh_x, rayleigh_y), (waist_x, waist_y), lamda, index, re, se,
  (x_matrix, y_matrix), (Ex_real, Ex_imag, Ey_real, Ey_imag)) = beamData
 
 xlabels = [-nx*dx/2+x*dx for x in range(0, nx)]
