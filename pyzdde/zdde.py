@@ -84,9 +84,9 @@ try:
   import pyzdde.ddeclient as _dde
   _global_ddeclient_load = True
 except ImportError:
-  # probably I'm not on windows. Therefore windll can't be imported.
-  # only provide functions that does not interact with zemax
-  print("DDE client couldn't be loaded. All functions that start with \"z\" or \"ipz\" will not work.")
+  # System may not be windows; only provide functions that do not use zemax
+  print("DDE client couldn't be loaded. All functions prefixed with"
+        " \"z\" or \"ipz\" may not work.")
 
 if _global_pyver3:
    _izip = zip
@@ -100,7 +100,7 @@ import pyzdde.zcodes.zemaxoperands as zo
 import pyzdde.utils.pyzddeutils as _putils
 
 # Constants
-_DEBUG_PRINT_LEVEL = 0 # 0=No debug prints, but allow all essential prints
+_DEBUG_PRINT_LEVEL = 0 # 0 = No debug prints, but allow all essential prints
                        # 1 to 2 levels of debug print, 2 = print all
 
 _MAX_PARALLEL_CONV = 2  # Max no of simul. conversations possible with Zemax
@@ -1166,7 +1166,7 @@ class PyZDDE(object):
         date : string
             date
         """
-        return self._sendDDEcommand('GetDate')
+        return self._sendDDEcommand('GetDate').rstrip()
 
     def zGetExtra(self, surfaceNumber, columnNumber):
         """Returns extra surface data from the Extra Data Editor
@@ -8929,6 +8929,7 @@ class PyZDDE(object):
         prime_wave_num = self.zGetPrimaryWave()
         return self.zGetIndex(surfaceNumber)[prime_wave_num-1]
 
+
     def zGetHiatus(self, txtFile=None, keepFile=False):
         """Returns the Hiatus, which is the distance between the two
         principal planes of the optical system
@@ -8959,11 +8960,19 @@ class PyZDDE(object):
         """
         settings = _txtAndSettingsToUse(self, txtFile, 'None', 'Pre')
         textFileName, _, _ = settings
+        
+        sysProp = self.zGetSystem()
+        numSurf = sysProp.numSurf
+
+        # Since the object space cardinal points are reported w.r.t. the 
+        # surface 1, ensure that surface 1 is global reference surface 
+        if sysProp.globalRefSurf is not 1:
+            self.zSetSystem(unitCode=sysProp.unitCode, stopSurf=sysProp.stopSurf, 
+                            rayAimingType=sysProp.rayAimingType, temp=sysProp.temp, 
+                            pressure=sysProp.pressure, globalRefSurf=1)
+
         ret = self.zGetTextFile(textFileName, 'Pre', "None", 0)
         assert ret == 0
-        recSystemData = self.zGetSystem()
-        numSurf = recSystemData[0]
-
         # The number of expected Principal planes in each Pre file is equal to the
         # number of wavelengths in the general settings of the lens design
         line_list = _readLinesFromFile(_openFile(textFileName))
@@ -8994,6 +9003,12 @@ class PyZDDE(object):
             # Calculate the hiatus (only if count > 0) as
             hiatus = abs(ima_z + principalPlane_imgSpace - principalPlane_objSpace)
 
+        # Restore the Global ref surface if it was changed
+        if sysProp.globalRefSurf is not 1:
+            self.zSetSystem(unitCode=sysProp.unitCode, stopSurf=sysProp.stopSurf, 
+                            rayAimingType=sysProp.rayAimingType, temp=sysProp.temp, 
+                            pressure=sysProp.pressure, 
+                            globalRefSurf=sysProp.globalRefSurf)
         if not keepFile:
             _deleteFile(textFileName)
         return hiatus
