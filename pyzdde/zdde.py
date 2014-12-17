@@ -3228,8 +3228,8 @@ class PyZDDE(object):
         """
         args1 = "{wN:d},{m:d},".format(wN=waveNum,m=mode)
         args2 = "{sa:d},{sp:d},".format(sa=startSurf,sp=stopSurf)
-        args3 = "{x:1.20f},{y:1.20f},{z:1.20f}".format(x=x,y=y,z=z)
-        args4 = "{l:1.20f},{m:1.20f},{n:1.20f}".format(l=l,m=m,n=n)
+        args3 = "{x:1.20f},{y:1.20f},{z:1.20f},".format(x=x,y=y,z=z)
+        args4 = "{l:1.20f},{m:1.20f},{n:1.20f},".format(l=l,m=m,n=n)
         cmd = "GetTraceDirect," + args1 + args2 + args3 + args4
         reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
