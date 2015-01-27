@@ -8557,7 +8557,7 @@ class PyZDDE(object):
         else:
             return None
 
-    def zGetZernikie(self, which='fringe', settingsFile=None, txtFile=None, 
+    def zGetZernike(self, which='fringe', settingsFile=None, txtFile=None, 
                      keepFile=False, timeout=5):
         """returns the Zernike Fringe, Standard, or Annular coefficients 
         for the currently loaded lens file. 
