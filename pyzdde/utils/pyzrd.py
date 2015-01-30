@@ -4,42 +4,60 @@ import numpy
 
 
 class zemax_ray():
+    """ Class that allows the creation and import of Zemax ray files
+    
+    """
     def __init__(self, parent = None):        
-        self.status = numpy.asarray([])
-        self.level = numpy.asarray([])
-        self.hit_object = numpy.asarray([])
-        self.hit_face = numpy.asarray([])
-        self.unused = numpy.asarray([])
-        self.in_object = numpy.asarray([])
-        self.parent = numpy.asarray([])
-        self.storage = numpy.asarray([])
-        self.xybin = numpy.asarray([])
-        self.lmbin = numpy.asarray([])
-        self.index = numpy.asarray([])
-        self.starting_phase = numpy.asarray([])
-        self.x = numpy.asarray([])
-        self.y = numpy.asarray([])
-        self.z = numpy.asarray([])
-        self.l = numpy.asarray([])
-        self.m = numpy.asarray([])
-        self.n = numpy.asarray([])
-        self.nx = numpy.asarray([])
-        self.ny = numpy.asarray([])
-        self.nz = numpy.asarray([])
-        self.path_to = numpy.asarray([])
-        self.intensity = numpy.asarray([])
-        self.phase_of = numpy.asarray([])
-        self.phase_at = numpy.asarray([])
-        self.exr = numpy.asarray([])
-        self.exi = numpy.asarray([])
-        self.eyr = numpy.asarray([])
-        self.eyi = numpy.asarray([])
-        self.ezr = numpy.asarray([])
-        self.ezi = numpy.asarray([])
+        self.status = []
+        self.level = []
+        self.hit_object = []
+        self.hit_face = []
+        self.unused = []
+        self.in_object = []
+        self.parent = []
+        self.storage = []
+        self.xybin = []
+        self.lmbin = []
+        self.index = []
+        self.starting_phase = []
+        self.x = []
+        self.y = []
+        self.z = []
+        self.l = []
+        self.m = []
+        self.n = []
+        self.nx = []
+        self.ny = []
+        self.nz = []
+        self.path_to = []
+        self.intensity = []
+        self.phase_of = []
+        self.phase_at = []
+        self.exr = []
+        self.exi = []
+        self.eyr = []
+        self.eyi = []
+        self.ezr = []
+        self.ezi = []
+        self.wavelength = 0;
         self.version = 0
         self.n_segments = 1
+        
+        # Data fields of an uncompressed rayfile
+        self.uncompressed_zrd = [('status', ctypes.c_int),
+                    ('level', ctypes.c_int),
+                    ('hit_object', ctypes.c_int),
+                    ('parent', ctypes.c_int),
+                    ('xybin', ctypes.c_int),
+                    ('lmbin', ctypes.c_int),
+                    ('x', ctypes.c_float),
+                    ('y', ctypes.c_float),
+                    ('z', ctypes.c_float),
+                    ('intensity', ctypes.c_float),
+                    ]
 
-        self.data_fields = [('status', ctypes.c_int),
+        # Data fields of a compressed rayfile
+        self.compressed_zrd = [('status', ctypes.c_int),
                     ('level', ctypes.c_int),
                     ('hit_object', ctypes.c_int),
                     ('hit_face', ctypes.c_int),
@@ -71,6 +89,18 @@ class zemax_ray():
                     ('ezr', ctypes.c_double),
                     ('ezi', ctypes.c_double)
                     ]
+
+        # data fields of the Zemax text ray file
+        self.nsq_source_fields =  [
+                    ('x', ctypes.c_double),
+                    ('y', ctypes.c_double),
+                    ('z', ctypes.c_double),
+                    ('l', ctypes.c_double),
+                    ('m', ctypes.c_double),
+                    ('n', ctypes.c_double),
+                    ('intensity', ctypes.c_double),
+                    ('wavelength', ctypes.c_double)
+                    ]
                     
     def __str__(self):
         s = '';
@@ -81,8 +111,36 @@ class zemax_ray():
     def __repr__(self):
         return self.__str__
 
+class NSQSource():
+    def __init__(self, parent = None):        
+        self.n_layout_rays = 0
+        self.n_analysis_rays = 0
+        self.power = 1
+        self.wavenumber = 1
+        self.color = 0
+        self.randomize = 0
+        self.power_lumens_in_file = 0
+        self.min_wavelength = 0
+        self.max_wavelength = 0
+        self.rays = [];
 
-def readZRD(filename):
+    def set_rays(self, x, y, z, l, m, n, intensity, wavelength):
+        for ii in numpy.arange(len(x)):
+            self.rays.append(zemax_ray())
+            for field in self.rays[-1].nsq_source_fields:
+                 setattr(self.rays[-1],field[0], eval(field[0]+'['+str(ii)+']'))
+                 
+#    def write_source_file(self,filename):
+        
+                
+        
+
+def readZRD(filename, file_type):
+    if file_type == 'uncompressed':
+        fields = 'uncompressed_zrd'
+    elif file_type == 'compressed':
+        fields = 'compressed_zrd'
+        
     f = open(filename, "rb")
     version = _struct.unpack('i', f.read(4))[0]
     n_segments = _struct.unpack('i', f.read(4))[0]
@@ -93,12 +151,26 @@ def readZRD(filename):
         zrd[-1].version = version
         n_segments_follow = _struct.unpack('i', f.read(4))[0]
         for ss in range(n_segments_follow):
-            for field in zrd[-1].data_fields:
-                setattr(zrd[-1],field[0], numpy.append(getattr(zrd[-1], field[0]), _struct.unpack(('d' if field[1]==ctypes.c_double else 'i'), f.read(ctypes.sizeof(field[1])))[0]))
+            for field in getattr(zrd[-1],fields):
+                # set the format character depending on the data type
+                if field[1]== ctypes.c_int:
+                    format_char = 'i'
+                elif field[1]== ctypes.c_double:
+                    format_char = 'd'
+                elif field[1]== ctypes.c_float:
+                    format_char = 'f'
+                # set the value of the respective field            
+                getattr(zrd[-1], field[0]).append(_struct.unpack(format_char, f.read(ctypes.sizeof(field[1])))[0])
     f.close()
     return zrd
 
-def writeZRD(rayArray, filename):
+def writeZRD(rayArray, filename, file_type):
+
+    if file_type == 'uncompressed_zrd':
+        fields = 'uncompressed_zrd'
+    elif file_type == 'compressed_zrd':
+        fields = 'compressed_zrd'
+
     f = open(filename, "wb")
     # zemax version number
     f.write(_struct.pack('i',rayArray[0].version))
@@ -108,7 +180,15 @@ def writeZRD(rayArray, filename):
         # number of surfaces in the ray
         f.write(_struct.pack('i',len(rayArray[rr].status)))
         for ss in numpy.arange(len(rayArray[rr].status)):
-            for field in rayArray[rr].data_fields:
-                f.write(_struct.pack(('d' if field[1]==ctypes.c_double else 'i'),getattr(rayArray[rr], field[0])[ss]))
+            for field in getattr(rayArray[rr],fields):
+                # set the format character depending on the data type
+                if field[1]== ctypes.c_int:
+                    format_char = 'i'
+                elif field[1]== ctypes.c_double:
+                    format_char = 'd'
+                elif field[1]== ctypes.c_float:
+                    format_char = 'f'
 
+                f.write(_struct.pack(format_char, getattr(rayArray[rr], field[0])[ss]))
+    f.close()
                 
