@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.8.01
+# Revision:    0.8.02
 #-------------------------------------------------------------------------------
 """PyZDDE, which is a toolbox written in Python, is used for communicating
 with ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging
@@ -8471,6 +8471,215 @@ class PyZDDE(object):
                                                 flipSimImg, outFile)
             return dst
 
+# Aberration coefficients analysis functions
+    def zGetSeidelAberration(self, which='wave', txtFile=None, keepFile=False):
+        """Return the Seidel Aberration coefficients
+
+        Parameters
+        ----------
+        which : string, optional
+            'wave' = Wavefront aberration coefficient (summary) is
+                     returned;
+            'aber' = Seidel aberration coefficients (total) is returned
+            'both' = both Wavefront (summary) and Seidel aberration
+                     (total) coefficients are returned
+        txtFile : string, optional
+            if passed, the seidel text file will be named such. Pass a
+            specific txtFile if you want to dump the file into a separate
+            directory.
+        keepFile : bool, optional
+            if ``False`` (default), the Seidel text file will be deleted
+            after use.
+            If ``True``, the file will persist. If ``keepFile`` is ``True``
+            but a ``txtFile`` is not passed, the Seidel text file will be
+            saved in the same directory as the lens (provided the required
+            folder access permissions are availabl
+
+        Returns
+        -------
+        sac : dictionary or tuple (see below)
+            - if 'which' is 'wave', then a dictionary of Wavefront
+              aberration coefficient summary is returned;
+            - if 'which' is 'aber', then a dictionary of Seidel total
+              aberration coefficient is returned;
+            - if 'which' is 'both', then a tuple of dictionaries containing
+              Wavefront aberration coefficients and Seidel aberration
+              coefficients is returned.
+        """
+        settings = _txtAndSettingsToUse(self, txtFile, 'None', 'Sei')
+        textFileName, _, _ = settings
+        ret = self.zGetTextFile(textFileName,'Sei', 'None', 0)
+        assert ret == 0
+        recSystemData = self.zGetSystem() # Get the current system parameters
+        numSurf = recSystemData[0]
+        line_list = _readLinesFromFile(_openFile(textFileName))
+        seidelAberrationCoefficients = {}         # Aberration Coefficients
+        seidelWaveAberrationCoefficients = {}     # Wavefront Aberr. Coefficients
+        for line_num, line in enumerate(line_list):
+            # Get the Seidel aberration coefficients
+            sectionString1 = ("Seidel Aberration Coefficients:")
+            if line.rstrip()== sectionString1:
+                sac_keys_tmp = line_list[line_num + 2].rstrip()[7:] # remove "Surf" and "\n" from start and end
+                sac_keys = sac_keys_tmp.split('    ')
+                sac_vals = line_list[line_num + numSurf+3].split()[1:]
+            # Get the Seidel Wavefront Aberration Coefficients (swac)
+            sectionString2 = ("Wavefront Aberration Coefficient Summary:")
+            if line.rstrip()== sectionString2:
+                swac_keys01 = line_list[line_num + 2].split()     # names
+                swac_vals01 = line_list[line_num + 3].split()[1:] # values
+                swac_keys02 = line_list[line_num + 5].split()     # names
+                swac_vals02 = line_list[line_num + 6].split()[1:] # values
+                break
+        else:
+            raise Exception("Could not find section strings '{}'"
+            " and '{}' in seidel aberrations file. "
+            " \n\nPlease check if there is a mismatch in text encoding between"
+            " Zemax and PyZDDE.".format(sectionString1, sectionString2))
+        # Assert if the lengths of key-value lists are not equal
+        assert len(sac_keys) == len(sac_vals)
+        assert len(swac_keys01) == len(swac_vals01)
+        assert len(swac_keys02) == len(swac_vals02)
+        # Create the dictionary
+        for k, v in zip(sac_keys, sac_vals):
+            seidelAberrationCoefficients[k] = float(v)
+        for k, v in zip(swac_keys01, swac_vals01):
+            seidelWaveAberrationCoefficients[k] = float(v)
+        for k, v in zip(swac_keys02, swac_vals02):
+            seidelWaveAberrationCoefficients[k] = float(v)
+        if not keepFile:
+            _deleteFile(textFileName)
+        if which == 'wave':
+            return seidelWaveAberrationCoefficients
+        elif which == 'aber':
+            return seidelAberrationCoefficients
+        elif which == 'both':
+            return seidelWaveAberrationCoefficients, seidelAberrationCoefficients
+        else:
+            return None
+
+    def zGetZernike(self, which='fringe', settingsFile=None, txtFile=None, 
+                     keepFile=False, timeout=5):
+        """returns the Zernike Fringe, Standard, or Annular coefficients 
+        for the currently loaded lens file. 
+
+        It provides similar functionality to ZPL command "GETZERNIKE". The
+        only difference is that this function returns "Peak to valley to 
+        centroid" in the `zInfo` metadata instead of "RMS to the zero OPD 
+        line)
+
+        Parameters
+        ----------
+        which : string, optional
+            ``fringe`` for "Fringe" zernike terms (default), ``standard`` 
+            for "Standard" zernike terms, and ``annular`` for "Annular" 
+            zernike terms.
+        settingsFile : string, optional
+            * if passed, the aberration coefficient analysis will be called 
+              with the given configuration file (settings);
+            * if no ``settingsFile`` is passed, and a config file ending
+              with the same name as the lens-file post-fixed with
+              "_pyzdde_ZFR.CFG"/"_pyzdde_ZST.CFG"/"_pyzdde_ZAT.CFG" is 
+              present, the settings from this file will be used;
+            * if no ``settingsFile`` and no file-name post-fixed with
+              "_pyzdde_ZFR.CFG"/"_pyzdde_ZST.CFG"/"_pyzdde_ZAT.CFG" is 
+              found, but a config file with the same name as the lens file 
+              is present, the settings from that file will be used;
+            * if none of the above types of settings file is found, then a 
+              default settings will be used
+        txtFile : string, optional
+            if passed, the aberration coefficient analysis text file will 
+            be named such. Pass a specific ``txtFile`` if you want to dump 
+            the file into a separate directory.
+        keepFile : bool, optional
+            if ``False`` (default), the aberration coefficient text file 
+            will be deleted after use.
+            If ``True``, the file will persist. If ``keepFile`` is ``True``
+            but a ``txtFile`` is not passed, the analysis text file will be
+            saved in the same directory as the lens (provided the required
+            folder access permissions are available)
+        timeout : integer, optional
+            timeout in seconds. 
+
+        Returns
+        -------
+        zInfo : named tuple
+            the 8-tuple contains 1. Peak to Valley (to chief), 2. Peak to 
+            valley (to centroid), 3. RMS to chief ray, 4. RMS to image 
+            centroid, 5. Variance, 6. Strehl ratio, 7. RMS fit error, and 
+            8. Maximum fit error. All  parameters except for Strehl ratio 
+            has units of waves.
+        zCoeff : 1-D named tuple
+            the actual Zernike Fringe, Standard, or Annular coefficients. 
+            The coefficient names conform to the Zemax manual naming 
+            staring from Z1, Z2, Z3 .... (see example below)
+
+        Notes
+        ----- 
+        1. As of current writing, Zemax doesn't provide a way to modify the 
+           parameters of any aberration coefficient settings file through
+           extensions. Thus a settings file for the aberration coefficients
+           analysis has to be created manually using the Zemax menu (as 
+           opposed to programmatic creation and modification of settings) 
+
+        Examples
+        -------- 
+        >>> zInfo, zCoeff = ln.zGetZernike(which='fringe')
+        >>> zInfo
+        zInfo(pToVChief=0.08397624, pToVCentroid=0.08397624, rmsToChief=0.02455132, rmsToCentroid=0.02455132, variance=0.00060277, strehl=0.9764846, rmsFitErr=0.0, maxFitErr=0.0)
+        >>> print(zInfo.rmsToChief)
+        0.02455132
+        >>> print(zCoeff)
+        zCoeff(Z1=-0.55311265, Z2=0.0, Z3=0.0, Z4=-0.34152763, Z5=0.0, Z6=0.0, Z7=0.0, Z8=0.0, Z9=0.19277286, Z10=0.0, Z11=0.0, Z12=0.0, Z13=0.0, Z14=0.0, Z15=0.0, Z16=-0.01968138, Z17=0.0, Z18=0.0, Z19=0.0, Z20=0.0, Z21=0.0, Z22=0.0, Z23=0.0, Z24=0.0, Z25=-0.00091852, Z26=0.0, Z27=0.0, Z28=0.0, Z29=0.0, Z30=0.0, Z31=0.0, Z32=0.0, Z33=0.0, Z34=0.0, Z35=0.0, Z36=-3.368e-05, Z37=-1.44e-06)
+        >>> print(zCoeff.Z1) # zCoeff.Z1 is same as zCoeff[0] 
+        -0.55311265   
+        """
+        anaTypeDict = {'fringe':'Zfr', 'standard':'Zst', 'annular':'Zat'}
+        assert which in anaTypeDict
+        anaType = anaTypeDict[which]
+        settings = _txtAndSettingsToUse(self, txtFile, settingsFile, anaType) 
+        textFileName, cfgFile, getTextFlag = settings
+        ret = self.zGetTextFile(textFileName, anaType, cfgFile, getTextFlag,
+                                timeout) 
+        assert ret == 0
+        line_list = _readLinesFromFile(_openFile(textFileName)) 
+        line_list_len = len(line_list)
+        
+        # Extract Meta data 
+        meta_patterns = ["Peak to Valley\s+\(to chief\)",
+                         "Peak to Valley\s+\(to centroid\)",
+                         "RMS\s+\(to chief\)",
+                         "RMS\s+\(to centroid\)",
+                         "Variance",
+                         "Strehl Ratio",
+                         "RMS fit error",
+                         "Maximum fit error"]
+        meta = []
+        for i, pat in enumerate(meta_patterns):
+            meta_line = line_list[_getFirstLineOfInterest(line_list, pat)]
+            meta.append(float(_re.search(r'\d{1,3}\.\d{4,8}', meta_line).group()))
+        
+        info = _co.namedtuple('zInfo', ['pToVChief', 'pToVCentroid', 'rmsToChief',
+                                        'rmsToCentroid', 'variance', 'strehl',
+                                        'rmsFitErr', 'maxFitErr'])
+        zInfo = info(*meta)
+
+        # Extract coefficients
+        start_line_pat = "Z\s+1\s+-?\d{1,3}\.\d{4,8}"
+        start_line = _getFirstLineOfInterest(line_list, start_line_pat)
+        coeff_pat = _re.compile("-?\d{1,3}\.\d{4,8}")
+        zCoeffs = [0]*(line_list_len - start_line)
+
+        for i, line in enumerate(line_list[start_line:]):
+            zCoeffs[i] = float(_re.findall(coeff_pat, line)[0])
+        
+        zCoeffId = _co.namedtuple('zCoeff', 
+                    ['Z{}'.format(i+1) for i in range(line_list_len - start_line)])
+        zCoeff = zCoeffId(*zCoeffs)
+
+        if not keepFile:
+            _deleteFile(textFileName)  
+        return zInfo, zCoeff
+
 # -------------------
 # Tools functions
 # -------------------
@@ -9110,90 +9319,7 @@ class PyZDDE(object):
         opd = self.zOperandValue(code, 0, wave, hx, hy, px, py)
         return opd
 
-    def zGetSeidelAberration(self, which='wave', txtFile=None, keepFile=False):
-        """Return the Seidel Aberration coefficients
 
-        Parameters
-        ----------
-        which : string, optional
-            'wave' = Wavefront aberration coefficient (summary) is
-                     returned;
-            'aber' = Seidel aberration coefficients (total) is returned
-            'both' = both Wavefront (summary) and Seidel aberration
-                     (total) coefficients are returned
-        txtFile : string, optional
-            if passed, the seidel text file will be named such. Pass a
-            specific txtFile if you want to dump the file into a separate
-            directory.
-        keepFile : bool, optional
-            if ``False`` (default), the Seidel text file will be deleted
-            after use.
-            If ``True``, the file will persist. If ``keepFile`` is ``True``
-            but a ``txtFile`` is not passed, the Seidel text file will be
-            saved in the same directory as the lens (provided the required
-            folder access permissions are availabl
-
-        Returns
-        -------
-        sac : dictionary or tuple (see below)
-            - if 'which' is 'wave', then a dictionary of Wavefront
-              aberration coefficient summary is returned;
-            - if 'which' is 'aber', then a dictionary of Seidel total
-              aberration coefficient is returned;
-            - if 'which' is 'both', then a tuple of dictionaries containing
-              Wavefront aberration coefficients and Seidel aberration
-              coefficients is returned.
-        """
-        settings = _txtAndSettingsToUse(self, txtFile, 'None', 'Sei')
-        textFileName, _, _ = settings
-        ret = self.zGetTextFile(textFileName,'Sei', 'None', 0)
-        assert ret == 0
-        recSystemData = self.zGetSystem() # Get the current system parameters
-        numSurf = recSystemData[0]
-        line_list = _readLinesFromFile(_openFile(textFileName))
-        seidelAberrationCoefficients = {}         # Aberration Coefficients
-        seidelWaveAberrationCoefficients = {}     # Wavefront Aberr. Coefficients
-        for line_num, line in enumerate(line_list):
-            # Get the Seidel aberration coefficients
-            sectionString1 = ("Seidel Aberration Coefficients:")
-            if line.rstrip()== sectionString1:
-                sac_keys_tmp = line_list[line_num + 2].rstrip()[7:] # remove "Surf" and "\n" from start and end
-                sac_keys = sac_keys_tmp.split('    ')
-                sac_vals = line_list[line_num + numSurf+3].split()[1:]
-            # Get the Seidel Wavefront Aberration Coefficients (swac)
-            sectionString2 = ("Wavefront Aberration Coefficient Summary:")
-            if line.rstrip()== sectionString2:
-                swac_keys01 = line_list[line_num + 2].split()     # names
-                swac_vals01 = line_list[line_num + 3].split()[1:] # values
-                swac_keys02 = line_list[line_num + 5].split()     # names
-                swac_vals02 = line_list[line_num + 6].split()[1:] # values
-                break
-        else:
-            raise Exception("Could not find section strings '{}'"
-            " and '{}' in seidel aberrations file. "
-            " \n\nPlease check if there is a mismatch in text encoding between"
-            " Zemax and PyZDDE.".format(sectionString1, sectionString2))
-        # Assert if the lengths of key-value lists are not equal
-        assert len(sac_keys) == len(sac_vals)
-        assert len(swac_keys01) == len(swac_vals01)
-        assert len(swac_keys02) == len(swac_vals02)
-        # Create the dictionary
-        for k, v in zip(sac_keys, sac_vals):
-            seidelAberrationCoefficients[k] = float(v)
-        for k, v in zip(swac_keys01, swac_vals01):
-            seidelWaveAberrationCoefficients[k] = float(v)
-        for k, v in zip(swac_keys02, swac_vals02):
-            seidelWaveAberrationCoefficients[k] = float(v)
-        if not keepFile:
-            _deleteFile(textFileName)
-        if which == 'wave':
-            return seidelWaveAberrationCoefficients
-        elif which == 'aber':
-            return seidelAberrationCoefficients
-        elif which == 'both':
-            return seidelWaveAberrationCoefficients, seidelAberrationCoefficients
-        else:
-            return None
 
 
 # ***************************************************************
@@ -10410,15 +10536,18 @@ def _txtAndSettingsToUse(self, txtFile, settingsFile, anaType):
     # txt file and settings files associated with them. Of course they
     # may be changed if required in future.
     txtFileDict =  {'Pop':'popData.txt',
-                    'Hcs':'HuygensPsfCSAnalysisFile.txt', # Huygens PSF cross-section
-                    'Hps':'HuygensPsfAnalysisFile.txt', # Huygens PSF
-                    'Hmf':'HuygensMtfAnalysisFile.txt', # Huygens MTF
-                    'Pcs':'FFTPsfCSAnalysisFile.txt', # FFT PSF cross-section
-                    'Fps':'FFTPsfAnalysisFile.txt', # FFT PSF
-                    'Mtf':'FFTMtfAnalysisFile.txt', # FFT MTF
-                    'Sei':'seidelAberrationFile.txt',
-                    'Pre':'prescriptionFile.txt',
-                    'Sim':'imageSimulationAnalysisFile.txt',
+                    'Hcs':'huygensPsfCSAnalysisFile.txt', # Huygens PSF cross-section
+                    'Hps':'huygensPsfAnalysisFile.txt', # Huygens PSF
+                    'Hmf':'huygensMtfAnalysisFile.txt', # Huygens MTF
+                    'Pcs':'fftPsfCSAnalysisFile.txt', # FFT PSF cross-section
+                    'Fps':'fftPsfAnalysisFile.txt', # FFT PSF
+                    'Mtf':'fftMtfAnalysisFile.txt', # FFT MTF
+                    'Sei':'seidelAberrationFile.txt', # Seidel aberration coefficients
+                    'Pre':'prescriptionFile.txt',   # Prescription
+                    'Sim':'imageSimulationAnalysisFile.txt', # Image Simulation
+                    'Zfr':'zernikeFringeAnalysisFile.txt',   # Zernike Fringe coefficients
+                    'Zst':'zernikeStandardAnalysisFile.txt', # Zernike Standard coefficients
+                    'Zat':'zernikeAnnularAnalysisFile.txt',  # Zernike Annular coefficients
                     }
 
     anaCfgDict  = {'Pop':'_pyzdde_POP.CFG',
@@ -10431,6 +10560,9 @@ def _txtAndSettingsToUse(self, txtFile, settingsFile, anaType):
                    'Sei':'None',
                    'Pre':'None',  # change this to the appropriate file when implemented
                    'Sim':'_pyzdde_IMGSIM.CFG',
+                   'Zfr':'_pyzdde_ZFR.CFG',  # Note that currently MODIFYSETTINGS  
+                   'Zst':'_pyzdde_ZST.CFG',  # is not supported of Aberration  
+                   'Zat':'_pyzdde_ZAT.CFG',  # coefficients by Zemax extensions
                    }
     assert txtFileDict.keys() == anaCfgDict.keys(), \
            "Dicts don't have matching keys" # for code integrity
