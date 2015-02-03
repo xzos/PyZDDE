@@ -8562,7 +8562,10 @@ class PyZDDE(object):
         """returns the Zernike Fringe, Standard, or Annular coefficients 
         for the currently loaded lens file. 
 
-        It provides similar functionality to ZPL command "GETZERNIKE"
+        It provides similar functionality to ZPL command "GETZERNIKE". The
+        only difference is that this function returns "Peak to valley to 
+        centroid" in the `zInfo` metadata instead of "RMS to the zero OPD 
+        line)
 
         Parameters
         ----------
@@ -8600,12 +8603,15 @@ class PyZDDE(object):
         Returns
         -------
         zInfo : named tuple
-            the 8-tuple contains "Peak to Valley", "RMS to the zero OPD 
-            line", "RMS to chief ray", "RMS to image centroid", "Variance", 
-            "Strehl ratio", "RMS fit error", and "Maximum fit error". All 
-            parameters execpt for Strehl ratio has units of waves.
-        zCoeff : 1-D list
-            the actual Zernike Fringe, Standard, or Annular coefficients.
+            the 8-tuple contains 1. Peak to Valley (to chief), 2. Peak to 
+            valley (to centroid), 3. RMS to chief ray, 4. RMS to image 
+            centroid, 5. Variance, 6. Strehl ratio, 7. RMS fit error, and 
+            8. Maximum fit error. All  parameters except for Strehl ratio 
+            has units of waves.
+        zCoeff : 1-D named tuple
+            the actual Zernike Fringe, Standard, or Annular coefficients. 
+            The coefficient names conform to the Zemax manual naming 
+            staring from Z1, Z2, Z3 .... (see example below)
 
         Notes
         ----- 
@@ -8613,8 +8619,19 @@ class PyZDDE(object):
            parameters of any aberration coefficient settings file through
            extensions. Thus a settings file for the aberration coefficients
            analysis has to be created manually using the Zemax menu (as 
-           opposed to programmatic creation and modification of settings)   
+           opposed to programmatic creation and modification of settings) 
 
+        Examples
+        -------- 
+        >>> zInfo, zCoeff = ln.zGetZernike(which='fringe')
+        >>> zInfo
+        zInfo(pToVChief=0.08397624, pToVCentroid=0.08397624, rmsToChief=0.02455132, rmsToCentroid=0.02455132, variance=0.00060277, strehl=0.9764846, rmsFitErr=0.0, maxFitErr=0.0)
+        >>> print(zInfo.rmsToChief)
+        0.02455132
+        >>> print(zCoeff)
+        zCoeff(Z1=-0.55311265, Z2=0.0, Z3=0.0, Z4=-0.34152763, Z5=0.0, Z6=0.0, Z7=0.0, Z8=0.0, Z9=0.19277286, Z10=0.0, Z11=0.0, Z12=0.0, Z13=0.0, Z14=0.0, Z15=0.0, Z16=-0.01968138, Z17=0.0, Z18=0.0, Z19=0.0, Z20=0.0, Z21=0.0, Z22=0.0, Z23=0.0, Z24=0.0, Z25=-0.00091852, Z26=0.0, Z27=0.0, Z28=0.0, Z29=0.0, Z30=0.0, Z31=0.0, Z32=0.0, Z33=0.0, Z34=0.0, Z35=0.0, Z36=-3.368e-05, Z37=-1.44e-06)
+        >>> print(zCoeff.Z1) # zCoeff.Z1 is same as zCoeff[0] 
+        -0.55311265   
         """
         anaTypeDict = {'fringe':'Zfr', 'standard':'Zst', 'annular':'Zat'}
         assert which in anaTypeDict
@@ -8641,7 +8658,7 @@ class PyZDDE(object):
             meta_line = line_list[_getFirstLineOfInterest(line_list, pat)]
             meta.append(float(_re.search(r'\d{1,3}\.\d{4,8}', meta_line).group()))
         
-        info = _co.namedtuple('zInfo', ['peakToVal', 'rmsToZero', 'rmsToChief',
+        info = _co.namedtuple('zInfo', ['pToVChief', 'pToVCentroid', 'rmsToChief',
                                         'rmsToCentroid', 'variance', 'strehl',
                                         'rmsFitErr', 'maxFitErr'])
         zInfo = info(*meta)
@@ -8650,11 +8667,15 @@ class PyZDDE(object):
         start_line_pat = "Z\s+1\s+-?\d{1,3}\.\d{4,8}"
         start_line = _getFirstLineOfInterest(line_list, start_line_pat)
         coeff_pat = _re.compile("-?\d{1,3}\.\d{4,8}")
-        zCoeff = [0]*(line_list_len - start_line)
+        zCoeffs = [0]*(line_list_len - start_line)
 
         for i, line in enumerate(line_list[start_line:]):
-            zCoeff[i] = float(_re.findall(coeff_pat, line)[0])
+            zCoeffs[i] = float(_re.findall(coeff_pat, line)[0])
         
+        zCoeffId = _co.namedtuple('zCoeff', 
+                    ['Z{}'.format(i+1) for i in range(line_list_len - start_line)])
+        zCoeff = zCoeffId(*zCoeffs)
+
         if not keepFile:
             _deleteFile(textFileName)  
         return zInfo, zCoeff
