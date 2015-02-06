@@ -1,6 +1,5 @@
 import ctypes 
 import struct as _struct
-import numpy
 
 
 class zemax_ray():
@@ -130,7 +129,7 @@ class NSQSource():
         self.rays = [];
 
     def set_rays(self, x, y, z, l, m, n, intensity, wavelength):
-        for ii in numpy.arange(len(x)):
+        for ii in range(0,len(x)):
             self.rays.append(zemax_ray())
             for field in self.rays[-1].nsq_source_fields:
                  setattr(self.rays[-1],field[0], eval(field[0]+'['+str(ii)+']'))
@@ -182,10 +181,10 @@ def writeZRD(rayArray, filename,file_type):
     f.write(_struct.pack('i',rayArray[0].version))
     # number of rays in the ray array
     f.write(_struct.pack('i',len(rayArray)))
-    for rr in numpy.arange(len(rayArray)):
+    for rr in range(0,len(rayArray)):
         # number of surfaces in the ray
         f.write(_struct.pack('i',len(rayArray[rr].status)))
-        for ss in numpy.arange(len(rayArray[rr].status)):
+        for ss in range(0,len(rayArray[rr].status)):
             for field in getattr(rayArray[rr],fields):
                 # set the format character depending on the data type
                 if field[1]== ctypes.c_int:
