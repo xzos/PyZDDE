@@ -7,7 +7,8 @@ class zemax_ray():
     """ Class that allows the creation and import of Zemax ray files
     
     """
-    def __init__(self, parent = None):        
+    def __init__(self, parent = None):      
+        self.file_type = '';
         self.status = []
         self.level = []
         self.hit_object = []
@@ -44,7 +45,7 @@ class zemax_ray():
         self.n_segments = 1
         
         # Data fields of an uncompressed rayfile
-        self.uncompressed_zrd = [('status', ctypes.c_int),
+        self.compressed_zrd = [('status', ctypes.c_int),
                     ('level', ctypes.c_int),
                     ('hit_object', ctypes.c_int),
                     ('parent', ctypes.c_int),
@@ -57,7 +58,7 @@ class zemax_ray():
                     ]
 
         # Data fields of a compressed rayfile
-        self.compressed_zrd = [('status', ctypes.c_int),
+        self.uncompressed_zrd = [('status', ctypes.c_int),
                     ('level', ctypes.c_int),
                     ('hit_object', ctypes.c_int),
                     ('hit_face', ctypes.c_int),
@@ -103,13 +104,17 @@ class zemax_ray():
                     ]
                     
     def __str__(self):
+        if self.file_type == 'uncompressed':
+            fields = 'uncompressed_zrd'
+        elif self.file_type == 'compressed':
+            fields = 'compressed_zrd'
         s = '';
-        for field in self.data_fields:
+        for field in getattr(self,fields):
             s = s + field[0] + ' = ' + str(getattr(self, field[0]))+'\n'
-        return s
+        return '\n' + s + '\n'
 
     def __repr__(self):
-        return self.__str__
+        return self.__str__()
 
 class NSQSource():
     def __init__(self, parent = None):        
@@ -149,6 +154,7 @@ def readZRD(filename, file_type):
         f.seek(-1,1)
         zrd.append(zemax_ray())
         zrd[-1].version = version
+        zrd[-1].file_type = file_type
         n_segments_follow = _struct.unpack('i', f.read(4))[0]
         for ss in range(n_segments_follow):
             for field in getattr(zrd[-1],fields):
@@ -164,11 +170,11 @@ def readZRD(filename, file_type):
     f.close()
     return zrd
 
-def writeZRD(rayArray, filename, file_type):
+def writeZRD(rayArray, filename,file_type):
 
-    if file_type == 'uncompressed_zrd':
+    if file_type == 'uncompressed':
         fields = 'uncompressed_zrd'
-    elif file_type == 'compressed_zrd':
+    elif file_type == 'compressed':
         fields = 'compressed_zrd'
 
     f = open(filename, "wb")
