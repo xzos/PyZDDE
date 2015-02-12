@@ -1428,7 +1428,7 @@ class PyZDDE(object):
         return int(float(reply.rstrip()))
 
     def zGetMetaFile(self, metaFileName, analysisType, settingsFile=None,
-                     flag=0):
+                     flag=0, timeout=None):
         """Creates a windows Metafile of any Zemax graphical analysis window
 
         Usage: ``zMetaFile(metaFilename, analysisType [, settingsFile, flag])``
@@ -1448,6 +1448,8 @@ class PyZDDE(object):
             1 = use settings in settings file if valid, else default settings;
             2 = use settings in settings file if valid, and the settings box
             will be displayed for further setting changes.
+        timeout : integer, optional
+            timeout in seconds (default=None, i.e. default timeout value)
 
         Returns
         -------
@@ -1482,7 +1484,7 @@ class PyZDDE(object):
             if _os.path.isabs(metaFileName) and _os.path.splitext(metaFileName)[1]!='':
                 cmd = 'GetMetaFile,"{tF}",{aT},"{sF}",{fl:d}'.format(tF=metaFileName,
                                     aT=analysisType,sF=settingsFile,fl=flag)
-                reply = self._sendDDEcommand(cmd)
+                reply = self._sendDDEcommand(cmd, timeout)
                 if 'OK' in reply.split():
                     retVal = 0
         else:
