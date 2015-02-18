@@ -216,6 +216,8 @@ ZMXFILES/*.cfg
 *.zmx
 *.CFG
 
+# Files that needs to be synced on/off sometimes
+*.dll
 
 
 ZMXFILES/Fiber Coupling_POPunittest.CFG
