@@ -18,6 +18,10 @@ import time as time
 import pyzdde.arraytrace as at  # Module for array ray tracing
 import pyzdde.zdde as pyz
 import os as os
+import sys as sys
+
+if sys.version_info[0] > 2:
+    xrange = range
 
 # The ZEMAX file path
 cd = os.path.dirname(os.path.realpath(__file__))
