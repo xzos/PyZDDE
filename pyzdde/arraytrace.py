@@ -377,8 +377,9 @@ def zGetTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
     else:
         print("Error. zArrayTraceDirect returned error code {}".format(ret))
 
-def zGetPolTraceArray(numRays, hx=None, hy=None, px=None, py=None, Ex=0, Ey=0,
-                      Phax=0, Phay=0, intensity=None, waveNum=None, mode=0,
+def zGetPolTraceArray(numRays, hx=None, hy=None, px=None, py=None, Exr=None,
+                      Exi=None, Eyr=None, Eyi=None, Ezr=None, Ezi=None, Ex=0,
+                      Ey=0, Phax=0, Phay=0, intensity=None, waveNum=None, mode=0,
                       surf=-1, timeout=5000):
     """Trace large number of polarized rays defined by their normalized
     field and pupil coordinates. Similar to ``GetPolTrace()``
@@ -400,10 +401,32 @@ def zGetPolTraceArray(numRays, hx=None, hy=None, px=None, py=None, Ex=0, Ey=0,
     py : list, optional
         list of normalized heights in pupil coordinates, along y axis, of
         length ``numRays``; if ``None``, a list of 0.0s for ``py`` is created
+    Exr : list, optional
+        list of real part of the electric field in x direction for each ray.
+        if ``None``, a list of 0.0s for ``Exr`` is created. See Notes
+    Exi : list, optional
+        list of imaginary part of the electric field in x direction for each ray.
+        if ``None``, a list of 0.0s for ``Exi`` is created. See Notes
+    Eyr : list, optional
+        list of real part of the electric field in y direction for each ray.
+        if ``None``, a list of 0.0s for ``Eyr`` is created. See Notes
+    Eyi : list, optional
+        list of imaginary part of the electric field in y direction for each ray.
+        if ``None``, a list of 0.0s for ``Eyi`` is created. See Notes
+    Ezr : list, optional
+        list of real part of the electric field in z direction for each ray.
+        if ``None``, a list of 0.0s for ``Ezr`` is created. See Notes
+    Ezi : list, optional
+        list of imaginary part of the electric field in z direction for each ray.
+        if ``None``, a list of 0.0s for ``Ezi`` is created. See Notes
     Ex : float
-        normalized electric field magnitude in x direction
+        normalized electric field magnitude in x direction to be defined in
+        array position 0. If not provided, an unpolarized ray will be traced.
+        See Notes.
     Ey : float
-        normalized electric field magnitude in y direction
+        normalized electric field magnitude in y direction to be defined in
+        array position 0. If not provided, an unpolarized ray will be traced.
+        See Notes.
     Phax : float
         relative phase in x direction in degrees
     Phay : float
@@ -451,14 +474,28 @@ def zGetPolTraceArray(numRays, hx=None, hy=None, px=None, py=None, Ex=0, Ey=0,
 
     Notes
     -----
-    The opd can only be computed if the last surface is the image surface,
-    otherwise, the opd value will be zero.
+    1. If all six of the electric field values Exr, Exi, Eyr, Eyi, Ezr, and Ezi
+       for a ray are zero; then ZEMAX will use the ``Ex`` and ``Ey`` values
+       provided in array position 0 to determine the electric field. Otherwise,
+       the electric field is defined by these six values.
+    2. The defined electric field vector must be orthogonal to the ray vector
+       or incorrect ray tracing will result.
+    3. Even if these six values are defined for each ray, values for ``Ex`` and
+       ``Ey`` in the array position 0 must still be defined, otherwise an
+       unpolarized ray trace will result.
     """
     rd = getRayDataArray(numRays, tType=2, mode=mode, endSurf=surf)
     hx = hx if hx else [0.0] * numRays
     hy = hy if hy else [0.0] * numRays
     px = px if px else [0.0] * numRays
     py = py if py else [0.0] * numRays
+    Exr = Exr if Exr else [0.0] * numRays
+    Exi = Exi if Exi else [0.0] * numRays
+    Eyr = Eyr if Eyr else [0.0] * numRays
+    Eyi = Eyi if Eyi else [0.0] * numRays
+    Ezr = Ezr if Ezr else [0.0] * numRays
+    Ezi = Ezi if Ezi else [0.0] * numRays
+
     if intensity:
         intensity = intensity if isinstance(intensity, list) else [intensity]*numRays
     else:
@@ -474,6 +511,12 @@ def zGetPolTraceArray(numRays, hx=None, hy=None, px=None, py=None, Ex=0, Ey=0,
         rd[i].y = hy[i-1]
         rd[i].z = px[i-1]
         rd[i].l = py[i-1]
+        rd[i].Exr = Exr[i-1]
+        rd[i].Exi = Exi[i-1]
+        rd[i].Eyr = Eyr[i-1]
+        rd[i].Eyi = Eyi[i-1]
+        rd[i].Ezr = Ezr[i-1]
+        rd[i].Ezi = Ezi[i-1]
         rd[i].intensity = intensity[i-1]
         rd[i].wave = waveNum[i-1]
 
