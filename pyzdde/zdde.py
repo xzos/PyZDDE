@@ -3155,7 +3155,8 @@ class PyZDDE(object):
 
         See Also
         --------
-        zGetTraceDirect(), zGetPolTrace(), zGetPolTraceDirect()
+        arraytrace.zGetTraceArray(), zGetTraceDirect(), zGetPolTrace(), 
+        zGetPolTraceDirect()
         """
         args1 = "{wN:d},{m:d},{s:d},".format(wN=waveNum,m=mode,s=surf)
         args2 = "{hx:1.4f},{hy:1.4f},".format(hx=hx,hy=hy)
@@ -3174,9 +3175,12 @@ class PyZDDE(object):
         return rayTraceData
 
     def zGetTraceDirect(self, waveNum, mode, startSurf, stopSurf, x, y, z, l, m, n):
-        """Trace a (single) ray through the lens in Zemax server while
-        providing a more direct access to the Zemax ray tracing engine
-        than ``zGetTrace``.
+        """Trace a (single) ray defined by ``x``, ``y``, ``z``, ``l``,
+        ``m`` and ``n`` coordinates on any starting surface as well as
+        wavelength number, mode and the surface to. 
+
+        ``zGetTraceDirect`` provides a more direct access to the Zemax 
+        ray tracing engine than ``zGetTrace``.
 
         Parameters
         ----------

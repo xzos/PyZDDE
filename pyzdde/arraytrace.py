@@ -5,7 +5,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.8.03
+# Revision:    0.8.02
 #-------------------------------------------------------------------------------
 """Module for doing array ray tracing in Zemax."""
 from __future__ import print_function
@@ -61,10 +61,12 @@ def zArrayTrace(rd, timeout=5000):
     """
     return _arrayTrace(rd, int(timeout))
 
-def getRayDataArray(numRays, tType=0, mode=0, startSurf=None, endSurf=-1):
-    """helper function to create the basic ray data array (rd). The caller
-    must fill the appropriate fields of the array from elements rd[1] to
-    rd[numRays]
+def getRayDataArray(numRays, tType=0, mode=0, startSurf=None, endSurf=-1,
+                    **kwargs):
+    """function to create the basic ray data structure array, ``rd``.
+
+    The caller must fill the rest of the appropriate fields of the
+    array from elements ``rd[1]`` to ``rd[numRays]``
 
     Parameters
     ----------
@@ -79,6 +81,12 @@ def getRayDataArray(numRays, tType=0, mode=0, startSurf=None, endSurf=-1):
         specify start surface in tType 1 and 3
     endSurf : integer
         specify end surface to trace. Default is image surface (-1)
+    kwargs : keyword arguments
+        The ``kwargs`` are used to specify additional fields of the 0th ray
+        data array element such as ``x``, ``y``, ``z``, and ``l`` for ``Ex``,
+        ``Ey``, ``Phax``, and ``Phay`` in ``zGetPolTraceArray()`` and in
+        ``zGetPolTraceDirectArray()`` (``tType=2``). Please use the generic
+        field name of the ``DdeArrayData`` as argument names.
 
     Returns
     -------
@@ -91,6 +99,11 @@ def getRayDataArray(numRays, tType=0, mode=0, startSurf=None, endSurf=-1):
     Since the memory for the array is allocated by Python, the user doesn't
     need to worry about freeing the memory.
     """
+    other_fields = {'x', 'y', 'z', 'l', 'm', 'n',
+                    'Exr', 'Exi', 'Eyr', 'Eyi', 'Ezr', 'Ezi'}
+    if kwargs:
+        assert set(kwargs).issubset(other_fields), "Received one or more unexpected kwargs "
+    # create ctypes array
     rd = (DdeArrayData * (numRays + 1))()
     # Setup a basic ray data array for test
     rd[0].opd = _ct.c_double(tType)
@@ -99,6 +112,10 @@ def getRayDataArray(numRays, tType=0, mode=0, startSurf=None, endSurf=-1):
     if startSurf:
         rd[0].vigcode = _ct.c_int(startSurf)
     rd[0].want_opd = _ct.c_int(endSurf)
+    # fill up based on kwargs
+    if kwargs:
+        for k in kwargs:
+            setattr(rd[0], k, kwargs[k])
     return rd
 
 def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
@@ -113,16 +130,16 @@ def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
         of the lists (if provided) ``hx``, ``hy``, ``px``, etc.
     hx : list, optional
         list of normalized field heights along x axis, of length ``numRays``;
-        if ``None``, a list of 0.0s for ``hx` is created.
+        if ``None``, a list of 0.0s for ``hx`` is created.
     hy : list, optional
         list of normalized field heights along y axis, of length ``numRays``;
-        if ``None``, a list of 0.0s for ``hy` is created
+        if ``None``, a list of 0.0s for ``hy`` is created
     px : list, optional
         list of normalized heights in pupil coordinates, along x axis, of
-        length ``numRays``; if ``None``, a list of 0.0s for ``px` is created.
+        length ``numRays``; if ``None``, a list of 0.0s for ``px`` is created.
     py : list, optional
         list of normalized heights in pupil coordinates, along y axis, of
-        length ``numRays``; if ``None``, a list of 0.0s for ``py` is created
+        length ``numRays``; if ``None``, a list of 0.0s for ``py`` is created
     intensity : float or list, optional
         initial intensities. If a list of length ``numRays`` is given it is
         used. If a single float value is passed, all rays use the same value for
@@ -149,8 +166,8 @@ def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
     x, y, z : list of reals
         x, or , y, or z, coordinates of the ray on the requested surface
     l, m, n : list of reals
-        the direction cosines after refraction into the media following
-        the requested surface.
+        the x, y, and z direction cosines after refraction into the media
+        following the requested surface.
     opd : list of reals
         computed optical path difference if ``want_opd > 0``
     intensity : list of reals
@@ -187,13 +204,13 @@ def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
     else:
         waveNum = [1] * numRays
     want_opd = [want_opd] * numRays
-    print("Want_OPD = ", want_opd)
+
     # fill up the structure
     for i in xrange(1, numRays+1):
         rd[i].x = hx[i-1]
         rd[i].y = hy[i-1]
-        rd[i].px = px[i-1]
-        rd[i].py = py[i-1]
+        rd[i].z = px[i-1]
+        rd[i].l = py[i-1]
         rd[i].intensity = intensity[i-1]
         rd[i].wave = waveNum[i-1]
         rd[i].want_opd = want_opd[i-1]
@@ -226,9 +243,303 @@ def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
         print("Error. zArrayTrace returned error code {}".format(ret))
 
 
-if __name__ == '__main__':
-    # Basic test
-    print("Basic test of zArrayTrace:")
+def zGetTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
+                         n=None, intensity=None, waveNum=None, mode=0,
+                         startSurf=0, lastSurf=-1, timeout=5000):
+    """Trace large number of rays defined by ``x``, ``y``, ``z``, ``l``,
+    ``m`` and ``n`` coordinates on any starting surface as well as
+    wavelength number, mode and the surface to trace the ray to.
+
+    Parameters
+    ----------
+    numRays : integer
+        number of rays to trace. ``numRays`` should be equal to the length
+        of the lists (if provided) ``x``, ``y``, ``x``, etc.
+    x : list, optional
+        list specifying the x coordinates of the ray at the start surface,
+        of length ``numRays``; if ``None``, a list of 0.0s for ``x`` is created.
+    y : list, optional
+        list specifying the y coordinates of the ray at the start surface,
+        of length ``numRays``; if ``None``, a list of 0.0s for ``y`` is created
+    z : list, optional
+        list specifying the z coordinates of the ray at the start surface,
+        of length ``numRays``; if ``None``, a list of 0.0s for ``z`` is created.
+    l : list, optional
+        list of x-direction cosines, of length ``numRays``; if ``None``, a
+        list of 0.0s for ``l`` is created
+    m : list, optional
+        list of y-direction cosines, of length ``numRays``; if ``None``, a
+        list of 0.0s for ``m`` is created
+    n : list, optional
+        list of z-direction cosines, of length ``numRays``; if ``None``, a
+        list of 0.0s for ``n`` is created
+    intensity : float or list, optional
+        initial intensities. If a list of length ``numRays`` is given it is
+        used. If a single float value is passed, all rays use the same value for
+        their initial intensities. If ``None``, all rays use a value of ``1.0``
+        as their initial intensities.
+    waveNum : integer or list (of integers), optional
+        wavelength number. If a list of integers of length ``numRays`` is given
+        it is used. If a single integer value is passed, all rays use the same
+        value for wavelength number. If ``None``, all rays use wavelength
+        number equal to 1.
+    mode : integer, optional
+        0 = real (Default), 1 = paraxial
+    startSurf : integer, optional
+        start surface number (default = 0)
+    lastSurf : integer, optional
+        surface to trace the ray to, which is any valid surface number
+        (``surf = -1``, default)
+    timeout : integer, optional
+        command timeout specified in milli-seconds
+
+    Returns
+    -------
+    x, y, z : list of reals
+        x, or , y, or z, coordinates of the ray on the requested surface
+    l, m, n : list of reals
+        the x, y, and z direction cosines after refraction into the media
+        following the requested surface.
+    opd : list of reals
+        computed optical path difference if ``want_opd > 0``
+    intensity : list of reals
+        the relative transmitted intensity of the ray, including any pupil
+        or surface apodization defined.
+    Exr, Eyr, Ezr : list of reals
+        list of x or y or z cosine of the surface normal
+    error : list of integers
+        0 = ray traced successfully;
+        +ve number = the ray missed the surface;
+        -ve number = the ray total internal reflected (TIR) at surface
+                     given by the absolute value of the ``error``
+    vigcode : list of integers
+        the first surface where the ray was vignetted. Unless an error occurs
+        at that surface or subsequent to that surface, the ray will continue
+        to trace to the requested surface.
+
+    Notes
+    -----
+    Computation of OPD is not permitted in this mode.
+    """
+    rd = getRayDataArray(numRays, tType=1, mode=mode, startSurf=startSurf,
+                         endSurf=lastSurf)
+    x = x if x else [0.0] * numRays
+    y = y if y else [0.0] * numRays
+    z = z if z else [0.0] * numRays
+    l = l if l else [0.0] * numRays
+    m = m if m else [0.0] * numRays
+    n = n if n else [0.0] * numRays
+    if intensity:
+        intensity = intensity if isinstance(intensity, list) else [intensity]*numRays
+    else:
+        intensity = [1.0] * numRays
+    if waveNum:
+        waveNum = waveNum if isinstance(waveNum, list) else [waveNum]*numRays
+    else:
+        waveNum = [1] * numRays
+
+    # fill up the structure
+    for i in xrange(1, numRays+1):
+        rd[i].x = x[i-1]
+        rd[i].y = y[i-1]
+        rd[i].z = z[i-1]
+        rd[i].l = l[i-1]
+        rd[i].m = m[i-1]
+        rd[i].n = n[i-1]
+        rd[i].intensity = intensity[i-1]
+        rd[i].wave = waveNum[i-1]
+
+    # call ray tracing
+    ret = zArrayTrace(rd, timeout)
+    if ret == 0:
+        reals = ['x', 'y', 'z', 'l', 'm', 'n', 'opd',
+                 'intensity', 'Exr', 'Eyr', 'Ezr']
+        ints = ['error', 'vigcode']
+        for r in reals:
+            exec(r + " = [0.0] * numRays")
+        for i in ints:
+            exec(i + " = [0] * numRays")
+        for i in xrange(1, numRays+1):
+            x[i-1] = rd[i].x
+            y[i-1] = rd[i].y
+            z[i-1] = rd[i].z
+            l[i-1] = rd[i].l
+            m[i-1] = rd[i].m
+            n[i-1] = rd[i].n
+            opd[i-1] = rd[i].opd
+            intensity[i-1] = rd[i].intensity
+            Exr[i-1] = rd[i].Exr
+            Eyr[i-1] = rd[i].Eyr
+            Ezr[i-1] = rd[i].Ezr
+            error[i-1] = rd[i].error
+            vigcode[i-1] = rd[i].vigcode
+        return x, y, z, l, m, n, opd, intensity, Exr, Eyr, Ezr, error, vigcode
+    else:
+        print("Error. zArrayTraceDirect returned error code {}".format(ret))
+
+def zGetPolTraceArray(numRays, hx=None, hy=None, px=None, py=None, Ex=0, Ey=0,
+                      Phax=0, Phay=0, intensity=None, waveNum=None, mode=0,
+                      surf=-1, timeout=5000):
+    """Trace large number of polarized rays defined by their normalized
+    field and pupil coordinates. Similar to ``GetPolTrace()``
+
+    Parameters
+    ----------
+    numRays : integer
+        number of rays to trace. ``numRays`` should be equal to the length
+        of the lists (if provided) ``hx``, ``hy``, ``px``, etc.
+    hx : list, optional
+        list of normalized field heights along x axis, of length ``numRays``;
+        if ``None``, a list of 0.0s for ``hx`` is created.
+    hy : list, optional
+        list of normalized field heights along y axis, of length ``numRays``;
+        if ``None``, a list of 0.0s for ``hy`` is created
+    px : list, optional
+        list of normalized heights in pupil coordinates, along x axis, of
+        length ``numRays``; if ``None``, a list of 0.0s for ``px`` is created.
+    py : list, optional
+        list of normalized heights in pupil coordinates, along y axis, of
+        length ``numRays``; if ``None``, a list of 0.0s for ``py`` is created
+    Ex : float
+        normalized electric field magnitude in x direction
+    Ey : float
+        normalized electric field magnitude in y direction
+    Phax : float
+        relative phase in x direction in degrees
+    Phay : float
+        relative phase in y direction in degrees
+    intensity : float or list, optional
+        initial intensities. If a list of length ``numRays`` is given it is
+        used. If a single float value is passed, all rays use the same value for
+        their initial intensities. If ``None``, all rays use a value of ``1.0``
+        as their initial intensities.
+    waveNum : integer or list (of integers), optional
+        wavelength number. If a list of integers of length ``numRays`` is given
+        it is used. If a single integer value is passed, all rays use the same
+        value for wavelength number. If ``None``, all rays use wavelength
+        number equal to 1.
+    mode : integer, optional
+        0 = real (Default), 1 = paraxial
+    surf : integer, optional
+        surface to trace the ray to. (``surf = -1``, default)
+    timeout : integer, optional
+        command timeout specified in milli-seconds
+
+    Returns
+    -------
+    x, y, z : list of reals
+        x, or , y, or z, coordinates of the ray on the requested surface
+    l, m, n : list of reals
+        the x, y, and z direction cosines after refraction into the media
+        following the requested surface.
+    opd : list of reals
+        computed optical path difference if ``want_opd > 0``
+    intensity : list of reals
+        the relative transmitted intensity of the ray, including any pupil
+        or surface apodization defined.
+    Exr, Eyr, Ezr : list of reals
+        list of x or y or z cosine of the surface normal
+    error : list of integers
+        0 = ray traced successfully;
+        +ve number = the ray missed the surface;
+        -ve number = the ray total internal reflected (TIR) at surface
+                     given by the absolute value of the ``error``
+    vigcode : list of integers
+        the first surface where the ray was vignetted. Unless an error occurs
+        at that surface or subsequent to that surface, the ray will continue
+        to trace to the requested surface.
+
+    Notes
+    -----
+    The opd can only be computed if the last surface is the image surface,
+    otherwise, the opd value will be zero.
+    """
+    rd = getRayDataArray(numRays, tType=2, mode=mode, endSurf=surf)
+    hx = hx if hx else [0.0] * numRays
+    hy = hy if hy else [0.0] * numRays
+    px = px if px else [0.0] * numRays
+    py = py if py else [0.0] * numRays
+    if intensity:
+        intensity = intensity if isinstance(intensity, list) else [intensity]*numRays
+    else:
+        intensity = [1.0] * numRays
+    if waveNum:
+        waveNum = waveNum if isinstance(waveNum, list) else [waveNum]*numRays
+    else:
+        waveNum = [1] * numRays
+
+    # fill up the structure
+    for i in xrange(1, numRays+1):
+        rd[i].x = hx[i-1]
+        rd[i].y = hy[i-1]
+        rd[i].z = px[i-1]
+        rd[i].l = py[i-1]
+        rd[i].intensity = intensity[i-1]
+        rd[i].wave = waveNum[i-1]
+
+    # call ray tracing
+    ret = zArrayTrace(rd, timeout)
+    if ret == 0:
+        reals = ['x', 'y', 'z', 'l', 'm', 'n', 'opd',
+                 'intensity', 'Exr', 'Eyr', 'Ezr']
+        ints = ['error', 'vigcode']
+        for r in reals:
+            exec(r + " = [0.0] * numRays")
+        for i in ints:
+            exec(i + " = [0] * numRays")
+        for i in xrange(1, numRays+1):
+            x[i-1] = rd[i].x
+            y[i-1] = rd[i].y
+            z[i-1] = rd[i].z
+            l[i-1] = rd[i].l
+            m[i-1] = rd[i].m
+            n[i-1] = rd[i].n
+            opd[i-1] = rd[i].opd
+            intensity[i-1] = rd[i].intensity
+            Exr[i-1] = rd[i].Exr
+            Eyr[i-1] = rd[i].Eyr
+            Ezr[i-1] = rd[i].Ezr
+            error[i-1] = rd[i].error
+            vigcode[i-1] = rd[i].vigcode
+        return x, y, z, l, m, n, opd, intensity, Exr, Eyr, Ezr, error, vigcode
+    else:
+        print("Error. zArrayTrace returned error code {}".format(ret))
+
+# ###########################################################################
+# Basic test functions
+# Please note that some of the following tests require Zemax to be running
+# In addition, load a lens file into Zemax
+# ###########################################################################
+
+def _test_getRayDataArray():
+    """test the getRayDataArray() function
+    """
+    print("Basic test of getRayDataArray() function:")
+    # create RayData without any kwargs
+    rd = getRayDataArray(numRays=5)
+    assert len(rd) == 6
+    assert rd[0].error == 5     # number of rays
+    assert rd[0].opd == 0       # GetTrace ray tracing type
+    assert rd[0].wave == 0      # real ray tracing
+    assert rd[0].want_opd == -1  # last surface
+
+    # create RayData with some more arguments
+    rd = getRayDataArray(numRays=5, tType=3, mode=1, startSurf=2)
+    assert rd[0].opd == 3        # mode 3
+    assert rd[0].wave == 1       # real ray tracing
+    assert rd[0].vigcode == 2    # first surface
+
+    # create RayData with kwargs
+    rd = getRayDataArray(numRays=5, tType=2, x=1.0, y=1.0)
+    assert rd[0].x == 1.0
+    assert rd[0].y == 1.0
+    assert rd[0].z == 0.0
+
+def _test_arraytrace_module_basic():
+    """very basic test for the arraytrace module
+    """
+    # Basic test of the module functions
+    print("Basic test of arraytrace module:")
     nr = 441
     rd = getRayDataArray(nr)
     # Fill the rest of the ray data array
@@ -243,8 +554,16 @@ if __name__ == '__main__':
             rd[k].want_opd = 0
     ret = zArrayTrace(rd)
     print("ret = ", ret)
-    for i in range(1, 11):                     # SEEMS LIKE ZEMAX IS CALCULATING THE OPD EVEN WHEN NOT ASKED
+    print("OPDs:")
+    for i in range(1, 11):  # SEEMS LIKE ZEMAX IS CALCULATING THE OPD EVEN WHEN NOT ASKED
         print(rd[k].opd)
+    print("Intensities:")
+    for i in range(1, 11):
+        print(rd[k].intensity)
+
+def _test_zGetArrayTrace_basic():
+    """test zGetArrayTrace() function
+    """
     print("\nBasic test of zGetTraceArray:")
     hx = [(i - 5.0)/10.0 for i in range(11)]
     hy = [(i - 5.0)/10.0 for i in range(11)]
@@ -262,3 +581,15 @@ if __name__ == '__main__':
     else:
         print("ret = ", ret)
 
+def _test_zGetPolTraceArray():
+    """test zGetPolTraceArray() function
+    """
+    # TO DO
+    pass
+
+
+if __name__ == '__main__':
+    # run the test functions
+    _test_getRayDataArray()
+    _test_arraytrace_module_basic()
+    _test_zGetArrayTrace_basic()
