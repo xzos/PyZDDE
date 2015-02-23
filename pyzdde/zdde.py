@@ -2238,7 +2238,8 @@ class PyZDDE(object):
         return tuple(polStateData)
 
     def zGetPolTrace(self, waveNum, mode, surf, hx, hy, px, py, Ex, Ey, Phax, Phay):
-        """Trace a single polarized ray through the lens system
+        """Trace a single polarized ray defined by the normalized field 
+        height, pupil height, electric field magnitude and relative phase. 
 
         If ``Ex``, ``Ey``, ``Phax``, ``Phay`` are all zero, two orthogonal
         rays are traced; the resulting transmitted intensity is averaged.
@@ -2335,8 +2336,9 @@ class PyZDDE(object):
 
     def zGetPolTraceDirect(self, waveNum, mode, startSurf, stopSurf,
                            x, y, z, l, m, n, Ex, Ey, Phax, Phay):
-        """Trace a single polarized ray using a more direct access to the
-        Zemax ray tracing than ``zGetPolTrace()``
+        """Trace a single polarized ray defined by the ``x``, ``y``, 
+        ``z``, ``l``, ``m`` and ``n`` coordinates on any starting 
+        surface as well as electric field magnitude and relative phase. 
 
         If ``Ex``, ``Ey``, ``Phax``, ``Phay`` are all zero, Zemax will
         trace two orthogonal rays and the resulting transmitted intensity
