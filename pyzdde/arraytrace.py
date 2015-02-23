@@ -7,7 +7,23 @@
 #              For further details, please refer to LICENSE.txt
 # Revision:    0.8.02
 #-------------------------------------------------------------------------------
-"""Module for doing array ray tracing in Zemax."""
+"""Module for doing array ray tracing as described in Zemax manual. This module
+defines the DDE ray data structure using ctypes, and provides the following
+functions:
+
+    1. zArrayTrace() -- The main function for calling Zemax for array ray tracing
+    2. getRayDataArray() -- Helper function that creates the ctypes ray data structure
+                            array, fills up the first element and returns the array
+
+In addition the following helper functions are provided that supports 5 different
+modes discussed in the Zemax manual
+
+    1. zGetTraceArray()
+    2. zGetTraceDirectArray()
+    3. zGetPolTraceArray()
+    4. zGetPolTraceDirectArray()
+    5. zGetNSCTraceArray()
+"""
 from __future__ import print_function
 import os as _os
 import sys as _sys
@@ -759,10 +775,10 @@ def zGetPolTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
     else:
         return ret
 
-def zGetNSCTrace(x=0.0, y=0.0, z=0.0, l=0.0, m=0.0, n=1.0, Exr=0.0, Exi=0.0,
-                 Eyr=0.0, Eyi=0.0, Ezr=0.0, Ezi=0.0, intensity=1.0, waveNum=0,
-                 surf=1, insideOf=0, pol=0, split=0, scatter=0, nMaxSegments=50,
-                 timeout=5000):
+def zGetNSCTraceArray(x=0.0, y=0.0, z=0.0, l=0.0, m=0.0, n=1.0, Exr=0.0, Exi=0.0,
+                      Eyr=0.0, Eyi=0.0, Ezr=0.0, Ezi=0.0, intensity=1.0, waveNum=0,
+                      surf=1, insideOf=0, usePolar=0, split=0, scatter=0, nMaxSegments=50,
+                      timeout=5000):
     """Trace a single ray inside a non-sequential group. Rays may split or
     scatter into multiple paths. The function returns the entire tree of
     ray data containing split and/or scattered rays.
@@ -792,7 +808,7 @@ def zGetNSCTrace(x=0.0, y=0.0, z=0.0, l=0.0, m=0.0, n=1.0, Exr=0.0, Exi=0.0,
         NSC group surface, 1 if the program mode is NSC
     insideOf : integer
         indicates where the ray starts. use 0 if ray is not inside anything
-    pol : integer (0 or 1)
+    usePolar : integer (0 or 1)
         0 = not performing polarization ray tracing, 1 = polarization ray
         tracing
     split : integer (0 or 1)
@@ -834,8 +850,8 @@ def zGetNSCTrace(x=0.0, y=0.0, z=0.0, l=0.0, m=0.0, n=1.0, Exr=0.0, Exi=0.0,
        ray tracing results will be produced.
     2. If ray splitting is to be used, polarization must be used as well.
     """
-    assert not(split and not pol), "Polarization must be used, if splitting is used"
-    vigcode = int(pol + 2*split + 4*scatter)
+    assert not(split and not usePolar), "Polarization must be used, if splitting is used"
+    vigcode = int(usePolar + 2*split + 4*scatter)
     assert 0 <= vigcode <= 7, "Total of pol + split + scatter must be in [0, 7]"
     # create ray data array of nMaxSegments + 10 elements (the "10" is really
     # quite arbitrary)
@@ -967,8 +983,8 @@ def _test_zGetPolTraceDirectArray():
     # TO DO
     pass
 
-def _test_zGetNSCTrace():
-    """test zGetNSCTrace() function
+def _test_zGetNSCTraceArray():
+    """test zGetNSCTraceArray() function
     """
     # TO DO
 
@@ -980,4 +996,4 @@ if __name__ == '__main__':
     _test_zGetTraceDirectArray()
     _test_zGetPolTraceArray()
     _test_zGetPolTraceDirectArray()
-    _test_zGetNSCTrace()
+    _test_zGetNSCTraceArray()

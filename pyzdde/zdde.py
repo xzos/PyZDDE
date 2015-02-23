@@ -4114,7 +4114,7 @@ class PyZDDE(object):
         >>> zNSCTrace(1, 2)
 
         The above command traces rays in NSC group 1, from source 2,
-        witout ray splitting, no ray scattering, without using
+        without ray splitting, no ray scattering, without using
         polarization and will not ignore errors.
         """
         requiredArgs = ("{:d},{:d},{:d},{:d},{:d},{:d},{:d},{:d}"

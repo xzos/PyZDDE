@@ -107,7 +107,7 @@ Getting started with PyZDDE is really very simple as shown in the "Hello world" 
 #### License:
 The code is under the [MIT License] (http://opensource.org/licenses/MIT).
 
-##### Citing: 
+#### Citing: 
 
 If you use PyZDDE for research work, please consider citing it. Various citation styles for PyZDDE are available from [zenodo](https://zenodo.org/record/9852?ln=en).
 
