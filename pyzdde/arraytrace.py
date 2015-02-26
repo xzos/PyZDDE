@@ -194,18 +194,6 @@ def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
 
     Returns
     -------
-    x, y, z : list of reals
-        x, or , y, or z, coordinates of the ray on the requested surface
-    l, m, n : list of reals
-        the x, y, and z direction cosines after refraction into the media
-        following the requested surface.
-    opd : list of reals
-        computed optical path difference if ``want_opd > 0``
-    intensity : list of reals
-        the relative transmitted intensity of the ray, including any pupil
-        or surface apodization defined.
-    Exr, Eyr, Ezr : list of reals
-        list of x or y or z cosine of the surface normal
     error : list of integers
         0 = ray traced successfully;
         +ve number = the ray missed the surface;
@@ -215,10 +203,23 @@ def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
         the first surface where the ray was vignetted. Unless an error occurs
         at that surface or subsequent to that surface, the ray will continue
         to trace to the requested surface.
+    x, y, z : list of reals
+        x, or , y, or z, coordinates of the ray on the requested surface
+    l, m, n : list of reals
+        the x, y, and z direction cosines after refraction into the media
+        following the requested surface.
+    l2, m2, n2 : list of reals
+        list of x or y or z surface intercept direction normals at requested
+        surface
+    opd : list of reals
+        computed optical path difference if ``want_opd > 0``
+    intensity : list of reals
+        the relative transmitted intensity of the ray, including any pupil
+        or surface apodization defined.
 
-    In case of error, a single integer error code is returned. The error codes
-    have the following meaning: 0 = SUCCESS, -1 = Couldn't retrieve data in
-    PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
+    If ray tracing fails, a single integer error code is returned,
+    which has the following meaning: 0 = SUCCESS, -1 = Couldn't retrieve
+    data in PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
     -998 = timeout reached
 
     Notes
@@ -253,8 +254,8 @@ def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
     # call ray tracing
     ret = zArrayTrace(rd, timeout)
     if ret == 0:
-        reals = ['x', 'y', 'z', 'l', 'm', 'n', 'opd',
-                 'intensity', 'Exr', 'Eyr', 'Ezr']
+        reals = ['x', 'y', 'z', 'l', 'm', 'n', 'l2', 'm2', 'n2', 'opd',
+                 'intensity']
         ints = ['error', 'vigcode']
         for r in reals:
             exec(r + " = [0.0] * numRays")
@@ -269,15 +270,14 @@ def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
             n[i-1] = rd[i].n
             opd[i-1] = rd[i].opd
             intensity[i-1] = rd[i].intensity
-            Exr[i-1] = rd[i].Exr
-            Eyr[i-1] = rd[i].Eyr
-            Ezr[i-1] = rd[i].Ezr
+            l2[i-1] = rd[i].Exr
+            m2[i-1] = rd[i].Eyr
+            m2[i-1] = rd[i].Ezr
             error[i-1] = rd[i].error
             vigcode[i-1] = rd[i].vigcode
-        return x, y, z, l, m, n, opd, intensity, Exr, Eyr, Ezr, error, vigcode
+        return error, vigcode, x, y, z, l, m, n, l2, m2, n2, opd, intensity
     else:
         return ret
-
 
 def zGetTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
                          n=None, intensity=None, waveNum=None, mode=0,
@@ -331,18 +331,6 @@ def zGetTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
 
     Returns
     -------
-    x, y, z : list of reals
-        x, or , y, or z, coordinates of the ray on the requested surface
-    l, m, n : list of reals
-        the x, y, and z direction cosines after refraction into the media
-        following the requested surface.
-    opd : list of reals
-        computed optical path difference if ``want_opd > 0``
-    intensity : list of reals
-        the relative transmitted intensity of the ray, including any pupil
-        or surface apodization defined.
-    Exr, Eyr, Ezr : list of reals
-        list of x or y or z cosine of the surface normal
     error : list of integers
         0 = ray traced successfully;
         +ve number = the ray missed the surface;
@@ -352,10 +340,23 @@ def zGetTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
         the first surface where the ray was vignetted. Unless an error occurs
         at that surface or subsequent to that surface, the ray will continue
         to trace to the requested surface.
+    x, y, z : list of reals
+        x, or , y, or z, coordinates of the ray on the requested surface
+    l, m, n : list of reals
+        the x, y, and z direction cosines after refraction into the media
+        following the requested surface.
+    l2, m2, n2 : list of reals
+        list of x or y or z surface intercept direction normals at
+        requested surface
+    opd : list of reals
+        computed optical path difference if ``want_opd > 0``
+    intensity : list of reals
+        the relative transmitted intensity of the ray, including any pupil
+        or surface apodization defined.
 
-    In case of error, a single integer error code is returned. The error codes
-    have the following meaning: 0 = SUCCESS, -1 = Couldn't retrieve data in
-    PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
+    If ray tracing fails, a single integer error code is returned,
+    which has the following meaning: 0 = SUCCESS, -1 = Couldn't retrieve
+    data in PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
     -998 = timeout reached
 
     Notes
@@ -393,8 +394,8 @@ def zGetTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
     # call ray tracing
     ret = zArrayTrace(rd, timeout)
     if ret == 0:
-        reals = ['x', 'y', 'z', 'l', 'm', 'n', 'opd',
-                 'intensity', 'Exr', 'Eyr', 'Ezr']
+        reals = ['x', 'y', 'z', 'l', 'm', 'n', 'l2', 'm2', 'n2', 'opd',
+                 'intensity']
         ints = ['error', 'vigcode']
         for r in reals:
             exec(r + " = [0.0] * numRays")
@@ -409,12 +410,12 @@ def zGetTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
             n[i-1] = rd[i].n
             opd[i-1] = rd[i].opd
             intensity[i-1] = rd[i].intensity
-            Exr[i-1] = rd[i].Exr
-            Eyr[i-1] = rd[i].Eyr
-            Ezr[i-1] = rd[i].Ezr
+            l2[i-1] = rd[i].Exr
+            m2[i-1] = rd[i].Eyr
+            n2[i-1] = rd[i].Ezr
             error[i-1] = rd[i].error
             vigcode[i-1] = rd[i].vigcode
-        return x, y, z, l, m, n, opd, intensity, Exr, Eyr, Ezr, error, vigcode
+        return error, vigcode, x, y, z, l, m, n, l2, m2, n2, opd, intensity
     else:
         return ret
 
@@ -491,6 +492,11 @@ def zGetPolTraceArray(numRays, hx=None, hy=None, px=None, py=None, Exr=None,
 
     Returns
     -------
+    error : list of integers
+        0 = ray traced successfully;
+        +ve number = the ray missed the surface;
+        -ve number = the ray total internal reflected (TIR) at surface
+                     given by the absolute value of the ``error``
     intensity : list of reals
         the relative transmitted intensity of the ray, including any pupil
         or surface apodization defined.
@@ -506,15 +512,10 @@ def zGetPolTraceArray(numRays, hx=None, hy=None, px=None, py=None, Exr=None,
         list of real parts of the electric field components in z
     Ezi : list of real values
         list of imaginary parts of the electric field components in z
-    error : list of integers
-        0 = ray traced successfully;
-        +ve number = the ray missed the surface;
-        -ve number = the ray total internal reflected (TIR) at surface
-                     given by the absolute value of the ``error``
 
-    In case of error, a single integer error code is returned. The error codes
-    have the following meaning: 0 = SUCCESS, -1 = Couldn't retrieve data in
-    PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
+    If ray tracing fails, a single integer error code is returned,
+    which has the following meaning: 0 = SUCCESS, -1 = Couldn't retrieve
+    data in PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
     -998 = timeout reached
 
     Notes
@@ -584,7 +585,7 @@ def zGetPolTraceArray(numRays, hx=None, hy=None, px=None, py=None, Exr=None,
             Ezr[i-1] = rd[i].Ezr
             Ezi[i-1] = rd[i].Ezri
             error[i-1] = rd[i].error
-        return (intensity, Exr, Exi, Eyr, Eyi, Ezr, Ezi, error)
+        return (error, intensity, Exr, Exi, Eyr, Eyi, Ezr, Ezi)
     else:
         return ret
 
@@ -673,6 +674,11 @@ def zGetPolTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
 
     Returns
     -------
+    error : list of integers
+        0 = ray traced successfully;
+        +ve number = the ray missed the surface;
+        -ve number = the ray total internal reflected (TIR) at surface
+                     given by the absolute value of the ``error``
     intensity : list of reals
         the relative transmitted intensity of the ray, including any pupil
         or surface apodization defined.
@@ -688,15 +694,10 @@ def zGetPolTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
         list of real parts of the electric field components in z
     Ezi : list of real values
         list of imaginary parts of the electric field components in z
-    error : list of integers
-        0 = ray traced successfully;
-        +ve number = the ray missed the surface;
-        -ve number = the ray total internal reflected (TIR) at surface
-                     given by the absolute value of the ``error``
 
-    In case of error, a single integer error code is returned. The error codes
-    have the following meaning: 0 = SUCCESS, -1 = Couldn't retrieve data in
-    PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
+    If ray tracing fails, a single integer error code is returned,
+    which has the following meaning: 0 = SUCCESS, -1 = Couldn't retrieve
+    data in PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
     -998 = timeout reached
 
     Notes
@@ -771,7 +772,7 @@ def zGetPolTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
             Ezr[i-1] = rd[i].Ezr
             Ezi[i-1] = rd[i].Ezri
             error[i-1] = rd[i].error
-        return (intensity, Exr, Exi, Eyr, Eyi, Ezr, Ezi, error)
+        return (error, intensity, Exr, Exi, Eyr, Eyi, Ezr, Ezi)
     else:
         return ret
 
@@ -836,9 +837,9 @@ def zGetNSCTraceArray(x=0.0, y=0.0, z=0.0, l=0.0, m=0.0, n=1.0, Exr=0.0, Exi=0.0
                 intensity = seg.intensity
                 optical_path_length = seg.opl  # optical path length to hit object
 
-    In case of error, a single integer error code is returned. The error codes
-    have the following meaning: 0 = SUCCESS, -1 = Couldn't retrieve data in
-    PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
+    If ray tracing fails, a single integer error code is returned,
+    which has the following meaning: 0 = SUCCESS, -1 = Couldn't retrieve
+    data in PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
     -998 = timeout reached
 
     Notes
@@ -859,10 +860,8 @@ def zGetNSCTraceArray(x=0.0, y=0.0, z=0.0, l=0.0, m=0.0, n=1.0, Exr=0.0, Exi=0.0
                          n=n, opd=nMaxSegments+5, intensity=intensity,
                          Exr=Exr, Exi=Exi, Eyr=Eyr, Eyi=Eyi, Ezr=Ezr, Ezi=Ezi,
                          wave=waveNum, error=surf, vigcode=vigcode, want_opd=insideOf)
-
     # call ray tracing
     ret = zArrayTrace(rd, timeout)
-
     # parse the ray tree
     if ret == 0:
         segData = _co.namedtuple('segment', ['segment_level', 'segment_parent',
@@ -951,16 +950,16 @@ def _test_zGetTraceArray():
     hx = [(i - 5.0)/10.0 for i in range(11)]
     hy = [(i - 5.0)/10.0 for i in range(11)]
     ret = zGetTraceArray(numRays=len(hx), hx=hx, hy=hy)
-    if ret not in []:
-        x, y, z, l, m, n, opd, intensity, Exr, Eyr, Ezr, error, vigcode = ret
+    if ret not in [-1, -999, -998]:
+        error, vigcode, x, y, z, l, m, n, l2, m2, n2, opd, intensity = ret
+        print("err = ", error)
         print("x = ", x)
         print("y = ", y)
         print("z = ", z)
         print("l = ", l)
+        print("l2 = ", l2)
         print("opd = ", opd)
         print("intensity = ", intensity)
-        print("Exr = ", Exr)
-        print("err = ", error)
     else:
         print("ret = ", ret)
     print("Success!")
