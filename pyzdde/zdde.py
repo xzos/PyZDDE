@@ -3098,7 +3098,8 @@ class PyZDDE(object):
         return toleranceData
 
     def zGetTrace(self, waveNum, mode, surf, hx, hy, px, py):
-        """Trace a ray through the lens in the Zemax DDE server
+        """Trace a ray defined by its normalized field and pupil heights
+        as well as wavelength through the lens in the Zemax DDE server
 
         Parameters
         ----------
@@ -3153,7 +3154,8 @@ class PyZDDE(object):
         1. Always check to verify the ray data is valid  (errorCode) before
            using the rest of the returned parameters
         2. Use of ``zGetTrace()`` has significant overhead as only 1 ray
-           per DDE call is traced.
+           per DDE call is traced. Use ``arraytrace.zGetTraceArray()`` for 
+           tracing large number of rays.
 
         See Also
         --------
