@@ -2321,8 +2321,8 @@ class PyZDDE(object):
         """
         args1 = "{wN:d},{m:d},{s:d},".format(wN=waveNum,m=mode,s=surf)
         args2 = "{hx:1.4f},{hy:1.4f},".format(hx=hx,hy=hy)
-        args3 = "{px:1.4f},{py:1.4f}".format(px=px,py=py)
-        args4 = "{Ex:1.4f},{Ey:1.4f}".format(Ex=Ex,Ey=Ey)
+        args3 = "{px:1.4f},{py:1.4f},".format(px=px,py=py)
+        args4 = "{Ex:1.4f},{Ey:1.4f},".format(Ex=Ex,Ey=Ey)
         args5 = "{Phax:1.4f},{Phay:1.4f}".format(Phax=Phax,Phay=Phay)
         cmd = "GetPolTrace," + args1 + args2 + args3 + args4 + args5
         reply = self._sendDDEcommand(cmd)
@@ -2383,7 +2383,7 @@ class PyZDDE(object):
         args1 = "{sa:d},{sd:d},".format(sa=startSurf,sd=stopSurf)
         args2 = "{x:1.20g},{y:1.20g},{y:1.20g},".format(x=x,y=y,z=z)
         args3 = "{l:1.20g},{m:1.20g},{n:1.20g},".format(l=l,m=m,n=n)
-        args4 = "{Ex:1.4f},{Ey:1.4f}".format(Ex=Ex,Ey=Ey)
+        args4 = "{Ex:1.4f},{Ey:1.4f},".format(Ex=Ex,Ey=Ey)
         args5 = "{Phax:1.4f},{Phay:1.4f}".format(Phax=Phax,Phay=Phay)
         cmd = ("GetPolTraceDirect," + args0 + args1 + args2 + args3
                                     + args4 + args5)
@@ -3229,7 +3229,7 @@ class PyZDDE(object):
         args1 = "{wN:d},{m:d},".format(wN=waveNum,m=mode)
         args2 = "{sa:d},{sp:d},".format(sa=startSurf,sp=stopSurf)
         args3 = "{x:1.20f},{y:1.20f},{z:1.20f},".format(x=x,y=y,z=z)
-        args4 = "{l:1.20f},{m:1.20f},{n:1.20f},".format(l=l,m=m,n=n)
+        args4 = "{l:1.20f},{m:1.20f},{n:1.20f}".format(l=l,m=m,n=n)
         cmd = "GetTraceDirect," + args1 + args2 + args3 + args4
         reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
