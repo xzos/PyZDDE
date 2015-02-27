@@ -218,8 +218,8 @@ def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
         or surface apodization defined.
 
     If ray tracing fails, a single integer error code is returned,
-    which has the following meaning: 0 = SUCCESS, -1 = Couldn't retrieve
-    data in PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
+    which has the following meaning: -1 = Couldn't retrieve data in
+    PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
     -998 = timeout reached
 
     Notes
@@ -272,7 +272,7 @@ def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
             intensity[i-1] = rd[i].intensity
             l2[i-1] = rd[i].Exr
             m2[i-1] = rd[i].Eyr
-            m2[i-1] = rd[i].Ezr
+            n2[i-1] = rd[i].Ezr
             error[i-1] = rd[i].error
             vigcode[i-1] = rd[i].vigcode
         return error, vigcode, x, y, z, l, m, n, l2, m2, n2, opd, intensity
@@ -355,8 +355,8 @@ def zGetTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
         or surface apodization defined.
 
     If ray tracing fails, a single integer error code is returned,
-    which has the following meaning: 0 = SUCCESS, -1 = Couldn't retrieve
-    data in PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
+    which has the following meaning: -1 = Couldn't retrieve data in
+    PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
     -998 = timeout reached
 
     Notes
@@ -514,8 +514,8 @@ def zGetPolTraceArray(numRays, hx=None, hy=None, px=None, py=None, Exr=None,
         list of imaginary parts of the electric field components in z
 
     If ray tracing fails, a single integer error code is returned,
-    which has the following meaning: 0 = SUCCESS, -1 = Couldn't retrieve
-    data in PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
+    which has the following meaning: -1 = Couldn't retrieve data in
+    PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
     -998 = timeout reached
 
     Notes
@@ -696,8 +696,8 @@ def zGetPolTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
         list of imaginary parts of the electric field components in z
 
     If ray tracing fails, a single integer error code is returned,
-    which has the following meaning: 0 = SUCCESS, -1 = Couldn't retrieve
-    data in PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
+    which has the following meaning: -1 = Couldn't retrieve data in
+    PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
     -998 = timeout reached
 
     Notes
@@ -838,8 +838,8 @@ def zGetNSCTraceArray(x=0.0, y=0.0, z=0.0, l=0.0, m=0.0, n=1.0, Exr=0.0, Exi=0.0
                 optical_path_length = seg.opl  # optical path length to hit object
 
     If ray tracing fails, a single integer error code is returned,
-    which has the following meaning: 0 = SUCCESS, -1 = Couldn't retrieve
-    data in PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
+    which has the following meaning: -1 = Couldn't retrieve data in
+    PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
     -998 = timeout reached
 
     Notes
