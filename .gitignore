@@ -193,7 +193,6 @@ pip-log.txt
 ##########################
 *.ini
 
-Misc/
 Test/Prescription_unitTest_00.txt
 Test/Prescription_unitTest_01.txt
 Examples/*.txt
