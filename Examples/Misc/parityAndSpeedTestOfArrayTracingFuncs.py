@@ -21,7 +21,6 @@ import pyzdde.zdde as pyz       # PyZDDE module
 import os as os
 from math import sqrt as sqrt
 
-
 def set_up():
     """create dde link, and load lens into zemax, and push lens into
     zemax application (this is required for array ray tracing)
@@ -55,7 +54,7 @@ def no_error_in_ray_trace(rd, numRays):
 
 def parity_zGetTrace_zArrayTrace_zGetTraceArray(ln, numRays):
     """function to check the parity between the ray traced data returned
-    by zGetTrace(), zArrayTrace() and zGetTraceArray
+    by zGetTrace(), zArrayTrace() and zGetTraceArray()
     """
     x, y = [0.0]*numRays, [0.0]*numRays
     l, m, n = [0.0]*numRays, [0.0]*numRays, [0.0]*numRays
@@ -74,28 +73,78 @@ def parity_zGetTrace_zArrayTrace_zGetTraceArray(ln, numRays):
     # compare the two ray traced data
     tol = 1e-10
     for k in range(numRays):
-        assert abs(x[k] - rd[k+1].x) < tol, "x[{}] = {}, rd[{}].x = {}".format(k, x[k], k+1, rd[k+1].x)
-        assert abs(y[k] - rd[k+1].y) < tol, "y[{}] = {}, rd[{}].y = {}".format(k, y[k], k+1, rd[k+1].y)
-        assert abs(l[k] - rd[k+1].l) < tol, "l[{}] = {}, rd[{}].l = {}".format(k, l[k], k+1, rd[k+1].l)
-        assert abs(m[k] - rd[k+1].m) < tol, "m[{}] = {}, rd[{}].m = {}".format(k, m[k], k+1, rd[k+1].m)
-        assert abs(n[k] - rd[k+1].n) < tol, "n[{}] = {}, rd[{}].n = {}".format(k, n[k], k+1, rd[k+1].n)
-        assert abs(l2[k] - rd[k+1].Exr) < tol, "l2[{}] = {}, rd[{}].l = {}".format(k, l2[k], k+1, rd[k+1].Exr)
-        assert abs(m2[k] - rd[k+1].Eyr) < tol, "m2[{}] = {}, rd[{}].m = {}".format(k, m2[k], k+1, rd[k+1].Eyr)
-        assert abs(n2[k] - rd[k+1].Ezr) < tol, "n2[{}] = {}, rd[{}].n = {}".format(k, n2[k], k+1, rd[k+1].Ezr)
+        assert abs(x[k] - rd[k+1].x) < tol, \
+        "x[{}] = {}, rd[{}].x = {}".format(k, x[k], k+1, rd[k+1].x)
+        assert abs(y[k] - rd[k+1].y) < tol, \
+        "y[{}] = {}, rd[{}].y = {}".format(k, y[k], k+1, rd[k+1].y)
+        assert abs(l[k] - rd[k+1].l) < tol, \
+        "l[{}] = {}, rd[{}].l = {}".format(k, l[k], k+1, rd[k+1].l)
+        assert abs(m[k] - rd[k+1].m) < tol, \
+        "m[{}] = {}, rd[{}].m = {}".format(k, m[k], k+1, rd[k+1].m)
+        assert abs(n[k] - rd[k+1].n) < tol, \
+        "n[{}] = {}, rd[{}].n = {}".format(k, n[k], k+1, rd[k+1].n)
+        assert abs(l2[k] - rd[k+1].Exr) < tol, \
+        "l2[{}] = {}, rd[{}].l = {}".format(k, l2[k], k+1, rd[k+1].Exr)
+        assert abs(m2[k] - rd[k+1].Eyr) < tol, \
+        "m2[{}] = {}, rd[{}].m = {}".format(k, m2[k], k+1, rd[k+1].Eyr)
+        assert abs(n2[k] - rd[k+1].Ezr) < tol, \
+        "n2[{}] = {}, rd[{}].n = {}".format(k, n2[k], k+1, rd[k+1].Ezr)
     print("Parity test between zGetTrace() and zArrayTrace() successful")
     # trace data from zGetTraceArray
     _, tData = get_time_zGetTraceArray(numRays, rettData=True)
     # compare the ray traced data
     for k in range(numRays):
-        assert abs(x[k] - tData[2][k]) < tol, "x[{}] = {}, tData[2][{}] = {}".format(k, x[k], k, tData[2][k])
-        assert abs(y[k] - tData[3][k]) < tol, "y[{}] = {}, tData[2][{}] = {}".format(k, y[k], k, tData[3][k])
-        assert abs(l[k] - tData[5][k]) < tol, "l[{}] = {}, tData[5][{}] = {}".format(k, l[k], k, tData[5][k])
-        assert abs(m[k] - tData[6][k]) < tol, "m[{}] = {}, tData[6][{}] = {}".format(k, m[k], k, tData[6][k])
-        assert abs(n[k] - tData[7][k]) < tol, "n[{}] = {}, tData[7][{}] = {}".format(k, n[k], k, tData[7][k])
-        assert abs(l2[k] - tData[8][k]) < tol, "l2[{}] = {}, tData[8][{}] = {}".format(k, l2[k], k, tData[8][k])
-        assert abs(m2[k] - tData[9][k]) < tol, "m2[{}] = {}, tData[9][{}] = {}".format(k, m2[k], k, tData[9][k])
-        assert abs(n2[k] - tData[10][k]) < tol, "n2[{}] = {}, tData[10][{}] = {}".format(k, n2[k], k, tData[10][k])
+        assert abs(x[k] - tData[2][k]) < tol, \
+        "x[{}] = {}, tData[2][{}] = {}".format(k, x[k], k, tData[2][k])
+        assert abs(y[k] - tData[3][k]) < tol, \
+        "y[{}] = {}, tData[2][{}] = {}".format(k, y[k], k, tData[3][k])
+        assert abs(l[k] - tData[5][k]) < tol, \
+        "l[{}] = {}, tData[5][{}] = {}".format(k, l[k], k, tData[5][k])
+        assert abs(m[k] - tData[6][k]) < tol, \
+        "m[{}] = {}, tData[6][{}] = {}".format(k, m[k], k, tData[6][k])
+        assert abs(n[k] - tData[7][k]) < tol, \
+        "n[{}] = {}, tData[7][{}] = {}".format(k, n[k], k, tData[7][k])
+        assert abs(l2[k] - tData[8][k]) < tol, \
+        "l2[{}] = {}, tData[8][{}] = {}".format(k, l2[k], k, tData[8][k])
+        assert abs(m2[k] - tData[9][k]) < tol, \
+        "m2[{}] = {}, tData[9][{}] = {}".format(k, m2[k], k, tData[9][k])
+        assert abs(n2[k] - tData[10][k]) < tol, \
+        "n2[{}] = {}, tData[10][{}] = {}".format(k, n2[k], k, tData[10][k])
     print("Parity test between zGetTrace() and zGetTraceArray() successful")
+
+def parity_zGetTraceDirect_zGetTraceDirectArray(ln, numRays):
+    """function to check the parity between the ray traced data returned
+    by zGetTraceDirect() and zGetTraceDirectArray()
+    """
+    # use zGetTraceArray to surface # 2 get ray coordinates and direction
+    # cosines at surface 2
+    radius = int(sqrt(numRays)/2)
+    flatGrid = [(x/(2*radius),y/(2*radius)) for x in xrange(-radius, radius + 1, 1)
+                      for y in xrange(-radius, radius + 1, 1)]
+    px = [e[0] for e in flatGrid]
+    py = [e[1] for e in flatGrid]
+    tData0 = at.zGetTraceArray(numRays=numRays, px=px, py=py, waveNum=1, surf=2)
+    assert sum(tData0[0]) == 0
+
+    # use zGetTraceDirectArray to trace rays to the image surface using the
+    # the ray coordinates and direction cosines at surface 2
+    tData1 = at.zGetTraceDirectArray(numRays=numRays, x=tData0[2], y=tData0[3],
+                                     z=tData0[4], l=tData0[5], m=tData0[6],
+                                     n=tData0[7], waveNum=1, mode=0,
+                                     startSurf=2, lastSurf=-1)
+    assert sum(tData1[0]) == 0
+    # use zGetTraceDirect to trace single rays per dde call
+    for i in range(numRays):
+        tData2 = ln.zGetTraceDirect(waveNum=1, mode=0, startSurf=2, stopSurf=-1,
+                                    x=tData0[2][i], y=tData0[3][i], z=tData0[4][i],
+                                    l=tData0[5][i], m=tData0[6][i], n=tData0[7][i])
+        assert tData2[0] == 0
+        tol = 1e-10
+        for k in [2, 3, 4, 5, 6, 7]:
+            assert abs(tData2[k] - tData1[k][i]) < tol, \
+            ("tData2[{}] = {}, tData1[{}][{}] = {}"
+            .format(k, tData2[k], k, i, tData1[k][i]))
+    print("Parity test bw zGetTraceDirect() & zGetTraceDirectArray() successful")
 
 def get_time_zArrayTrace(numRays, retRd=False):
     """return the time taken to perform ray tracing for the given number of rays
@@ -141,14 +190,12 @@ def get_time_zGetTraceArray(numRays, rettData=False):
         else:
             return (endTime - startTime)*10e3
 
-
 def get_time_zGetTrace(ln, numRays):
     """return the time required to trace ``numRays`` number of rays
     using the PyZDDE function zGetTrace() that makes DDE call per trace
     """
     hx, hy, mode, surf, waveNum = 0.0, 0.0, 0, -1, 1
     radius = int(sqrt(numRays)/2)
-    #print("i = ", int(sqrt(numRays)), ", numRays = ", numRays, ", a = ", -radius, ", b = ", radius+1)
     startTime = time.clock()
     errSum = 0
     for i in xrange(-radius, radius + 1, 1):
@@ -205,6 +252,7 @@ if __name__ == '__main__':
     ln = set_up()
     # parity tests
     parity_zGetTrace_zArrayTrace_zGetTraceArray(ln, 81)
+    parity_zGetTraceDirect_zGetTraceDirectArray(ln, 81)
     # speed test
     speedtest_zGetTrace_zArrayTrace_zGetTraceArray(ln)
     set_down(ln)
