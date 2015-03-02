@@ -1,6 +1,6 @@
 ## PyZDDE: Python Zemax Dynamic Data Exchange
 
-[![zenodo DOI](https://zenodo.org/badge/3811/indranilsinharoy/PyZDDE.png)](https://zenodo.org/record/9852?ln=en)
+[![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.15763.svg)](http://dx.doi.org/10.5281/zenodo.15763)
 
 ##### Current revision:
 
@@ -107,7 +107,7 @@ The code is under the [MIT License] (http://opensource.org/licenses/MIT).
 
 #### Citing: 
 
-If you use PyZDDE for research work, please consider citing it. Various citation styles for PyZDDE are available from [zenodo](https://zenodo.org/record/9852?ln=en).
+If you use PyZDDE for research work, please consider citing it. Various citation styles for PyZDDE are available from [zenodo](https://zenodo.org/record/15763?ln=en).
 
 #### Chat room
 [![Gitter chat](https://badges.gitter.im/indranilsinharoy/PyZDDE.png)](https://gitter.im/indranilsinharoy/PyZDDE)
