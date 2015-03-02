@@ -2,7 +2,7 @@
 # Name:        zdde.py
 # Purpose:     Python based DDE link with ZEMAX server, similar to Matlab based
 #              MZDDE toolbox.
-# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2012 - 2014
+# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2012 - 2015
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
@@ -2043,7 +2043,7 @@ class PyZDDE(object):
 
         Returns
         -------
-        maxInt : integer
+        maxIntersec : integer
             maximum number of intersections
         maxSeg : integer
             maximum number of segments
@@ -2068,7 +2068,10 @@ class PyZDDE(object):
         rs = reply.rsplit(",")
         nscSettingsData = [float(rs[i]) if i in (3,4,5,6) else int(float(rs[i]))
                                                         for i in range(len(rs))]
-        return tuple(nscSettingsData)
+        nscSetData = _co.namedtuple('nscSettings', ['maxIntersec', 'maxSeg', 'maxNest',
+                                                    'minAbsI', 'minRelI', 'glueDist',
+                                                    'missRayLen', 'ignoreErr'])
+        return nscSetData._make(nscSettingsData)
 
     def zGetNSCSolve(self, surfaceNumber, objectNumber, parameter):
         """Returns the current solve status and settings for NSC position
@@ -2238,7 +2241,8 @@ class PyZDDE(object):
         return tuple(polStateData)
 
     def zGetPolTrace(self, waveNum, mode, surf, hx, hy, px, py, Ex, Ey, Phax, Phay):
-        """Trace a single polarized ray through the lens system
+        """Trace a single polarized ray defined by the normalized field
+        height, pupil height, electric field magnitude and relative phase.
 
         If ``Ex``, ``Ey``, ``Phax``, ``Phay`` are all zero, two orthogonal
         rays are traced; the resulting transmitted intensity is averaged.
@@ -2270,30 +2274,24 @@ class PyZDDE(object):
 
         Returns
         -------
-        rayPolTraceData : 8-tuple/ 2-tuple
-            rayPolTraceData is a 8-tuple or 2-tuple (depending on polarized
-            or unpolarized rays) containing the following elements:
+        error : integer
+            0, if the ray traced successfully;
+            +ve number indicates ray missed the surface
+            -ve number indicates ray total internal reflected (TIR)
+            at the surface given by the absolute value of the ``error``
+        intensity : float
+            the transmitted intensity of the ray, normalized to an input
+            electric field intensity of unity. The transmitted intensity
+            accounts for surface, thin film, and bulk absorption effects,
+            but does not consider whether or not the ray was vignetted.
+        Exr,Eyr,Ezr : float
+            real parts of the electric field components
+        Exi,Eyi,Ezi : float
+            imaginary parts of electric field components
 
-            .. _returns-GetPolTrace:
 
-            | For polarized rays:
-            |    error       : 0, if the ray traced successfully;
-            |                  +ve number indicates ray missed the surface
-            |                  -ve number indicates ray total internal
-            |                  reflected (TIR) at the surface given by the
-            |                  absolute value of the errorCode number
-            |    intensity   : the transmitted intensity of the ray. It is
-            |                  always normalized to an input electric field
-            |                  intensity of unity.The transmitted intensity
-            |                  accounts for surface, thin film, and bulk
-            |                  absorption effects, but does not consider
-            |                  whether or not the ray was vignetted.
-            |    Exr,Eyr,Ezr : real parts of the electric field components
-            |    Exi,Eyi,Ezi : imaginary parts of electric field components
-            |
-            | For unpolarized rays:
-            |    error       : (see above)
-            |    intensity   : (see above)
+        For unploarized rays, only the ``error`` and ``intensity`` are
+        relevant.
 
         Examples
         --------
@@ -2306,15 +2304,16 @@ class PyZDDE(object):
 
         Notes
         -----
-        1. The quantity Ex*Ex + Ey*Ey should have a value of 1.0 although
-           any values are accepted.
-        2. There is an important exception to the above rule -- If Ex, Ey,
-           Phax, Phay are all zero, Zemax will trace two orthogonal rays
-           and the resulting transmitted intensity will be averaged.
-        3. Always check to verify the ray data is valid (check the error)
+        1. The quantity ``Ex*Ex + Ey*Ey`` should have a value of 1.0
+           although any values are accepted.
+        2. There is an important exception to the above rule -- If ``Ex``,
+           ``Ey``, ``Phax``, ``Phay`` are all zero, Zemax will trace two
+           orthogonal rays, and the resulting transmitted intensity
+           will be averaged.
+        3. Always check to verify the ray data is valid (check ``error``)
            before using the rest of the data in the tuple.
         4. Use of ``zGetPolTrace()`` has significant overhead as only one
-           ray per DDE call is traced. Please refer to the ZEMAX manual for
+           ray per DDE call is traced. Please refer to the Zemax manual for
            more details.
 
         See Also
@@ -2329,14 +2328,19 @@ class PyZDDE(object):
         cmd = "GetPolTrace," + args1 + args2 + args3 + args4 + args5
         reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
-        rayPolTraceData = tuple([int(elem) if i==0 else float(elem)
-                                   for i,elem in enumerate(rs)])
-        return rayPolTraceData
+        polRayTraceData = [int(elem) if i==0 else float(elem)
+                                   for i,elem in enumerate(rs)]
+        rtd = _co.namedtuple('polRayTraceData', ['error', 'intensity',
+                                                 'Exr', 'Eyr', 'Ezr',
+                                                 'Exi', 'Eyi', 'Ezi'])
+        polRayTraceData = rtd._make(polRayTraceData)
+        return polRayTraceData
 
     def zGetPolTraceDirect(self, waveNum, mode, startSurf, stopSurf,
                            x, y, z, l, m, n, Ex, Ey, Phax, Phay):
-        """Trace a single polarized ray using a more direct access to the
-        Zemax ray tracing than ``zGetPolTrace()``
+        """Trace a single polarized ray defined by the ``x``, ``y``,
+        ``z``, ``l``, ``m`` and ``n`` coordinates on any starting
+        surface as well as electric field magnitude and relative phase.
 
         If ``Ex``, ``Ey``, ``Phax``, ``Phay`` are all zero, Zemax will
         trace two orthogonal rays and the resulting transmitted intensity
@@ -2368,10 +2372,24 @@ class PyZDDE(object):
 
         Returns
         -------
-        rayPolTraceData : 8-tuple/ 2-tuple
-            rayPolTraceData is the same data structure as that returned by
-            ``zGetPolTrace()``. Refer to description of the data structure
-            returned by ``zGetPolTrace()`` (returns-GetPolTrace_).
+        error : integer
+            0, if the ray traced successfully;
+            +ve number indicates ray missed the surface
+            -ve number indicates ray total internal reflected (TIR)
+            at the surface given by the absolute value of the ``error``
+        intensity : float
+            the transmitted intensity of the ray, normalized to an input
+            electric field intensity of unity. The transmitted intensity
+            accounts for surface, thin film, and bulk absorption effects,
+            but does not consider whether or not the ray was vignetted.
+        Exr,Eyr,Ezr : float
+            real parts of the electric field components
+        Exi,Eyi,Ezi : float
+            imaginary parts of electric field components
+
+
+        For unploarized rays, only the ``error`` and ``intensity`` are
+        relevant.
 
         Notes
         -----
@@ -2383,7 +2401,7 @@ class PyZDDE(object):
         """
         args0 = "{wN:d},{m:d},".format(wN=waveNum,m=mode)
         args1 = "{sa:d},{sd:d},".format(sa=startSurf,sd=stopSurf)
-        args2 = "{x:1.20g},{y:1.20g},{y:1.20g},".format(x=x,y=y,z=z)
+        args2 = "{x:1.20g},{y:1.20g},{z:1.20g},".format(x=x,y=y,z=z)
         args3 = "{l:1.20g},{m:1.20g},{n:1.20g},".format(l=l,m=m,n=n)
         args4 = "{Ex:1.4f},{Ey:1.4f},".format(Ex=Ex,Ey=Ey)
         args5 = "{Phax:1.4f},{Phay:1.4f}".format(Phax=Phax,Phay=Phay)
@@ -2391,9 +2409,13 @@ class PyZDDE(object):
                                     + args4 + args5)
         reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
-        rayPolTraceData = tuple([int(elem) if i==0 else float(elem)
-                                   for i,elem in enumerate(rs)])
-        return rayPolTraceData
+        polRayTraceData = [int(elem) if i==0 else float(elem)
+                                   for i,elem in enumerate(rs)]
+        rtd = _co.namedtuple('polRayTraceData', ['error', 'intensity',
+                                                 'Exr', 'Eyr', 'Ezr',
+                                                 'Exi', 'Eyi', 'Ezi'])
+        polRayTraceData = rtd._make(polRayTraceData)
+        return polRayTraceData
 
     def zGetPupil(self):
         """Return the pupil data such as aperture type, ENPD, EXPD, etc.
@@ -3096,7 +3118,8 @@ class PyZDDE(object):
         return toleranceData
 
     def zGetTrace(self, waveNum, mode, surf, hx, hy, px, py):
-        """Trace a ray through the lens in the Zemax DDE server
+        """Trace a ray defined by its normalized field and pupil heights
+        as well as wavelength through the lens in the Zemax DDE server
 
         Parameters
         ----------
@@ -3119,12 +3142,12 @@ class PyZDDE(object):
 
         Returns
         -------
-        errorCode : integer
+        error : integer
             0 = ray traced successfully;
             +ve number = the ray missed the surface;
             -ve number = the ray total internal reflected (TIR) at surface
-                         given by the absolute value of the ``errorCode``
-        vigCode : integer
+                         given by the absolute value of the ``error``
+        vig : integer
             the first surface where the ray was vignetted. Unless an error
             occurs at that surface or subsequent to that surface, the ray
             will continue to trace to the requested surface.
@@ -3144,18 +3167,20 @@ class PyZDDE(object):
         To trace the real chief ray to surface 5 for wavelength 3:
 
         >>> rayTraceData = ln.zGetTrace(3,0,5,0.0,1.0,0.0,0.0)
-        >>> errorCode,vigCode,x,y,z,l,m,n,l2,m2,n2,intensity = rayTraceData
+        >>> error,vig,x,y,z,l,m,n,l2,m2,n2,intensity = rayTraceData
 
         Notes
         -----
-        1. Always check to verify the ray data is valid  (errorCode) before
+        1. Always check to verify the ray data is valid ``error`` before
            using the rest of the returned parameters
         2. Use of ``zGetTrace()`` has significant overhead as only 1 ray
-           per DDE call is traced.
+           per DDE call is traced. Use ``arraytrace.zGetTraceArray()`` for
+           tracing large number of rays.
 
         See Also
         --------
-        zGetTraceDirect(), zGetPolTrace(), zGetPolTraceDirect()
+        arraytrace.zGetTraceArray(), zGetTraceDirect(), zGetPolTrace(),
+        zGetPolTraceDirect()
         """
         args1 = "{wN:d},{m:d},{s:d},".format(wN=waveNum,m=mode,s=surf)
         args2 = "{hx:1.4f},{hy:1.4f},".format(hx=hx,hy=hy)
@@ -3165,8 +3190,7 @@ class PyZDDE(object):
         rs = reply.split(',')
         rayData = [int(elem) if (i==0 or i==1)
                                   else float(elem) for i,elem in enumerate(rs)]
-        rtd = _co.namedtuple('rayTraceData', ['errCode', 'vigCode',
-                                              'x', 'y', 'z',
+        rtd = _co.namedtuple('rayTraceData', ['error', 'vig', 'x', 'y', 'z',
                                               'dcos_l', 'dcos_m', 'dcos_n',
                                               'dnorm_l2', 'dnorm_m2', 'dnorm_n2',
                                               'intensity'])
@@ -3174,9 +3198,12 @@ class PyZDDE(object):
         return rayTraceData
 
     def zGetTraceDirect(self, waveNum, mode, startSurf, stopSurf, x, y, z, l, m, n):
-        """Trace a (single) ray through the lens in Zemax server while
-        providing a more direct access to the Zemax ray tracing engine
-        than ``zGetTrace``.
+        """Trace a (single) ray defined by ``x``, ``y``, ``z``, ``l``,
+        ``m`` and ``n`` coordinates on any starting surface as well as
+        wavelength number, mode and the surface to.
+
+        ``zGetTraceDirect`` provides a more direct access to the Zemax
+        ray tracing engine than ``zGetTrace``.
 
         Parameters
         ----------
@@ -3196,12 +3223,12 @@ class PyZDDE(object):
 
         Returns
         -------
-        errorCode : integer
+        error : integer
             0 = ray traced successfully;
             +ve number = the ray missed the surface;
             -ve number = the ray total internal reflected (TIR) at surface
-                         given by the absolute value of the ``errorCode``
-        vigCode : integer
+                         given by the absolute value of the ``error``
+        vig : integer
             the first surface where the ray was vignetted. Unless an error
             occurs at that surface or subsequent to that surface, the ray
             will continue to trace to the requested surface.
@@ -3235,8 +3262,7 @@ class PyZDDE(object):
         cmd = "GetTraceDirect," + args1 + args2 + args3 + args4
         reply = self._sendDDEcommand(cmd)
         rs = reply.split(',')
-        rtd = _co.namedtuple('rayTraceData', ['errCode', 'vigCode',
-                                              'x', 'y', 'z',
+        rtd = _co.namedtuple('rayTraceData', ['err', 'vig', 'x', 'y', 'z',
                                               'dcos_l', 'dcos_m', 'dcos_n',
                                               'dnorm_l2', 'dnorm_m2', 'dnorm_n2',
                                               'intensity'])
@@ -4088,7 +4114,7 @@ class PyZDDE(object):
 
         Returns
         -------
-        traceResult : errorCode
+        traceResult : error code
             0 if successful, -1 if problem with saveFileName, other
             error codes sent by Zemax.
 
@@ -4108,7 +4134,7 @@ class PyZDDE(object):
         >>> zNSCTrace(1, 2)
 
         The above command traces rays in NSC group 1, from source 2,
-        witout ray splitting, no ray scattering, without using
+        without ray splitting, no ray scattering, without using
         polarization and will not ignore errors.
         """
         requiredArgs = ("{:d},{:d},{:d},{:d},{:d},{:d},{:d},{:d}"
@@ -8559,72 +8585,72 @@ class PyZDDE(object):
         else:
             return None
 
-    def zGetZernike(self, which='fringe', settingsFile=None, txtFile=None, 
+    def zGetZernike(self, which='fringe', settingsFile=None, txtFile=None,
                      keepFile=False, timeout=5):
-        """returns the Zernike Fringe, Standard, or Annular coefficients 
-        for the currently loaded lens file. 
+        """returns the Zernike Fringe, Standard, or Annular coefficients
+        for the currently loaded lens file.
 
         It provides similar functionality to ZPL command "GETZERNIKE". The
-        only difference is that this function returns "Peak to valley to 
-        centroid" in the `zInfo` metadata instead of "RMS to the zero OPD 
+        only difference is that this function returns "Peak to valley to
+        centroid" in the `zInfo` metadata instead of "RMS to the zero OPD
         line)
 
         Parameters
         ----------
         which : string, optional
-            ``fringe`` for "Fringe" zernike terms (default), ``standard`` 
-            for "Standard" zernike terms, and ``annular`` for "Annular" 
+            ``fringe`` for "Fringe" zernike terms (default), ``standard``
+            for "Standard" zernike terms, and ``annular`` for "Annular"
             zernike terms.
         settingsFile : string, optional
-            * if passed, the aberration coefficient analysis will be called 
+            * if passed, the aberration coefficient analysis will be called
               with the given configuration file (settings);
             * if no ``settingsFile`` is passed, and a config file ending
               with the same name as the lens-file post-fixed with
-              "_pyzdde_ZFR.CFG"/"_pyzdde_ZST.CFG"/"_pyzdde_ZAT.CFG" is 
+              "_pyzdde_ZFR.CFG"/"_pyzdde_ZST.CFG"/"_pyzdde_ZAT.CFG" is
               present, the settings from this file will be used;
             * if no ``settingsFile`` and no file-name post-fixed with
-              "_pyzdde_ZFR.CFG"/"_pyzdde_ZST.CFG"/"_pyzdde_ZAT.CFG" is 
-              found, but a config file with the same name as the lens file 
+              "_pyzdde_ZFR.CFG"/"_pyzdde_ZST.CFG"/"_pyzdde_ZAT.CFG" is
+              found, but a config file with the same name as the lens file
               is present, the settings from that file will be used;
-            * if none of the above types of settings file is found, then a 
+            * if none of the above types of settings file is found, then a
               default settings will be used
         txtFile : string, optional
-            if passed, the aberration coefficient analysis text file will 
-            be named such. Pass a specific ``txtFile`` if you want to dump 
+            if passed, the aberration coefficient analysis text file will
+            be named such. Pass a specific ``txtFile`` if you want to dump
             the file into a separate directory.
         keepFile : bool, optional
-            if ``False`` (default), the aberration coefficient text file 
+            if ``False`` (default), the aberration coefficient text file
             will be deleted after use.
             If ``True``, the file will persist. If ``keepFile`` is ``True``
             but a ``txtFile`` is not passed, the analysis text file will be
             saved in the same directory as the lens (provided the required
             folder access permissions are available)
         timeout : integer, optional
-            timeout in seconds. 
+            timeout in seconds.
 
         Returns
         -------
         zInfo : named tuple
-            the 8-tuple contains 1. Peak to Valley (to chief), 2. Peak to 
-            valley (to centroid), 3. RMS to chief ray, 4. RMS to image 
-            centroid, 5. Variance, 6. Strehl ratio, 7. RMS fit error, and 
-            8. Maximum fit error. All  parameters except for Strehl ratio 
+            the 8-tuple contains 1. Peak to Valley (to chief), 2. Peak to
+            valley (to centroid), 3. RMS to chief ray, 4. RMS to image
+            centroid, 5. Variance, 6. Strehl ratio, 7. RMS fit error, and
+            8. Maximum fit error. All  parameters except for Strehl ratio
             has units of waves.
         zCoeff : 1-D named tuple
-            the actual Zernike Fringe, Standard, or Annular coefficients. 
-            The coefficient names conform to the Zemax manual naming 
+            the actual Zernike Fringe, Standard, or Annular coefficients.
+            The coefficient names conform to the Zemax manual naming
             staring from Z1, Z2, Z3 .... (see example below)
 
         Notes
-        ----- 
-        1. As of current writing, Zemax doesn't provide a way to modify the 
+        -----
+        1. As of current writing, Zemax doesn't provide a way to modify the
            parameters of any aberration coefficient settings file through
            extensions. Thus a settings file for the aberration coefficients
-           analysis has to be created manually using the Zemax menu (as 
-           opposed to programmatic creation and modification of settings) 
+           analysis has to be created manually using the Zemax menu (as
+           opposed to programmatic creation and modification of settings)
 
         Examples
-        -------- 
+        --------
         >>> zInfo, zCoeff = ln.zGetZernike(which='fringe')
         >>> zInfo
         zInfo(pToVChief=0.08397624, pToVCentroid=0.08397624, rmsToChief=0.02455132, rmsToCentroid=0.02455132, variance=0.00060277, strehl=0.9764846, rmsFitErr=0.0, maxFitErr=0.0)
@@ -8632,21 +8658,21 @@ class PyZDDE(object):
         0.02455132
         >>> print(zCoeff)
         zCoeff(Z1=-0.55311265, Z2=0.0, Z3=0.0, Z4=-0.34152763, Z5=0.0, Z6=0.0, Z7=0.0, Z8=0.0, Z9=0.19277286, Z10=0.0, Z11=0.0, Z12=0.0, Z13=0.0, Z14=0.0, Z15=0.0, Z16=-0.01968138, Z17=0.0, Z18=0.0, Z19=0.0, Z20=0.0, Z21=0.0, Z22=0.0, Z23=0.0, Z24=0.0, Z25=-0.00091852, Z26=0.0, Z27=0.0, Z28=0.0, Z29=0.0, Z30=0.0, Z31=0.0, Z32=0.0, Z33=0.0, Z34=0.0, Z35=0.0, Z36=-3.368e-05, Z37=-1.44e-06)
-        >>> print(zCoeff.Z1) # zCoeff.Z1 is same as zCoeff[0] 
-        -0.55311265   
+        >>> print(zCoeff.Z1) # zCoeff.Z1 is same as zCoeff[0]
+        -0.55311265
         """
         anaTypeDict = {'fringe':'Zfr', 'standard':'Zst', 'annular':'Zat'}
         assert which in anaTypeDict
         anaType = anaTypeDict[which]
-        settings = _txtAndSettingsToUse(self, txtFile, settingsFile, anaType) 
+        settings = _txtAndSettingsToUse(self, txtFile, settingsFile, anaType)
         textFileName, cfgFile, getTextFlag = settings
         ret = self.zGetTextFile(textFileName, anaType, cfgFile, getTextFlag,
-                                timeout) 
+                                timeout)
         assert ret == 0
-        line_list = _readLinesFromFile(_openFile(textFileName)) 
+        line_list = _readLinesFromFile(_openFile(textFileName))
         line_list_len = len(line_list)
-        
-        # Extract Meta data 
+
+        # Extract Meta data
         meta_patterns = ["Peak to Valley\s+\(to chief\)",
                          "Peak to Valley\s+\(to centroid\)",
                          "RMS\s+\(to chief\)",
@@ -8659,7 +8685,7 @@ class PyZDDE(object):
         for i, pat in enumerate(meta_patterns):
             meta_line = line_list[_getFirstLineOfInterest(line_list, pat)]
             meta.append(float(_re.search(r'\d{1,3}\.\d{4,8}', meta_line).group()))
-        
+
         info = _co.namedtuple('zInfo', ['pToVChief', 'pToVCentroid', 'rmsToChief',
                                         'rmsToCentroid', 'variance', 'strehl',
                                         'rmsFitErr', 'maxFitErr'])
@@ -8673,13 +8699,13 @@ class PyZDDE(object):
 
         for i, line in enumerate(line_list[start_line:]):
             zCoeffs[i] = float(_re.findall(coeff_pat, line)[0])
-        
-        zCoeffId = _co.namedtuple('zCoeff', 
+
+        zCoeffId = _co.namedtuple('zCoeff',
                     ['Z{}'.format(i+1) for i in range(line_list_len - start_line)])
         zCoeff = zCoeffId(*zCoeffs)
 
         if not keepFile:
-            _deleteFile(textFileName)  
+            _deleteFile(textFileName)
         return zInfo, zCoeff
 
 # -------------------
@@ -9171,15 +9197,15 @@ class PyZDDE(object):
         """
         settings = _txtAndSettingsToUse(self, txtFile, 'None', 'Pre')
         textFileName, _, _ = settings
-        
+
         sysProp = self.zGetSystem()
         numSurf = sysProp.numSurf
 
-        # Since the object space cardinal points are reported w.r.t. the 
-        # surface 1, ensure that surface 1 is global reference surface 
+        # Since the object space cardinal points are reported w.r.t. the
+        # surface 1, ensure that surface 1 is global reference surface
         if sysProp.globalRefSurf is not 1:
-            self.zSetSystem(unitCode=sysProp.unitCode, stopSurf=sysProp.stopSurf, 
-                            rayAimingType=sysProp.rayAimingType, temp=sysProp.temp, 
+            self.zSetSystem(unitCode=sysProp.unitCode, stopSurf=sysProp.stopSurf,
+                            rayAimingType=sysProp.rayAimingType, temp=sysProp.temp,
                             pressure=sysProp.pressure, globalRefSurf=1)
 
         ret = self.zGetTextFile(textFileName, 'Pre', "None", 0)
@@ -9216,9 +9242,9 @@ class PyZDDE(object):
 
         # Restore the Global ref surface if it was changed
         if sysProp.globalRefSurf is not 1:
-            self.zSetSystem(unitCode=sysProp.unitCode, stopSurf=sysProp.stopSurf, 
-                            rayAimingType=sysProp.rayAimingType, temp=sysProp.temp, 
-                            pressure=sysProp.pressure, 
+            self.zSetSystem(unitCode=sysProp.unitCode, stopSurf=sysProp.stopSurf,
+                            rayAimingType=sysProp.rayAimingType, temp=sysProp.temp,
+                            pressure=sysProp.pressure,
                             globalRefSurf=sysProp.globalRefSurf)
         if not keepFile:
             _deleteFile(textFileName)
@@ -10562,8 +10588,8 @@ def _txtAndSettingsToUse(self, txtFile, settingsFile, anaType):
                    'Sei':'None',
                    'Pre':'None',  # change this to the appropriate file when implemented
                    'Sim':'_pyzdde_IMGSIM.CFG',
-                   'Zfr':'_pyzdde_ZFR.CFG',  # Note that currently MODIFYSETTINGS  
-                   'Zst':'_pyzdde_ZST.CFG',  # is not supported of Aberration  
+                   'Zfr':'_pyzdde_ZFR.CFG',  # Note that currently MODIFYSETTINGS
+                   'Zst':'_pyzdde_ZST.CFG',  # is not supported of Aberration
                    'Zat':'_pyzdde_ZAT.CFG',  # coefficients by Zemax extensions
                    }
     assert txtFileDict.keys() == anaCfgDict.keys(), \
