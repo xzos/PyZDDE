@@ -5,11 +5,11 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.8.02
+# Revision:    1.0.00
 #-------------------------------------------------------------------------------
 """Module for doing array ray tracing as described in Zemax manual. This module
 defines the DDE ray data structure using ctypes, and provides the following
-functions:
+to main functions:
 
     1. zArrayTrace() -- The main function for calling Zemax for array ray tracing
     2. getRayDataArray() -- Helper function that creates the ctypes ray data structure

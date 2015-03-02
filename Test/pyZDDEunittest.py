@@ -2,11 +2,11 @@
 # Name:        PyZDDEunittest.py
 # Purpose:     PyZDDE unit test using the python unittest framework
 #
-# Copyright:   (c) Indranil Sinharoy, 2012 - 2014
+# Copyright:   (c) Indranil Sinharoy, 2012 - 2015
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.8.01
+# Revision:    1.0.00
 #-------------------------------------------------------------------------------
 from __future__ import division
 from __future__ import print_function

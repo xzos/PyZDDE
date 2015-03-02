@@ -4,7 +4,7 @@
 
 ##### Current revision:
 
-0.8.01 (Last significant update on 07/13/2014)
+1.0.00 (Last significant update on 03/02/2015)
 
 Brief change-log is available in the [News and Updates](https://github.com/indranilsinharoy/PyZDDE/wiki/News-and-updates) page.
 
@@ -48,6 +48,7 @@ In addition, the repository [Intro2LensDesignByGeary](https://github.com/indrani
 * Over 25 additional functions for more efficient use (more will be added in future). Examples include `zSetTimeout()`, `zExecuteZPLMacro()`, `zSpiralSpot()`, `zGetSeidelAberration()`, `zSetFieldTuple()`, `zGetFieldTuple()`, `zSetWaveTuple()`, `zGetWaveTuple()`, `zCalculateHiatus()`, `zGetPupilMagnification()`, `zGetPOP()`, `zSetPOPSettings()`, `zModifyPOPSettings()`, `zGetPSF()`, `zGetPSFCrossSec()`, `zGetMTF()`, `zGetImageSimulation()`
 * Special functions for better interactive use with IPython notebooks. Examples include `ipzCaptureWindow()`, `ipzGetFirst()`, `ipzGetPupil()`, `ipzGetSystemAper()`, `ipzGetTextWindow()`
 * Quick generation of few simple optical systems (see `pyzdde.systems` module)
+* Array ray tracing using a separate and standalone module `arraytrace`, that has helper functions for performing array ray tracing. 
 
 
 #### Overview
@@ -56,12 +57,13 @@ PyZDDE is a Python-based standalone extension for communicating with [ZEMAX/Opti
 
 PyZDDE can be used with regular Python scripts as well as in an interactive environment such as an IPython shell, [QtConsole] (http://ipython.org/ipython-doc/dev/interactive/qtconsole.html) or [IPython Notebook] (http://ipython.org/ipython-doc/dev/interactive/htmlnotebook.html). 
 
-There are 4 types of functions in the toolbox:
+There are 4 types of functions, and a separate module for array ray tracing in the toolbox:
 
 1.  Functions for accessing ZEMAX using the data items defined in the "ZEMAX EXTENSIONS" chapter of the ZEMAX manual. These functions' names start with "z" and the rest of the function names matches the data item defined by Zemax. For example `zGetSolve()` for the data item "GetSolve", `zSetSolve()` for the data item "SetSolve", etc.
 2.  Helper functions to enhance the toolbox functionality beyond just the data items, such as `zCalculateHiatus`, `zSpiralSpot`. Also, there are other utilities which increase the capability of the toolbox such as `zOptimize2()`, `zSetWaveTuple()`, `zExecuteZPLMacro()`, etc. 
 3.  Few functions such as `ipzCaptureWindow()`, `ipzGetTextWindow()` can be used to embed analysis/graphic windows and text files from Zemax into an IPython Notebook or IPython QtConsole.
 4.  There are several other functions which can be used independent of a running Zemax session. Examples include `showZOperandList()`, `findZOperand()`, `findZButtonCode()`, etc.
+5.  A separate and standalone module `arraytrace` for performing array ray tracing. 
 
 
 All the functions prefixed with "z" or "ipz"  (types 1, 2 and 3) interact with Zemax directly and hence require a Zemax session to be running simultaneously. As they are instance methods of a pyzdde channel object, a pyzdde object needs to be created.
@@ -90,10 +92,6 @@ A complete list of helper functions is available [here](https://github.com/indra
 At this point in time, a distribution version is not available as the tool box is being updated regularly. The advantage is that you can just download the code and start using just as any other Python code, except that you will need to tell the Python interpreter about PyZDDE's whereabouts.
 
 Please download the code to a local directory in your computer and add that directory to python search path in order to use it. For detailed instructions on using PyZDDE, please refer to the [Wiki page] (https://github.com/indranilsinharoy/PyZDDE/wiki)
-
-
-#### Is there anything missing?
-The short answer is yes! PyZDDE doesn't support array/ bulk ray tracing at this point in time. I hope in the near future this feature will be implemented. May be you can help (please look in the [issues page](https://github.com/indranilsinharoy/PyZDDE/issues/21))
 
 
 #### Getting started, usage, and other documentation:
