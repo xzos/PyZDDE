@@ -89,7 +89,7 @@ def parity_zGetTrace_zArrayTrace_zGetTraceArray(ln, numRays):
         "m2[{}] = {}, rd[{}].m = {}".format(k, m2[k], k+1, rd[k+1].Eyr)
         assert abs(n2[k] - rd[k+1].Ezr) < tol, \
         "n2[{}] = {}, rd[{}].n = {}".format(k, n2[k], k+1, rd[k+1].Ezr)
-    print("Parity test between zGetTrace() and zArrayTrace() successful")
+    print("Parity test bw zGetTrace() & zArrayTrace() successful")
     # trace data from zGetTraceArray
     _, tData = get_time_zGetTraceArray(numRays, rettData=True)
     # compare the ray traced data
@@ -110,13 +110,13 @@ def parity_zGetTrace_zArrayTrace_zGetTraceArray(ln, numRays):
         "m2[{}] = {}, tData[9][{}] = {}".format(k, m2[k], k, tData[9][k])
         assert abs(n2[k] - tData[10][k]) < tol, \
         "n2[{}] = {}, tData[10][{}] = {}".format(k, n2[k], k, tData[10][k])
-    print("Parity test between zGetTrace() and zGetTraceArray() successful")
+    print("Parity test bw zGetTrace() & zGetTraceArray() successful")
 
 def parity_zGetTraceDirect_zGetTraceDirectArray(ln, numRays):
     """function to check the parity between the ray traced data returned
     by zGetTraceDirect() and zGetTraceDirectArray()
     """
-    # use zGetTraceArray to surface # 2 get ray coordinates and direction
+    # use zGetTraceArray to surface # 2 to get ray coordinates and direction
     # cosines at surface 2
     radius = int(sqrt(numRays)/2)
     flatGrid = [(x/(2*radius),y/(2*radius)) for x in xrange(-radius, radius + 1, 1)
@@ -133,18 +133,111 @@ def parity_zGetTraceDirect_zGetTraceDirectArray(ln, numRays):
                                      n=tData0[7], waveNum=1, mode=0,
                                      startSurf=2, lastSurf=-1)
     assert sum(tData1[0]) == 0
+    tol = 1e-10
     # use zGetTraceDirect to trace single rays per dde call
     for i in range(numRays):
         tData2 = ln.zGetTraceDirect(waveNum=1, mode=0, startSurf=2, stopSurf=-1,
                                     x=tData0[2][i], y=tData0[3][i], z=tData0[4][i],
                                     l=tData0[5][i], m=tData0[6][i], n=tData0[7][i])
         assert tData2[0] == 0
-        tol = 1e-10
         for k in [2, 3, 4, 5, 6, 7]:
             assert abs(tData2[k] - tData1[k][i]) < tol, \
             ("tData2[{}] = {}, tData1[{}][{}] = {}"
             .format(k, tData2[k], k, i, tData1[k][i]))
     print("Parity test bw zGetTraceDirect() & zGetTraceDirectArray() successful")
+
+def parity_zGetPolTrace_zGetPolTraceArray(ln, numRays):
+    """function to check the parity between the ray traced data returned
+    by zGetPolTrace() and zGetPolTraceArray()
+    """
+    radius = int(sqrt(numRays)/2)
+    flatGrid = [(x/(2*radius),y/(2*radius)) for x in xrange(-radius, radius + 1, 1)
+                      for y in xrange(-radius, radius + 1, 1)]
+    px = [e[0] for e in flatGrid]
+    py = [e[1] for e in flatGrid]
+    polRtArrData = at.zGetPolTraceArray(numRays=numRays, px=px, py=py, Ey=1.0,
+                                        waveNum=1, mode=0, surf=-1)
+    assert sum(polRtArrData[0]) == 0
+    tol = 1e-10
+    # Trace rays using single DDE call
+    for i in range(numRays):
+        polRtData = ln.zGetPolTrace(waveNum=1, mode=0, surf=-1, hx=0, hy=0,
+                                    px=px[i], py=py[i], Ex=0, Ey=1, Phax=0, Phay=0)
+        assert polRtData.error == 0
+        assert abs(polRtData.intensity - polRtArrData[1][i]) < tol, \
+        ("polRtData.intensity = {},  polRtArrData[1][{}] = {}"
+        .format(polRtData.intensity, i, polRtArrData[1][i]))
+        assert abs(polRtData.Exr - polRtArrData[2][i]) < tol, \
+        ("polRtData.Exr = {},  polRtArrData[2][{}] = {}"
+        .format(polRtData.Exr, i, polRtArrData[2][i]))
+        assert abs(polRtData.Exi - polRtArrData[3][i]) < tol, \
+        ("polRtData.Exi = {},  polRtArrData[3][{}] = {}"
+        .format(polRtData.Exi, i, polRtArrData[3][i]))
+        assert abs(polRtData.Eyr - polRtArrData[4][i]) < tol, \
+        ("polRtData.Eyr = {},  polRtArrData[4][{}] = {}"
+        .format(polRtData.Eyr, i, polRtArrData[4][i]))
+        assert abs(polRtData.Eyi - polRtArrData[5][i]) < tol, \
+        ("polRtData.Eyi = {},  polRtArrData[5][{}] = {}"
+        .format(polRtData.Eyi, i, polRtArrData[5][i]))
+        assert abs(polRtData.Ezr - polRtArrData[6][i]) < tol, \
+        ("polRtData.Ezr = {},  polRtArrData[6][{}] = {}"
+        .format(polRtData.Ezr, i, polRtArrData[6][i]))
+        assert abs(polRtData.Ezi - polRtArrData[7][i]) < tol, \
+        ("polRtData.Ezi = {},  polRtArrData[7][{}] = {}"
+        .format(polRtData.Ezi, i, polRtArrData[7][i]))
+    print("Parity test bw zGetPolTrace() & zGetPolTraceArray() successful")
+
+def parity_zGetPolTraceDirect_zGetPolTraceDirectArray(ln, numRays):
+    """function to check the parity between the ray traced data returned
+    by zGetPolTraceDirect() and zGetPolTraceDirectArray()
+    """
+    # use zGetTraceArray to surface # 2 to get ray coordinates and direction
+    # cosines at surface 2
+    radius = int(sqrt(numRays)/2)
+    flatGrid = [(x/(2*radius),y/(2*radius)) for x in xrange(-radius, radius + 1, 1)
+                      for y in xrange(-radius, radius + 1, 1)]
+    px = [e[0] for e in flatGrid]
+    py = [e[1] for e in flatGrid]
+    tData0 = at.zGetTraceArray(numRays=numRays, px=px, py=py, waveNum=1, surf=2)
+    assert sum(tData0[0]) == 0
+
+    # use zGetPolTraceDirectArray to trace rays to the image surface using the
+    # the ray coordinates and direction cosines at surface 2
+    ptData1 = at.zGetPolTraceDirectArray(numRays=numRays, x=tData0[2], y=tData0[3],
+                                         z=tData0[4], l=tData0[5], m=tData0[6],
+                                         n=tData0[7], Ey=1.0, waveNum=1, mode=0,
+                                         startSurf=2, lastSurf=-1)
+    assert sum(ptData1[0]) == 0
+    tol = 1e-10
+    # Trace rays using single DDE call
+    for i in range(numRays):
+        ptData2 = ln.zGetPolTraceDirect(waveNum=1, mode=0, startSurf=2, stopSurf=-1,
+                                        x=tData0[2][i], y=tData0[3][i], z=tData0[4][i],
+                                        l=tData0[5][i], m=tData0[6][i], n=tData0[7][i],
+                                        Ex=0, Ey=1.0, Phax=0, Phay=0)
+        assert ptData2.error == 0
+        assert (ptData2.intensity - ptData1[1][i]) < tol, \
+        ("ptData2.intensity = {}, ptData1[1][{}] = {}"
+        .format(ptData2.intensity, i, ptData1[1][i]))
+        assert (ptData2.Exr - ptData1[2][i]) < tol, \
+        ("ptData2.Exr = {}, ptData1[2][{}] = {}"
+        .format(ptData2.Exr, i, ptData1[2][i]))
+        assert (ptData2.Exi - ptData1[3][i]) < tol, \
+        ("ptData2.Exi = {}, ptData1[3][{}] = {}"
+        .format(ptData2.Exi, i, ptData1[3][i]))
+        assert (ptData2.Eyr - ptData1[4][i]) < tol, \
+        ("ptData2.Eyr = {}, ptData1[4][{}] = {}"
+        .format(ptData2.Eyr, i, ptData1[4][i]))
+        assert (ptData2.Eyi - ptData1[5][i]) < tol, \
+        ("ptData2.Eyi = {}, ptData1[5][{}] = {}"
+        .format(ptData2.Eyi, i, ptData1[5][i]))
+        assert (ptData2.Ezr - ptData1[6][i]) < tol, \
+        ("ptData2.Ezr = {}, ptData1[6][{}] = {}"
+        .format(ptData2.Ezr, i, ptData1[6][i]))
+        assert (ptData2.Ezi - ptData1[7][i]) < tol, \
+        ("ptData2.Ezi = {}, ptData1[7][{}] = {}"
+        .format(ptData2.Ezi, i, ptData1[7][i]))
+    print("Parity test bw zGetPolTraceDirect() & zGetPolTraceDirectArray() successful")
 
 def get_time_zArrayTrace(numRays, retRd=False):
     """return the time taken to perform ray tracing for the given number of rays
@@ -248,11 +341,14 @@ def speedtest_zGetTrace_zArrayTrace_zGetTraceArray(ln):
     n = 1
     compute_best_of_n_execution_times(get_time_zGetTrace, numRays, numRuns, n, ln)
 
+
 if __name__ == '__main__':
     ln = set_up()
     # parity tests
     parity_zGetTrace_zArrayTrace_zGetTraceArray(ln, 81)
     parity_zGetTraceDirect_zGetTraceDirectArray(ln, 81)
+    parity_zGetPolTrace_zGetPolTraceArray(ln, 81)
+    parity_zGetPolTraceDirect_zGetPolTraceDirectArray(ln, 81)
     # speed test
     speedtest_zGetTrace_zArrayTrace_zGetTraceArray(ln)
     set_down(ln)

@@ -29,6 +29,7 @@ import os as _os
 import sys as _sys
 import ctypes as _ct
 import collections as _co
+#import gc as _gc
 
 # Ray data structure as defined in Zemax manual
 class DdeArrayData(_ct.Structure):
@@ -241,7 +242,6 @@ def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
     else:
         waveNum = [1] * numRays
     want_opd = [want_opd] * numRays
-
     # fill up the structure
     for i in xrange(1, numRays+1):
         rd[i].x = hx[i-1]
@@ -251,8 +251,14 @@ def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
         rd[i].intensity = intensity[i-1]
         rd[i].wave = waveNum[i-1]
         rd[i].want_opd = want_opd[i-1]
+
     # call ray tracing
     ret = zArrayTrace(rd, timeout)
+
+    # free up some memory
+    #del hx, hy, px, py, intensity, waveNum, want_opd # seems to increase running time
+    #_gc.collect()
+
     if ret == 0:
         reals = ['x', 'y', 'z', 'l', 'm', 'n', 'l2', 'm2', 'n2', 'opd',
                  'intensity']
@@ -520,15 +526,16 @@ def zGetPolTraceArray(numRays, hx=None, hy=None, px=None, py=None, Exr=None,
 
     Notes
     -----
-    1. If all six of the electric field values Exr, Exi, Eyr, Eyi, Ezr, and Ezi
-       for a ray are zero; then ZEMAX will use the ``Ex`` and ``Ey`` values
-       provided in array position 0 to determine the electric field. Otherwise,
-       the electric field is defined by these six values.
+    1. If all six of the electric field values ``Exr``, ``Exi``, ``Eyr``,
+       ``Eyi``, ``Ezr``, and ``Ezi`` for a ray are zero Zemax will use the
+       ``Ex`` and ``Ey`` values provided in array position 0 to determine
+       the electric field. Otherwise, the electric field is defined by these
+       six values.
     2. The defined electric field vector must be orthogonal to the ray vector
        or incorrect ray tracing will result.
-    3. Even if these six values are defined for each ray, values for ``Ex`` and
-       ``Ey`` in the array position 0 must still be defined, otherwise an
-       unpolarized ray trace will result.
+    3. Even if these six values are defined for each ray, values for ``Ex``
+       and ``Ey`` in the array position 0 must still be defined, otherwise
+       an unpolarized ray trace will result.
     """
     rd = getRayDataArray(numRays, tType=2, mode=mode, endSurf=surf,
                          x=Ex, y=Ey, z=Phax, l=Phay)
@@ -583,7 +590,7 @@ def zGetPolTraceArray(numRays, hx=None, hy=None, px=None, py=None, Exr=None,
             Eyr[i-1] = rd[i].Eyr
             Eyi[i-1] = rd[i].Eyi
             Ezr[i-1] = rd[i].Ezr
-            Ezi[i-1] = rd[i].Ezri
+            Ezi[i-1] = rd[i].Ezi
             error[i-1] = rd[i].error
         return (error, intensity, Exr, Exi, Eyr, Eyi, Ezr, Ezi)
     else:
@@ -703,7 +710,7 @@ def zGetPolTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
     Notes
     -----
     1. If all six of the electric field values Exr, Exi, Eyr, Eyi, Ezr, and Ezi
-       for a ray are zero; then ZEMAX will use the ``Ex`` and ``Ey`` values
+       for a ray are zero; then Zemax will use the ``Ex`` and ``Ey`` values
        provided in array position 0 to determine the electric field. Otherwise,
        the electric field is defined by these six values.
     2. The defined electric field vector must be orthogonal to the ray vector
@@ -756,9 +763,10 @@ def zGetPolTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
 
     # call ray tracing
     ret = zArrayTrace(rd, timeout)
+
     if ret == 0:
         reals = ['intensity', 'Exr', 'Exi', 'Eyr', 'Eyi', 'Ezr', 'Ezi']
-        ints = ['error',]
+        ints = ['error', ]
         for r in reals:
             exec(r + " = [0.0] * numRays")
         for i in ints:
@@ -770,7 +778,7 @@ def zGetPolTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
             Eyr[i-1] = rd[i].Eyr
             Eyi[i-1] = rd[i].Eyi
             Ezr[i-1] = rd[i].Ezr
-            Ezi[i-1] = rd[i].Ezri
+            Ezi[i-1] = rd[i].Ezi
             error[i-1] = rd[i].error
         return (error, intensity, Exr, Exi, Eyr, Eyi, Ezr, Ezi)
     else:
@@ -871,9 +879,9 @@ def zGetNSCTraceArray(x=0.0, y=0.0, z=0.0, l=0.0, m=0.0, n=1.0, Exr=0.0, Exi=0.0
         nNumRaySegments = rd[0].want_opd # total number of segments stored
         rayData = ['']*nNumRaySegments
         for i in xrange(1, nNumRaySegments+1):
-            rayData[i] = segData(rd[i].wave, rd[i].want_opd, rd[i].vigcode,
-                                 rd[i].error, rd[i].x, rd[i].y, rd[i].z,
-                                 rd[i].l, rd[i].m, rd[i].intensity, rd[i].opd)
+            rayData[i-1] = segData(rd[i].wave, rd[i].want_opd, rd[i].vigcode,
+                                   rd[i].error, rd[i].x, rd[i].y, rd[i].z,
+                                   rd[i].l, rd[i].m, rd[i].n, rd[i].intensity, rd[i].opd)
         return rayData
     else:
         return ret
@@ -943,56 +951,7 @@ def _test_arraytrace_module_basic():
         print(rd[k].intensity)
     print("Success!")
 
-def _test_zGetTraceArray():
-    """test zGetTraceArray() function
-    """
-    print("\nBasic test of zGetTraceArray:")
-    hx = [(i - 5.0)/10.0 for i in range(11)]
-    hy = [(i - 5.0)/10.0 for i in range(11)]
-    ret = zGetTraceArray(numRays=len(hx), hx=hx, hy=hy)
-    if ret not in [-1, -999, -998]:
-        error, vigcode, x, y, z, l, m, n, l2, m2, n2, opd, intensity = ret
-        print("err = ", error)
-        print("x = ", x)
-        print("y = ", y)
-        print("z = ", z)
-        print("l = ", l)
-        print("l2 = ", l2)
-        print("opd = ", opd)
-        print("intensity = ", intensity)
-    else:
-        print("ret = ", ret)
-    print("Success!")
-
-def _test_zGetTraceDirectArray():
-    """test zGetTraceDirectArray() function
-    """
-    # TO DO
-    pass
-
-def _test_zGetPolTraceArray():
-    """test zGetPolTraceArray() function
-    """
-    # TO DO
-    pass
-
-def _test_zGetPolTraceDirectArray():
-    """test zGetPolTraceDirectArray() function
-    """
-    # TO DO
-    pass
-
-def _test_zGetNSCTraceArray():
-    """test zGetNSCTraceArray() function
-    """
-    # TO DO
-
 if __name__ == '__main__':
     # run the test functions
     _test_getRayDataArray()
     _test_arraytrace_module_basic()
-    _test_zGetTraceArray()
-    _test_zGetTraceDirectArray()
-    _test_zGetPolTraceArray()
-    _test_zGetPolTraceDirectArray()
-    _test_zGetNSCTraceArray()
