@@ -13,6 +13,8 @@
 # Licence:    MIT License
 #-------------------------------------------------------------------------------
 from __future__ import print_function, division
+import sys as sys
+import os as os
 import pyzdde.arraytrace as at  # Module for array ray tracing
 import pyzdde.zdde as pyz
 
@@ -20,14 +22,28 @@ import pyzdde.zdde as pyz
 # loaded into Zemax LDE.
 
 ln = pyz.createLink()
+
+if not ln.zPushLensPermission():
+    print("\nERROR: Extensions not allowed to push lenses. Please enable in Zemax.")
+    ln.close()
+    sys.exit(0)
+
 ln.zGetRefresh()
+
+zmxfile = os.path.split(ln.zGetFile())[1]
+if zmxfile == 'LENS.ZMX':
+    print("\nPlease load a valid NSC lens file in Zemax.")
+    ln.close()
+    sys.exit(0)
+
 # Get maximum number of segments
 maxSeg = ln.zGetNSCSettings().maxSeg
 # limit the number maximum number of segments to 50
 nMaxSeg = maxSeg if maxSeg < 50 else 50
 
 # Trace a single in NSC mode with polarization and splitting, but no scattering.
-rayData = at.zGetNSCTraceArray(n=1, Eyr=1.0, usePolar=1, split=1, nMaxSegments=50)
+rayData = at.zGetNSCTraceArray(n=1, Eyr=1.0, intensity=1, surf=1, usePolar=1,
+                               split=1, nMaxSegments=50)
 
 # Print the output
 print("Listing of NSC Trace data:")

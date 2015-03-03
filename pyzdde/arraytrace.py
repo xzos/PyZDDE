@@ -9,7 +9,7 @@
 #-------------------------------------------------------------------------------
 """Module for doing array ray tracing as described in Zemax manual. This module
 defines the DDE ray data structure using ctypes, and provides the following
-to main functions:
+two main functions:
 
     1. zArrayTrace() -- The main function for calling Zemax for array ray tracing
     2. getRayDataArray() -- Helper function that creates the ctypes ray data structure
@@ -30,6 +30,9 @@ import sys as _sys
 import ctypes as _ct
 import collections as _co
 #import gc as _gc
+
+if _sys.version_info[0] > 2:
+    xrange = range
 
 # Ray data structure as defined in Zemax manual
 class DdeArrayData(_ct.Structure):

@@ -16,6 +16,7 @@
 #-------------------------------------------------------------------------------
 from __future__ import print_function, division
 import time as time
+import sys as sys
 import pyzdde.arraytrace as at  # Module for array ray tracing
 import pyzdde.zdde as pyz       # PyZDDE module
 import os as os
@@ -27,6 +28,10 @@ def set_up():
     """
     zmxfile = 'Cooke 40 degree field.zmx'
     ln = pyz.createLink()
+    if not ln.zPushLensPermission():
+        print("\nERROR: Extensions not allowed to push lenses. Please enable in Zemax.")
+        ln.close()
+        sys.exit(0)
     filename = os.path.join(ln.zGetPath()[1], "Sequential\Objectives", zmxfile)
     ln.zLoadFile(filename)
     ln.zGetUpdate()

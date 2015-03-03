@@ -35,6 +35,10 @@ def trace_rays():
     ln.zLoadFile(filename)
     print("Loaded zemax file:", ln.zGetFile())
     ln.zGetUpdate()   # In general this should be done ...
+    if not ln.zPushLensPermission():
+        print("\nERROR: Extensions not allowed to push lenses. Please enable in Zemax.")
+        ln.close()
+        sys.exit(0)
     ln.zPushLens(1)   # FOR SOME REASON, THE ARRAY RAY TRACING SEEMS TO
                       # BE WORKING ON THE LENS THAT IS IN THE MAIN ZEMAX APPLICATION WINDOW!!!!
     ln.zNewLens()     # THIS IS JUST TO PROVE THE ABOVE POINT!!! RAY TRACING STILL ON THE LENS
