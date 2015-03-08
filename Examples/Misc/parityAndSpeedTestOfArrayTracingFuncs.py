@@ -327,7 +327,7 @@ def compute_best_of_n_execution_times(func, numRays, numRuns, n, ln=None):
         for i in range(numRuns):
             execTimes[i] = func(ln, nrays) if ln else func(nrays)
         bestnExecTimes.append(get_best_of_n_avg(execTimes, n))
-    print("Average of best 10 execution times = \n", bestnExecTimes)
+    print("Average of best {} execution times = \n".format(n), bestnExecTimes)
     print("\n")
 
 def speedtest_zGetTrace_zArrayTrace_zGetTraceArray(ln):
@@ -342,8 +342,8 @@ def speedtest_zGetTrace_zArrayTrace_zGetTraceArray(ln):
     # compute average execution time of zGetTraceArray()
     compute_best_of_n_execution_times(get_time_zGetTraceArray, numRays, numRuns, n)
     # compute average execution time of zGetTrace
-    numRuns = 1
-    n = 1
+    numRuns = 10
+    n = 5
     compute_best_of_n_execution_times(get_time_zGetTrace, numRays, numRuns, n, ln)
 
 
