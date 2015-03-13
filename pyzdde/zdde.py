@@ -4332,7 +4332,7 @@ class PyZDDE(object):
         if update == 1:
             reply = self._sendDDEcommand('PushLens,1', timeout)
         elif update == 0 or update is None:
-            reply = self._sendDDEcommand('PushLens', timeout)
+            reply = self._sendDDEcommand('PushLens,0', timeout)
         else:
             raise ValueError('Invalid value for flag')
         if reply:
