@@ -261,30 +261,32 @@ def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
     # free up some memory
     #del hx, hy, px, py, intensity, waveNum, want_opd # seems to increase running time
     #_gc.collect()
-
+    d = {}
     if ret == 0:
         reals = ['x', 'y', 'z', 'l', 'm', 'n', 'l2', 'm2', 'n2', 'opd',
                  'intensity']
         ints = ['error', 'vigcode']
         for r in reals:
-            exec(r + " = [0.0] * numRays")
+            exec(r + " = [0.0] * numRays", locals(), d)
         for i in ints:
-            exec(i + " = [0] * numRays")
+            exec(i + " = [0] * numRays", locals(), d)
         for i in xrange(1, numRays+1):
-            x[i-1] = rd[i].x
-            y[i-1] = rd[i].y
-            z[i-1] = rd[i].z
-            l[i-1] = rd[i].l
-            m[i-1] = rd[i].m
-            n[i-1] = rd[i].n
-            opd[i-1] = rd[i].opd
-            intensity[i-1] = rd[i].intensity
-            l2[i-1] = rd[i].Exr
-            m2[i-1] = rd[i].Eyr
-            n2[i-1] = rd[i].Ezr
-            error[i-1] = rd[i].error
-            vigcode[i-1] = rd[i].vigcode
-        return error, vigcode, x, y, z, l, m, n, l2, m2, n2, opd, intensity
+            d["x"][i-1] = rd[i].x
+            d["y"][i-1] = rd[i].y
+            d["z"][i-1] = rd[i].z
+            d["l"][i-1] = rd[i].l
+            d["m"][i-1] = rd[i].m
+            d["n"][i-1] = rd[i].n
+            d["opd"][i-1] = rd[i].opd
+            d["intensity"][i-1] = rd[i].intensity
+            d["l2"][i-1] = rd[i].Exr
+            d["m2"][i-1] = rd[i].Eyr
+            d["n2"][i-1] = rd[i].Ezr
+            d["error"][i-1] = rd[i].error
+            d["vigcode"][i-1] = rd[i].vigcode
+        return (d["error"], d["vigcode"], d["x"], d["y"], d["z"], 
+                d["l"], d["m"], d["n"], d["l2"], d["m2"], d["n2"], 
+                d["opd"], d["intensity"])
     else:
         return ret
 
@@ -402,29 +404,32 @@ def zGetTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
 
     # call ray tracing
     ret = zArrayTrace(rd, timeout)
+    d = {}
     if ret == 0:
         reals = ['x', 'y', 'z', 'l', 'm', 'n', 'l2', 'm2', 'n2', 'opd',
                  'intensity']
         ints = ['error', 'vigcode']
         for r in reals:
-            exec(r + " = [0.0] * numRays")
+            exec(r + " = [0.0] * numRays", locals(), d)
         for i in ints:
-            exec(i + " = [0] * numRays")
+            exec(i + " = [0] * numRays", locals(), d)
         for i in xrange(1, numRays+1):
-            x[i-1] = rd[i].x
-            y[i-1] = rd[i].y
-            z[i-1] = rd[i].z
-            l[i-1] = rd[i].l
-            m[i-1] = rd[i].m
-            n[i-1] = rd[i].n
-            opd[i-1] = rd[i].opd
-            intensity[i-1] = rd[i].intensity
-            l2[i-1] = rd[i].Exr
-            m2[i-1] = rd[i].Eyr
-            n2[i-1] = rd[i].Ezr
-            error[i-1] = rd[i].error
-            vigcode[i-1] = rd[i].vigcode
-        return error, vigcode, x, y, z, l, m, n, l2, m2, n2, opd, intensity
+            d["x"][i-1] = rd[i].x
+            d["y"][i-1] = rd[i].y
+            d["z"][i-1] = rd[i].z
+            d["l"][i-1] = rd[i].l
+            d["m"][i-1] = rd[i].m
+            d["n"][i-1] = rd[i].n
+            d["opd"][i-1] = rd[i].opd
+            d["intensity"][i-1] = rd[i].intensity
+            d["l2"][i-1] = rd[i].Exr
+            d["m2"][i-1] = rd[i].Eyr
+            d["n2"][i-1] = rd[i].Ezr
+            d["error"][i-1] = rd[i].error
+            d["vigcode"][i-1] = rd[i].vigcode
+        return (d["error"], d["vigcode"], d["x"], d["y"], d["z"], 
+                d["l"], d["m"], d["n"], d["l2"], d["m2"], d["n2"], 
+                d["opd"], d["intensity"])
     else:
         return ret
 
@@ -579,23 +584,25 @@ def zGetPolTraceArray(numRays, hx=None, hy=None, px=None, py=None, Exr=None,
 
     # call ray tracing
     ret = zArrayTrace(rd, timeout)
+    d = {}
     if ret == 0:
         reals = ['intensity', 'Exr', 'Exi', 'Eyr', 'Eyi', 'Ezr', 'Ezi']
         ints = ['error', ]
         for r in reals:
-            exec(r + " = [0.0] * numRays")
+            exec(r + " = [0.0] * numRays", locals(), d)
         for i in ints:
-            exec(i + " = [0] * numRays")
+            exec(i + " = [0] * numRays", locals(), d)
         for i in xrange(1, numRays+1):
-            intensity[i-1] = rd[i].intensity
-            Exr[i-1] = rd[i].Exr
-            Exi[i-1] = rd[i].Exi
-            Eyr[i-1] = rd[i].Eyr
-            Eyi[i-1] = rd[i].Eyi
-            Ezr[i-1] = rd[i].Ezr
-            Ezi[i-1] = rd[i].Ezi
-            error[i-1] = rd[i].error
-        return (error, intensity, Exr, Exi, Eyr, Eyi, Ezr, Ezi)
+            d["intensity"][i-1] = rd[i].intensity
+            d["Exr"][i-1] = rd[i].Exr
+            d["Exi"][i-1] = rd[i].Exi
+            d["Eyr"][i-1] = rd[i].Eyr
+            d["Eyi"][i-1] = rd[i].Eyi
+            d["Ezr"][i-1] = rd[i].Ezr
+            d["Ezi"][i-1] = rd[i].Ezi
+            d["error"][i-1] = rd[i].error
+        return (d["error"], d["intensity"], 
+                d["Exr"], d["Exi"], d["Eyr"], d["Eyi"], d["Ezr"], d["Ezi"])
     else:
         return ret
 
@@ -766,24 +773,25 @@ def zGetPolTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
 
     # call ray tracing
     ret = zArrayTrace(rd, timeout)
-
+    d = {}
     if ret == 0:
         reals = ['intensity', 'Exr', 'Exi', 'Eyr', 'Eyi', 'Ezr', 'Ezi']
         ints = ['error', ]
         for r in reals:
-            exec(r + " = [0.0] * numRays")
+            exec(r + " = [0.0] * numRays", locals(), d)
         for i in ints:
-            exec(i + " = [0] * numRays")
+            exec(i + " = [0] * numRays", locals(), d)
         for i in xrange(1, numRays+1):
-            intensity[i-1] = rd[i].intensity
-            Exr[i-1] = rd[i].Exr
-            Exi[i-1] = rd[i].Exi
-            Eyr[i-1] = rd[i].Eyr
-            Eyi[i-1] = rd[i].Eyi
-            Ezr[i-1] = rd[i].Ezr
-            Ezi[i-1] = rd[i].Ezi
-            error[i-1] = rd[i].error
-        return (error, intensity, Exr, Exi, Eyr, Eyi, Ezr, Ezi)
+            d["intensity"][i-1] = rd[i].intensity
+            d["Exr"][i-1] = rd[i].Exr
+            d["Exi"][i-1] = rd[i].Exi
+            d["Eyr"][i-1] = rd[i].Eyr
+            d["Eyi"][i-1] = rd[i].Eyi
+            d["Ezr"][i-1] = rd[i].Ezr
+            d["Ezi"][i-1] = rd[i].Ezi
+            d["error"][i-1] = rd[i].error
+        return (d["error"], d["intensity"], 
+                d["Exr"], d["Exi"], d["Eyr"], d["Eyi"], d["Ezr"], d["Ezi"])
     else:
         return ret
 

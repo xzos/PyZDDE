@@ -22,6 +22,9 @@ import pyzdde.zdde as pyz       # PyZDDE module
 import os as os
 from math import sqrt as sqrt
 
+if sys.version_info > (3, 0):
+    xrange = range
+
 def set_up():
     """create dde link, and load lens into zemax, and push lens into
     zemax application (this is required for array ray tracing)
