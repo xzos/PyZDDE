@@ -6621,6 +6621,10 @@ class PyZDDE(object):
             normalized field height along y axis
         waveNum : integer
             wavelength number as in the wavelength data editor
+        spirals : integer 
+            number of spirals 
+        rays : integer 
+            total number of rays to trace 
         mode : integer (0 or 1)
             0 = real; 1 = paraxial ray trace
 
@@ -6638,10 +6642,10 @@ class PyZDDE(object):
         # Calculate the ray pattern on the pupil plane
         pi, cos, sin = _math.pi, _math.cos, _math.sin
         lastAng = spirals*2*pi
-        delta_t = lastAng/(rays-1)
+        delta_t = lastAng/(rays - 1) 
         theta = lambda dt, rays: (i*dt for i in range(rays))
-        r = (i/lastAng for i in theta(delta_t, rays))
-        pXY = ((r*cos(t), r*sin(t)) for r, t in _izip(r,theta(delta_t, rays)))
+        r = (i/(rays-1) for i in range(rays))
+        pXY = ((r*cos(t), r*sin(t)) for r, t in _izip(r, theta(delta_t, rays)))
         x = [] # x-coordinate of the image surface
         y = [] # y-coordinate of the image surface
         z = [] # z-coordinate of the image surface
