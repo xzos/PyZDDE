@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:      arrayTraceNSCdemo.py
-# Purpose:   demonstrate the function zGetNSCTraceArray() in the module
+# Purpose:   demonstrates the function zGetNSCTraceArray() in the module
 #            pyzdde.arraytrace for performing NSC ray tracing. This demo
-#            is emulates the "NSCTraceDemo.c" external program that is
+#            emulates the "NSCTraceDemo.c" external program that is
 #            shipped with Zemax.
 #
 # Author:     Indranil Sinharoy

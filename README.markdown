@@ -35,7 +35,9 @@ link.close()
 
 #### More examples
 
-You can find few examples [here](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/tree/master/Examples/). 
+You can find few examples [here](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/tree/master/Examples/).
+
+Some examples specific to array ray tracing are catalogued [here](https://github.com/indranilsinharoy/PyZDDE/wiki/Array-ray-tracing-examples).  
 
 In addition, the repository [Intro2LensDesignByGeary](https://github.com/indranilsinharoy/Intro2LensDesignByGeary) contains notes from few chapters of the book "Introduction to Lens Design," by Joseph M. Geary, in the form of IPython notebooks. 
 
