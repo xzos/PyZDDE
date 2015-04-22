@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Name:        pyzrd.py
+# Name:        zfileutils.py
 # Purpose:     File i/o support for zemax rayfiles
 #
 # Copyright:   (c) Florian Hudelist
@@ -9,9 +9,9 @@
 # Revision:    0.1
 #-------------------------------------------------------------------------------
 
-
 import ctypes as _ctypes
-import struct as _struct
+from struct import unpack as _unpack
+from struct import pack as _pack
 
 
 class ZemaxRay():
@@ -53,7 +53,7 @@ class ZemaxRay():
         self.ezi = []
         self.wavelength = 0;
         self.version = 0
-        self.n_segments = 1
+        self.n_segments = 1  # not being used
         
         # Data fields and number format of an uncompressed rayfile
         self.compressed_zrd = [('status', _ctypes.c_int),
@@ -151,6 +151,69 @@ class NSQSource():
                 
         
 
+#def readZRDFile(file_name, file_type):
+#    """ 
+#    readZRD(filename, file_type)
+#    
+#    Import a zrd file to an array of ZemaxRay()
+#    
+#    Parameters
+#    ----------
+#    file_name: [string] name of the zrd file to be imported
+#    file_type: [string] type of the zrd file ('uncompressed' of 'compressed')
+#    
+#    Returns
+#    -------
+#    zrd : An array of zemax rays. The stored parameters are defined in the ZemaxRay class and depend on the file type
+#    
+#    Examples
+#    --------
+#    zrd = readZRD('rays.zrd','uncompressed')
+#    
+#    """
+#    if file_type == 'uncompressed':
+#        fields = 'uncompressed_zrd'
+#    elif file_type == 'compressed':
+#        fields = 'compressed_zrd'
+#        
+#    f = open(file_name, "rb")
+#    version = _struct.unpack('i', f.read(4))[0]
+#    n_segments = _struct.unpack('i', f.read(4))[0]
+#    zrd = []
+#    while f.read(1):
+#        f.seek(-1,1)
+#        zrd.append(ZemaxRay())
+#        zrd[-1].version = version
+#        zrd[-1].file_type = file_type
+#        n_segments_follow = _struct.unpack('i', f.read(4))[0]
+#        for ss in range(n_segments_follow):
+#            for field in getattr(zrd[-1],fields):
+#                # set the format character depending on the data type
+#                if field[1]== _ctypes.c_int:
+#                    format_char = 'i'
+#                elif field[1]== _ctypes.c_double:
+#                    format_char = 'd'
+#                elif field[1]== _ctypes.c_float:
+#                    format_char = 'f'
+#                # set the value of the respective field            
+#                getattr(zrd[-1], field[0]).append(_struct.unpack(format_char, f.read(_ctypes.sizeof(field[1])))[0])
+#    f.close()
+#    return zrd
+
+def read_n_bytes(fileHandle, formatChar):
+    """read n bytes from file. The number of bytes read is specified by the
+    ``formatChar``
+    
+    fileHandle : file handle
+    formatChar : 'c' (1), 'h' (2), 'i' (4), 'd' (8), 'f' (4)
+    """
+    nbytes = None    
+    bytes2read = {'c':1, 'h':2, 'i':4, 'd':8, 'f':4}    
+    packedBytes = fileHandle.read(bytes2read[formatChar])
+    if packedBytes:
+        nbytes = _unpack(formatChar, packedBytes)[0] 
+    return nbytes
+
 def readZRDFile(file_name, file_type):
     """ 
     readZRD(filename, file_type)
@@ -164,47 +227,95 @@ def readZRDFile(file_name, file_type):
     
     Returns
     -------
-    zrd : An array of zemax rays. The stored parameters are defined in the ZemaxRay class and depend on the file type
+    zrd : list
+        list of ``ZemaxRay`` objects. The stored parameters are defined in 
+        the class ``ZemaxRay`` and depend on the file type
     
     Examples
     --------
-    zrd = readZRD('rays.zrd','uncompressed')
+    >>> zrd = readZRD('rays.zrd','uncompressed')
     
     """
-    if file_type == 'uncompressed':
-        fields = 'uncompressed_zrd'
-    elif file_type == 'compressed':
-        fields = 'compressed_zrd'
-        
-    f = open(file_name, "rb")
-    version = _struct.unpack('i', f.read(4))[0]
-    n_segments = _struct.unpack('i', f.read(4))[0]
+    comp_type = 'uncompressed_zrd' if (file_type == 'uncompressed') else 'compressed_zrd'
     zrd = []
-    while f.read(1):
-        f.seek(-1,1)
-        zrd.append(ZemaxRay())
-        zrd[-1].version = version
-        zrd[-1].file_type = file_type
-        n_segments_follow = _struct.unpack('i', f.read(4))[0]
-        for ss in range(n_segments_follow):
-            for field in getattr(zrd[-1],fields):
-                # set the format character depending on the data type
-                if field[1]== _ctypes.c_int:
-                    format_char = 'i'
-                elif field[1]== _ctypes.c_double:
-                    format_char = 'd'
-                elif field[1]== _ctypes.c_float:
-                    format_char = 'f'
-                # set the value of the respective field            
-                getattr(zrd[-1], field[0]).append(_struct.unpack(format_char, f.read(_ctypes.sizeof(field[1])))[0])
-    f.close()
+    FILE_CURR_POS = 1
+    c_int, c_double, c_float = _ctypes.c_int, _ctypes.c_double, _ctypes.c_float
+    format_dict = {c_int:'i', c_double:'d', c_float:'f'}
+    file_handle = open(file_name, "rb")
+    version = read_n_bytes(file_handle, formatChar='i')
+    max_n_segments = read_n_bytes(file_handle, formatChar='i') 
+    while file_handle.read(1):
+        file_handle.seek(-1, FILE_CURR_POS)
+        ray = ZemaxRay()
+        ray.version = version
+        ray.n_segments = max_n_segments
+        ray.file_type = file_type
+        n_segments = read_n_bytes(file_handle, formatChar='i')
+        fields = getattr(ray, comp_type)
+        for _ in range(n_segments):
+            for field, field_format in fields:
+                format_char = format_dict[field_format]                
+                # set the value of the respective field  
+                getattr(ray, field).append(read_n_bytes(file_handle, format_char))
+        zrd.append(ray)
+    file_handle.close()
     return zrd
 
-def writeZRDFile(rayArray, file_name,file_type):
+#def writeZRDFile(rayArray, file_name,file_type):
+#    """ 
+#    writeZRD(rayArray, file_name, file_type)
+#    
+#    Write an array of ZemaxRay() to a zrd file. The uncompressed mode can only be used if all required data is available. Therefore this function can be used to convert an uncompressed zrd file to a compressed file but not vice versa.
+#    
+#    Parameters
+#    ----------
+#    rayArray : [ZemaxRay()] list of ZemaxRay elements to be saved
+#    file_name: [string] name of the zrd file to be imported
+#    file_type: [string] type of the zrd file ('uncompressed' of 'compressed')
+#    
+#    Returns
+#    -------
+#    n/a
+#    
+#    Examples
+#    --------
+#    writeZRD(rayArray, 'rays.zrd','uncompressed')
+#    
+#    """
+#
+#    if file_type == 'uncompressed':
+#        fields = 'uncompressed_zrd'
+#    elif file_type == 'compressed':
+#        fields = 'compressed_zrd'
+#
+#    f = open(file_name, "wb")
+#    # zemax version number
+#    f.write(_struct.pack('i',rayArray[0].version))
+#    # number of rays in the ray array
+#    f.write(_struct.pack('i',len(rayArray)))
+#    for rr in range(0,len(rayArray)):
+#        # number of surfaces in the ray
+#        f.write(_struct.pack('i',len(rayArray[rr].status)))
+#        for ss in range(0,len(rayArray[rr].status)):
+#            for field in getattr(rayArray[rr],fields):
+#                # set the format character depending on the data type
+#                if field[1]== _ctypes.c_int:
+#                    format_char = 'i'
+#                elif field[1]== _ctypes.c_double:
+#                    format_char = 'd'
+#                elif field[1]== _ctypes.c_float:
+#                    format_char = 'f'
+#
+#                f.write(_struct.pack(format_char, getattr(rayArray[rr], field[0])[ss]))
+#    f.close()
+
+def writeZRDFile(rayArray, file_name, file_type):
     """ 
     writeZRD(rayArray, file_name, file_type)
     
-    Write an array of ZemaxRay() to a zrd file. The uncompressed mode can only be used if all required data is available. Therefore this function can be used to convert an uncompressed zrd file to a compressed file but not vice versa.
+    Write an array of ZemaxRay() to a zrd file. The uncompressed mode can only be used if 
+    all required data is available. Therefore this function can be used to convert an 
+    uncompressed zrd file to a compressed file but not vice versa.
     
     Parameters
     ----------
@@ -221,30 +332,18 @@ def writeZRDFile(rayArray, file_name,file_type):
     writeZRD(rayArray, 'rays.zrd','uncompressed')
     
     """
-
-    if file_type == 'uncompressed':
-        fields = 'uncompressed_zrd'
-    elif file_type == 'compressed':
-        fields = 'compressed_zrd'
-
-    f = open(file_name, "wb")
-    # zemax version number
-    f.write(_struct.pack('i',rayArray[0].version))
-    # number of rays in the ray array
-    f.write(_struct.pack('i',len(rayArray)))
-    for rr in range(0,len(rayArray)):
-        # number of surfaces in the ray
-        f.write(_struct.pack('i',len(rayArray[rr].status)))
-        for ss in range(0,len(rayArray[rr].status)):
-            for field in getattr(rayArray[rr],fields):
-                # set the format character depending on the data type
-                if field[1]== _ctypes.c_int:
-                    format_char = 'i'
-                elif field[1]== _ctypes.c_double:
-                    format_char = 'd'
-                elif field[1]== _ctypes.c_float:
-                    format_char = 'f'
-
-                f.write(_struct.pack(format_char, getattr(rayArray[rr], field[0])[ss]))
-    f.close()
+    comp_type = 'uncompressed_zrd' if (file_type == 'uncompressed') else 'compressed_zrd'
+    c_int, c_double, c_float = _ctypes.c_int, _ctypes.c_double, _ctypes.c_float
+    format_dict = {c_int:'i', c_double:'d', c_float:'f'}
+    file_handle = open(file_name, "wb")
+    file_handle.write(_pack('i', rayArray[0].version))    
+    file_handle.write(_pack('i', rayArray[0].n_segments)) # number of rays
+    for ray in rayArray:
+        file_handle.write(_pack('i', len(ray.status)))    # number of segments in the ray
+        fields = getattr(ray, comp_type)
+        for ss in range(len(ray.status)):
+            for field, field_format in fields:
+                format_char = format_dict[field_format] 
+                file_handle.write(_pack(format_char, getattr(ray, field)[ss]))
+    file_handle.close()
                 
