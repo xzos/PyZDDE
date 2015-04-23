@@ -60,18 +60,26 @@ def compare_files_nbytes(filename1, filename2, formatChar):
     return retVal
     
 
+def formertest():
+    print("\nFORMER TEST FUNCTIONS")
+    a = zfile.readZRDFile('TESTRAYS.ZRD','uncompressed')
+    zfile.writeZRDFile(a, 'TESTRAYS_uncompressed.ZRD','uncompressed')
+    zfile.writeZRDFile(a, 'TESTRAYS_compressed.ZRD','compressed')
+    _ = zfile.readZRDFile('TESTRAYS_uncompressed.ZRD','uncompressed')
+    _ = zfile.readZRDFile('TESTRAYS_compressed.ZRD','compressed')
+    print("Former test functions successful")
+
    
 def test_zrdfileutils():
     """test the zrdfileutils functions
     """
-    # Test the functions on uncompressed ZRD files
-    zrd_filename = 'Color_Fringes_TenRays_NoSplit.ZRD' # 'TESTRAYS.ZRD'
+    #%% Test the functions on uncompressed ZRD files (read and write uncompressed data)
+    print("\nTEST FOR UNCOMPRESSED FULL FILE")
+    zrd_filename = 'Color_Fringes_TenRays_SplitRays.ZRD'
     zrd_data_0 = zfile.readZRDFile(get_full_path(zrd_filename), 'uncompressed')
-    #print(zrd_data_0[0])
-    #zfile.writeZRDFile(a, 'TESTRAYS_uncompressed.ZRD','uncompressed')
+    print("Number of segments in the uncompressed ZRD file = ", len(zrd_data_0))
     zrd_filename_to_write = 'uncompressed_write.ZRD'
     zfile.writeZRDFile(zrd_data_0, get_full_path(zrd_filename_to_write), 'uncompressed')
-    #b = zfile.readZRDFile('TESTRAYS_uncompressed.ZRD','uncompressed')
     zrd_data_1 = zfile.readZRDFile(get_full_path(zrd_filename_to_write),'uncompressed')
     
     # Compare the written file to the read file
@@ -79,15 +87,19 @@ def test_zrdfileutils():
     assert zrd_data_0[0].version == zrd_data_1[0].version
     assert zrd_data_0[0].n_segments == zrd_data_1[0].n_segments
     compare_files_nbytes(get_full_path(zrd_filename), get_full_path(zrd_filename_to_write), 'i')
-     
-    # Test of compressed file read/write
-    #zfile.writeZRDFile(a, 'TESTRAYS_compressed.ZRD','compressed')
-    #c = zfile.readZRDFile('TESTRAYS_compressed.ZRD','compressed')
+    
+    
+    #%% Test of compressed file (read and write compressed basic data)
+    print("\nTEST FOR COMPRESSED BASIC FILE")
+    #zrd_filename = 'ColorFringes_TenRays_SplitRays_compressedBasicData.ZRD'
+    zrd_filename = 'ColorFringes_TenRays_NoSplitRays_compressedBasicData.ZRD'
+    zrd_data_2 = zfile.readZRDFile(get_full_path(zrd_filename), 'compressed')
+    print("Number of segments in the uncompressed ZRD file = ", len(zrd_data_2))
+    
     print("DONE")
 
 
 if __name__ == '__main__':
+    formertest()    
     test_zrdfileutils()
-    #zrd_filename = 'Color_Fringes_TenRays_NoSplit.ZRD'
-    #zrd_filename_to_write = 'uncompressed_write.ZRD'
-    #compare_files_nbytes(get_full_path(zrd_filename), get_full_path(zrd_filename_to_write), 'i')
+    
