@@ -227,3 +227,6 @@ Examples/Scripts/pikachu2.zbf
 
 Test/zfileutils/TESTRAYS_uncompressed.ZRD
 Test/zfileutils/TESTRAYS_compressed.ZRD
+Test/zfileutils/TESTRAYS_uncompressed.ZRD
+Test/zfileutils/TESTRAYS_compressed.ZRD
+Test/zfileutils/uncompressed_write.ZRD

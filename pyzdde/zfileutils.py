@@ -56,7 +56,8 @@ class ZemaxRay():
         self.n_segments = 1  # not being used
         
         # Data fields and number format of an uncompressed rayfile
-        self.compressed_zrd = [('status', _ctypes.c_int),
+        self.compressed_zrd = [
+                    ('status', _ctypes.c_uint),
                     ('level', _ctypes.c_int),
                     ('hit_object', _ctypes.c_int),
                     ('parent', _ctypes.c_int),
@@ -69,7 +70,8 @@ class ZemaxRay():
                     ]
 
         # Data fields and number format of a compressed rayfile
-        self.uncompressed_zrd = [('status', _ctypes.c_int),
+        self.uncompressed_zrd = [
+                    ('status', _ctypes.c_uint),
                     ('level', _ctypes.c_int),
                     ('hit_object', _ctypes.c_int),
                     ('hit_face', _ctypes.c_int),
@@ -193,6 +195,8 @@ def _readZRDFile(file_name, file_type):
                 # set the format character depending on the data type
                 if field[1]== _ctypes.c_int:
                     format_char = 'i'
+                if field[1]== _ctypes.c_uint:
+                    format_char = 'I'
                 elif field[1]== _ctypes.c_double:
                     format_char = 'd'
                 elif field[1]== _ctypes.c_float:
@@ -207,16 +211,21 @@ def read_n_bytes(fileHandle, formatChar):
     ``formatChar``
     
     fileHandle : file handle
-    formatChar : 'c' (1), 'h' (2), 'i' (4), 'd' (8), 'f' (4)
+    formatChar : 'c' (1), 'h' (2), 'i' (4), 'I' (4), 'd' (8), 'f' (4)
     """
     nbytes = None    
-    bytes2read = {'c':1, 'h':2, 'i':4, 'd':8, 'f':4}    
+    bytes2read = {'c':1, 'h':2, 'i':4, 'I':4, 'd':8, 'f':4}    
     packedBytes = fileHandle.read(bytes2read[formatChar])
     if packedBytes:
-        nbytes = _unpack(formatChar, packedBytes)[0] 
+        try:
+            nbytes = _unpack(formatChar, packedBytes)[0]
+        except Exception as e:
+            print("Reading bytes from file failed at position {}".format(fileHandle.tell()))
+            print("packedBytes = {} of len {}".format(packedBytes, len(packedBytes)))
+            raise e
     return nbytes
 
-def readZRDFile(file_name, file_type):
+def readZRDFile(file_name, file_type, max_segs_per_ray=1000):
     """ 
     readZRD(filename, file_type)
     
@@ -224,8 +233,12 @@ def readZRDFile(file_name, file_type):
     
     Parameters
     ----------
-    file_name: [string] name of the zrd file to be imported
-    file_type: [string] type of the zrd file ('uncompressed' of 'compressed')
+    file_name : string
+        name of the zrd file to be imported
+    file_type : string
+        type of the zrd file ('uncompressed' of 'compressed')
+    max_segs_per_ray : integer
+        maximum segments per ray. If the 
     
     Returns
     -------
@@ -241,8 +254,9 @@ def readZRDFile(file_name, file_type):
     comp_type = 'uncompressed_zrd' if (file_type == 'uncompressed') else 'compressed_zrd'
     zrd = []
     FILE_CURR_POS = 1
-    c_int, c_double, c_float = _ctypes.c_int, _ctypes.c_double, _ctypes.c_float
-    format_dict = {c_int:'i', c_double:'d', c_float:'f'}
+    c_int, c_uint = _ctypes.c_int, _ctypes.c_uint 
+    c_double, c_float  = _ctypes.c_double, _ctypes.c_float
+    format_dict = {c_int:'i', c_uint:'I', c_double:'d', c_float:'f'}
     file_handle = open(file_name, "rb")
     version = read_n_bytes(file_handle, formatChar='i')
     max_n_segments = read_n_bytes(file_handle, formatChar='i')
@@ -254,9 +268,9 @@ def readZRDFile(file_name, file_type):
         ray.file_type = file_type
         n_segments = read_n_bytes(file_handle, formatChar='i')
         fields = getattr(ray, comp_type)
-        if n_segments > 50:  # For debugging
-            print("n_segments ({}) > 50 at byte-offset position {}. Closing file and"
-                  " exiting".format(n_segments, file_handle.tell() - 4))
+        if n_segments > max_segs_per_ray:  
+            print("n_segments ({}) > {} at byte-offset position {}. Closing file and"
+                  " exiting".format(n_segments, max_segs_per_ray, file_handle.tell() - 4))
             file_handle.close()
             break;
         for _ in range(n_segments):
@@ -310,6 +324,8 @@ def _writeZRDFile(rayArray, file_name,file_type):
                 # set the format character depending on the data type
                 if field[1]== _ctypes.c_int:
                     format_char = 'i'
+                elif field[1] == _ctypes.c_uint:
+                    format_char = 'I'
                 elif field[1]== _ctypes.c_double:
                     format_char = 'd'
                 elif field[1]== _ctypes.c_float:
@@ -342,8 +358,9 @@ def writeZRDFile(rayArray, file_name, file_type):
     
     """
     comp_type = 'uncompressed_zrd' if (file_type == 'uncompressed') else 'compressed_zrd'
-    c_int, c_double, c_float = _ctypes.c_int, _ctypes.c_double, _ctypes.c_float
-    format_dict = {c_int:'i', c_double:'d', c_float:'f'}
+    c_int, c_uint = _ctypes.c_int, _ctypes.c_uint 
+    c_double, c_float  = _ctypes.c_double, _ctypes.c_float
+    format_dict = {c_int:'i', c_uint:'I', c_double:'d', c_float:'f'}
     file_handle = open(file_name, "wb")
     file_handle.write(_pack('i', rayArray[0].version))    
     file_handle.write(_pack('i', rayArray[0].n_segments)) # number of rays
