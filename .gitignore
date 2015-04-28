@@ -225,3 +225,8 @@ ZMXFILES/Fiber Coupling_POPunittest_NoFiberCompute.CFG
 ZMXFILES/Fiber Coupling_POPunittest_Phase.CFG
 Examples/Scripts/pikachu2.zbf
 
+Test/zfileutils/TESTRAYS_uncompressed.ZRD
+Test/zfileutils/TESTRAYS_compressed.ZRD
+Test/zfileutils/TESTRAYS_uncompressed.ZRD
+Test/zfileutils/TESTRAYS_compressed.ZRD
+Test/zfileutils/uncompressed_write.ZRD
