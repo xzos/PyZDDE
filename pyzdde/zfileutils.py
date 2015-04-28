@@ -55,17 +55,39 @@ class ZemaxRay():
         self.version = 0
         self.n_segments = 1
         
-        # Data fields and number format of an uncompressed rayfile
-        self.compressed_zrd = [('status', _ctypes.c_int),
+
+        # Data fields and number format of an compressed (full) rayfile
+        self.compressed_full_zrd = [('status', _ctypes.c_int),
                     ('level', _ctypes.c_int),
                     ('hit_object', _ctypes.c_int),
+                    ('hit_face', _ctypes.c_int),
+                    ('unused', _ctypes.c_int),
+                    ('in_object', _ctypes.c_int),
                     ('parent', _ctypes.c_int),
+                    ('storage', _ctypes.c_int),
                     ('xybin', _ctypes.c_int),
                     ('lmbin', _ctypes.c_int),
+                    ('index', _ctypes.c_float),
+                    ('starting_phase', _ctypes.c_float),
                     ('x', _ctypes.c_float),
                     ('y', _ctypes.c_float),
                     ('z', _ctypes.c_float),
+                    ('l', _ctypes.c_float),
+                    ('m', _ctypes.c_float),
+                    ('n', _ctypes.c_float),
+                    ('nx', _ctypes.c_float),
+                    ('ny', _ctypes.c_float),
+                    ('nz', _ctypes.c_float),
+                    ('path_to', _ctypes.c_float),
                     ('intensity', _ctypes.c_float),
+                    ('phase_of', _ctypes.c_float),
+                    ('phase_at', _ctypes.c_float),
+                    ('exr', _ctypes.c_float),
+                    ('exi', _ctypes.c_float),
+                    ('eyr', _ctypes.c_float),
+                    ('eyi', _ctypes.c_float),
+                    ('ezr', _ctypes.c_float),
+                    ('ezi', _ctypes.c_float)
                     ]
 
         # Data fields and number format of a compressed rayfile
@@ -151,7 +173,7 @@ class NSQSource():
                 
         
 
-def readZRDFile(file_name, file_type):
+def readZRDFile(file_name):
     """ 
     readZRD(filename, file_type)
     
@@ -171,19 +193,27 @@ def readZRDFile(file_name, file_type):
     zrd = readZRD('rays.zrd','uncompressed')
     
     """
-    if file_type == 'uncompressed':
-        fields = 'uncompressed_zrd'
-    elif file_type == 'compressed':
-        fields = 'compressed_zrd'
         
     f = open(file_name, "rb")
     version = _struct.unpack('i', f.read(4))[0]
+    
+    if version < 10000:
+        file_type = 'uncompressed'
+        fields = 'uncompressed_zrd'
+    elif version > 20000:
+        print('Ray file data format is Compressed Full Data (CFD) which cannot be imported')
+        return -1
+    else:
+        print('Ray file data format is Compressed Basic Data (CBD) which cannot be imported')
+        return -1
+           
+
     n_segments = _struct.unpack('i', f.read(4))[0]
     zrd = []
     while f.read(1):
         f.seek(-1,1)
         zrd.append(ZemaxRay())
-        zrd[-1].version = version
+        zrd[-1].version = version        
         zrd[-1].file_type = file_type
         n_segments_follow = _struct.unpack('i', f.read(4))[0]
         for ss in range(n_segments_follow):
