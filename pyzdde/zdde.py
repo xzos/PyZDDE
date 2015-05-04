@@ -3352,8 +3352,8 @@ class PyZDDE(object):
 
         There are 2 ways of using this function:
 
-            * zGetWave(0)-> waveData Or
-            * zGetWave(wavelengthNumber)-> waveData
+            * `zGetWave(0)-> waveData` Or
+            * `zGetWave(wavelengthNumber)-> waveData`
 
         Returns
         -------
@@ -3361,17 +3361,19 @@ class PyZDDE(object):
             * primary : (integer) number indicating the primary wavelength
             * number  : (integer) number_of_wavelengths currently defined
         if 0 < n <= number_of_wavelengths : 2-tuple
-            * wavelength : (float) value of the specific wavelength
+            * wavelength : (float) value of the specific wavelength (in micrometers)
             * weight : (float) weight of the specific wavelength
 
         Notes
         -----
-        The returned tuple is exactly same in structure and contents to
-        that returned by ``zSetWave()``.
+        1. The returned tuple is exactly same in structure and contents to that 
+           returned by ``zSetWave()``.
+        2. Wavelength data are always measured in micrometers referenced to "air"  
+           at the system temperature and pressure.
 
         See Also
         --------
-        zSetWave(), zSetWaveTuple(), zGetWaveTuple(), zGetPrimaryWaveNum()
+        zSetWave(), zSetWaveTuple(), zGetWaveTuple(), zGetPrimaryWave()
         """
         reply = self._sendDDEcommand('GetWave,' + str(n))
         rs = reply.split(',')
@@ -6407,7 +6409,7 @@ class PyZDDE(object):
 
         Notes
         -----
-        To get the primary wavelength do the following:
+        To get the primary wavelength (in microns) do the following:
 
         >>> ln.zGetWave(ln.zGetPrimaryWave()).wavelength
 
@@ -6873,8 +6875,8 @@ class PyZDDE(object):
         else:
             return popInfo
 
-    def zModifyPOPSettings(self, settingsFile, start_surf=None,
-                           end_surf=None, field=None, wave=None, auto=None,
+    def zModifyPOPSettings(self, settingsFile, startSurf=None,
+                           endSurf=None, field=None, wave=None, auto=None,
                            beamType=None, paramN=((),()), pIrr=None, tPow=None,
                            sampx=None, sampy=None, srcFile=None, widex=None,
                            widey=None, fibComp=None, fibFile=None, fibType=None,
@@ -6914,10 +6916,10 @@ class PyZDDE(object):
             dst = settingsFile
         else:
             return -1
-        if start_surf is not None:
-            sTuple.append(self.zModifySettings(dst, "POP_START", start_surf))
-        if end_surf is not None:
-            sTuple.append(self.zModifySettings(dst, "POP_END", end_surf))
+        if startSurf is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_START", startSurf))
+        if endSurf is not None:
+            sTuple.append(self.zModifySettings(dst, "POP_END", endSurf))
         if field is not None:
             sTuple.append(self.zModifySettings(dst, "POP_FIELD", field))
         if wave is not None:
@@ -6966,8 +6968,8 @@ class PyZDDE(object):
             sTuple.append(self.zModifySettings(dst, "POP_TILTY", tilty))
         return tuple(sTuple)
 
-    def zSetPOPSettings(self, data=0, settingsFileName=None, start_surf=None,
-                        end_surf=None, field=None, wave=None, auto=None,
+    def zSetPOPSettings(self, data=0, settingsFileName=None, startSurf=None,
+                        endSurf=None, field=None, wave=None, auto=None,
                         beamType=None, paramN=((),()), pIrr=None, tPow=None,
                         sampx=None, sampy=None, srcFile=None, widex=None,
                         widey=None, fibComp=None, fibFile=None, fibType=None,
@@ -6991,21 +6993,22 @@ class PyZDDE(object):
             If ``None``, then a CFG file with the name of the lens
             followed by the string "_pyzdde_POP.CFG" will be created in
             the same directory as the lens file and returned
-        start_surf : integer, optional
-            the starting surface
-        end_surf : integer, optional
-            the end surface
+        startSurf : integer, optional
+            the starting surface (in General Tab)
+        endSurf : integer, optional
+            the end surface (in General Tab)
         field : integer, optional
-            the field number
+            the field number (in General Tab)
         wave : integer, optional
-            the wavelength number
+            the wavelength number (in General Tab)
         auto : integer, optional
             simulates the pressing of the "auto" button which chooses
-            appropriate X and Y beam widths based upon the sampling and
-            other settings. Set it to 1
+            appropriate X and Y widths based upon the sampling and
+            other settings (in Beam Definition Tab)
         beamType : integer (0...6), optional
             0 = Gaussian Waist; 1 = Gaussian Angle; 2 = Gaussian Size +
             Angle; 3 = Top Hat; 4 = File; 5 = DLL; 6 = Multimode.
+            (in Beam Definition Tab)
         paramN : 2-tuple, optional
             sets beam parameter n, for example ((1, 4),(0.1, 0.5)) sets
             parameters 1 and 4 to 0.1 and 0.5 respectively. These
@@ -7013,49 +7016,56 @@ class PyZDDE(object):
             setting. For example, for the Gaussian Waist beam, n=1 for
             Waist X, 2 for Waist Y, 3 for Decenter X, 4 for Decenter Y,
             5 for Aperture X, 6 for Aperture Y, 7 for Order X, and 8 for
-            Order Y
+            Order Y (in Beam Definition Tab)
         pIrr : float, optional
             sets the normalization by peak irradiance. It is the initial
             beam peak irradiance in power per area. It is an alternative
-            to Total Power (tPow)
+            to Total Power (tPow) [in Beam Definition Tab]
         tPow : float, optional
             sets the normalization by total beam power. It is the initial
             beam total power. This is an alternative to Peak Irradiance
-            (pIrr)
+            (pIrr) [in Beam Definition Tab]
         sampx : integer (1...10), optional
             the X direction sampling. 1 for 32; 2 for 64; 3 for 128;
             4 for 256; 5 for 512; 6 for 1024; 7 for 2048; 8 for 4096;
-            9 for 8192; 10 for 16384;
+            9 for 8192; 10 for 16384; (in Beam Definition Tab)
         sampy : integer (1...10), optional
             the Y direction sampling. 1 for 32; 2 for 64; 3 for 128;
             4 for 256; 5 for 512; 6 for 1024; 7 for 2048; 8 for 4096;
-            9 for 8192; 10 for 16384;
+            9 for 8192; 10 for 16384; (in Beam Definition Tab)
         srcFile : string, optional
             The file name if the starting beam is defined by a ZBF file,
-            DLL, or multimode file
+            DLL, or multimode file; (in Beam Definition Tab)
         widex : float, optional
-            the initial X direction width in lens units
+            the initial X direction width in lens units; 
+            (X-Width in Beam Definition Tab)
         widey : float, optional
-            the initial Y direction width in lens units
+            the initial Y direction width in lens units;
+            (Y-Width in Beam Definition Tab)
         fibComp : integer (1/0), optional
             use 1 to check the fiber coupling integral ON, 0 for OFF
+            (in Fiber Data Tab)
         fibFile : string, optional
             the file name if the fiber mode is defined by a ZBF or DLL
+            (in Fiber Data Tab)
         fibType : string, optional
             use the same values as ``beamType`` above, except for
             multimode which is not yet supported
+            (in Fiber Data Tab)
         fparamN : 2-tuple, optional
             sets fiber parameter n, for example ((2,3),(0.5, 0.6)) sets
             parameters 2 and 3 to 0.5 and 0.6 respectively. See the hint
-            for ``paramN``
+            for ``paramN`` (in Fiber Data Tab)
         ignPol : integer (0/1), optional
             use 1 to ignore polarization, 0 to consider polarization
-        pos : integer (0/1), optional
-            use 0 for chief ray, 1 for surface vertex
+            (in Fiber Data Tab)
+        pos : integer (0/1), optional 
+            fiber position setting. use 0 for chief ray, 1 for surface vertex
+            (in Fiber Data Tab)
         tiltx : float, optional
-            tilt about X in degrees
+            tilt about X in degrees (in Fiber Data Tab)
         tilty : float, optional
-            tilt about Y in degrees
+            tilt about Y in degrees (in Fiber Data Tab)
 
         Returns
         -------
@@ -7097,7 +7107,7 @@ class PyZDDE(object):
             print("ERROR: Invalid settingsFile {}".format(dst))
             return
         else:
-            self.zModifyPOPSettings(dst, start_surf, end_surf, field, wave, auto,
+            self.zModifyPOPSettings(dst, startSurf, endSurf, field, wave, auto,
                                     beamType, paramN, pIrr, tPow, sampx, sampy,
                                     srcFile, widex, widey, fibComp, fibFile,
                                     fibType, fparamN, ignPol, pos, tiltx, tilty)
