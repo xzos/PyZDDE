@@ -6711,6 +6711,8 @@ class PyZDDE(object):
             containing ``popInfo`` (a tuple) and ``powerGrid`` (a 2D list):
 
             popInfo : tuple
+                surf : integer
+                    surface number at which the POP is analysis was done
                 peakIrradiance/ centerPhase : float
                     the peak irradiance is the maximum power per unit area
                     at any point in the beam, measured in source units per
@@ -6771,9 +6773,12 @@ class PyZDDE(object):
         find_irr_data = _getFirstLineOfInterest(line_list, 'POP Irradiance Data',
                                                 patAtStart=False)
         data_is_irr = False if find_irr_data is None else True
-
-        # Get the Grid size
-        grid_line = line_list[_getFirstLineOfInterest(line_list, 'Grid size')]
+        # Get the Surface number and Grid size
+        grid_line_num = _getFirstLineOfInterest(line_list, 'Grid size')
+        surf_line = line_list[grid_line_num - 1]
+        surf = int(_re.findall(r'\d', surf_line)[0]) # assume: first int num in the line 
+                                 # is surf number. surf comment can have int or float nums 
+        grid_line = line_list[grid_line_num]
         grid_x, grid_y = [int(i) for i in _re.findall(r'\d{2,5}', grid_line)]
 
         # Point spacing
@@ -6853,21 +6858,21 @@ class PyZDDE(object):
             _deleteFile(textFileName)
 
         if data_is_irr: # Irradiance data
-            popi = _co.namedtuple('POPinfo', ['peakIrr', 'totPow',
+            popi = _co.namedtuple('POPinfo', ['surf', 'peakIrr', 'totPow',
                                               'fibEffSys', 'fibEffRec', 'coupling',
                                               'pilotSize', 'pilotWaist', 'pos',
                                               'rayleigh', 'gridX', 'gridY',
                                               'widthX', 'widthY' ])
-            popInfo = popi(peakIrr, totPow, fibEffSys, fibEffRec, coupling,
+            popInfo = popi(surf, peakIrr, totPow, fibEffSys, fibEffRec, coupling,
                            pilotSize, pilotWaist, pos, rayleigh,
                            grid_x, grid_y, width_x, width_y)
         else: # Phase data
-            popi = _co.namedtuple('POPinfo', ['cenPhase', 'blank',
+            popi = _co.namedtuple('POPinfo', ['surf', 'cenPhase', 'blank',
                                               'fibEffSys', 'fibEffRec', 'coupling',
                                               'pilotSize', 'pilotWaist', 'pos',
                                               'rayleigh', 'gridX', 'gridY',
                                               'widthX', 'widthY' ])
-            popInfo = popi(centerPhase, None, fibEffSys, fibEffRec, coupling,
+            popInfo = popi(surf, centerPhase, None, fibEffSys, fibEffRec, coupling,
                            pilotSize, pilotWaist, pos, rayleigh,
                            grid_x, grid_y, width_x, width_y)
         if displayData:
