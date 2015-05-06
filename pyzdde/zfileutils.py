@@ -12,6 +12,8 @@ from __future__ import print_function
 import ctypes as _ctypes
 from struct import unpack as _unpack
 from struct import pack as _pack
+import math as _math
+
 
 
 class ZemaxRay():
@@ -52,7 +54,8 @@ class ZemaxRay():
         self.ezr = []
         self.ezi = []
         self.wavelength = 0;
-        self.version = 0
+        self.zrd_type = 0
+        self.zrd_version = 0
         self.n_segments = 1  # not being used
         
 
@@ -205,11 +208,13 @@ def readZRDFile(file_name, max_segs_per_ray=1000):
     c_double, c_float  = _ctypes.c_double, _ctypes.c_float
     format_dict = {c_int:'i', c_uint:'I', c_double:'d', c_float:'f'}
     file_handle = open(file_name, "rb")
-    version = read_n_bytes(file_handle, formatChar='i')
+    first_int = read_n_bytes(file_handle, formatChar='i')
+    zrd_type = _math.floor(first_int/10000)
+    zrd_version = _math.fmod(first_int,10000) 
     max_n_segments = read_n_bytes(file_handle, formatChar='i')
-    if version < 10000:
+    if zrd_type == 0:
         file_type = 'uncompressed'
-    elif version > 20000:
+    elif zrd_type == 2:
         print('Ray file data format is Compressed Full Data (CFD) which cannot be imported')
         return -1
     else:
@@ -220,7 +225,8 @@ def readZRDFile(file_name, max_segs_per_ray=1000):
     while file_handle.read(1):
         file_handle.seek(-1, FILE_CURR_POS)
         ray = ZemaxRay()
-        ray.version = version
+        ray.zrd_version = zrd_version
+        ray.zrd_type = zrd_type
         ray.n_segments = max_n_segments
         ray.file_type = file_type
         n_segments = read_n_bytes(file_handle, formatChar='i')
@@ -336,11 +342,12 @@ def writeZRDFile(rayArray, file_name, file_type):
     
     """
     comp_type = 'uncompressed_zrd' if (file_type == 'uncompressed') else 'compressed_zrd'
+    zrd_type = 0 if (file_type == 'uncompressed') else 20000
     c_int, c_uint = _ctypes.c_int, _ctypes.c_uint 
     c_double, c_float  = _ctypes.c_double, _ctypes.c_float
     format_dict = {c_int:'i', c_uint:'I', c_double:'d', c_float:'f'}
     file_handle = open(file_name, "wb")
-    file_handle.write(_pack('i', rayArray[0].version))    
+    file_handle.write(_pack('i', rayArray[0].zrd_version+zrd_type))    
     file_handle.write(_pack('i', rayArray[0].n_segments)) # number of rays
     for ray in rayArray:
         file_handle.write(_pack('i', len(ray.status)))    # number of segments in the ray
