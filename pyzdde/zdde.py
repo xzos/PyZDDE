@@ -6788,13 +6788,14 @@ class PyZDDE(object):
 
         width_x = pts_x*grid_x
         width_y = pts_y*grid_y
-
+        
         if data_is_irr:
             # Peak Irradiance and Total Power
             pat_i = r'-?\d\.\d{4,6}[Ee][-\+]\d{3}' # pattern for P. Irr, T. Pow,
             peakIrr, totPow = None, None
-            pi_tp_line = line_list[_getFirstLineOfInterest(line_list, 'Peak Irradiance')]
+            pi_tp_line = _getFirstLineOfInterest(line_list, 'Peak Irradiance') 
             if pi_tp_line: # Transfer magnitude doesn't have Peak Irradiance info
+                pi_tp_line = line_list[pi_tp_line]
                 pi_info, tp_info = pi_tp_line.split(',')
                 pi = _re.search(pat_i, pi_info)
                 tp = _re.search(pat_i, tp_info)
@@ -6806,8 +6807,10 @@ class PyZDDE(object):
             # Center Phase
             pat_p = r'-?\d+\.\d{4,6}' # pattern for Center Phase Info
             centerPhase = None
-            cp_line = line_list[_getFirstLineOfInterest(line_list, 'Center Phase')]
+            #cp_line = line_list[_getFirstLineOfInterest(line_list, 'Center Phase')]
+            cp_line = _getFirstLineOfInterest(line_list, 'Center Phase')
             if cp_line: # Transfer magnitude / Phase doesn't have Center Phase info
+                cp_line = line_list[cp_line]
                 cp = _re.search(pat_p, cp_line)
                 if cp:
                     centerPhase = float(cp.group())
