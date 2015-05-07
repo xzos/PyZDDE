@@ -329,19 +329,19 @@ class TestPyZDDEFunctions(unittest.TestCase):
                 "Expecting {} elements in popinfo tuple".format(length))
             # validate the actual data in the pop info
             if sfile == 'default':
-                expPidata = (1, 10078.0, 1.0, 1.0, 0.999955, 0.999955, 0.0079605,
+                expPidata = (4, 10078.0, 1.0, 1.0, 0.999955, 0.999955, 0.0079605,
                              0.0079605, 0.00060786, 0.19908, 256, 256, 0.3201024,
                              0.3201024)
             if sfile == 'nofibint':
-                expPidata = (10078.0, 1.0, None, None, None, 0.0079605,
+                expPidata = (4, 10078.0, 1.0, None, None, None, 0.0079605,
                              0.0079605, 0.00060786, 0.19908, 256, 256, 0.3201024,
                              0.3201024)
             if sfile == 'nzstbirr':
-                expPidata = (10058.0, 1.0, 1.0, 0.985784, 0.985784, 0.0079602,
+                expPidata = (4, 10058.0, 1.0, 1.0, 0.985784, 0.985784, 0.0079602,
                              0.0077483, -0.044419, 0.18861, 256, 256, 0.320384,
                              0.320384)
             if sfile == 'nzstbpha':
-                expPidata = (-0.2339, None, 1.0, 0.985784, 0.985784, 0.0079602,
+                expPidata = (4, -0.2339, None, 1.0, 0.985784, 0.985784, 0.0079602,
                              0.0077483, -0.044419, 0.18861, 256, 256, 0.320384,
                              0.320384)
             if sfile: # perform test iff there is an sfile
@@ -361,22 +361,14 @@ class TestPyZDDEFunctions(unittest.TestCase):
         ret = self.link0.zLoadFile(filename)
         assert ret == 0
         #print("Lens file: {}\nSettings file: {}".format(filename, sfilename))
-        # zGetPOP() without any arguments
-        popinfo = self.link0.zGetPOP()
-        print("##############POP INFO for debug #1:\n", popinfo)
-        
-        
-        check_popinfo(popinfo, 14, sfile='default')
-        # zGetPOP() with displayData
-        popinfo, data = self.link0.zGetPOP(displayData=True)
-        print("#################POP INFO for debug #2:\n", popinfo)
-        check_popinfo(popinfo, 14)
-        check_data(data, (256, 256))
+        # zGetPOP() without any arguments ... it is not possible to test
+        # most other parameters without settings file. This is because any other
+        # .CFG settings file can influence the anlysis
+        popinfo = self.link0.zGetPOP()        
+        self.assertEquals(len(popinfo), 14, 'Expected 14 fields')
         # zGetPOP() with settings file
         popinfo = self.link0.zGetPOP(settingsFile=sfilename)
         check_popinfo(popinfo, 14, sfile='default')
-        print("####################POP INFO for debug #3:\n", popinfo)
-        check_data(data, (256, 256))
         # second file (no fiber coupling integral)
         filename, sfilename = get_test_file('pop', settings=True, sfile='nofibint')
         ret = self.link0.zLoadFile(filename)
