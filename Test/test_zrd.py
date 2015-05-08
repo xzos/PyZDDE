@@ -81,8 +81,8 @@ def test_uncompressed_zrd_read_write():
     zfile.writeZRDFile(zrd_data_0, get_full_path(zrd_filename_to_write), 'uncompressed')
     zrd_data_1 = zfile.readZRDFile(get_full_path(zrd_filename_to_write),'uncompressed')
     # Compare the written file to the read file
-    print("version:", zrd_data_0[0].version)
-    assert zrd_data_0[0].version == zrd_data_1[0].version
+    print("version:", zrd_data_0[0].zrd_version)
+    assert zrd_data_0[0].zrd_version == zrd_data_1[0].zrd_version
     assert zrd_data_0[0].n_segments == zrd_data_1[0].n_segments
     compare_files_nbytes(get_full_path(zrd_filename), get_full_path(zrd_filename_to_write), 'i')
     print("Uncompressed ZRD read/write successful.")
