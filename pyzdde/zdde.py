@@ -3439,17 +3439,21 @@ class PyZDDE(object):
 
         Returns
         -------
-         ?
+        errorCode : integer 
+            0 if 'OK', -1 if error  
 
         Notes
         -----
-        The ASCII file is a single column of free-format numbers, with a
-        .DAT extension.
+        The ASCII file should have .DAT extension for sequential objects. This 
+        is generally used to specifiy uniform array sag/phase data for 
+        Grid Sag / Grid Phase surfaces. 
         """
         cmd = "ImportExtraData,{:d},{}".format(surfaceNumber,fileName)
         reply = self._sendDDEcommand(cmd)
-        return reply.rstrip()
-        # !!! FIX determine what is the currect return
+        if 'OK' in reply.rstrip():
+            return 0
+        else:
+            return -1
 
     def zInsertConfig(self, configNumber):
         """Insert a new configuration (column) in the multi-configuration
@@ -6776,7 +6780,7 @@ class PyZDDE(object):
         # Get the Surface number and Grid size
         grid_line_num = _getFirstLineOfInterest(line_list, 'Grid size')
         surf_line = line_list[grid_line_num - 1]
-        surf = int(_re.findall(r'\d', surf_line)[0]) # assume: first int num in the line 
+        surf = int(_re.findall(r'\d{1,4}', surf_line)[0]) # assume: first int num in the line 
                                  # is surf number. surf comment can have int or float nums 
         grid_line = line_list[grid_line_num]
         grid_x, grid_y = [int(i) for i in _re.findall(r'\d{2,5}', grid_line)]
