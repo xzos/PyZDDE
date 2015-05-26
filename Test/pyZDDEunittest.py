@@ -15,7 +15,6 @@ import sys
 import imp
 import unittest
 
-
 # Put both the "Test" and the "PyZDDE" directory in the python search path.
 testdirectory = os.path.dirname(os.path.realpath(__file__))
 ind = testdirectory.find('Test')
@@ -26,9 +25,10 @@ if pyzddedirectory not in sys.path:
     sys.path.append(pyzddedirectory)
 
 import pyzdde.zdde as pyzdde
+import pyzdde.zfileutils as zfile
 
 imp.reload(pyzdde)  # In order to ensure that the latest changes in the pyzdde module
-                    # are updated here.
+imp.reload(zfile)   # are updated here.
 
 # Flag to enable printing of returned values.
 PRINT_RETURNED_VALUES = 1     # if test results are not going to be viewed by
@@ -320,6 +320,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
 
     def test_zGetPOP(self):
         print("\nTest: zGetPOP()")
+        
         def check_popinfo(pidata, length, sfile=None):
             """Helper function to validate popinfo data"""
             self.assertIsInstance(pidata, tuple,
@@ -328,24 +329,25 @@ class TestPyZDDEFunctions(unittest.TestCase):
                 "Expecting {} elements in popinfo tuple".format(length))
             # validate the actual data in the pop info
             if sfile == 'default':
-                expPidata = (10078.0, 1.0, 1.0, 0.999955, 0.999955, 0.0079605,
+                expPidata = (4, 10078.0, 1.0, 1.0, 0.999955, 0.999955, 0.0079605,
                              0.0079605, 0.00060786, 0.19908, 256, 256, 0.3201024,
                              0.3201024)
             if sfile == 'nofibint':
-                expPidata = (10078.0, 1.0, None, None, None, 0.0079605,
+                expPidata = (4, 10078.0, 1.0, None, None, None, 0.0079605,
                              0.0079605, 0.00060786, 0.19908, 256, 256, 0.3201024,
                              0.3201024)
             if sfile == 'nzstbirr':
-                expPidata = (10058.0, 1.0, 1.0, 0.985784, 0.985784, 0.0079602,
+                expPidata = (4, 10058.0, 1.0, 1.0, 0.985784, 0.985784, 0.0079602,
                              0.0077483, -0.044419, 0.18861, 256, 256, 0.320384,
                              0.320384)
             if sfile == 'nzstbpha':
-                expPidata = (-0.2339, None, 1.0, 0.985784, 0.985784, 0.0079602,
+                expPidata = (4, -0.2339, None, 1.0, 0.985784, 0.985784, 0.0079602,
                              0.0077483, -0.044419, 0.18861, 256, 256, 0.320384,
                              0.320384)
             if sfile: # perform test iff there is an sfile
                 for x, y in zip(pidata, expPidata):
                     self.assertAlmostEqual(x, y, places=5)
+        
         def check_data(data, dim, dtype=None, sfile=None):
             """Helper function to validate data"""
             self.assertIsInstance(data, list, "Expecting data as a list")
@@ -353,22 +355,20 @@ class TestPyZDDEFunctions(unittest.TestCase):
                 "Expecting the first dimension of popinfo to be {}".format(dim[0]))
             self.assertEqual(len(data[0]), dim[1],
                 "Expecting the second dimension of popinfo to be {}".format(dim[1]))
+        
         # first file (default settings)
         filename, sfilename = get_test_file('pop', settings=True, sfile='default')
         ret = self.link0.zLoadFile(filename)
         assert ret == 0
         #print("Lens file: {}\nSettings file: {}".format(filename, sfilename))
-        # zGetPOP() without any arguments
-        popinfo = self.link0.zGetPOP()
-        check_popinfo(popinfo, 13, sfile='default')
-        # zGetPOP() with displayData
-        popinfo, data = self.link0.zGetPOP(displayData=True)
-        check_popinfo(popinfo, 13)
-        check_data(data, (256,256))
+        # zGetPOP() without any arguments ... it is not possible to test
+        # most other parameters without settings file. This is because any other
+        # .CFG settings file can influence the anlysis
+        popinfo = self.link0.zGetPOP()        
+        self.assertEquals(len(popinfo), 14, 'Expected 14 fields')
         # zGetPOP() with settings file
         popinfo = self.link0.zGetPOP(settingsFile=sfilename)
-        check_popinfo(popinfo, 13, sfile='default')
-        check_data(data, (256,256))
+        check_popinfo(popinfo, 14, sfile='default')
         # second file (no fiber coupling integral)
         filename, sfilename = get_test_file('pop', settings=True, sfile='nofibint')
         ret = self.link0.zLoadFile(filename)
@@ -376,8 +376,8 @@ class TestPyZDDEFunctions(unittest.TestCase):
         #print("Lens file: {}\nSettings file: {}".format(filename, sfilename))
         # zGetPOP() with the settingfile with no fiber coupling integral
         popinfo, data = self.link0.zGetPOP(settingsFile=sfilename, displayData=True)
-        check_popinfo(popinfo, 13, sfile='nofibint')
-        check_data(data, (256,256))
+        check_popinfo(popinfo, 14, sfile='nofibint')
+        check_data(data, (256, 256))
         # third file (irradiance data)
         filename, sfilename = get_test_file('pop', settings=True, sfile='nzstbirr')
         ret = self.link0.zLoadFile(filename)
@@ -386,8 +386,8 @@ class TestPyZDDEFunctions(unittest.TestCase):
         # zGetPOP() with settings to irradiance data with non-zero surf to beam
         # value
         popinfo, data = self.link0.zGetPOP(settingsFile=sfilename, displayData=True)
-        check_popinfo(popinfo, 13, sfile='nzstbirr')
-        check_data(data, (256,256))
+        check_popinfo(popinfo, 14, sfile='nzstbirr')
+        check_data(data, (256, 256))
         # fourth file (phase data)
         filename, sfilename = get_test_file('pop', settings=True, sfile='nzstbpha')
         ret = self.link0.zLoadFile(filename)
@@ -395,8 +395,8 @@ class TestPyZDDEFunctions(unittest.TestCase):
         #print("Lens file: {}\nSettings file: {}".format(filename, sfilename))
         # zGetPOP() with settings to phase data with non-zero surf to beam value
         popinfo, data = self.link0.zGetPOP(settingsFile=sfilename, displayData=True)
-        check_popinfo(popinfo, 13, sfile='nzstbpha')
-        check_data(data, (256,256))
+        check_popinfo(popinfo, 14, sfile='nzstbpha')
+        check_data(data, (256, 256))
         if TestPyZDDEFunctions.pRetVar:
             print('zGetPop test successful')
 
@@ -408,7 +408,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         # Set POP settings, without specifying a settings file name.
         srcParam = ((1, 2, 7, 8), (2, 2, 0, 0)) # x/y waist = 2mm, TEM00
         fibParam = ((1, 2, 7, 8), (0.008, 0.008, 0, 0)) # x/y waist = 0.008 mm, TEM00
-        sfilename = self.link0.zSetPOPSettings(data=0, start_surf=1, end_surf=4,
+        sfilename = self.link0.zSetPOPSettings(data=0, startSurf=1, endSurf=4,
                                                field=1, wave=1, beamType=0,
                                                paramN=srcParam, tPow=1, sampx=4,
                                                sampy=4, widex=40, widey=40,
@@ -425,23 +425,24 @@ class TestPyZDDEFunctions(unittest.TestCase):
                             "Expected file name to end with '_pyzdde_POP.CFG'")
             # Get POP info with the above settings
             popinfo = self.link0.zGetPOP(sfilename)
-            self.assertEqual(popinfo[1], 1.0, 'Expected tot power 1.0')
-            self.assertIsNot(popinfo[2], None, 'Expected non-None')
-            self.assertEqual(popinfo[9], 256, 'Expected grid x be 256')
+            self.assertEqual(popinfo.surf, 4, 'Expected surf to be 4')
+            self.assertEqual(popinfo.totPow, 1.0, 'Expected tot power 1.0')
+            self.assertIsNot(popinfo.fibEffSys, None, 'Expected non-None')
+            self.assertEqual(popinfo.gridX, 256, 'Expected grid x be 256')
             # Change to phase data, with few different settings but with the
             # same settings file name
             sfilename_new = self.link0.zSetPOPSettings(data=1,
-                                 settingsFileName=sfilename, start_surf=1,
-                                 end_surf=4, field=1, wave=1, beamType=0,
+                                 settingsFileName=sfilename, startSurf=1,
+                                 endSurf=4, field=1, wave=1, beamType=0,
                                  paramN=srcParam, pIrr=1, sampx=3, sampy=3,
                                  widex=40, widey=40, fibComp=0, fibType=0,
                                  fparamN=fibParam)
             self.assertEqual(sfilename, sfilename_new, 'Expecting same filenames')
             # Get POP info with the above settings
             popinfo = self.link0.zGetPOP(sfilename_new)
-            self.assertEqual(popinfo[1], None, 'Expected None for blank phase field')
-            self.assertEqual(popinfo[2], None, 'Expected None for no fiber integral')
-            self.assertEqual(popinfo[9], 128, 'Expected grid x be 128')
+            self.assertEqual(popinfo.blank, None, 'Expected None for blank phase field')
+            self.assertEqual(popinfo.fibEffSys, None, 'Expected None for no fiber integral')
+            self.assertEqual(popinfo.gridX, 128, 'Expected grid x be 128')
         except Exception as exception:
             pass # nothing to do here, raise it after cleaning up
         finally:
@@ -461,7 +462,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         # Set POP settings, without specifying a settings file name.
         srcParam = ((1, 2, 7, 8), (2, 2, 0, 0)) # x/y waist = 2mm, TEM00
         fibParam = ((1, 2, 7, 8), (0.008, 0.008, 0, 0)) # x/y waist = 0.008 mm, TEM00
-        sfilename = self.link0.zSetPOPSettings(data=0, start_surf=1, end_surf=4,
+        sfilename = self.link0.zSetPOPSettings(data=0, startSurf=1, endSurf=4,
                                                field=1, wave=1, beamType=0,
                                                paramN=srcParam, tPow=1, sampx=4,
                                                sampy=4, widex=40, widey=40,
@@ -470,18 +471,18 @@ class TestPyZDDEFunctions(unittest.TestCase):
         try:
             # Get POP info with the above settings
             popinfo = self.link0.zGetPOP(sfilename)
-            assert popinfo[9] == 256, 'Expected grid x be 256' #
+            assert popinfo.gridX == 256, 'Expected grid x be 256' #
             # Change settings using zModifyPOPSettings
             errCode = self.link0.zModifyPOPSettings(settingsFile=sfilename,
-                                                    end_surf=1, sampx=2, sampy=2,
+                                                    endSurf=1, sampx=2, sampy=2,
                                                     paramN=((1, 2),(1, 2)), tPow=2)
             self.assertIsInstance(errCode, tuple)
             self.assertTupleEqual(errCode, (0, (0, 0), 0, 0, 0))
             # Get POP info with the above settings
             popinfo = self.link0.zGetPOP(sfilename)
             print(popinfo)
-            self.assertEqual(popinfo[1], 2.0, 'Expected tot pow 2.0')
-            self.assertEqual(popinfo[9], 64, 'Expected grid x be 64')
+            self.assertEqual(popinfo.totPow, 2.0, 'Expected tot pow 2.0')
+            self.assertEqual(popinfo.gridX, 64, 'Expected grid x be 64')
         except Exception as exception:
             pass # nothing to do here, raise it after cleaning up
         finally:
@@ -1685,6 +1686,62 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zSetTimeout()")
         self.link0.zSetTimeout(3)
 
+    @unittest.skip("To implement test")
+    def test_readZRD(self):
+        print("\nTEST: readZRD()")
+        try:
+            zfile.readZRD('..\ZMXFILES\TESTRAYS.ZRD','uncompressed')
+            print('readZRD test successful')
+        except:
+            print('readZRD test failed')
+
+    @unittest.skip("To implement test")      
+    def test_writeZRD(self):
+        print("\nTEST: writeZRD()")
+        a = zfile.zemax_ray()
+        a.filetype = 'uncompressed'
+        a.status = [0, 1]
+        a.level = [0, 1]
+        a.hit_object = [1, 0]
+        a.hit_face = [0, 0]
+        a.unused = [0, 0]
+        a.in_object = [0, 0]
+        a.parent = [0, 0]
+        a.storage = [1, 0]
+        a.xybin = [0, 0]
+        a.lmbin = [0, 0]
+        a.index = [1.0, 1.0]
+        a.starting_phase = [0.0, 0.0]
+        a.x = [0.0, -1.2185866220459416]
+        a.y = [0.0, 1.492338206172348e-16]
+        a.z = [0.0, 4.849231551964771]
+        a.l = [-0.24371732440918834, -0.24371732440918834]
+        a.m = [2.984676412344696e-17, 2.984676412344696e-17]
+        a.n = [0.9698463103929542, 0.9698463103929542]
+        a.nx = [0.55, 0.0]
+        a.ny = [0.0, 0.0]
+        a.nz = [0.0, 0.0]
+        a.path_to = [0.0, 0.0]
+        a.intensity = [0.0001, 0.0001]
+        a.phase_of = [0.0, 0.0]
+        a.phase_at = [0.0, 0.0]
+        a.exr = [0.0, 0.0]
+        a.exi = [0.0, 0.0]
+        a.eyr = [0.0, 0.0]
+        a.eyi = [0.0, 0.0]
+        a.ezr = [0.0, 0.0]
+        a.ezi = [0.0, 0.0]
+        try:
+            zfile.writeZRD(a, 'TESTRAYS_uncompressed.ZRD','uncompressed')
+            print('\nWrite to uncompressed file successful')
+        except:
+            print('\nWrite to uncompressed file failed')
+        try:
+            zfile.writeZRD(a, 'TESTRAYS_compressed.ZRD','compressed')
+            print('\nWrite to compressed zrd file successful')
+        except:
+            print('\nWrite to compressed zrd file failed')
+                
 # Helper functions
 
 def get_test_file(fileType='seq', settings=False, **kwargs):
