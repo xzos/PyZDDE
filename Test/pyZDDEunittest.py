@@ -15,7 +15,6 @@ import sys
 import imp
 import unittest
 
-
 # Put both the "Test" and the "PyZDDE" directory in the python search path.
 testdirectory = os.path.dirname(os.path.realpath(__file__))
 ind = testdirectory.find('Test')
@@ -26,9 +25,10 @@ if pyzddedirectory not in sys.path:
     sys.path.append(pyzddedirectory)
 
 import pyzdde.zdde as pyzdde
+import pyzdde.zfileutils as zfile
 
 imp.reload(pyzdde)  # In order to ensure that the latest changes in the pyzdde module
-                    # are updated here.
+imp.reload(zfile)   # are updated here.
 
 # Flag to enable printing of returned values.
 PRINT_RETURNED_VALUES = 1     # if test results are not going to be viewed by
@@ -1686,6 +1686,62 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zSetTimeout()")
         self.link0.zSetTimeout(3)
 
+    @unittest.skip("To implement test")
+    def test_readZRD(self):
+        print("\nTEST: readZRD()")
+        try:
+            zfile.readZRD('..\ZMXFILES\TESTRAYS.ZRD','uncompressed')
+            print('readZRD test successful')
+        except:
+            print('readZRD test failed')
+
+    @unittest.skip("To implement test")      
+    def test_writeZRD(self):
+        print("\nTEST: writeZRD()")
+        a = zfile.zemax_ray()
+        a.filetype = 'uncompressed'
+        a.status = [0, 1]
+        a.level = [0, 1]
+        a.hit_object = [1, 0]
+        a.hit_face = [0, 0]
+        a.unused = [0, 0]
+        a.in_object = [0, 0]
+        a.parent = [0, 0]
+        a.storage = [1, 0]
+        a.xybin = [0, 0]
+        a.lmbin = [0, 0]
+        a.index = [1.0, 1.0]
+        a.starting_phase = [0.0, 0.0]
+        a.x = [0.0, -1.2185866220459416]
+        a.y = [0.0, 1.492338206172348e-16]
+        a.z = [0.0, 4.849231551964771]
+        a.l = [-0.24371732440918834, -0.24371732440918834]
+        a.m = [2.984676412344696e-17, 2.984676412344696e-17]
+        a.n = [0.9698463103929542, 0.9698463103929542]
+        a.nx = [0.55, 0.0]
+        a.ny = [0.0, 0.0]
+        a.nz = [0.0, 0.0]
+        a.path_to = [0.0, 0.0]
+        a.intensity = [0.0001, 0.0001]
+        a.phase_of = [0.0, 0.0]
+        a.phase_at = [0.0, 0.0]
+        a.exr = [0.0, 0.0]
+        a.exi = [0.0, 0.0]
+        a.eyr = [0.0, 0.0]
+        a.eyi = [0.0, 0.0]
+        a.ezr = [0.0, 0.0]
+        a.ezi = [0.0, 0.0]
+        try:
+            zfile.writeZRD(a, 'TESTRAYS_uncompressed.ZRD','uncompressed')
+            print('\nWrite to uncompressed file successful')
+        except:
+            print('\nWrite to uncompressed file failed')
+        try:
+            zfile.writeZRD(a, 'TESTRAYS_compressed.ZRD','compressed')
+            print('\nWrite to compressed zrd file successful')
+        except:
+            print('\nWrite to compressed zrd file failed')
+                
 # Helper functions
 
 def get_test_file(fileType='seq', settings=False, **kwargs):
