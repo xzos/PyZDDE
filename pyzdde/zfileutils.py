@@ -1,22 +1,21 @@
-#-----------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # Name:        zfileutils.py
-# Purpose:     File i/o support for zemax rayfiles
+# Purpose:     File i/o support for zemax rayfiles, and other Zemax files
 #
-# Copyright:   (c) Florian Hudelist
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.1
-#-----------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 '''utility functions for handling various types of files used by Zemax. 
 '''
 from __future__ import print_function
+import sys as _sys
 import ctypes as _ctypes
 from struct import unpack as _unpack
 from struct import pack as _pack
 import math as _math
 
-#%% Functions and classes for reading and writing ZRD file format
+#%% ZRD read/write utilities
 
 class ZemaxRay():
     """ Class that allows the creation and import of Zemax ray files
@@ -312,4 +311,244 @@ def writeZRDFile(rayArray, file_name, file_type):
             for field, field_format in fields:
                 format_char = format_dict[field_format] 
                 file_handle.write(_pack(format_char, getattr(ray, field)[ss]))
-    file_handle.close()             
+    file_handle.close()
+
+#%% Beam file read/write utilities
+
+def readBeamFile(beamfilename):
+    """Read in a Zemax Beam file
+
+    Parameters
+    ----------
+    beamfilename : string
+        the filename of the beam file to read
+
+    Returns
+    -------
+    version : integer
+        the file format version number
+    n : 2-tuple, (nx, ny)
+        the number of samples in the x and y directions
+    ispol : boolean
+        is the beam polarized?
+    units : integer (0 or 1 or 2 or 3)
+        the units of the beam, 0 = mm, 1 = cm, 2 = in, 3 for m
+    d : 2-tuple, (dx, dy)
+        the x and y grid spacing
+    zposition : 2-tuple, (zpositionx, zpositiony)
+        the x and y z position of the beam
+    rayleigh : 2-tuple, (rayleighx, rayleighy)
+        the x and y rayleigh ranges of the beam
+    waist : 2-tuple, (waistx, waisty)
+        the x and y waists of the beam
+    lamda : double
+        the wavelength of the beam
+    index : double
+        the index of refraction in the current medium
+    receiver_eff : double
+        the receiver efficiency. Zero if fiber coupling is not computed
+    system_eff : double
+        the system efficiency. Zero if fiber coupling is not computed.
+    grid_pos : 2-tuple of lists, (x_matrix, y_matrix)
+        lists of x and y positions of the grid defining the beam
+    efield : 4-tuple of 2D lists, (Ex_real, Ex_imag, Ey_real, Ey_imag)
+        a tuple containing two dimensional lists with the real and
+        imaginary parts of the x and y polarizations of the beam
+
+    """
+    f = open(beamfilename, "rb")
+    # zemax version number
+    version = _unpack('i', f.read(4))[0]
+    print("version: "+str(version))
+    nx = _unpack('i', f.read(4))[0]
+    ny = _unpack('i', f.read(4))[0]
+    print("nx, ny:"+str(nx)+" "+str(ny))
+    ispol = _unpack('i', f.read(4))[0]
+    print("ispol: "+str(ispol))
+    units = _unpack('i', f.read(4))[0]
+    print("units: "+str(units))
+    f.read(16)
+    dx = _unpack('d', f.read(8))[0]
+    dy = _unpack('d', f.read(8))[0]
+    print("dx, dy: "+str(dx)+" "+str(dy))
+
+    if version==0:
+        zposition_x = _unpack('d', f.read(8))[0]
+        print("zposition x: "+str(zposition_x))
+        rayleigh_x = _unpack('d', f.read(8))[0]
+        print("rayleigh x: "+str(rayleigh_x))
+        lamda = _unpack('d', f.read(8))[0]
+        print("lambda: "+str(lamda))
+        #f.read(16)
+        zposition_y = _unpack('d', f.read(8))[0]
+        print("zposition_y: "+str(zposition_y))
+        rayleigh_y = _unpack('d', f.read(8))[0]
+        print("rayleigh_y: "+str(rayleigh_y))
+        waist_y = _unpack('d', f.read(8))[0]
+        print("waist_y: "+str(waist_y))
+        waist_x=_unpack('d', f.read(8))[0]
+        print("waist_x: "+str(waist_x))
+        index=_unpack('d', f.read(8))[0]
+        print("index: "+str(index))#f.read(64);
+        receiver_eff = 0
+        system_eff = 0
+    if version==1:
+        zposition_x = _unpack('d', f.read(8))[0]
+        print("zposition x: "+str(zposition_x))
+        rayleigh_x = _unpack('d', f.read(8))[0]
+        print("rayleigh x: "+str(rayleigh_x))
+        waist_x=_unpack('d', f.read(8))[0]
+        print("waist_x: "+str(waist_x))
+        #f.read(16)
+        zposition_y = _unpack('d', f.read(8))[0]
+        print("zposition_y: "+str(zposition_y))
+        rayleigh_y = _unpack('d', f.read(8))[0]
+        print("rayleigh_y: "+str(rayleigh_y))
+        waist_y = _unpack('d', f.read(8))[0]
+        print("waist_y: "+str(waist_y))
+        lamda = _unpack('d', f.read(8))[0]
+        print("lambda: "+str(lamda))
+        index=_unpack('d', f.read(8))[0]
+        print("index: "+str(index))
+        receiver_eff=_unpack('d', f.read(8))[0]
+        print("receiver efficiency: "+str(index))
+        system_eff=_unpack('d', f.read(8))[0]
+        print("system efficiency: "+str(index))
+        f.read(64)  # 8 empty doubles
+
+    rawx = [0 for x in range(2*nx*ny) ]
+    for i in range(2*nx*ny):
+        rawx[i] = _unpack('d', f.read(8))[0]
+        #print(str(i)+" "+str(2*nx*ny)+" "+str(rawx[i]))
+    rawy = [0 for x in range(2*nx*ny) ]
+    if ispol:
+        for i in range(2*nx*ny):
+            rawy[i] = _unpack('d',f.read(8))[0]
+
+    f.close()
+    xc = 1+nx/2
+    yc = 1+ny/2
+
+    x_matrix = [[0 for x in xrange(nx)] for x in xrange(ny)]
+    y_matrix = [[0 for x in xrange(nx)] for x in xrange(ny)]
+
+    Ex_real = [[0 for x in xrange(nx)] for x in xrange(ny)]
+    Ex_imag = [[0 for x in xrange(nx)] for x in xrange(ny)]
+
+    Ey_real = [[0 for x in xrange(nx)] for x in xrange(ny)]
+    Ey_imag = [[0 for x in xrange(nx)] for x in xrange(ny)]
+
+    k = 0
+    for j in range(ny):
+        for i in range(nx):
+            x_matrix[i][j] = (i-xc)*dx
+            y_matrix[i][j] = (j-yc)*dy
+            Ex_real[i][j] = rawx[k]
+            Ex_imag[i][j] = rawx[k+1]
+            if ispol:
+                Ey_real[i][j] = rawy[k]
+                Ey_imag[i][j] = rawy[k+1]
+            k = k+2
+    return (version, (nx, ny), ispol, units, (dx, dy), (zposition_x, zposition_y),
+        (rayleigh_x, rayleigh_y), (waist_x, waist_y), lamda, index, receiver_eff, system_eff,
+        (x_matrix, y_matrix), (Ex_real, Ex_imag, Ey_real, Ey_imag))
+
+def writeBeamFile(beamfilename, version, n, ispol, units, d, zposition, rayleigh,
+                 waist, lamda, index, receiver_eff, system_eff, efield):
+    """Write a Zemax Beam file
+
+    Parameters
+    ----------
+    beamfilename : string
+        the filename of the beam file to read
+    version : integer
+        the file format version number
+    n : 2-tuple, (nx, ny)
+        the number of samples in the x and y directions
+    ispol : boolean
+        is the beam polarized?
+    units : integer
+        the units of the beam, 0 = mm, 1 = cm, 2 = in, 3  = m
+    d : 2-tuple, (dx, dy)
+        the x and y grid spacing
+    zposition : 2-tuple, (zpositionx, zpositiony)
+        the x and y z position of the beam
+    rayleigh : 2-tuple, (rayleighx, rayleighy)
+        the x and y rayleigh ranges of the beam
+    waist : 2-tuple, (waistx, waisty)
+        the x and y waists of the beam
+    lamda : double
+        the wavelength of the beam
+    index : double
+        the index of refraction in the current medium
+    receiver_eff : double
+        the receiver efficiency. Zero if fiber coupling is not computed
+    system_eff : double
+        the system efficiency. Zero if fiber coupling is not computed.
+    efield : 4-tuple of 2D lists, (Ex_real, Ex_imag, Ey_real, Ey_imag)
+        a tuple containing two dimensional lists with the real and
+        imaginary parts of the x and y polarizations of the beam
+
+    Returns
+    -------
+    status : integer
+        0 = success; -997 = file write failure; -996 = couldn't convert
+        data to integer, -995 = unexpected error.
+    """
+    try:
+        f = open(beamfilename, "wb")
+        # zemax version number
+        f.write(_pack('i',version))
+        f.write(_pack('i',n[0]))
+        f.write(_pack('i',n[1]))
+        f.write(_pack('i',ispol))
+        f.write(_pack('i',units))
+        # write 16 zeroes to pad out file
+        f.write(_pack('4i',4,5,6,7))
+        f.write(_pack('d',d[0]))
+        f.write(_pack('d',d[1]))
+        if version==0:
+            f.write(_pack('d',zposition[0]))
+            f.write(_pack('d',rayleigh[0]))
+            f.write(_pack('d',lamda))
+            f.write(_pack('d',zposition[1]))
+            f.write(_pack('d',rayleigh[1]))
+            f.write(_pack('d',waist[0]))
+            f.write(_pack('d',waist[1]))
+            f.write(_pack('d',index))
+        if version==1:
+            f.write(_pack('d',zposition[0]))
+            f.write(_pack('d',rayleigh[0]))
+            f.write(_pack('d',waist[0]))
+            f.write(_pack('d',zposition[1]))
+            f.write(_pack('d',rayleigh[1]))
+            f.write(_pack('d',waist[1]))
+            f.write(_pack('d',lamda))
+            f.write(_pack('d',index))
+            f.write(_pack('d',receiver_eff))
+            f.write(_pack('d',system_eff))
+            f.write(_pack('8d',1,2,3,4,5,6,7,8))
+
+        (Ex_real, Ex_imag, Ey_real, Ey_imag) = efield
+
+        for i in range(n[0]):
+            for j in range(n[1]):
+                f.write(_pack('d',Ex_real[i][j]))
+                f.write(_pack('d',Ex_imag[i][j]))
+
+        if ispol:
+            for i in range(n[0]):
+                for j in range(n[1]):
+                    f.write(_pack('d',Ey_real[i][j]))
+                    f.write(_pack('d',Ey_imag[i][j]))
+        f.close()
+        return 0
+    except IOError as e:
+        print("I/O error({0}): {1}".format(e.errno, e.strerror))
+        return -997
+    except ValueError:
+        print("Could not convert data to an integer.")
+        return -996
+    except:
+        print("Unexpected error:", _sys.exc_info()[0])
+        return -995          

@@ -2,11 +2,9 @@
 # Name:        zemaxbuttons.py
 # Purpose:     Class of ZEMAX 3-letter Button codes
 #
-# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2012 - 2014
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    1.0.00
 #-------------------------------------------------------------------------------
 from __future__ import print_function
 import re as _re

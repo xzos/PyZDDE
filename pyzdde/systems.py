@@ -1,11 +1,9 @@
 #-------------------------------------------------------------------------------
 # Name:        systems.py
 # Purpose:     Simple optical systems for quick setup with PyZDDE.
-# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2012 - 2015
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    1.0.00
 #-------------------------------------------------------------------------------
 """simple optical systems for quick setup with PyZDDE & Zemax. The docstring
 examples assume that PyZDDe is imported as ``import pyzdde.zdde as pyz``,

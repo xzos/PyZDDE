@@ -5,7 +5,6 @@
 #              unittest functions.
 #
 # Licence:     MIT License
-# Revision:    0.1
 #-----------------------------------------------------------------------------------------
 '''test functions in the module zfileutils
 '''

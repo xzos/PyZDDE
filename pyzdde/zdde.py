@@ -2,11 +2,10 @@
 # Name:        zdde.py
 # Purpose:     Python based DDE link with ZEMAX server, similar to Matlab based
 #              MZDDE toolbox.
-# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2012 - 2015
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    1.0.00
+# Revision:    1.0.01
 #-------------------------------------------------------------------------------
 """PyZDDE, which is a toolbox written in Python, is used for communicating
 with ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging
@@ -18,7 +17,7 @@ ln.zDDEInit()``.
 from __future__ import division
 from __future__ import print_function
 import sys as _sys
-import struct as _struct
+#import struct as _struct
 import os as _os
 import collections as _co
 import subprocess as _subprocess
@@ -27,7 +26,7 @@ import time as _time
 import datetime as _datetime
 import re as _re
 import shutil as _shutil
-# import warnings as _warnings
+import warnings as _warnings
 import codecs as _codecs
 # Try to import IPython if it is available (for notebook helper functions)
 try:
@@ -98,6 +97,7 @@ else:
 import pyzdde.zcodes.zemaxbuttons as zb
 import pyzdde.zcodes.zemaxoperands as zo
 import pyzdde.utils.pyzddeutils as _putils
+import pyzdde.zfileutils as _zfu
 
 # Constants
 _DEBUG_PRINT_LEVEL = 0 # 0 = No debug prints, but allow all essential prints
@@ -9993,102 +9993,10 @@ def readBeamFile(beamfilename):
         imaginary parts of the x and y polarizations of the beam
 
     """
-    f = open(beamfilename, "rb")
-    # zemax version number
-    version = _struct.unpack('i', f.read(4))[0]
-    print("version: "+str(version))
-    nx = _struct.unpack('i', f.read(4))[0]
-    ny = _struct.unpack('i', f.read(4))[0]
-    print("nx, ny:"+str(nx)+" "+str(ny))
-    ispol = _struct.unpack('i', f.read(4))[0]
-    print("ispol: "+str(ispol))
-    units = _struct.unpack('i', f.read(4))[0]
-    print("units: "+str(units))
-    f.read(16)
-    dx = _struct.unpack('d', f.read(8))[0]
-    dy = _struct.unpack('d', f.read(8))[0]
-    print("dx, dy: "+str(dx)+" "+str(dy))
-
-    if version==0:
-        zposition_x = _struct.unpack('d', f.read(8))[0]
-        print("zposition x: "+str(zposition_x))
-        rayleigh_x = _struct.unpack('d', f.read(8))[0]
-        print("rayleigh x: "+str(rayleigh_x))
-        lamda = _struct.unpack('d', f.read(8))[0]
-        print("lambda: "+str(lamda))
-        #f.read(16)
-        zposition_y = _struct.unpack('d', f.read(8))[0]
-        print("zposition_y: "+str(zposition_y))
-        rayleigh_y = _struct.unpack('d', f.read(8))[0]
-        print("rayleigh_y: "+str(rayleigh_y))
-        waist_y = _struct.unpack('d', f.read(8))[0]
-        print("waist_y: "+str(waist_y))
-        waist_x=_struct.unpack('d', f.read(8))[0]
-        print("waist_x: "+str(waist_x))
-        index=_struct.unpack('d', f.read(8))[0]
-        print("index: "+str(index))#f.read(64);
-        receiver_eff = 0
-        system_eff = 0
-    if version==1:
-        zposition_x = _struct.unpack('d', f.read(8))[0]
-        print("zposition x: "+str(zposition_x))
-        rayleigh_x = _struct.unpack('d', f.read(8))[0]
-        print("rayleigh x: "+str(rayleigh_x))
-        waist_x=_struct.unpack('d', f.read(8))[0]
-        print("waist_x: "+str(waist_x))
-        #f.read(16)
-        zposition_y = _struct.unpack('d', f.read(8))[0]
-        print("zposition_y: "+str(zposition_y))
-        rayleigh_y = _struct.unpack('d', f.read(8))[0]
-        print("rayleigh_y: "+str(rayleigh_y))
-        waist_y = _struct.unpack('d', f.read(8))[0]
-        print("waist_y: "+str(waist_y))
-        lamda = _struct.unpack('d', f.read(8))[0]
-        print("lambda: "+str(lamda))
-        index=_struct.unpack('d', f.read(8))[0]
-        print("index: "+str(index))
-        receiver_eff=_struct.unpack('d', f.read(8))[0]
-        print("receiver efficiency: "+str(index))
-        system_eff=_struct.unpack('d', f.read(8))[0]
-        print("system efficiency: "+str(index))
-        f.read(64)  # 8 empty doubles
-
-    rawx = [0 for x in range(2*nx*ny) ]
-    for i in range(2*nx*ny):
-        rawx[i] = _struct.unpack('d', f.read(8))[0]
-        #print(str(i)+" "+str(2*nx*ny)+" "+str(rawx[i]))
-    rawy = [0 for x in range(2*nx*ny) ]
-    if ispol:
-        for i in range(2*nx*ny):
-            rawy[i] = _struct.unpack('d',f.read(8))[0]
-
-    f.close()
-    xc = 1+nx/2
-    yc = 1+ny/2
-
-    x_matrix = [[0 for x in xrange(nx)] for x in xrange(ny)]
-    y_matrix = [[0 for x in xrange(nx)] for x in xrange(ny)]
-
-    Ex_real = [[0 for x in xrange(nx)] for x in xrange(ny)]
-    Ex_imag = [[0 for x in xrange(nx)] for x in xrange(ny)]
-
-    Ey_real = [[0 for x in xrange(nx)] for x in xrange(ny)]
-    Ey_imag = [[0 for x in xrange(nx)] for x in xrange(ny)]
-
-    k = 0
-    for j in range(ny):
-        for i in range(nx):
-            x_matrix[i][j] = (i-xc)*dx
-            y_matrix[i][j] = (j-yc)*dy
-            Ex_real[i][j] = rawx[k]
-            Ex_imag[i][j] = rawx[k+1]
-            if ispol:
-                Ey_real[i][j] = rawy[k]
-                Ey_imag[i][j] = rawy[k+1]
-            k = k+2
-    return (version, (nx, ny), ispol, units, (dx, dy), (zposition_x, zposition_y),
-        (rayleigh_x, rayleigh_y), (waist_x, waist_y), lamda, index, receiver_eff, system_eff,
-        (x_matrix, y_matrix), (Ex_real, Ex_imag, Ey_real, Ey_imag))
+    _warnings.warn('Function readBeamFile() has been moved to zfileutils module. '
+                   'Please update code and use the zfileutils module. This function '
+                   'will be removed from the zdde module in future.')
+    return _zfu.readBeamFile(beamfilename)
 
 def writeBeamFile(beamfilename, version, n, ispol, units, d, zposition, rayleigh,
                  waist, lamda, index, receiver_eff, system_eff, efield):
@@ -10132,63 +10040,11 @@ def writeBeamFile(beamfilename, version, n, ispol, units, d, zposition, rayleigh
         0 = success; -997 = file write failure; -996 = couldn't convert
         data to integer, -995 = unexpected error.
     """
-    try:
-        f = open(beamfilename, "wb")
-        # zemax version number
-        f.write(_struct.pack('i',version))
-        f.write(_struct.pack('i',n[0]))
-        f.write(_struct.pack('i',n[1]))
-        f.write(_struct.pack('i',ispol))
-        f.write(_struct.pack('i',units))
-        # write 16 zeroes to pad out file
-        f.write(_struct.pack('4i',4,5,6,7))
-        f.write(_struct.pack('d',d[0]))
-        f.write(_struct.pack('d',d[1]))
-        if version==0:
-            f.write(_struct.pack('d',zposition[0]))
-            f.write(_struct.pack('d',rayleigh[0]))
-            f.write(_struct.pack('d',lamda))
-            f.write(_struct.pack('d',zposition[1]))
-            f.write(_struct.pack('d',rayleigh[1]))
-            f.write(_struct.pack('d',waist[0]))
-            f.write(_struct.pack('d',waist[1]))
-            f.write(_struct.pack('d',index))
-        if version==1:
-            f.write(_struct.pack('d',zposition[0]))
-            f.write(_struct.pack('d',rayleigh[0]))
-            f.write(_struct.pack('d',waist[0]))
-            f.write(_struct.pack('d',zposition[1]))
-            f.write(_struct.pack('d',rayleigh[1]))
-            f.write(_struct.pack('d',waist[1]))
-            f.write(_struct.pack('d',lamda))
-            f.write(_struct.pack('d',index))
-            f.write(_struct.pack('d',receiver_eff))
-            f.write(_struct.pack('d',system_eff))
-            f.write(_struct.pack('8d',1,2,3,4,5,6,7,8))
-
-        (Ex_real, Ex_imag, Ey_real, Ey_imag) = efield
-
-        for i in range(n[0]):
-            for j in range(n[1]):
-                f.write(_struct.pack('d',Ex_real[i][j]))
-                f.write(_struct.pack('d',Ex_imag[i][j]))
-
-        if ispol:
-            for i in range(n[0]):
-                for j in range(n[1]):
-                    f.write(_struct.pack('d',Ey_real[i][j]))
-                    f.write(_struct.pack('d',Ey_imag[i][j]))
-        f.close()
-        return 0
-    except IOError as e:
-        print("I/O error({0}): {1}".format(e.errno, e.strerror))
-        return -997
-    except ValueError:
-        print("Could not convert data to an integer.")
-        return -996
-    except:
-        print("Unexpected error:", _sys.exc_info()[0])
-        return -995
+    _warnings.warn('Function writeBeamFile() has been moved to zfileutils module. '
+                   'Please update code and use the zfileutils module. This function '
+                   'will be removed from the zdde module in future')
+    return _zfu.writeBeamFile(beamfilename, version, n, ispol, units, d, zposition, 
+                              rayleigh, waist, lamda, index, receiver_eff, system_eff, efield)
 
 
 # ***************************************************************************

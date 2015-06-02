@@ -1,13 +1,13 @@
 #-------------------------------------------------------------------------------
 # Name:        pyzddeutils.py
-# Purpose:     Utility functions for PyZDDE
+# Purpose:     Utility functions for use with and within (mostly) PyZDDE 
 #
-# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2012 - 2014
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.8.01
 #-------------------------------------------------------------------------------
+'''utility functions for use within (mostly) and with the PyZDDE library
+'''
 from __future__ import print_function
 
 # Try to import IPython if it is available (for notebook helper functions)

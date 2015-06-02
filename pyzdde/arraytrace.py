@@ -1,11 +1,9 @@
 #-------------------------------------------------------------------------------
 # Name:        arraytrace.py
 # Purpose:     Module for doing array ray tracing in Zemax.
-# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2012 - 2015
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    1.0.00
 #-------------------------------------------------------------------------------
 """Module for doing array ray tracing as described in Zemax manual. This module
 defines the DDE ray data structure using ctypes, and provides the following
