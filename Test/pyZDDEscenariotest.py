@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:        pyZDDEscenariotest.py
 # Purpose:     To test different scenerio such as instantiating multiple ZEMAX

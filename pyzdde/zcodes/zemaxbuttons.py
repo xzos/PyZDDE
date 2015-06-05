@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:        zemaxbuttons.py
 # Purpose:     Class of ZEMAX 3-letter Button codes

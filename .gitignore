@@ -193,41 +193,43 @@ pip-log.txt
 ##########################
 *.ini
 
+# The settings.ini file should be synced every time
+pyzdde/settings.ini
+
 Test/Prescription_unitTest_00.txt
 Test/Prescription_unitTest_01.txt
 Test/testdata/zrdfile_test_UFD_write.ZRD
 Test/testdata/zrdfile_test_CFD_write.ZRD
 Test/testdata/zrdfile_test_CBD_write.ZRD
-
-Examples/*.txt
-Examples/Scripts/*.txt
-
-# The settings.ini file should be synced every time
-pyzdde/settings.ini
-
-# Although the following files are in the repository for the unit-test, we 
-# don't need to commit changes in them everytime
-ZMXFILES/*.zmx
-ZMXFILES/*.ZMX
-ZMXFILES/*.CFG
-ZMXFILES/*.cfg
-
-# ZEMAX settings files and sessions files
-*.CFG
-*.SES
-*.ZMX
-*.zmx
-*.CFG
-
-# Files that needs to be synced on/off sometimes
-.dll
-
-
 ZMXFILES/Fiber Coupling_POPunittest.CFG
 ZMXFILES/Fiber Coupling_POPunittest_Irradiance.CFG
 ZMXFILES/Fiber Coupling_POPunittest_NoFiberCompute.CFG
 ZMXFILES/Fiber Coupling_POPunittest_Phase.CFG
 Examples/Scripts/pikachu2.zbf
 ZMXFILES/None
+
+Examples/*.txt
+Examples/Scripts/*.txt
+
+
+
+# Although the following files are in the repository for the unit-test, we 
+# don't need to commit changes in them everytime
+#ZMXFILES/*.zmx
+#ZMXFILES/*.ZMX
+ZMXFILES/*.CFG
+ZMXFILES/*.cfg
+
+# ZEMAX settings files and sessions files
+*.CFG
+*.SES
+#*.ZMX
+#*.zmx
+*.CFG
+
+# Files that needs to be synced on/off sometimes
+.dll
+
+
 
 

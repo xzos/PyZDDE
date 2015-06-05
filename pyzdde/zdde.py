@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:        zdde.py
 # Purpose:     Python based DDE link with ZEMAX server, similar to Matlab based
@@ -99,7 +100,7 @@ import pyzdde.zcodes.zemaxoperands as zo
 import pyzdde.utils.pyzddeutils as _putils
 import pyzdde.zfileutils as _zfu
 
-# Constants
+#%% Constants
 _DEBUG_PRINT_LEVEL = 0 # 0 = No debug prints, but allow all essential prints
                        # 1 to 2 levels of debug print, 2 = print all
 
@@ -111,7 +112,8 @@ _system_aperture = {0 : 'EPD',
                     4 : 'Paraxial working F/#',
                     5 : 'Object cone angle'}
 
-# Helper function for debugging
+
+#%% Helper function for debugging
 def _debugPrint(level, msg):
     """Internal helper function to print debug messages
 
@@ -127,9 +129,9 @@ def _debugPrint(level, msg):
     if level <= _DEBUG_PRINT_LEVEL:
         print("DEBUG PRINT, module - zdde (Level " + str(level)+ "): " + msg)
 
-# ***************
-# Module methods
-# ***************
+
+#%% Module methods
+
 # bind functions from utils module
 cropImgBorders = _putils.cropImgBorders
 imshow = _putils.imshow
@@ -385,9 +387,8 @@ def _getAppName(appNameDict):
             return None
 
 
-# ******************
-# PyZDDE class
-# ******************
+#%% PyZDDE class
+
 class PyZDDE(object):
     """PyZDDE class for communicating with Zemax
 
@@ -402,6 +403,111 @@ class PyZDDE(object):
     __liveCh = 0  # no. of live/ simul channels; Can't be > _MAX_PARALLEL_CONV
     __server = 0
     __appNameDict = _createAppNameDict(_MAX_PARALLEL_CONV)  # {'ZEMAX': False, 'ZEMAX1': False}
+    
+    # Other class variables
+    # Surface data codes for getting and setting surface data
+    SDAT_TYPE = 0   # Surface type name
+    SDAT_COMMENT = 1  # Comment
+    SDAT_CURV = 2   # Curvature
+    SDAT_THICK = 3  # Thickness
+    SDAT_GLASS = 4   # Glass
+    SDAT_SEMIDIA = 5  # Semi-Diameter
+    SDAT_CONIC = 6  # Conic
+    SDAT_COAT = 7  # Coating
+    SDAT_TCE = 8  # Thermal Coefficient of Expansion (TCE)
+    SDAT_UD_DLL = 9  # User-defined DLL
+    SDAT_IGNORE_S_FLAG = 20  # Ignore surface flag
+    SDAT_TILT_DCNTR_ORD_BEFORE = 51  # Before tilt and decenter order
+    SDAT_DCNTR_X_BEFORE = 52  # Before decenter x 
+    SDAT_DCNTR_Y_BEFORE = 53  # Before decenter y
+    SDAT_TILT_X_BEFORE = 54  # Before tilt x 
+    SDAT_TILT_Y_BEFORE = 55  # Before tilt y
+    SDAT_TILT_Z_BEFORE = 56  # Before tilt z
+    SDAT_TILT_DCNTR_STAT_AFTER = 60  # After status 
+    SDAT_TILT_DCNTR_ORD_AFTER = 61  # After tilt and decenter order
+    SDAT_DCNTR_X_AFTER = 62  # After decenter x
+    SDAT_DCNTR_Y_AFTER = 63  # After decenter y
+    SDAT_TILT_X_AFTER = 64  # After tilt x
+    SDAT_TILT_Y_AFTER = 65  # After tilt y
+    SDAT_TILT_Z_AFTER = 66  # After tilt z
+    SDAT_USE_LAYER_MULTI_INDEX = 70  # Use Layer multipliers and index offsets
+    SDAT_LAYER_MULTI_VAL = 71  # Layer multiplier value
+    SDAT_LAYER_MULTI_STAT = 72 # Layer multiplier status
+    SDAT_LAYER_INDEX_OFFSET_VAL = 73  # Layer index offset value
+    SDAT_LAYER_INDEX_OFFSET_STAT = 74  # Layer index offset status
+    SDAT_LAYER_EXTINCT_OFFSET_VAL = 75   # Layer extinction offset value
+    SDAT_LAYER_EXTINCT_OFFSET_STAT = 76  # Layer extinction offset status
+    # Surface parameter codes for getting and setting solve
+    SPAR_CURV = 0   # Curvature
+    SPAR_THICK = 1  # Thickness
+    SPAR_GLASS = 2   # Glass
+    SPAR_SEMIDIA = 3  # Semi-Diameter
+    SPAR_CONIC = 4  # Conic
+    SPAR_PAR12 = 17  # Parameter 0
+    SPAR_PAR1 = 5  # Parameter 1
+    SPAR_PAR2 = 6  # Parameter 2  
+    SPAR_PAR3 = 7  # Parameter 3
+    SPAR_PAR4 = 8  # Parameter 4
+    SPAR_PAR5 = 9  # Parameter 5
+    SPAR_PAR6 = 10  # Parameter 6
+    SPAR_PAR7 = 11  # Parameter 7
+    SPAR_PAR8 = 12  # Parameter 8
+    SPAR_PAR9 = 13  # Parameter 9
+    SPAR_PAR10 = 14  # Parameter 10
+    SPAR_PAR11 = 15  # Parameter 11
+    SPAR_PAR12 = 16  # Parameter 12
+    # Solve type code for use with get/set solve function
+    SOLVE_CURV_FIXED = 0 # Solve on curvature; fixed
+    SOLVE_CURV_VAR = 1 # Solve on curvature; variable (V)
+    SOLVE_CURV_MR_ANG = 2 # Solve on curvature; marginal ray angle (M) 
+    SOLVE_CURV_CR_ANG = 3 # Solve on curvature; chief ray angle (C)
+    SOLVE_CURV_PICKUP = 4 # Solve on curvature; pickup (P)
+    SOLVE_CURV_MR_NOR = 5 # Solve on curvature; marginal ray normal (N)
+    SOLVE_CURV_CR_NOR = 6 # Solve on curvature; chief ray normal (N)
+    SOLVE_CURV_APL = 7 # Solve on curvature; aplanatic (A)
+    SOLVE_CURV_ELE_POWER = 8 # Solve on curvature; element power (X)
+    SOLVE_CURV_CON_SURF = 9 # Solve on curvature; concentric with surface (S)
+    SOLVE_CURV_CON_RADIUS = 10 # Solve on curvature; concentric with radius (R)
+    SOLVE_CURV_FNUM = 11 # Solve on curvature; f/# (F)
+    SOLVE_CURV_ZPL = 12 # Solve on curvature; zpl macro (Z)
+    SOLVE_THICK_FIXED = 0 # Solve on thickness; fixed
+    SOLVE_THICK_VAR = 1 # Solve on thickness; variable (V)
+    SOLVE_THICK_MR_HGT = 2 # Solve on thickness; marginal ray height (M)
+    SOLVE_THICK_CR_HGT = 3 # Solve on thickness; chief ray height (C)
+    SOLVE_THICK_EDGE_THICK = 4 # Solve on thickness; edge thickness (E)
+    SOLVE_THICK_PICKUP = 5 # Solve on thickness; pickup (P)
+    SOLVE_THICK_OPD = 6 # Solve on thickness; optical path difference (O)
+    SOLVE_THICK_POS = 7 # Solve on thickness; position (T)
+    SOLVE_THICK_COMPENSATE = 8 # Solve on thickness; compensator (S)
+    SOLVE_THICK_CENT_CURV = 9 # Solve on thickness; center of curvature (X)
+    SOLVE_THICK_PUPIL_POS = 10 # Solve on thickness; pupil position (U)
+    SOLVE_THICK_ZPL = 11 # Solve on thickness; zpl macro (Z)
+    SOLVE_GLASS_FIXED = 0 # Solve on glass; fixed
+    SOLVE_GLASS_MODEL = 1 # Solve on glass; model
+    SOLVE_GLASS_PICKUP = 2 # Solve on glass; pickup (P)
+    SOLVE_GLASS_SUBS = 3 # Solve on glass; substitute (S)
+    SOLVE_GLASS_OFFSET = 4 # Solve on glass; offset (O)
+    SOLVE_SEMIDIA_AUTO = 0 # Solve on semi-diameter; automatic
+    SOLVE_SEMIDIA_FIXED = 1 # Solve on semi-diameter; fixed (U)
+    SOLVE_SEMIDIA_PICKUP = 2 # Solve on semi-diameter; pickup (P)
+    SOLVE_SEMIDIA_MAX = 3 # Solve on semi-diameter; maximum (M)
+    SOLVE_SEMIDIA_ZPL = 4 # Solve on semi-diameter; zpl macro (Z)
+    SOLVE_CONIC_FIXED = 0 # Solve on conic; fixed
+    SOLVE_CONIC_VAR = 1 # Solve on conic; variable (V)
+    SOLVE_CONIC_PICKUP = 2 # Solve on conic; pickup (P)
+    SOLVE_CONIC_ZPL = 3 # Solve on conic; zpl macro (Z)
+    SOLVE_PAR0_FIXED = 0 # Solve on parameter 0; fixed
+    SOLVE_PAR0_VAR = 1 # Solve on parameter 0; variable (V)
+    SOLVE_PAR0_PICKUP = 2 # Solve on parameter 0; pickup (P)
+    SOLVE_PARn_FIXED = 0 # Solve on parameter n (b/w 1 - 12); fixed
+    SOLVE_PARn_VAR = 1 # Solve on parameter n (b/w 1 - 12); variable (V)
+    SOLVE_PARn_PICKUP = 2 # Solve on parameter n (b/w 1 - 12); pickup (P)
+    SOLVE_PARn_CR = 3 # Solve on parameter n (b/w 1 - 12); chief-ray (C)
+    SOLVE_PARn_ZPL = 4 # Solve on parameter n (b/w 1 - 12); zpl macro (Z)
+    SOLVE_EDATA_FIXED = 0 # Solve on extra data values; fixed
+    SOLVE_EDATA_VAR = 1 # Solve on extra data values; variable (V)
+    SOLVE_EDATA_PICKUP = 2 # Solve on extra data values; pickup (P)
+    SOLVE_EDATA_ZPL = 3 # Solve on extra data values; zpl macro (Z)
 
     def __init__(self):
         """Creates an instance of PyZDDE class
@@ -2597,7 +2703,9 @@ class PyZDDE(object):
         code : integer
             indicating the surface parameter, such as curvature, thickness,
             glass, conic, semi-diameter, etc. (see the table
-            surf_param_codes_for_solve_ below)
+            surf_param_codes_for_solve_ below). You may also use the surface
+            parameter mnemonic codes with signature ln.SPAR_XXX, e.g. 
+            ln.SPAR_CURV, ln.SPAR_THICK, etc. 
 
         Returns
         -------
@@ -2661,7 +2769,9 @@ class PyZDDE(object):
         surfaceNumber : integer
             the surface number
         code : integer
-            integer code (see table surf_data_codes_ below)
+            integer code (see table surf_data_codes_ below). You may also 
+            use the surface data mnemonic codes with signature ln.SDAT_XXX, 
+            e.g. ln.SDAT_TYPE, ln.SDAT_CURV, ln.SDAT_THICK, etc 
         arg2 : integer, optional
             required for item ``codes`` above 70.
 
@@ -2694,24 +2804,23 @@ class PyZDDE(object):
             8      - Thermal Coefficient of Expansion (TCE)
             9      - User-defined .dll (string)
             20     - Ignore surface flag. 0 for not ignored; 1 for ignored
-            51     - Tilt; Decenter order before surface; 0 for Decenter
+            51     - Before tilt and decenter order; 0 for Decenter
                      then Tilt; 1 for Tilt then Decenter
-            52     - Decenter x
-            53     - Decenter y
-            54     - Tilt x before surface
-            55     - Tilt y before surface
-            56     - Tilt z before surface
-            60     - Status of Tilt/Decenter after surface. 0 for explicit;
-                     1 for pickup current surface; 2 for reverse current
-                     surface; 3 for pickup previous surface; 4 for reverse
-                     previous surface, etc.
-            61     - Tilt, Decenter order after surface; 0 for Decenter
+            52     - Before decenter x
+            53     - Before decenter y
+            54     - Before tilt x
+            55     - Before tilt y
+            56     - Before tilt z 
+            60     - After status. 0 for explicit; 1 for pickup current surface; 
+                     2 for reverse current surface; 3 for pickup previous surface; 
+                     4 for reverse previous surface, etc.
+            61     - After tilt and decenter order; 0 for Decenter
                      then Tilt, 1 for Tilt then Decenter
-            62     - Decenter x after surface
-            63     - Decenter y after surface
-            64     - Tilt x after surface
-            65     - Tilt y after surface
-            66     - Tilt z after surface
+            62     - After decenter x
+            63     - After decenter y 
+            64     - After tilt x
+            65     - After tilt y 
+            66     - After tilt z
             70     - Use Layer Multipliers and Index Offsets. Use 1 for
                      true, 0 for false.
             71     - Layer Multiplier value. The coating layer number is
@@ -4722,15 +4831,15 @@ class PyZDDE(object):
         rs = reply.split(',')
         return tuple([int(elem) for elem in rs])
 
-    def zSetExtra(self, surf, col, value):
+    def zSetExtra(self, surfaceNumber, columnNumber, value):
         """Sets extra surface data (value) in the Extra Data Editor for
         the surface indicatd by ``surf``
 
         Parameters
         ----------
-        surf : integer
+        surfaceNumber : integer
             the surface number
-        col : integer
+        columnNumber : integer
             the column number
         value : float
             the value
@@ -4744,7 +4853,7 @@ class PyZDDE(object):
         --------
         zGetExtra()
         """
-        cmd = ("SetExtra,{:d},{:d},{:1.20g}".format(surf, col, value))
+        cmd = ("SetExtra,{:d},{:d},{:1.20g}".format(surfaceNumber, columnNumber, value))
         reply = self._sendDDEcommand(cmd)
         return float(reply)
 
@@ -5486,8 +5595,11 @@ class PyZDDE(object):
         code : integer
             code for surface parameter such as curvature, thickness,
             glass, conic, semi-diameter, etc. (see the table in docstring
-            of ``zGetSolve()`` surf_param_codes_for_solve_.
-        solveData : tuple preceded by ``*`` or a sequence of arguments
+            of ``zGetSolve()`` surf_param_codes_for_solve_. You may also 
+            use the surface parameter mnemonic codes with signature 
+            ln.SPAR_XXX, e.g. ln.SPAR_CURV, ln.SPAR_THICK, etc. 
+        solveData : tuple preceded by ``*`` or a sequence of arguments. 
+            See Notes
 
             There are two ways of passing this parameter:
 
@@ -5507,7 +5619,10 @@ class PyZDDE(object):
         -----
         1. The ``solvetype`` is an integer code, & the parameters have
            meanings that depend upon the solve type; see the chapter
-           "SOLVES" in the Zemax manual for details. You may also directly
+           "SOLVES" in the Zemax manual for details. You may also use 
+           the mnemonic codes with signature ln.SOLVE_XXX, such as 
+           ln.SOLVE_CURV_FIXED, ln.SOLVE_CURV_FIXED, ln.SOLVE_THICK_VAR,
+           etc. Additionally, it may also help to directly
            refer to the function body to quickly get an idea about the
            ``solvetype`` codes and parameters.
         2. If the ``solvetype`` is fixed, then the ``value`` in the
@@ -5523,6 +5638,10 @@ class PyZDDE(object):
         OR
 
         >>> sdata = ln.zSetSolve(6, 0, 2, 0.1 )
+        
+        OR
+        
+        >>> sdata = ln.zSetSolve(6, ln.SPAR_CURV, ln.SOLVE_CURV_MR_ANG, 0.1)
 
         See Also
         --------
@@ -5627,7 +5746,11 @@ class PyZDDE(object):
                     data = ''
                 elif solveData[0] == 2:         # pickup (P)
                     data = ('{:d},{:1.20g},{:1.20g},{:d}'
-                    .format(solveData[1],solveData[2],solveData[3],solveData[4])) # surface, scale-factor, offset, column
+                    .format(solveData[1],solveData[3],solveData[2],solveData[4])) # surface, offset, scale-factor, column
+                    # Due to a probable bug in Zemax itself, offset and scale-factor are reversed.
+                    # I (insr) observed this during the implementation of zTiltDecenterElements(). Since
+                    # Zemax will probably not fix the bug, I am resorting to the above change.
+                    #.format(solveData[1],solveData[2],solveData[3],solveData[4])) # surface, scale-factor, offset, column
                 elif solveData[0] == 3:         # chief ray (C)
                     data = '{:d},{:1.20g}'.format(solveData[1],solveData[2]) # field, wavelength
                 elif solveData[0] == 4:         # zpl macro (Z)
@@ -5672,7 +5795,9 @@ class PyZDDE(object):
             the surface number
         code : integer
             number (Refer to the table surf_data_codes_ in the docstring
-            of ``zGetSurfaceData()``)
+            of ``zGetSurfaceData()``). You may also use the surface data 
+            mnemonic codes with signature ln.SDAT_XXX, e.g. ln.SDAT_TYPE, 
+            ln.SDAT_CURV, ln.SDAT_THICK, etc 
         value : string or float
             string if ``code`` is 0, 1, 4, 7 or 9,  else float
         arg2 : optional
@@ -9374,11 +9499,94 @@ class PyZDDE(object):
         return opd
 
 
+    def zTiltDecenterElements(self, firstSurf, lastSurf, xdec=0.0, ydec=0.0, xtilt=0.0, 
+                              ytilt=0.0, ztilt=0.0, order=0, cb2Ord=1, cbComment1=None, 
+                              cbComment2=None):
+        '''tilt decenter elements using CBs around the firstSurf and lastSurf
+        
+        Parameters
+        ----------
+        firstSurf : integer
+            first surface
+        lastSurf : integer
+            last surface
+        xdec : float
+            decenter x (in lens units)
+        ydec : float
+            decenter y (in lens units)
+        xtilt : float
+            tilt about x (degrees)
+        ytilt : float
+            tilt about y (degrees)
+        ztilt : float
+            tilt about z (degrees)
+        order : integer (0/1)
+            0 = decenter then tilt; 1 = tilt then decenter
+        cb2Ord : integer (0/1)
+            order flag on second cb surface. If 1 (default), second CB is 
+            executed in reverse order. This is required if more than one
+            tilt is used. Even otherwise, it is a good practice.
+        comment1 : string, optional
+            comment on the first CB surface
+        comment2 : string, optional
+            comment on the second CB surface
+        
+        Returns
+        -------
+        None
+        
+        Notes
+        -----
+        1. In total 3 surfaces are added to the system -- the first CB, before the 
+           surface `firstSurf`, the second CB, after the surface `lastSurf`, and a
+           dummy surface after the second CB. 
+        '''
+        numSurfBetweenCBs = lastSurf - firstSurf + 1
+        cbSurf1 = firstSurf
+        cbSurf2 = cbSurf1 + numSurfBetweenCBs + 1 
+        self.zInsertSurface(surfNum=cbSurf1) # 1st cb
+        self.zInsertSurface(surfNum=cbSurf2) # 2nd cb to restore the original axis
+        self.zInsertSurface(surfNum=cbSurf2 + 1) # dummy after 2nd cb
+        cls = PyZDDE
+        if cbComment1:
+            self.zSetSurfaceData(surfaceNumber=cbSurf1, code=cls.SDAT_COMMENT, 
+                                 value=cbComment1)
+        self.zSetSurfaceData(surfaceNumber=cbSurf1, code=cls.SDAT_TYPE, 
+                             value='COORDBRK')
+        if cbComment2:
+            self.zSetSurfaceData(surfaceNumber=cbSurf2, code=cls.SDAT_COMMENT, 
+                                 value=cbComment2)
+        self.zSetSurfaceData(surfaceNumber=cbSurf2, code=cls.SDAT_TYPE, 
+                             value='COORDBRK')
+        self.zSetSurfaceData(surfaceNumber=cbSurf2 + 1, code=cls.SDAT_COMMENT, 
+                             value='dummy')
+        # use pick-up solves on second CB; set scale factor of -1 to lock the second
+        # cb to the first.
+        columns = range(6, 11)
+        params = [cls.SPAR_PAR1, cls.SPAR_PAR2, cls.SPAR_PAR3, cls.SPAR_PAR4, cls.SPAR_PAR5]
+        for para, col in zip(params, columns):
+            self.zSetSolve(cbSurf2, para, cls.SOLVE_PARn_PICKUP, cbSurf1, -1, 0, col)       
+        # Set solves to co-locate the two CBs
+        lastSurf+=1  # last surface number incremented by 1 bcoz of cb 1
+        # use position solve to track back through the lens
+        self.zSetSolve(lastSurf, cls.SPAR_THICK, cls.SOLVE_THICK_POS, cbSurf1 , 0)
+        # use a pickup solve to restore position at the back of the lastSurf
+        self.zSetSolve(cbSurf2, cls.SPAR_THICK, cls.SOLVE_THICK_PICKUP, lastSurf, -1, 0, 2)
+        # set order flag on first cb
+        self.zSetSurfaceParameter(surfaceNumber=cbSurf1, parameter=6, value=order)    
+        # set order flag on second cb
+        self.zSetSurfaceParameter(surfaceNumber=cbSurf2, parameter=6, value=cb2Ord)
+        # set the decenter and tilt values in the first cb
+        params = range(1, 6)
+        values = [xdec, ydec, xtilt, ytilt, ztilt]
+        for par, val in zip(params, values):
+            self.zSetSurfaceParameter(surfaceNumber=cbSurf1, parameter=par, value=val)
+        self.zGetUpdate()
 
 
-# ***************************************************************
-#              IPYTHON NOTEBOOK UTILITY FUNCTIONS
-# ***************************************************************
+
+    #  IPYTHON NOTEBOOK UTILITY FUNCTIONS
+
     def ipzCaptureWindowLQ(self, num=1, *args, **kwargs):
         """Capture graphic window from Zemax and display in IPython
         (Low Quality)
@@ -9834,9 +10042,9 @@ class PyZDDE(object):
         _deleteFile(textFileName)
 
 
-# ***********************************************************************
-#   OTHER HELPER FUNCTIONS THAT DO NOT REQUIRE A RUNNING ZEMAX SESSION
-# ***********************************************************************
+
+#%% OTHER HELPER FUNCTIONS THAT DO NOT REQUIRE A RUNNING ZEMAX SESSION
+
 def numAper(aperConeAngle, rIndex=1.0):
     """Returns the Numerical Aperture (NA) for the associated aperture
     cone angle
@@ -10047,12 +10255,11 @@ def writeBeamFile(beamfilename, version, n, ispol, units, d, zposition, rayleigh
                               rayleigh, waist, lamda, index, receiver_eff, system_eff, efield)
 
 
-# ***************************************************************************
-# Helper functions to process data from ZEMAX DDE server. This is especially
-# convenient for processing replies from Zemax for those function calls that
-# a known data structure. These functions are mainly used intenally
-# and may not be exposed directly.
-# ***************************************************************************
+
+#%% Helper functions to process data from ZEMAX DDE server. 
+# This is especially convenient for processing replies from Zemax for 
+# those function calls that a known data structure. These functions are 
+# mainly used intenally and may not be exposed directly.
 
 def _regressLiteralType(x):
     """The function returns the literal with its proper type, such as int,

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:        zemaxoperands.py
 # Purpose:     Class of ZEMAX operands

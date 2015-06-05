@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:        checkDataItemCompleteness.py
 # Purpose:     Helper code to check if the current version of PyZDDE contains

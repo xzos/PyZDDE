@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:        arraytrace.py
 # Purpose:     Module for doing array ray tracing in Zemax.
@@ -60,7 +61,8 @@ _arrayTrace.argtypes = [_ct.POINTER(DdeArrayData), _ct.c_uint]
 
 
 def zArrayTrace(rd, timeout=5000):
-    """function to trace large number of rays
+    """function to trace large number of rays on lens file in the LDE of main
+    Zemax application (not in the DDE server)
 
     Parameters
     ----------
@@ -154,7 +156,7 @@ def getRayDataArray(numRays, tType=0, mode=0, startSurf=None, endSurf=-1,
 def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
                    waveNum=None, mode=0, surf=-1, want_opd=0, timeout=5000):
     """Trace large number of rays defined by their normalized field and pupil
-    coordinates.
+    coordinates on lens file in the LDE of main Zemax application (not in the DDE server)
 
     Parameters
     ----------
@@ -293,7 +295,10 @@ def zGetTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
                          startSurf=0, lastSurf=-1, timeout=5000):
     """Trace large number of rays defined by ``x``, ``y``, ``z``, ``l``,
     ``m`` and ``n`` coordinates on any starting surface as well as
-    wavelength number, mode and the surface to trace the ray to.
+    wavelength number, mode and the surface to trace the ray to. 
+    
+    Ray tracing is performed on the lens file in the LDE of main Zemax 
+    application (not in the DDE server)
 
     Parameters
     ----------
@@ -437,6 +442,9 @@ def zGetPolTraceArray(numRays, hx=None, hy=None, px=None, py=None, Exr=None,
                       surf=-1, timeout=5000):
     """Trace large number of polarized rays defined by their normalized
     field and pupil coordinates. Similar to ``GetPolTrace()``
+    
+    Ray tracing is performed on the lens file in the LDE of main Zemax 
+    application (not in the DDE server)
 
     Parameters
     ----------
@@ -609,10 +617,12 @@ def zGetPolTraceDirectArray(numRays, x=None, y=None, z=None, l=None, m=None,
                             Ezr=None, Ezi=None, Ex=0, Ey=0, Phax=0, Phay=0,
                             intensity=None, waveNum=None, mode=0, startSurf=0,
                             lastSurf=-1, timeout=5000):
-    """Trace large number of polarized rays defined by the ``x``, ``y``,
-        ``z``, ``l``, ``m`` and ``n`` coordinates on any starting surface
-        as well as electric field magnitude and relative phase. Similar to
-        ``GetPolTraceDirect()``
+    """Trace large number of polarized rays defined by the ``x``, ``y``, ``z``, 
+    ``l``, ``m`` and ``n`` coordinates on any starting surface as well as electric 
+    field magnitude and relative phase. Similar to ``GetPolTraceDirect()``
+
+    Ray tracing is performed on the lens file in the LDE of main Zemax 
+    application (not in the DDE server)
 
     Parameters
     ----------
@@ -800,6 +810,9 @@ def zGetNSCTraceArray(x=0.0, y=0.0, z=0.0, l=0.0, m=0.0, n=1.0, Exr=0.0, Exi=0.0
     """Trace a single ray inside a non-sequential group. Rays may split or
     scatter into multiple paths. The function returns the entire tree of
     ray data containing split and/or scattered rays.
+    
+    Ray tracing is performed on the lens file in the LDE of main Zemax 
+    application (not in the DDE server)
 
     Parameters
     ----------

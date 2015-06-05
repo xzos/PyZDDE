@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:        zfileutils.py
 # Purpose:     File i/o support for zemax rayfiles, and other Zemax files
@@ -8,12 +9,26 @@
 #-------------------------------------------------------------------------------
 '''utility functions for handling various types of files used by Zemax. 
 '''
-from __future__ import print_function
+from __future__ import print_function, division
+import os as _os
 import sys as _sys
 import ctypes as _ctypes
 from struct import unpack as _unpack
 from struct import pack as _pack
 import math as _math
+
+import pyzdde.config as _config
+_global_pyver3 = _config._global_pyver3
+
+if _global_pyver3:
+   xrange = range
+
+try:
+    import numpy as _np
+except ImportError:
+    _global_np = False
+else:
+    _global_np = True
 
 #%% ZRD read/write utilities
 
@@ -552,3 +567,148 @@ def writeBeamFile(beamfilename, version, n, ispol, units, d, zposition, rayleigh
     except:
         print("Unexpected error:", _sys.exc_info()[0])
         return -995          
+        
+#%% Zemax surface modifier utilities
+
+def gridSagFile(z, dzBydx, dzBydy, d2zBydxdy, nx, ny, delx, dely, unitflag=0, 
+                        xdec=0, ydec=0, fname='gridsag', comment=None, fext='.DAT'):
+    """generates Grid Sag ASCII file for specifying the additional sag terms of the 
+    grid sag surfacd
+    
+    Parameters
+    ----------
+    z : ndarray
+        1-dim ndarray of grid sag values
+    dzBydx : ndarray
+        1-dim ndarray of dz/dx values of length equal to len(z)
+    dzBydy : ndarray
+        1-dim ndarray of dz/dy values of length equal to len(z)
+    d2zBydxdy : ndarray
+        1-dim ndarray of d^2(z)/dx.dy values of length equal to len(z)
+    nx : integer
+        number of samples along x
+    ny : integer
+        number of samples along y
+    unitflag : integer, optional
+        0 for mm, 1 for cm, 2 for in, and 3 for meters (default=0)
+    xdec : integer, optional
+        decenter along x (default=0)
+    ydec : integer, optional
+        decenter along y (default=0)
+    fname : string, optional
+        filename, without extension and absolute path, of the sag file to. 
+        If `None`, the name `gridsag` is used. The file is saved at:
+        "C:\\Users\\%userprofile%\\Documents\\Zemax\\Objects\\Grid Files\\<fname>.xxx``
+        where the exact extension is determined by ``fext``
+    comment : string, optional
+        top comment 
+    fext : string, optional
+        specifies the file extension. Use ``.DAT`` (default) for sequential
+        objects, and ``.GRD`` for NSC object
+
+    Returns
+    -------
+    sagfilename : string
+        filename of the grid sag file along with absolute path
+        
+    Notes
+    -----
+    1. The Numpy module is required.
+    2. It is assumed that the data is generated (instead of being measured), 
+       therefore, the ``nodata`` field is not set for any of the data points 
+       in the file, i.e. all data is valid.
+    3. The file is read in Zemax using the Extra Data Editor "Import" feature.
+    
+    See Also
+    --------
+    randomGridSagFile()
+    """
+    fname = 'gridsag' if not fname else fname
+    filename = _os.path.join(_os.path.expandvars("%userprofile%"), 'Documents',
+                             'Zemax\\Objects\\Grid Files', fname + fext)
+    arr = _np.hstack((z, dzBydx, dzBydy, d2zBydxdy))
+    with open(filename, 'w') as f:
+        f.write('! {}\n'.format(comment))
+        f.write('! {} {} {} {} {} {} {}  <-- First data line\n'
+                .format('nx', 'ny', 'delx', 'dely', 'unitflag', 'xdec', 'ydec'))
+        f.write('! {} {} {} {} <-- Other data lines\n'
+                .format('z', 'dz/dx', 'dz/dy', 'd2z/dxdy'))
+        f.write('{:d} {:d} {: 12.9E} {: 12.9E} {:d} {: 12.9E} {: 12.9E}\n'
+                .format(nx, ny, delx, dely, unitflag, xdec, ydec))
+        for row in arr:
+            f.write('{: 12.9E} {: 12.9E} {: 12.9E} {: 12.9E}\n'.format(*row))
+    return filename
+    
+def randomGridSagFile(mu=0, sigma=1, semidia=1, nx=201, ny=201, unitflag=0, 
+                         xdec=0, ydec=0, fname='gridsag_randn', comment=None, fext='.DAT'):
+    """generates grid sag ASCII file with Gaussian distributed sag profile
+    
+    Parameters
+    ----------
+    mu : float, optional
+        mean of the normal distribution
+    sigma : float, optional
+        standard deviation of the normal distribution. If `sigma` is `np.inf`
+        all height is set to zero (0)
+    nx : integer, optional
+        number of samples along x
+    ny : integer, optional
+        number of samples along y
+    unitflag : integer, optional
+        0 for mm, 1 for cm, 2 for in, and 3 for meters
+    xdec : integer, optional
+        decenter along x
+    ydec : integer, optional
+        decenter along y
+    semidia : float, optional
+        semi-diameter of the grid sag surface (note that grid is rectangular) 
+    fname : string, optional
+        filename, without extension and absolute path, of the sag file to. 
+        If `None`, the name `gridsag_randn` is used. The file is saved at:
+        "C:\\Users\\%userprofile%\\Documents\\Zemax\\Objects\\Grid Files\\<fname>.xxx"
+    fext : string, optional
+        specifies the file extension. Use ``.DAT`` (default) for sequential
+        objects, and ``.GRD`` for NSC object
+    comment : string, optional
+        top comment 
+        
+    Returns
+    -------
+    sag : ndarray
+        sag profile
+    fname : string
+        full file name of the ASCII file
+    
+    Notes
+    -----
+    1. The Numpy module is required.
+    2. The function doesn't compute any of the derivatives. Therefore Zemax 
+       computes them automatically.
+    3. The file is read in Zemax using the Extra Data Editor "Import" feature.
+    4. The interpolation method for the grid sag surface must be linear 
+       (Use value of 1 for Parameter 0 of Grid sag surface).
+    5. The wave propagation method must use the angular spectrum method
+       (option available under the POP tab in the LDE by right clicking on 
+       the surface).
+       
+    See Also
+    --------
+    gridSagFile(),
+    """
+    delx = 2.0*semidia/(nx-1)
+    dely = 2.0*semidia/(ny-1)
+    
+    if sigma is not _np.inf:
+        sag = _np.random.normal(loc=mu, scale=sigma, size=(nx, ny))
+    else:
+        sag = _np.zeros((nx, ny))
+    
+    dzBydx =  _np.zeros((nx*ny, 1))
+    dzBydy = dzBydx.copy()
+    d2zBydxdy = dzBydx.copy()
+    z=sag.reshape(nx*ny, 1)
+    
+    gridsagfile = gridSagFile(z, dzBydx, dzBydy, d2zBydxdy, nx, ny, 
+                              delx, dely, unitflag, xdec, ydec, 
+                              fname, comment, fext)
+    return z, gridsagfile

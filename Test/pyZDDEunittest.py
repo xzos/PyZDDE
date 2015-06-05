@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:        PyZDDEunittest.py
 # Purpose:     PyZDDE unit test using the python unittest framework
@@ -363,7 +364,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         # most other parameters without settings file. This is because any other
         # .CFG settings file can influence the anlysis
         popinfo = self.link0.zGetPOP()        
-        self.assertEquals(len(popinfo), 14, 'Expected 14 fields')
+        self.assertEqual(len(popinfo), 14, 'Expected 14 fields')
         # zGetPOP() with settings file
         popinfo = self.link0.zGetPOP(settingsFile=sfilename)
         check_popinfo(popinfo, 14, sfile='default')
@@ -644,15 +645,16 @@ class TestPyZDDEFunctions(unittest.TestCase):
         filename = get_test_file()
         self.link0.zLoadFile(filename)
         # Set up the data
-        (waveNum,mode,surf,hx,hy,px,py,Ex,Ey,Phax,Phay) = (1,0,-1,0.0,.5,0.0,1.0,
-                                                        0.7071067,0.7071067,0,0)
-        rayTraceArg = (waveNum,mode,surf,hx,hy,px,py,Ex,Ey,Phax,Phay)
-        expRayTraceData = (0, 0.9403035211373325, -0.3816204067506139, 0.0, -0.0,
-                           0.89144230676406, 0.0, 0.0)
+        waveNum, mode, surf = 1, 0, -1 
+        hx, hy, px, py = 0.0, 0.5, 0.0, 1.0
+        Ex, Ey, Phax, Phay = 0.7071067, 0.7071067, 0, 0
+        rayTraceArg = (waveNum, mode, surf, hx, hy, px, py, Ex, Ey, Phax, Phay)
+        expRayTraceData = (0, 0.94884799, -0.26984638, -0.27515251, 0.02023320, 
+                           0.63034490, 0.63278178, -0.04653128)
         # test returned tuple
         rayTraceData = self.link0.zGetPolTrace(*rayTraceArg)
         for i,d in enumerate(expRayTraceData):
-            self.assertAlmostEqual(rayTraceData[i],d,places=4)
+            self.assertAlmostEqual(rayTraceData[i], d, places=6)
         if TestPyZDDEFunctions.pRetVar:
             print('zGetPolTrace test successful')
 
@@ -960,10 +962,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
             print("MSG: ZEMAX couldn't update the lens")
         if ret == -998:
             print("MSG: zGetUpdate() function timed out")
-        # Push new lens to the LDE
-        self.link0.zNewLens()
-        self.link0.zGetUpdate()
-        self.link0.zPushLens(1)
+        # Push new lens to the LDE (to keep it clean)
+        #self.link0.zNewLens()
+        #self.link0.zGetUpdate()
+        #self.link0.zPushLens(1)
+        loadDefaultZMXfile2LDE(self.link0)
         if TestPyZDDEFunctions.pRetVar:
             print("zGetUpdate return value", ret)
             print('zGetUpdate test successful')
@@ -1207,9 +1210,10 @@ class TestPyZDDEFunctions(unittest.TestCase):
             print("MSG: Lens could not be pushed into the LDE (check PushLensPermission)")
         if ret == -998:
             print("MSG: zPushLens() function timed out")
-        # Push new lens to the LDE
-        self.link0.zNewLens()
-        self.link0.zPushLens(1)
+        # Push new lens to the LDE to keep it clean
+        #self.link0.zNewLens()
+        #self.link0.zPushLens(1)
+        loadDefaultZMXfile2LDE(self.link0)
         if TestPyZDDEFunctions.pRetVar:
             print("zPushLens return value:", ret)
             print('zPushLens test successful')
@@ -1740,7 +1744,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         except:
             print('\nWrite to compressed zrd file failed')
                 
-# Helper functions
+#%% Helper functions
 
 def get_test_file(fileType='seq', settings=False, **kwargs):
     """helper function to get test lens file(s) for each unit test function
@@ -1760,6 +1764,10 @@ def get_test_file(fileType='seq', settings=False, **kwargs):
             "nofibint" = settings with fiber integral calculation disabled;
             "nzstbirr" = non-zero surface to beam setting, irradiance data;
             "nzstbpha" = non-zero surface to beam setting, phase data;
+        loadfile : string (for loading a particular lens file)
+            "LENS.ZMX" = the default lens, LENS.ZMX is loaded in to the LDE
+            This is really a hack. Use the exact name inlucing the exact upper/
+            lower case letters in the name, else it will not be found.
 
     Returns
     -------
@@ -1768,19 +1776,29 @@ def get_test_file(fileType='seq', settings=False, **kwargs):
     """
     zmxfp = os.path.join(pyzddedirectory, 'ZMXFILES')
     lensFile = ["Cooke 40 degree field.zmx",
-                "Double Gauss 5 degree field.ZMX", ]
+                "Double Gauss 5 degree field.ZMX",
+                "LENS.ZMX",]
     settingsFile = ["Cooke 40 degree field_unittest.CFG", ]
     popFiles = ["Fiber Coupling.ZMX", ]
     popSettingsFile = ["Fiber Coupling_POPunittest.CFG",
                        "Fiber Coupling_POPunittest_Irradiance.CFG",
                        "Fiber Coupling_POPunittest_Phase.CFG",
                        "Fiber Coupling_POPunittest_NoFiberCompute.CFG", ]
+    
+    lenFileIndex = 0
+    setFileIndex = 0    
+    
     if len(kwargs):
-        pass  # for extending later or handled by individual cases
-    else:
-        lenFileIndex = 0
-        setFileIndex = 0
+        if 'loadfile' in kwargs:
+            try:
+                lenFileIndex = lensFile.index(kwargs['loadfile'])
+            except ValueError:
+                print("Couldn't find the specified lens file. Loading default file")
+        else:
+            pass # for extending later
+
     files = []
+    
     if fileType == 'seq':
         files.append(lensFile[lenFileIndex])
         if settings:
@@ -1817,7 +1835,15 @@ def deleteFile(fileName):
 def checkFileExist(fileName):
     """check if a file exist, using zdde's internal function"""
     return pyzdde._checkFileExist(fileName)
-
-
+    
+def loadDefaultZMXfile2LDE(ln):
+    """loads the default lens file LENS.ZMX into the LDE 
+    """
+    lensfile = os.path.join(ln.zGetPath()[1], 'LENS.ZMX')
+    if not os.path.exists(lensfile):
+        lensfile = get_test_file(loadfile='LENS.ZMX')
+    ln.zLoadFile(lensfile)
+    ln.zPushLens(1)
+        
 if __name__ == '__main__':
     unittest.main()
