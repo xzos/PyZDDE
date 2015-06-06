@@ -443,7 +443,7 @@ class PyZDDE(object):
     SPAR_GLASS = 2   # Glass
     SPAR_SEMIDIA = 3  # Semi-Diameter
     SPAR_CONIC = 4  # Conic
-    SPAR_PAR12 = 17  # Parameter 0
+    SPAR_PAR0 = 17  # Parameter 0
     SPAR_PAR1 = 5  # Parameter 1
     SPAR_PAR2 = 6  # Parameter 2  
     SPAR_PAR3 = 7  # Parameter 3
@@ -462,9 +462,9 @@ class PyZDDE(object):
     SOLVE_CURV_MR_ANG = 2 # Solve on curvature; marginal ray angle (M) 
     SOLVE_CURV_CR_ANG = 3 # Solve on curvature; chief ray angle (C)
     SOLVE_CURV_PICKUP = 4 # Solve on curvature; pickup (P)
-    SOLVE_CURV_MR_NOR = 5 # Solve on curvature; marginal ray normal (N)
-    SOLVE_CURV_CR_NOR = 6 # Solve on curvature; chief ray normal (N)
-    SOLVE_CURV_APL = 7 # Solve on curvature; aplanatic (A)
+    SOLVE_CURV_MR_NORM = 5 # Solve on curvature; marginal ray normal (N)
+    SOLVE_CURV_CR_NORM = 6 # Solve on curvature; chief ray normal (N)
+    SOLVE_CURV_APLAN = 7 # Solve on curvature; aplanatic (A)
     SOLVE_CURV_ELE_POWER = 8 # Solve on curvature; element power (X)
     SOLVE_CURV_CON_SURF = 9 # Solve on curvature; concentric with surface (S)
     SOLVE_CURV_CON_RADIUS = 10 # Solve on curvature; concentric with radius (R)
@@ -479,7 +479,7 @@ class PyZDDE(object):
     SOLVE_THICK_OPD = 6 # Solve on thickness; optical path difference (O)
     SOLVE_THICK_POS = 7 # Solve on thickness; position (T)
     SOLVE_THICK_COMPENSATE = 8 # Solve on thickness; compensator (S)
-    SOLVE_THICK_CENT_CURV = 9 # Solve on thickness; center of curvature (X)
+    SOLVE_THICK_CNTR_CURV = 9 # Solve on thickness; center of curvature (X)
     SOLVE_THICK_PUPIL_POS = 10 # Solve on thickness; pupil position (U)
     SOLVE_THICK_ZPL = 11 # Solve on thickness; zpl macro (Z)
     SOLVE_GLASS_FIXED = 0 # Solve on glass; fixed
@@ -2704,8 +2704,9 @@ class PyZDDE(object):
             indicating the surface parameter, such as curvature, thickness,
             glass, conic, semi-diameter, etc. (see the table
             surf_param_codes_for_solve_ below). You may also use the surface
-            parameter mnemonic codes with signature ln.SPAR_XXX, e.g. 
-            ln.SPAR_CURV, ln.SPAR_THICK, etc. 
+            parameter mnemonic codes with signature `ln.SPAR_XXX`, e.g. 
+            `ln.SPAR_CURV`, `ln.SPAR_THICK`, etc. The `SPAR` stands for 
+            surface parameter. (Caution! Don't use SDAT_XXX type mnemonics)
 
         Returns
         -------
@@ -5423,12 +5424,12 @@ class PyZDDE(object):
         objectNumber : integer
             the object number
         parameter : integer
-            * -1 = data for x data;
-            * -2 = data for y data;
-            * -3 = data for z data;
-            * -4 = data for tilt x data;
-            * -5 = data for tilt y data;
-            * -6 = data for tilt z data;
+            * -1 = data for x position;
+            * -2 = data for y position;
+            * -3 = data for z position;
+            * -4 = data for tilt x ;
+            * -5 = data for tilt y ;
+            * -6 = data for tilt z ;
             * n > 0  = data for the nth parameter;
         solveType : integer
             0 = fixed; 1 = variable; 2 = pickup;
@@ -5593,27 +5594,30 @@ class PyZDDE(object):
         surfaceNumber : integer
             surface number for which the solve is to be set.
         code : integer
-            code for surface parameter such as curvature, thickness,
-            glass, conic, semi-diameter, etc. (see the table in docstring
-            of ``zGetSolve()`` surf_param_codes_for_solve_. You may also 
-            use the surface parameter mnemonic codes with signature 
-            ln.SPAR_XXX, e.g. ln.SPAR_CURV, ln.SPAR_THICK, etc. 
-        solveData : tuple preceded by ``*`` or a sequence of arguments. 
-            See Notes
-
+            surface parameter code for curvature, thickness, glass, conic,
+            semi-diameter, etc. (see table in docstring of ``zGetSolve()`` 
+            surf_param_codes_for_solve_ or use surface parameter mnemonic 
+            codes with signature, e.g. `ln.SPAR_XXX`, `ln.SPAR_CURV`, etc. 
+        solveData : tuple preceded by ``*`` or a sequence of arguments -- 
+            `solvetype`,` param1`, `param2`, `param3`, `param4`. 
             There are two ways of passing this parameter:
 
-            1. As a sequence of arguments:
-               ``solvetype, param1, param2, param3, param4``
-            2. As a tuple of the above arguments preceded by the ``*``
-               operator to flatten/splatter the tuple (see example below).
+                1. As a sequence of arguments: 
+                   ``solvetype, param1, param2, param3, param4`` or
+                2. As a tuple of the above arguments preceded by the ``*``
+                   operator to flatten/splatter the tuple (see example below).
+
+            All needed parameters need to be passed (even the parameters
+            that apperr to be default in Zemax main application). For 
+            `solvetypes` that has pickup column, use 0 for "current column".
 
         Returns
         -------
         solveData : tuple
             tuple depending on the code value according to the table
             surf_param_codes_for_solve_ (same return as ``zGetSolve()``),
-            if successful, -1 if the command is a failed.
+            if successful. The first element in the tuple is always the
+            `solvetype`. -1 if the command failed.
 
         Notes
         -----
@@ -5651,137 +5655,195 @@ class PyZDDE(object):
             print("Error [zSetSolve] No solve data passed.")
             return -1
         try:
-            if code == 0:          # Solve specified on CURVATURE
-                if solveData[0] == 0:           # fixed
+            if code == self.SPAR_CURV:  # Solve specified on CURVATURE        
+                
+                if solveData[0] == self.SOLVE_CURV_FIXED:         
                     data = ''
-                elif solveData[0] == 1:         # variable (V)
+                
+                elif solveData[0] == self.SOLVE_CURV_VAR: # (V)
                     data = ''
-                elif solveData[0] == 2:         # marninal ray angle (M)
+                
+                elif solveData[0] == self.SOLVE_CURV_MR_ANG: # (M)
                     data = '{:1.20g}'.format(solveData[1]) # angle
-                elif solveData[0] == 3:         # chief ray angle (C)
+                
+                elif solveData[0] == self.SOLVE_CURV_CR_ANG: # (C)
                     data = '{:1.20g}'.format(solveData[1]) # angle
-                elif solveData[0] == 4:         # pickup (P)
+                
+                elif solveData[0] == self.SOLVE_CURV_PICKUP:  # (P)
                     data = ('{:d},{:1.20g},{:d}'
-                    .format(solveData[1],solveData[2],solveData[3])) # suface,scale-factor,column
-                elif solveData[0] == 5:         # marginal ray normal (N)
+                    .format(solveData[1], solveData[2], solveData[3])) # suface, scale-factor, column
+                
+                elif solveData[0] == self.SOLVE_CURV_MR_NORM: # (N)
                     data = ''
-                elif solveData[0] == 6:         # chief ray normal (N)
+                
+                elif solveData[0] == self.SOLVE_CURV_CR_NORM: # (N)
                     data = ''
-                elif solveData[0] == 7:         # aplanatic (A)
+                
+                elif solveData[0] == self.SOLVE_CURV_APLAN: # (A)
                     data = ''
-                elif solveData[0] == 8:         # element power (X)
+                
+                elif solveData[0] == self.SOLVE_CURV_ELE_POWER: # (X)
                     data = '{:1.20g}'.format(solveData[1]) # power
-                elif solveData[0] == 9:         # concentric with surface (S)
+                
+                elif solveData[0] == self.SOLVE_CURV_CON_SURF: # (S)
                     data = '{:d}'.format(solveData[1]) # surface to be concentric to
-                elif solveData[0] == 10:        # concentric with radius (R)
+                
+                elif solveData[0] == self.SOLVE_CURV_CON_RADIUS: # (R)
                     data = '{:d}'.format(solveData[1]) # surface to be concentric with
-                elif solveData[0] == 11:        # f/# (F)
+                
+                elif solveData[0] == self.SOLVE_CURV_FNUM: # (F)
                     data = '{:1.20g}'.format(solveData[1]) # paraxial f/#
-                elif solveData[0] == 12:        # zpl macro (Z)
+                
+                elif solveData[0] == self.SOLVE_CURV_ZPL: # (Z)
                     data = str(solveData[1])       # macro name
-            elif code == 1:                  # Solve specified on THICKNESS
-                if solveData[0] == 0:           # fixed
+            
+            elif code == self.SPAR_THICK:  # Solve specified on THICKNESS
+                
+                if solveData[0] == self.SOLVE_THICK_FIXED: 
                     data = ''
-                elif solveData[0] == 1:         # variable (V)
+                
+                elif solveData[0] == self.SOLVE_THICK_VAR:  # (V)
                     data = ''
-                elif solveData[0] == 2:         # marninal ray height (M)
-                    data = '{:1.20g},{:1.20g}'.format(solveData[1],solveData[2]) # height, pupil zone
-                elif solveData[0] == 3:         # chief ray height (C)
+                
+                elif solveData[0] == self.SOLVE_THICK_MR_HGT: # (M)
+                    data = '{:1.20g},{:1.20g}'.format(solveData[1], solveData[2]) # height, pupil zone
+                
+                elif solveData[0] == self.SOLVE_THICK_CR_HGT: # (C)
                     data = '{:1.20g}'.format(solveData[1])   # height
-                elif solveData[0] == 4:         # edge thickness (E)
-                    data = '{:1.20g},{:1.20g}'.format(solveData[1],solveData[2]) # thickness, radial height (0 for semi-diameter)
-                elif solveData[0] == 5:         # pickup (P)
+                
+                elif solveData[0] == self.SOLVE_THICK_EDGE_THICK: # (E)
+                    data = '{:1.20g},{:1.20g}'.format(solveData[1], solveData[2]) # thickness, radial height (0 for semi-diameter)
+                
+                elif solveData[0] == self.SOLVE_THICK_PICKUP: # (P)
                     data = ('{:d},{:1.20g},{:1.20g},{:d}'
-                    .format(solveData[1],solveData[2],solveData[3],solveData[4])) # surface, scale-factor, offset, column
-                elif solveData[0] == 6:         # optical path difference (O)
-                    data = '{:1.20g},{:1.20g}'.format(solveData[1],solveData[2]) # opd, pupil zone
-                elif solveData[0] == 7:         # position (T)
-                    data = '{:d},{:1.20g}'.format(solveData[1],solveData[2]) # surface, length from surface
-                elif solveData[0] == 8:         # compensator (S)
-                    data = '{:d},{:1.20g}'.format(solveData[1],solveData[2]) # surface, sum of surface thickness
-                elif solveData[0] == 9:         # center of curvature (X)
+                    .format(solveData[1], solveData[2], solveData[3], solveData[4])) # surface, scale-factor, offset, column
+                
+                elif solveData[0] == self.SOLVE_THICK_OPD: # (O)
+                    data = '{:1.20g},{:1.20g}'.format(solveData[1], solveData[2]) # opd, pupil zone
+                
+                elif solveData[0] == self.SOLVE_THICK_POS: # (T)
+                    data = '{:d},{:1.20g}'.format(solveData[1], solveData[2]) # surface, length from surface
+                
+                elif solveData[0] == self.SOLVE_THICK_COMPENSATE: # (S)
+                    data = '{:d},{:1.20g}'.format(solveData[1], solveData[2]) # surface, sum of surface thickness
+                
+                elif solveData[0] == self.SOLVE_THICK_CNTR_CURV: # (X)
                     data = '{:d}'.format(solveData[1]) # surface to be at the COC of
-                elif solveData[0] == 10:        # pupil position (U)
+                
+                elif solveData[0] == self.SOLVE_THICK_PUPIL_POS: # (U)
                     data = ''
-                elif solveData[0] == 11:        # zpl macro (Z)
+                
+                elif solveData[0] == self.SOLVE_THICK_ZPL: # (Z)
                     data = str(solveData[1])       # macro name
-            elif code == 2:                  # Solve specified on GLASS
-                if solveData[0] == 0:           # fixed
+            
+            elif code == self.SPAR_GLASS: # GLASS
+                
+                if solveData[0] == self.SOLVE_GLASS_FIXED:
                     data = ''
-                elif solveData[0] == 1:         # model
+                
+                elif solveData[0] == self.SOLVE_GLASS_MODEL: 
                     data = ('{:1.20g},{:1.20g},{:1.20g}'
-                    .format(solveData[1],solveData[2],solveData[3])) # index Nd, Abbe Vd, Dpgf
-                elif solveData[0] == 2:         # pickup (P)
+                    .format(solveData[1], solveData[2], solveData[3])) # index Nd, Abbe Vd, Dpgf
+                
+                elif solveData[0] == self.SOLVE_GLASS_PICKUP: # (P)
                     data = '{:d}'.format(solveData[1]) # surface
-                elif solveData[0] == 3:         # substitute (S)
+                
+                elif solveData[0] == self.SOLVE_GLASS_SUBS: # (S)
                     data = str(solveData[1])      # catalog name
-                elif solveData[0] == 4:         # offset (O)
-                    data = '{:1.20g},{:1.20g}'.format(solveData[1],solveData[2]) # index Nd offset, Abbe Vd offset
-            elif code == 3:                  # Solve specified on SEMI-DIAMETER
-                if solveData[0] == 0:           # automatic
+                
+                elif solveData[0] == self.SOLVE_GLASS_OFFSET: # (O)
+                    data = '{:1.20g},{:1.20g}'.format(solveData[1], solveData[2]) # index Nd offset, Abbe Vd offset
+            
+            elif code == self.SPAR_SEMIDIA:   # Solve specified on SEMI-DIAMETER
+                
+                if solveData[0] == self.SOLVE_SEMIDIA_AUTO:
                     data = ''
-                elif solveData[0] == 1:         # fixed (U)
+                
+                elif solveData[0] == self.SOLVE_SEMIDIA_FIXED: # (U)
                     data = ''
-                elif solveData[0] == 2:         # pickup (P)
+                
+                elif solveData[0] == self.SOLVE_SEMIDIA_PICKUP:  # (P)
                     data = ('{:d},{:1.20g},{:d}'
-                    .format(solveData[1],solveData[2],solveData[3])) # surface, scale-factor, column
-                elif solveData[0] == 3:         # maximum (M)
+                    .format(solveData[1], solveData[2], solveData[3])) # surface, scale-factor, column
+                
+                elif solveData[0] == self.SOLVE_SEMIDIA_MAX: # (M)
                     data = ''
-                elif solveData[0] == 4:         # zpl macro (Z)
+                
+                elif solveData[0] == self.SOLVE_SEMIDIA_ZPL:  # (Z)
                     data = str(solveData[1])       # macro name
-            elif code == 4:                  # Solve specified on CONIC
-                if solveData[0] == 0:           # fixed
+            
+            elif code == self.SPAR_CONIC:  # Solve specified on CONIC
+                
+                if solveData[0] == self.SOLVE_CONIC_FIXED:  
                     data = ''
-                elif solveData[0] == 1:         # variable (V)
+                
+                elif solveData[0] == self.SOLVE_CONIC_VAR: # (V)
                     data = ''
-                elif solveData[0] == 2:         # pickup (P)
+                
+                elif solveData[0] == self.SOLVE_CONIC_PICKUP: # (P)
                     data = ('{:d},{:1.20g},{:d}'
-                    .format(solveData[1],solveData[2],solveData[3])) # surface, scale-factor, column
-                elif solveData[0] == 3:         # zpl macro (Z)
+                    .format(solveData[1], solveData[2], solveData[3])) # surface, scale-factor, column
+                
+                elif solveData[0] == self.SOLVE_CONIC_ZPL: # (Z)
                     data = str(solveData[1])       # macro name
-            elif code in range(5,17):        # Solve specified on PARAMETERS 1-12
-                if solveData[0] == 0:           # fixed
+            
+            elif self.SPAR_PAR1 <= code <= self.SPAR_PAR12:  # Solve specified on PARAMETERS 1-12  
+                
+                if solveData[0] == self.SOLVE_PARn_FIXED:  
                     data = ''
-                elif solveData[0] == 1:         # variable (V)
+                
+                elif solveData[0] == self.SOLVE_PARn_VAR:  # (V)
                     data = ''
-                elif solveData[0] == 2:         # pickup (P)
+                
+                elif solveData[0] == self.SOLVE_PARn_PICKUP: # (P)
                     data = ('{:d},{:1.20g},{:1.20g},{:d}'
-                    .format(solveData[1],solveData[3],solveData[2],solveData[4])) # surface, offset, scale-factor, column
-                    # Due to a probable bug in Zemax itself, offset and scale-factor are reversed.
-                    # I (insr) observed this during the implementation of zTiltDecenterElements(). Since
-                    # Zemax will probably not fix the bug, I am resorting to the above change.
+                    .format(solveData[1], solveData[3], solveData[2], solveData[4])) # surface, offset, scale-factor, column
                     #.format(solveData[1],solveData[2],solveData[3],solveData[4])) # surface, scale-factor, offset, column
-                elif solveData[0] == 3:         # chief ray (C)
-                    data = '{:d},{:1.20g}'.format(solveData[1],solveData[2]) # field, wavelength
-                elif solveData[0] == 4:         # zpl macro (Z)
-                    data = str(solveData[1])       # macro name
-            elif code == 17:                 # Solve specified on PARAMETER 0
-                if solveData[0] == 0:           # fixed
+                    # Due to a probable bug in Zemax itself, offset and scale-factor are reversed.
+                    # Zemax will probably not fix the bug as the DDE interface has been superseded, so I am resorting to the above change.
+                                    
+                elif solveData[0] == self.SOLVE_PARn_CR:  # (C)
+                    data = '{:d},{:1.20g}'.format(solveData[1], solveData[2]) # field, wavelength
+                
+                elif solveData[0] == self.SOLVE_PARn_ZPL: # (Z)
+                    data = str(solveData[1]) # macro name
+            
+            elif code == self.SPAR_PAR0:  # Solve specified on PARAMETER 0
+                
+                if solveData[0] == self.SOLVE_PAR0_FIXED:  
                     data = ''
-                elif solveData[0] == 1:         # variable (V)
+                
+                elif solveData[0] == self.SOLVE_PAR0_VAR: # (V)
                     data = ''
-                elif solveData[0] == 2:         # pickup (P)
+                
+                elif solveData[0] == self.SOLVE_PAR0_PICKUP: # (P)
                     data = '{:d}'.format(solveData[1]) # surface
-            elif code > 1000:                # Solve specified on EXTRA DATA VALUES
-                if solveData[0] == 0:           # fixed
+            
+            elif code > 1000:  # Solve specified on EXTRA DATA VALUES
+                
+                if solveData[0] == self.SOLVE_EDATA_FIXED: 
                     data = ''
-                elif solveData[0] == 1:         # variable (V)
+                
+                elif solveData[0] == self.SOLVE_EDATA_VAR: # (V)
                     data = ''
-                elif solveData[0] == 2:         # pickup (P)
+                
+                elif solveData[0] == self.SOLVE_EDATA_PICKUP: # (P)
                     data = ('{:d},{:1.20g},{:1.20g},{:d}'
-                    .format(solveData[1],solveData[2],solveData[3],solveData[4])) # surface, scale-factor, offset, column
-                elif solveData[0] == 3:         # zpl macro (Z)
-                    data = str(solveData[1])       # macro name
+                    .format(solveData[1], solveData[2], solveData[3], solveData[4])) # surface, scale-factor, offset, column
+                
+                elif solveData[0] == self.SOLVE_EDATA_ZPL: # (Z)
+                    data = str(solveData[1]) # macro name
+        
         except IndexError:
             print("Error [zSetSolve]: Check number of solve parameters!")
             return -1
         #synthesize the command to pass to zemax
         if data:
             cmd = ("SetSolve,{:d},{:d},{:d},{}"
-                  .format(surfaceNumber,code,solveData[0],data))
+                  .format(surfaceNumber, code, solveData[0], data))
         else:
             cmd = ("SetSolve,{:d},{:d},{:d}"
-                  .format(surfaceNumber,code,solveData[0]))
+                  .format(surfaceNumber, code, solveData[0]))
         reply = self._sendDDEcommand(cmd)
         solveData = _process_get_set_Solve(reply)
         return solveData
@@ -9500,9 +9562,13 @@ class PyZDDE(object):
 
 
     def zTiltDecenterElements(self, firstSurf, lastSurf, xdec=0.0, ydec=0.0, xtilt=0.0, 
-                              ytilt=0.0, ztilt=0.0, order=0, cb2Ord=1, cbComment1=None, 
+                              ytilt=0.0, ztilt=0.0, order=0, cb2Ord=None, cbComment1=None, 
                               cbComment2=None):
-        '''tilt decenter elements using CBs around the firstSurf and lastSurf
+        '''tilt decenter elements using CBs around the `firstSurf` and `lastSurf`. 
+        
+        Please check the options "Skip Rays To This Surface" and "Do Not Draw 
+        This Surface" under the "Draw" tab of the "Surface Properties" of the 
+        dummy surface manually. 
         
         Parameters
         ----------
@@ -9520,12 +9586,13 @@ class PyZDDE(object):
             tilt about y (degrees)
         ztilt : float
             tilt about z (degrees)
-        order : integer (0/1)
-            0 = decenter then tilt; 1 = tilt then decenter
-        cb2Ord : integer (0/1)
-            order flag on second cb surface. If 1 (default), second CB is 
-            executed in reverse order. This is required if more than one
-            tilt is used. Even otherwise, it is a good practice.
+        order : integer (0/1), optional
+            0 (default) = decenter then tilt; 1 = tilt then decenter
+        cb2Ord : None or integer (0/1), optional
+            order flag on second cb surface. If 1, second CB is executed 
+            in reverse order. This is required if more than one tilt is 
+            used. (It is a good practice). If `order` is 1 and `cb2Ord` 
+            is `None`, then `cb2Ord` is set to 0 (Zemax behavior)
         comment1 : string, optional
             comment on the first CB surface
         comment2 : string, optional
@@ -9540,52 +9607,65 @@ class PyZDDE(object):
         1. In total 3 surfaces are added to the system -- the first CB, before the 
            surface `firstSurf`, the second CB, after the surface `lastSurf`, and a
            dummy surface after the second CB. 
+        2. The "Skip Rays To This Surface" and "Do Not Draw This Surface" under the 
+           "Draw" tab of the "Surface Properties" of the dummy surface MUST be checked
+           manually after the execution of this function. Unfortunately there is no
+           way to do it automatically. 
         '''
         numSurfBetweenCBs = lastSurf - firstSurf + 1
-        cbSurf1 = firstSurf
-        cbSurf2 = cbSurf1 + numSurfBetweenCBs + 1 
-        self.zInsertSurface(surfNum=cbSurf1) # 1st cb
-        self.zInsertSurface(surfNum=cbSurf2) # 2nd cb to restore the original axis
-        self.zInsertSurface(surfNum=cbSurf2 + 1) # dummy after 2nd cb
-        cls = PyZDDE
-        if cbComment1:
-            self.zSetSurfaceData(surfaceNumber=cbSurf1, code=cls.SDAT_COMMENT, 
-                                 value=cbComment1)
-        self.zSetSurfaceData(surfaceNumber=cbSurf1, code=cls.SDAT_TYPE, 
-                             value='COORDBRK')
-        if cbComment2:
-            self.zSetSurfaceData(surfaceNumber=cbSurf2, code=cls.SDAT_COMMENT, 
-                                 value=cbComment2)
-        self.zSetSurfaceData(surfaceNumber=cbSurf2, code=cls.SDAT_TYPE, 
-                             value='COORDBRK')
-        self.zSetSurfaceData(surfaceNumber=cbSurf2 + 1, code=cls.SDAT_COMMENT, 
-                             value='dummy')
+        cb1 = firstSurf
+        cb2 = cb1 + numSurfBetweenCBs + 1
+        dummy = cb2 + 1
+        # store the thickness and solve on thickness (if any) of the last surface 
+        thick = self.zGetSurfaceData(surfaceNumber=lastSurf, code=self.SDAT_THICK)
+        solve = self.zGetSolve(surfaceNumber=lastSurf, code=self.SPAR_THICK)
+        # insert surfaces
+        self.zInsertSurface(surfNum=cb1) # 1st cb
+        self.zInsertSurface(surfNum=cb2) # 2nd cb to restore the original axis
+        self.zInsertSurface(surfNum=dummy) # dummy after 2nd cb
+        cbComment1 = cbComment1 if cbComment1 else 'Element Tilt'
+        self.zSetSurfaceData(surfaceNumber=cb1, code=self.SDAT_COMMENT, value=cbComment1)
+        self.zSetSurfaceData(surfaceNumber=cb1, code=self.SDAT_TYPE, value='COORDBRK')
+        cbComment2 = cbComment2 if cbComment2 else 'Element Tilt:return'
+        self.zSetSurfaceData(surfaceNumber=cb2, code=self.SDAT_COMMENT, value=cbComment2)
+        self.zSetSurfaceData(surfaceNumber=cb2, code=self.SDAT_TYPE, value='COORDBRK')
+        self.zSetSurfaceData(surfaceNumber=dummy, code=self.SDAT_COMMENT, value='Dummy')
+        # transfer thickness and solve on thickness (if any) of the surface just before
+        # the cb2 (originally lastSurf) to the dummy surface
+        lastSurf += 1  # last surface number incremented by 1 bcoz of cb 1
+        self.zSetSurfaceData(surfaceNumber=lastSurf, code=self.SDAT_THICK, value=0.0)
+        self.zSetSolve(lastSurf, self.SPAR_THICK, self.SOLVE_THICK_FIXED)
+        self.zSetSurfaceData(surfaceNumber=dummy, code=self.SDAT_THICK, value=thick)
+        self.zSetSolve(dummy, self.SPAR_THICK, *solve)
+        # use pick-up solve on glass surface of dummy to pickup from lastSurf
+        self.zSetSolve(dummy, self.SPAR_GLASS, self.SOLVE_GLASS_PICKUP, lastSurf)
         # use pick-up solves on second CB; set scale factor of -1 to lock the second
         # cb to the first.
         columns = range(6, 11)
-        params = [cls.SPAR_PAR1, cls.SPAR_PAR2, cls.SPAR_PAR3, cls.SPAR_PAR4, cls.SPAR_PAR5]
+        params = [self.SPAR_PAR1, self.SPAR_PAR2, self.SPAR_PAR3, self.SPAR_PAR4, self.SPAR_PAR5]
         for para, col in zip(params, columns):
-            self.zSetSolve(cbSurf2, para, cls.SOLVE_PARn_PICKUP, cbSurf1, -1, 0, col)       
+            self.zSetSolve(cb2, para, self.SOLVE_PARn_PICKUP, cb1, -1, 0, col)       
         # Set solves to co-locate the two CBs
-        lastSurf+=1  # last surface number incremented by 1 bcoz of cb 1
         # use position solve to track back through the lens
-        self.zSetSolve(lastSurf, cls.SPAR_THICK, cls.SOLVE_THICK_POS, cbSurf1 , 0)
+        self.zSetSolve(lastSurf, self.SPAR_THICK, self.SOLVE_THICK_POS, cb1 , 0)
         # use a pickup solve to restore position at the back of the lastSurf
-        self.zSetSolve(cbSurf2, cls.SPAR_THICK, cls.SOLVE_THICK_PICKUP, lastSurf, -1, 0, 2)
+        self.zSetSolve(cb2, self.SPAR_THICK, self.SOLVE_THICK_PICKUP, lastSurf, -1, 0, 2)
         # set order flag on first cb
-        self.zSetSurfaceParameter(surfaceNumber=cbSurf1, parameter=6, value=order)    
+        self.zSetSurfaceParameter(surfaceNumber=cb1, parameter=6, value=order)    
         # set order flag on second cb
-        self.zSetSurfaceParameter(surfaceNumber=cbSurf2, parameter=6, value=cb2Ord)
+        if order:
+            cb2Ord = cb2Ord if cb2Ord else 0
+        self.zSetSurfaceParameter(surfaceNumber=cb2, parameter=6, value=cb2Ord)
         # set the decenter and tilt values in the first cb
         params = range(1, 6)
         values = [xdec, ydec, xtilt, ytilt, ztilt]
         for par, val in zip(params, values):
-            self.zSetSurfaceParameter(surfaceNumber=cbSurf1, parameter=par, value=val)
+            self.zSetSurfaceParameter(surfaceNumber=cb1, parameter=par, value=val)
         self.zGetUpdate()
 
 
 
-    #  IPYTHON NOTEBOOK UTILITY FUNCTIONS
+    #%%  IPYTHON NOTEBOOK UTILITY FUNCTIONS
 
     def ipzCaptureWindowLQ(self, num=1, *args, **kwargs):
         """Capture graphic window from Zemax and display in IPython

@@ -1518,14 +1518,31 @@ class TestPyZDDEFunctions(unittest.TestCase):
         ret = self.link0.zLoadFile(filename)
         assert ret == 0
         # set a solve on the curvature (0) of surface number 6 such that the
-        # Marginal Ray angle (2) value is 0.1. The following three methods are
+        # Marginal Ray angle (2) value is 0.1. The following 4 methods are
         # equivalent and should produce the same output
         solveData = self.link0.zSetSolve(6, 0, *(2, 0.1))
         self.assertTupleEqual(solveData, (2, 0.1, 0.0, 0))
+        
         solveData = self.link0.zSetSolve(6, 0, *[2, 0.1])
         self.assertTupleEqual(solveData, (2, 0.1, 0.0, 0))
+       
         solveData = self.link0.zSetSolve(6, 0, 2, 0.1)
         self.assertTupleEqual(solveData, (2, 0.1, 0.0, 0))
+        
+        solveData = self.link0.zSetSolve(6, self.link0.SPAR_CURV, 
+                                         self.link0.SOLVE_CURV_MR_ANG, 0.1)
+        self.assertTupleEqual(solveData, (2, 0.1, 0.0, 0))
+        
+        # thickness solve on surface 5
+        solveData = self.link0.zSetSolve(5, self.link0.SPAR_THICK, 
+                                         self.link0.SOLVE_THICK_PICKUP, 1, -1, 0.3, 0)
+        self.assertTupleEqual(solveData, (5, 1.0, -1.0, 0.3, 0))
+        
+        
+        # The following test is reated to a possible bug in Zemax.
+        
+        
+        #self.link0.zGetSolve()
         if TestPyZDDEFunctions.pRetVar:
             print('zSetSolve test successful')
 
