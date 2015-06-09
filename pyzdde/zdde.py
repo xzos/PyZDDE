@@ -88,13 +88,19 @@ except ImportError:
   print("DDE client couldn't be loaded. All functions prefixed with"
         " \"z\" or \"ipz\" may not work.")
 
+# Python 2/ Python 3 differential imports
 if _global_pyver3:
    _izip = zip
    _imap = map
    xrange = range
+   import tkinter as _tk
+   import tkinter.messagebox as _MessageBox
 else:
     from itertools import izip as _izip, imap as _imap
-
+    import Tkinter as _tk
+    import tkMessageBox as _MessageBox
+    
+# Pyzdde local module imports
 import pyzdde.zcodes.zemaxbuttons as zb
 import pyzdde.zcodes.zemaxoperands as zo
 import pyzdde.utils.pyzddeutils as _putils
@@ -437,25 +443,25 @@ class PyZDDE(object):
     SDAT_LAYER_INDEX_OFFSET_STAT = 74  # Layer index offset status
     SDAT_LAYER_EXTINCT_OFFSET_VAL = 75   # Layer extinction offset value
     SDAT_LAYER_EXTINCT_OFFSET_STAT = 76  # Layer extinction offset status
-    # Surface parameter codes for getting and setting solve
-    SPAR_CURV = 0   # Curvature
-    SPAR_THICK = 1  # Thickness
-    SPAR_GLASS = 2   # Glass
-    SPAR_SEMIDIA = 3  # Semi-Diameter
-    SPAR_CONIC = 4  # Conic
-    SPAR_PAR0 = 17  # Parameter 0
-    SPAR_PAR1 = 5  # Parameter 1
-    SPAR_PAR2 = 6  # Parameter 2  
-    SPAR_PAR3 = 7  # Parameter 3
-    SPAR_PAR4 = 8  # Parameter 4
-    SPAR_PAR5 = 9  # Parameter 5
-    SPAR_PAR6 = 10  # Parameter 6
-    SPAR_PAR7 = 11  # Parameter 7
-    SPAR_PAR8 = 12  # Parameter 8
-    SPAR_PAR9 = 13  # Parameter 9
-    SPAR_PAR10 = 14  # Parameter 10
-    SPAR_PAR11 = 15  # Parameter 11
-    SPAR_PAR12 = 16  # Parameter 12
+    # Surface parameter codes for getting and setting solves
+    SOLVE_SPAR_CURV = 0   # Curvature
+    SOLVE_SPAR_THICK = 1  # Thickness
+    SOLVE_SPAR_GLASS = 2   # Glass
+    SOLVE_SPAR_SEMIDIA = 3  # Semi-Diameter
+    SOLVE_SPAR_CONIC = 4  # Conic
+    SOLVE_SPAR_PAR0 = 17  # Parameter 0
+    SOLVE_SPAR_PAR1 = 5  # Parameter 1
+    SOLVE_SPAR_PAR2 = 6  # Parameter 2  
+    SOLVE_SPAR_PAR3 = 7  # Parameter 3
+    SOLVE_SPAR_PAR4 = 8  # Parameter 4
+    SOLVE_SPAR_PAR5 = 9  # Parameter 5
+    SOLVE_SPAR_PAR6 = 10  # Parameter 6
+    SOLVE_SPAR_PAR7 = 11  # Parameter 7
+    SOLVE_SPAR_PAR8 = 12  # Parameter 8
+    SOLVE_SPAR_PAR9 = 13  # Parameter 9
+    SOLVE_SPAR_PAR10 = 14  # Parameter 10
+    SOLVE_SPAR_PAR11 = 15  # Parameter 11
+    SOLVE_SPAR_PAR12 = 16  # Parameter 12
     # Solve type code for use with get/set solve function
     SOLVE_CURV_FIXED = 0 # Solve on curvature; fixed
     SOLVE_CURV_VAR = 1 # Solve on curvature; variable (V)
@@ -508,6 +514,13 @@ class PyZDDE(object):
     SOLVE_EDATA_VAR = 1 # Solve on extra data values; variable (V)
     SOLVE_EDATA_PICKUP = 2 # Solve on extra data values; pickup (P)
     SOLVE_EDATA_ZPL = 3 # Solve on extra data values; zpl macro (Z)
+    # Object parameter codes for NSC solve
+    NSCSOLVE_OPAR_XPOS = -1
+    NSCSOLVE_OPAR_YPOS = -2
+    NSCSOLVE_OPAR_ZPOS = -3
+    NSCSOLVE_OPAR_XTILT = -4
+    NSCSOLVE_OPAR_YTILT = -5
+    NSCSOLVE_OPAR_ZTILT = -6
 
     def __init__(self):
         """Creates an instance of PyZDDE class
@@ -2702,11 +2715,11 @@ class PyZDDE(object):
             surface number
         code : integer
             indicating the surface parameter, such as curvature, thickness,
-            glass, conic, semi-diameter, etc. (see the table
-            surf_param_codes_for_solve_ below). You may also use the surface
-            parameter mnemonic codes with signature `ln.SPAR_XXX`, e.g. 
-            `ln.SPAR_CURV`, `ln.SPAR_THICK`, etc. The `SPAR` stands for 
-            surface parameter. (Caution! Don't use SDAT_XXX type mnemonics)
+            glass, conic, semi-diameter, etc. (Refer to the table
+            surf_param_codes_for_getsolve_ or use the surface
+            parameter mnemonic codes with signature `ln.SOLVE_SPAR_XXX`, e.g. 
+            `ln.SOLVE_SPAR_CURV`, `ln.SOLVE_SPAR_THICK`, etc. The `SPAR` 
+            stands for surface parameter.
 
         Returns
         -------
@@ -2717,41 +2730,34 @@ class PyZDDE(object):
         Notes
         -----
 
-        .. _surf_param_codes_for_solve:
+        .. _surf_param_codes_for_getsolve:
 
         ::
 
             Table : Surface parameter codes for zGetsolve() and zSetSolve()
 
-            ---------------------------------------------------------------
+            ------------------------------------------------------------------------------
                code           - Datum set/get by zGetSolve()/zSetSolve()
-            ---------------------------------------------------------------
+            ------------------------------------------------------------------------------
             0 (curvature)     - solvetype, param1, param2, pickupcolumn
-            1 (thickness)     - solvetype, param1, param2, param3,
-                                pickupcolumn
+            1 (thickness)     - solvetype, param1, param2, param3, pickupcolumn
             2 (glass)         - solvetype (for solvetype = 0);
-                                solvetype, Index, Abbe, Dpgf (for solvetype
-                                = 1, model glass);
-                                solvetype, pickupsurf (for solvetype = 2,
-                                pickup);
-                                solvetype, index_offset, abbe_offset (for
-                                solvetype = 4, offset);
+                                solvetype, Index, Abbe, Dpgf (for solvetype = 1, model glass);
+                                solvetype, pickupsurf (for solvetype = 2, pickup);
+                                solvetype, index_offset, abbe_offset (for solvetype = 4, offset);
                                 solvetype (for solvetype=all other values)
             3 (semi-diameter) - solvetype, pickupsurf, pickupcolumn
             4 (conic)         - solvetype, pickupsurf, pickupcolumn
-            5-16 (param 1-12) - solvetype, pickupsurf, offset, scalefactor,
-                                pickupcolumn
-            17 (parameter 0)  - solvetype, pickupsurf, offset, scalefactor,
-                                pickupcolumn
-            1001+ (extra      - solvetype, pickupsurf, scalefactor, offset,
-            data values 1+)     pickupcolumn
+            5-16 (param 1-12) - solvetype, pickupsurf, offset, scalefactor, pickupcolumn
+            17 (parameter 0)  - solvetype, pickupsurf, offset, scalefactor, pickupcolumn
+            1001+ (extra      - solvetype, pickupsurf, scalefactor, offset, pickupcolumn
+            data values 1+)     
 
             end-of-table
 
-
-            The ``solvetype`` is an integer code, & the parameters have
-            meanings that depend upon the solve type; see the chapter
-            "SOLVES" in the Zemax manual for details.
+        The ``solvetype`` is an integer code, & the parameters have
+        meanings that depend upon the solve type; see the chapter
+        "SOLVES" in the Zemax manual for details.
 
         See Also
         --------
@@ -5595,27 +5601,37 @@ class PyZDDE(object):
             surface number for which the solve is to be set.
         code : integer
             surface parameter code for curvature, thickness, glass, conic,
-            semi-diameter, etc. (see table in docstring of ``zGetSolve()`` 
-            surf_param_codes_for_solve_ or use surface parameter mnemonic 
-            codes with signature, e.g. `ln.SPAR_XXX`, `ln.SPAR_CURV`, etc. 
-        solveData : tuple preceded by ``*`` or a sequence of arguments -- 
-            `solvetype`,` param1`, `param2`, `param3`, `param4`. 
+            semi-diameter, etc. (refer to table surf_param_codes_for_setsolve_ 
+            or use surface parameter mnemonic codes with signature 
+            `ln.SOLVE_SPAR_XXX`. for e.g. `ln.SOLVE_SPAR_CURV`, etc. 
+        solveData : splattered tuple
+            the tuple of arguments are ``solvetype, param1, param2, param3, param4``.
+            Refer to the table refer to table surf_param_codes_for_setsolve_ to
+            construct the `solveData` sequence for specific solve type code.
             There are two ways of passing this parameter:
-
-                1. As a sequence of arguments: 
-                   ``solvetype, param1, param2, param3, param4`` or
-                2. As a tuple of the above arguments preceded by the ``*``
+    
+                1. As a tuple of the above arguments preceded by the ``*``
                    operator to flatten/splatter the tuple (see example below).
+                2. As a sequence of arguments: 
+                   ``solvetype, param1, param2, param3, param4`` or
 
-            All needed parameters need to be passed (even the parameters
-            that apperr to be default in Zemax main application). For 
-            `solvetypes` that has pickup column, use 0 for "current column".
+            IMPORTANT:  
+            (1) All parameters should be passed as there is no default 
+                arguments to the function.
+            (2) The order of parameters for `solveData` for code 5-17 
+                do not match the order in the pop-up window for setting
+                pickup solve in Zemax application. For others, i.e.
+                when `solveData` is specified as `solvetype, param1, param2 ...`
+                the order of `param1`, `param2` matches the corresponding
+                order of parameters in Zemax solve window.
+            (3) For `solvetypes` that has pickup column, use 0 for  
+                "current column".
 
         Returns
         -------
         solveData : tuple
             tuple depending on the code value according to the table
-            surf_param_codes_for_solve_ (same return as ``zGetSolve()``),
+            surf_param_codes_for_setsolve_ (same return as ``zGetSolve()``),
             if successful. The first element in the tuple is always the
             `solvetype`. -1 if the command failed.
 
@@ -5631,7 +5647,33 @@ class PyZDDE(object):
            ``solvetype`` codes and parameters.
         2. If the ``solvetype`` is fixed, then the ``value`` in the
            ``solveData`` is ignored.
-
+        3. Surface parameter codes
+        
+            .. _surf_param_codes_for_setsolve:
+    
+            ::
+    
+                Table : Surface parameter codes for zGetsolve() and zSetSolve()
+    
+                --------------------------------------------------------------------------
+                   code           - Datum set/get by zGetSolve()/zSetSolve()
+                --------------------------------------------------------------------------
+                0 (curvature)     - solvetype, param1, param2, pickupcolumn
+                1 (thickness)     - solvetype, param1, param2, param3, pickupcolumn
+                2 (glass)         - solvetype (for solvetype = 0);
+                                    solvetype, Index, Abbe, Dpgf (for solvetype = 1, model glass);
+                                    solvetype, pickupsurf (for solvetype = 2, pickup);
+                                    solvetype, index_offset, abbe_offset (for solvetype = 4, offset);
+                                    solvetype (for solvetype=all other values)
+                3 (semi-diameter) - solvetype, pickupsurf, pickupcolumn
+                4 (conic)         - solvetype, pickupsurf, pickupcolumn
+                5-16 (param 1-12) - solvetype, pickupsurf, offset, scalefactor, pickupcolumn
+                17 (parameter 0)  - solvetype, pickupsurf, offset, scalefactor, pickupcolumn
+                1001+ (extra      - solvetype, pickupsurf, scalefactor, offset, pickupcolumn
+                data values 1+)     
+    
+                end-of-table
+        
         Examples
         --------
         To set a solve on the curvature (0) of surface number 6 such that
@@ -5645,7 +5687,7 @@ class PyZDDE(object):
         
         OR
         
-        >>> sdata = ln.zSetSolve(6, ln.SPAR_CURV, ln.SOLVE_CURV_MR_ANG, 0.1)
+        >>> sdata = ln.zSetSolve(6, ln.SOLVE_SPAR_CURV, ln.SOLVE_CURV_MR_ANG, 0.1)
 
         See Also
         --------
@@ -5655,7 +5697,7 @@ class PyZDDE(object):
             print("Error [zSetSolve] No solve data passed.")
             return -1
         try:
-            if code == self.SPAR_CURV:  # Solve specified on CURVATURE        
+            if code == self.SOLVE_SPAR_CURV:  # Solve specified on CURVATURE        
                 
                 if solveData[0] == self.SOLVE_CURV_FIXED:         
                     data = ''
@@ -5697,7 +5739,7 @@ class PyZDDE(object):
                 elif solveData[0] == self.SOLVE_CURV_ZPL: # (Z)
                     data = str(solveData[1])       # macro name
             
-            elif code == self.SPAR_THICK:  # Solve specified on THICKNESS
+            elif code == self.SOLVE_SPAR_THICK:  # Solve specified on THICKNESS
                 
                 if solveData[0] == self.SOLVE_THICK_FIXED: 
                     data = ''
@@ -5736,7 +5778,7 @@ class PyZDDE(object):
                 elif solveData[0] == self.SOLVE_THICK_ZPL: # (Z)
                     data = str(solveData[1])       # macro name
             
-            elif code == self.SPAR_GLASS: # GLASS
+            elif code == self.SOLVE_SPAR_GLASS: # GLASS
                 
                 if solveData[0] == self.SOLVE_GLASS_FIXED:
                     data = ''
@@ -5754,7 +5796,7 @@ class PyZDDE(object):
                 elif solveData[0] == self.SOLVE_GLASS_OFFSET: # (O)
                     data = '{:1.20g},{:1.20g}'.format(solveData[1], solveData[2]) # index Nd offset, Abbe Vd offset
             
-            elif code == self.SPAR_SEMIDIA:   # Solve specified on SEMI-DIAMETER
+            elif code == self.SOLVE_SPAR_SEMIDIA:   # Solve specified on SEMI-DIAMETER
                 
                 if solveData[0] == self.SOLVE_SEMIDIA_AUTO:
                     data = ''
@@ -5772,7 +5814,7 @@ class PyZDDE(object):
                 elif solveData[0] == self.SOLVE_SEMIDIA_ZPL:  # (Z)
                     data = str(solveData[1])       # macro name
             
-            elif code == self.SPAR_CONIC:  # Solve specified on CONIC
+            elif code == self.SOLVE_SPAR_CONIC:  # Solve specified on CONIC
                 
                 if solveData[0] == self.SOLVE_CONIC_FIXED:  
                     data = ''
@@ -5787,7 +5829,7 @@ class PyZDDE(object):
                 elif solveData[0] == self.SOLVE_CONIC_ZPL: # (Z)
                     data = str(solveData[1])       # macro name
             
-            elif self.SPAR_PAR1 <= code <= self.SPAR_PAR12:  # Solve specified on PARAMETERS 1-12  
+            elif self.SOLVE_SPAR_PAR1 <= code <= self.SOLVE_SPAR_PAR12:  # Solve specified on PARAMETERS 1-12  
                 
                 if solveData[0] == self.SOLVE_PARn_FIXED:  
                     data = ''
@@ -5797,18 +5839,15 @@ class PyZDDE(object):
                 
                 elif solveData[0] == self.SOLVE_PARn_PICKUP: # (P)
                     data = ('{:d},{:1.20g},{:1.20g},{:d}'
-                    .format(solveData[1], solveData[3], solveData[2], solveData[4])) # surface, offset, scale-factor, column
-                    #.format(solveData[1],solveData[2],solveData[3],solveData[4])) # surface, scale-factor, offset, column
-                    # Due to a probable bug in Zemax itself, offset and scale-factor are reversed.
-                    # Zemax will probably not fix the bug as the DDE interface has been superseded, so I am resorting to the above change.
-                                    
+                    .format(solveData[1],solveData[2],solveData[3],solveData[4])) # surface, scale-factor, offset, column
+                     
                 elif solveData[0] == self.SOLVE_PARn_CR:  # (C)
                     data = '{:d},{:1.20g}'.format(solveData[1], solveData[2]) # field, wavelength
                 
                 elif solveData[0] == self.SOLVE_PARn_ZPL: # (Z)
                     data = str(solveData[1]) # macro name
             
-            elif code == self.SPAR_PAR0:  # Solve specified on PARAMETER 0
+            elif code == self.SOLVE_SPAR_PAR0:  # Solve specified on PARAMETER 0
                 
                 if solveData[0] == self.SOLVE_PAR0_FIXED:  
                     data = ''
@@ -9563,7 +9602,7 @@ class PyZDDE(object):
 
     def zTiltDecenterElements(self, firstSurf, lastSurf, xdec=0.0, ydec=0.0, xtilt=0.0, 
                               ytilt=0.0, ztilt=0.0, order=0, cb2Ord=None, cbComment1=None, 
-                              cbComment2=None):
+                              cbComment2=None, suppressMsgBox=False):
         '''tilt decenter elements using CBs around the `firstSurf` and `lastSurf`. 
         
         Please check the options "Skip Rays To This Surface" and "Do Not Draw 
@@ -9597,20 +9636,30 @@ class PyZDDE(object):
             comment on the first CB surface
         comment2 : string, optional
             comment on the second CB surface
+        suppressMsgBox : bool, optional
+            if `False`, the message box that is used to remind users
+            to apply the manual settings to the dummy surface (e.g.
+            to skip rays) is suppressed. Default is `True`.
         
         Returns
         -------
-        None
+        cb1 : integer
+            surface number of the first coordinate break surface
+        cb2 : integer
+            surface number of the second (for restoring axis) coordinate 
+            break surface
+        dummy : integer
+            surface number of the dummy surface. It is always `cb2` + 1
         
         Notes
         -----
-        1. In total 3 surfaces are added to the system -- the first CB, before the 
-           surface `firstSurf`, the second CB, after the surface `lastSurf`, and a
-           dummy surface after the second CB. 
-        2. The "Skip Rays To This Surface" and "Do Not Draw This Surface" under the 
-           "Draw" tab of the "Surface Properties" of the dummy surface MUST be checked
-           manually after the execution of this function. Unfortunately there is no
-           way to do it automatically. 
+        1. In total, 3 more surfaces are added to the existing system -- the 
+           first CB, before `firstSurf`, the second CB after `lastSurf`, and 
+           a dummy surface after the second CB. 
+        2. The "Skip Rays To This Surface" and "Do Not Draw This Surface" under 
+           the "Draw" tab of the "Surface Properties" of the dummy surface MUST 
+           be checked manually after the execution of this function. 
+           Unfortunately there is no way to do it automatically. 
         '''
         numSurfBetweenCBs = lastSurf - firstSurf + 1
         cb1 = firstSurf
@@ -9618,7 +9667,7 @@ class PyZDDE(object):
         dummy = cb2 + 1
         # store the thickness and solve on thickness (if any) of the last surface 
         thick = self.zGetSurfaceData(surfaceNumber=lastSurf, code=self.SDAT_THICK)
-        solve = self.zGetSolve(surfaceNumber=lastSurf, code=self.SPAR_THICK)
+        solve = self.zGetSolve(surfaceNumber=lastSurf, code=self.SOLVE_SPAR_THICK)
         # insert surfaces
         self.zInsertSurface(surfNum=cb1) # 1st cb
         self.zInsertSurface(surfNum=cb2) # 2nd cb to restore the original axis
@@ -9634,27 +9683,29 @@ class PyZDDE(object):
         # the cb2 (originally lastSurf) to the dummy surface
         lastSurf += 1  # last surface number incremented by 1 bcoz of cb 1
         self.zSetSurfaceData(surfaceNumber=lastSurf, code=self.SDAT_THICK, value=0.0)
-        self.zSetSolve(lastSurf, self.SPAR_THICK, self.SOLVE_THICK_FIXED)
+        self.zSetSolve(lastSurf, self.SOLVE_SPAR_THICK, self.SOLVE_THICK_FIXED)
         self.zSetSurfaceData(surfaceNumber=dummy, code=self.SDAT_THICK, value=thick)
-        self.zSetSolve(dummy, self.SPAR_THICK, *solve)
+        self.zSetSolve(dummy, self.SOLVE_SPAR_THICK, *solve)
         # use pick-up solve on glass surface of dummy to pickup from lastSurf
-        self.zSetSolve(dummy, self.SPAR_GLASS, self.SOLVE_GLASS_PICKUP, lastSurf)
+        self.zSetSolve(dummy, self.SOLVE_SPAR_GLASS, self.SOLVE_GLASS_PICKUP, lastSurf)
         # use pick-up solves on second CB; set scale factor of -1 to lock the second
         # cb to the first.
-        columns = range(6, 11)
-        params = [self.SPAR_PAR1, self.SPAR_PAR2, self.SPAR_PAR3, self.SPAR_PAR4, self.SPAR_PAR5]
-        for para, col in zip(params, columns):
-            self.zSetSolve(cb2, para, self.SOLVE_PARn_PICKUP, cb1, -1, 0, col)       
+        pickupcolumns = range(6, 11)
+        params = [self.SOLVE_SPAR_PAR1, self.SOLVE_SPAR_PAR2, 
+                  self.SOLVE_SPAR_PAR3, self.SOLVE_SPAR_PAR4, self.SOLVE_SPAR_PAR5]
+        offset, scale = 0, -1
+        for para, pcol in zip(params, pickupcolumns):
+            self.zSetSolve(cb2, para, self.SOLVE_PARn_PICKUP, cb1, offset, scale, pcol)       
         # Set solves to co-locate the two CBs
         # use position solve to track back through the lens
-        self.zSetSolve(lastSurf, self.SPAR_THICK, self.SOLVE_THICK_POS, cb1 , 0)
+        self.zSetSolve(lastSurf, self.SOLVE_SPAR_THICK, self.SOLVE_THICK_POS, cb1 , 0)
         # use a pickup solve to restore position at the back of the lastSurf
-        self.zSetSolve(cb2, self.SPAR_THICK, self.SOLVE_THICK_PICKUP, lastSurf, -1, 0, 2)
+        self.zSetSolve(cb2, self.SOLVE_SPAR_THICK, self.SOLVE_THICK_PICKUP, 
+                       lastSurf, scale, offset, 2)
         # set order flag on first cb
         self.zSetSurfaceParameter(surfaceNumber=cb1, parameter=6, value=order)    
         # set order flag on second cb
-        if order:
-            cb2Ord = cb2Ord if cb2Ord else 0
+        cb2Ord = (cb2Ord if cb2Ord else 0) if order else 1
         self.zSetSurfaceParameter(surfaceNumber=cb2, parameter=6, value=cb2Ord)
         # set the decenter and tilt values in the first cb
         params = range(1, 6)
@@ -9662,6 +9713,17 @@ class PyZDDE(object):
         for par, val in zip(params, values):
             self.zSetSurfaceParameter(surfaceNumber=cb1, parameter=par, value=val)
         self.zGetUpdate()
+        if not suppressMsgBox:
+            msg = ('Recommended task: \n'
+                   '1. Please use zPushLens(1) to push lens to the LDE. \n' 
+                   '2. Use the "Draw" tab under "Surface Properties" of the \n'
+                   '  "Dummy" surface (number {}) and check "Skip Rays To \n'
+                   '  This Surface" and "Do Not Draw This Surface", and\n'
+                   '3. Use zGetRefresh() to move lens to the DDE server.'
+                   .format(dummy))
+            title = 'Tilt and Decenter Elements'
+            showMessageBox(msg=msg, title=title, msgtype='info')
+        return cb1, cb2, dummy
 
 
 
@@ -9723,6 +9785,9 @@ class PyZDDE(object):
         -----
         This function is now present only for backward compatibility.
         """
+        _warnings.warn('Method ipzCaptureWindow2() has been replaced by ipzCaptureWindow(). '
+                       'Please update code and use ipzCaptureWindow(). This method '
+                       'will be removed from the zdde module in future')
         return self.ipzCaptureWindow(*args, **kwargs)
 
     def ipzCaptureWindow(self, analysisType, percent=12, MFFtNum=0, gamma=0.35,
@@ -10123,7 +10188,7 @@ class PyZDDE(object):
 
 
 
-#%% OTHER HELPER FUNCTIONS THAT DO NOT REQUIRE A RUNNING ZEMAX SESSION
+#%% OTHER MODULE HELPER FUNCTIONS THAT DO NOT REQUIRE A RUNNING ZEMAX SESSION
 
 def numAper(aperConeAngle, rIndex=1.0):
     """Returns the Numerical Aperture (NA) for the associated aperture
@@ -10334,7 +10399,37 @@ def writeBeamFile(beamfilename, version, n, ispol, units, d, zposition, rayleigh
     return _zfu.writeBeamFile(beamfilename, version, n, ispol, units, d, zposition, 
                               rayleigh, waist, lamda, index, receiver_eff, system_eff, efield)
 
-
+def showMessageBox(msg, title='', msgtype='info'):
+    """helper function (blocking) to show a simple Tkinter based messagebox. 
+    
+    Note that the call is a blocking call, halting the execution of the 
+    program till an action (click of the OK button) is performed by the
+    user.
+    
+    Parameters
+    ----------
+    msg : string
+        text to be displayed as a message (can occupy multiple lines)
+    title : string, optional
+        the text to be displayed in the title bar of a message box
+    msgtype : string, optional
+        'info', 'warn', or 'error' to indicate the type of message.
+        If no `msgtype` not given, or the string is not one of the
+        above, an info type messagebox is displayed.
+        
+    Returns
+    -------
+    None
+    """
+    _tk.Tk().withdraw()
+    msg_func_dict = { 'info': _MessageBox.showinfo,
+                      'warn': _MessageBox.showwarning,
+                     'error': _MessageBox.showerror}
+    try:
+        func = msg_func_dict[msgtype]
+    except KeyError:
+        func = msg_func_dict['info']
+    func(title=title, message=msg)
 
 #%% Helper functions to process data from ZEMAX DDE server. 
 # This is especially convenient for processing replies from Zemax for 
