@@ -4,7 +4,7 @@
 
 ##### Current revision:
 
-1.0.01 (Last significant update on 05/26/2015)
+1.1.00 (Last significant update on 06/07/2015)
 
 Brief change-log is available in the [News and Updates](https://github.com/indranilsinharoy/PyZDDE/wiki/News-and-updates) page.
 
@@ -43,13 +43,10 @@ In addition, the repository [Intro2LensDesignByGeary](https://github.com/indrani
 
 #### Modules in PyZDDE 
 
-The main module in PyZDDE is the `zdde` module that provides all dataitems related functions for interacting with Zemax/OpticStudio using the DDE interface. The convention to import this module in user script is `import pyzdde.zdde as pyz`. 
-
-Additionally, the following modules are provided for various other tasks:
-
-* arraytrace (`import pyzdde.arraytrace as at`): provides functions for tracing large number of rays
-* zfileutils (`import pyzdde.zfileutils as zfu`): provides helper functions for various Zemax file handling operations such as reading and writing beam files, .ZRD files, creating .DAT and .GRD files for grid phase /grid sag surfaces, etc.         
-* systems (`import pyzdde.systems as osys`): provides helper functions for quickly creating basic optical systems.
+* **zdde** (`import pyzdde.zdde as pyz`): The main module in PyZDDE that provides all dataitems related functions for interacting with Zemax/OpticStudio using the DDE interface.
+* **arraytrace** (`import pyzdde.arraytrace as at`): provides functions for tracing large number of rays
+* **zfileutils** (`import pyzdde.zfileutils as zfu`): provides helper functions for various Zemax file handling operations such as reading and writing beam files, .ZRD files, creating .DAT and .GRD files for grid phase /grid sag surfaces, etc.         
+* **systems** (`import pyzdde.systems as osys`): provides helper functions for quickly creating basic optical systems.
 
 #### Features
 

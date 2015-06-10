@@ -521,6 +521,28 @@ class PyZDDE(object):
     NSCSOLVE_OPAR_XTILT = -4
     NSCSOLVE_OPAR_YTILT = -5
     NSCSOLVE_OPAR_ZTILT = -6
+    ANA_POP_SAMPLE_32 = 1
+    # Sampling codes for POP analysis
+    ANA_POP_SAMPLE_64 = 2 
+    ANA_POP_SAMPLE_128 = 3 
+    ANA_POP_SAMPLE_256 = 4 
+    ANA_POP_SAMPLE_512 = 5 
+    ANA_POP_SAMPLE_1024 = 6 
+    ANA_POP_SAMPLE_2048 = 7 
+    ANA_POP_SAMPLE_4096 = 8
+    ANA_POP_SAMPLE_8192 = 9 
+    ANA_POP_SAMPLE_16384 = 10
+    # Sampling codes for PSF/MTF analysis
+    ANA_PSF_SAMPLE_32x32 = 1
+    ANA_PSF_SAMPLE_64x64 = 2 
+    ANA_PSF_SAMPLE_128x128 = 3 
+    ANA_PSF_SAMPLE_256x256 = 4 
+    ANA_PSF_SAMPLE_512x512 = 5 
+    ANA_PSF_SAMPLE_1024x1024 = 6 
+    ANA_PSF_SAMPLE_2048x2048 = 7 
+    ANA_PSF_SAMPLE_4096x4096 = 8
+    ANA_PSF_SAMPLE_8192x8192 = 9 
+    ANA_PSF_SAMPLE_16384x16384 = 10
 
     def __init__(self):
         """Creates an instance of PyZDDE class
@@ -6936,25 +6958,25 @@ class PyZDDE(object):
         -------
         popData : tuple
             popData is a 1-tuple containing just ``popInfo`` (see below)
-            if ``displayData`` is ``false`` (default).
-            If ``displayData`` is ``true``, ``popData`` is a 2-tuple
+            if ``displayData`` is ``False`` (default).
+            If ``displayData`` is ``True``, ``popData`` is a 2-tuple
             containing ``popInfo`` (a tuple) and ``powerGrid`` (a 2D list):
 
-            popInfo : tuple
+            popInfo : tuple named tuple
                 surf : integer
                     surface number at which the POP is analysis was done
-                peakIrradiance/ centerPhase : float
+                peakIrr/ cenPhase : float
                     the peak irradiance is the maximum power per unit area
                     at any point in the beam, measured in source units per
                     lens unit squared. It returns center phase if the data
                     type is "Phase" in POP settings
-                totalPower : float
+                totPow : float
                     the total power, or the integral of the irradiance
                     over the entire beam if data type is "Irradiance" in
                     POP settings. This field is blank for "Phase" data
-                fiberEfficiency_system : float
+                fibEffSys : float
                     the efficiency of power transfer through the system
-                fiberEfficiency_receiver : float
+                fibEffRec : float
                     the efficiency of the receiving fiber
                 coupling : float
                     the total coupling efficiency, the product of the
@@ -9754,7 +9776,7 @@ class PyZDDE(object):
            PyZDDE\ZPLMacros to the macro directory where Zemax is expecting
            (i.e. as set in Zemax->Preference->Folders)
         3. For earlier versions (before 2010) please use
-           ``ipzCaptureWindow()``.
+           ``ipzCaptureWindow()`` for better quality.
         """
         global _global_IPLoad
         if _global_IPLoad:
