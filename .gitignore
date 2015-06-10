@@ -201,13 +201,13 @@ Test/Prescription_unitTest_01.txt
 Test/testdata/zrdfile_test_UFD_write.ZRD
 Test/testdata/zrdfile_test_CFD_write.ZRD
 Test/testdata/zrdfile_test_CBD_write.ZRD
-ZMXFILES/Fiber Coupling_POPunittest.CFG
-ZMXFILES/Fiber Coupling_POPunittest_Irradiance.CFG
-ZMXFILES/Fiber Coupling_POPunittest_NoFiberCompute.CFG
-ZMXFILES/Fiber Coupling_POPunittest_Phase.CFG
+ZMXFILES/"Fiber Coupling_POPunittest.CFG"
+ZMXFILES/"Fiber Coupling_POPunittest_Irradiance.CFG"
+ZMXFILES/"Fiber Coupling_POPunittest_NoFiberCompute.CFG"
+ZMXFILES/"Fiber Coupling_POPunittest_Phase.CFG"
+ZMXFILES/"Cooke 40 degree field_unittest.CFG"
 Examples/Scripts/pikachu2.zbf
 ZMXFILES/None
-
 Examples/*.txt
 Examples/Scripts/*.txt
 
