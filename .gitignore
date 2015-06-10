@@ -215,16 +215,16 @@ Examples/Scripts/*.txt
 
 # Although the following files are in the repository for the unit-test, we 
 # don't need to commit changes in them everytime
-#ZMXFILES/*.zmx
+ZMXFILES/*.zmx
 ZMXFILES/*.ZMX
 ZMXFILES/*.CFG
 ZMXFILES/*.cfg
 
 # ZEMAX settings files and sessions files
 *.CFG
-#*.SES
+*.SES
 *.ZMX
-#*.zmx
+*.zmx
 *.CFG
 
 # Files that needs to be synced on/off sometimes
