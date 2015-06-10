@@ -9,9 +9,6 @@
 #             2. speed tests
 #                compute the average of best n execution times for array ray
 #                tracing and compare that with single dde call based ray tracing
-# Author:     Indranil Sinharoy
-#
-# Copyright:  (c) Indranil Sinharoy, 2012 - 2015
 # Licence:    MIT License
 #-------------------------------------------------------------------------------
 from __future__ import print_function, division

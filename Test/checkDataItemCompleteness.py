@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:        checkDataItemCompleteness.py
 # Purpose:     Helper code to check if the current version of PyZDDE contains
@@ -7,8 +8,6 @@
 #              A list of data items are available in the Extensions chapter of
 #              the ZEMAX manual or the OpticStudio Help
 #
-# Created:     20/03/2014
-# Copyright:   (c) Indranil Sinharoy, 2014
 # Licence:     MIT License
 #-------------------------------------------------------------------------------
 from __future__ import print_function

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:        ddeclient.py
 # Purpose:     DDE Management Library (DDEML) client application for communicating
@@ -6,11 +7,10 @@
 # Notes:       This code has been adapted from David Naylor's dde-client code from
 #              ActiveState's Python recipes (Revision 1).
 # Author of original Code:   David Naylor, Apr 2011
-# Modified by Indranil
+# Modified by Indranil Sinharoy
 # Copyright:   (c) David Naylor
 # Licence:     New BSD license (Please see the file Notice.txt for further details)
 # Website:     http://code.activestate.com/recipes/577654-dde-client/
-# Revision:    1.0.00
 #-------------------------------------------------------------------------------
 from __future__ import print_function
 import sys

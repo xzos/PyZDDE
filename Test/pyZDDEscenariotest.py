@@ -1,12 +1,11 @@
+# -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:        pyZDDEscenariotest.py
 # Purpose:     To test different scenerio such as instantiating multiple ZEMAX
 #              connections and other scenerios. This test doesnot use the python
 #              unit testing framework
 #
-# Copyright:   (c) Indranil Sinharoy, 2012 - 2014
 # Licence:     MIT License
-# Revision:    0.8.01
 #-------------------------------------------------------------------------------
 from __future__ import print_function
 import os

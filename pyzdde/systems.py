@@ -1,11 +1,10 @@
+# -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:        systems.py
 # Purpose:     Simple optical systems for quick setup with PyZDDE.
-# Copyright:   (c) Indranil Sinharoy, Southern Methodist University, 2012 - 2015
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    1.0.00
 #-------------------------------------------------------------------------------
 """simple optical systems for quick setup with PyZDDE & Zemax. The docstring
 examples assume that PyZDDe is imported as ``import pyzdde.zdde as pyz``,
@@ -13,6 +12,7 @@ a PyZDDE communication object is then created as ``ln = pyz.createLink()``
 or ``ln = pyz.PyZDDE(); ln.zDDEInit()`` and ``systems`` (this module) is
 imported as ``import pyzdde.systems as optsys``
 """
+
 from __future__ import division
 from __future__ import print_function
 
@@ -57,6 +57,7 @@ def zMakeIdealThinLens(ddeLn, fl=50, fn=5, stop_pos=0, stop_shift=0, opd_mode=1,
     Examples
     --------
     >>> import pyzdde.zdde as pyz
+    >>> import pyzdde.systems as optsys
     >>> ln = pyz.createLink()
     >>> optsys.zMakeIdealThinLens(ln)
     >>> optsys.zMakeIdealThinLens(ln, fl=100, fn=5, opd_mode=0)
