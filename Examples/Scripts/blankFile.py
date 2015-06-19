@@ -12,18 +12,7 @@
 #              is pretty stable.  
 #-------------------------------------------------------------------------------
 from __future__ import print_function
-import sys
 import traceback
-
-#****************** Add PyZDDE to Python search path **************************
-
-PyZDDEPath = 'C:\PyZDDE'  # Assuming PyZDDE unzipped here; if not, change the path 
-                          # appropriately
-
-if PyZDDEPath not in sys.path:
-    sys.path.append(PyZDDEPath)
-#******************************************************************************
-
 import pyzdde.zdde as pyz
 
 # Create a DDE link object

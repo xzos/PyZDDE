@@ -1,0 +1,30 @@
+<h1 id="pyzdde-python-zemax-dde-extension">PyZDDE: Python Zemax DDE Extension</h1>
+<h2 id="installing">Installing</h2>
+<p>To install <strong>PyZDDE</strong> use a command prompt and <code>cd</code> to the extracted folder. Then execute</p>
+<pre class="sourceCode python"><code class="sourceCode python">python setup.py install</code></pre>
+<h2 id="things-to-do-after-installation">Things to do after installation</h2>
+<h3 id="initial-setup">Initial setup</h3>
+<ol style="list-style-type: decimal">
+<li><strong>PUSH LENS PERMISSION:</strong> All operations through the DDE affect the lens in the DDE server (except for array ray tracing). In order to copy the lens from the DDE server to the Zemax application /LDE, you need to &quot;push&quot; the lens from the server to the LDE. To do so, please enable the option &quot;Allow Extensions to Push Lenses&quot;, under File-&gt;Preferences-&gt;Editors tab.</li>
+<li><strong>ANSI/UNICODE TEXT ENCODING:</strong> PyZDDE supports both ANSI and UNICODE text from Zemax. Please set the appropriate text encoding in PyZDDE by calling module function pyz.setTextEncoding(text_encoding) (assuming that PyZDDE was imported as import pyzdde.zdde as pyz). By default, UNICODE text encoding is set in PyZDDE. You can check the current text encoding by calling pyz.getTextEncoding() function. Please note that you need to do this only when you change the text setting in Zemax and not for every session.</li>
+<li><strong>PURE NSC MODE:</strong> (This is more of a note) If want to work on an optical design in pure NSC mode, please start ZEMAX in pure NSC mode before initiating the communication with PyZDDE. There is no way to switch the ZEMAX mode using external interfaces.</li>
+</ol>
+<h3 id="zpl-macros-files-supplied-with-pyzdde">ZPL macros files supplied with PyZDDE</h3>
+<p>PyZDDE comes with few ZPL macro files that are present in the directory &quot;ZPLMacros&quot;. They are occasionally used by PyZDDE (for example in the function <code>ipzCaptureWindowLQ()</code>). Please copy/move the files from the folder &quot;ZPLMacros&quot; to the folder where Zemax/ Optic studio expects to find ZPL macros (By default, this folder is <code>C:\&lt;username&gt;\Documents\ZEMAX\Macros</code>). A copy of the &quot;ZPLMacros&quot; folder is always available in (installed with) the PyZDDE package.</p>
+<h3 id="examples">Examples</h3>
+<p>Examples shipped with PyZDDE are in the folder &quot;Examples&quot;. Please move the examples to your desired location after extracting the PyZDDE package.</p>
+<h2 id="usage">Usage</h2>
+<p>Start Zemax/ OpticStudio, import PyZDDE in a script/ IPython notebook, create a DDE communication channel, control/ communicate/ ray-trace, etc in Zemax, and close the link. For example, the following is a simple <code>Hello world</code> program.</p>
+<pre class="sourceCode python"><code class="sourceCode python"><span class="ch">import</span> pyzdde.zdde <span class="ch">as</span> pyz
+ln = pyz.createLink()
+<span class="dt">print</span>(<span class="st">&quot;Hello Zemax version: &quot;</span>, ln.zGetVersion())
+ln.close()</code></pre>
+<h2 id="modules-in-pyzdde">Modules in PyZDDE</h2>
+<ul>
+<li><strong>zdde</strong> (<code>import pyzdde.zdde as pyz</code>): The main module in PyZDDE that provides all dataitems related functions for interacting with Zemax/OpticStudio using the DDE interface.</li>
+<li><strong>arraytrace</strong> (<code>import pyzdde.arraytrace as at</code>): provides functions for tracing large number of rays</li>
+<li><strong>zfileutils</strong> (<code>import pyzdde.zfileutils as zfu</code>): provides helper functions for various Zemax file handling operations such as reading and writing beam files, .ZRD files, creating .DAT and .GRD files for grid phase /grid sag surfaces, etc.</li>
+<li><strong>systems</strong> (<code>import pyzdde.systems as osys</code>): provides helper functions for quickly creating basic optical systems.</li>
+</ul>
+<h2 id="getting-started-usage-and-other-documentation">Getting started, usage, and other documentation</h2>
+<p>Getting started with PyZDDE is really very simple as shown in the &quot;Hello world&quot; program above. Please refer to the [GitHub wiki page](<a href="https://github.com/indranilsinharoy/PyZDDE/wiki" class="uri">https://github.com/indranilsinharoy/PyZDDE/wiki</a>). It has detailed guide on how to start using PyZDDE. The wiki also has various other documentation on several topics. Please refer to the GitHub wiki documentation. Also, examples included with PyZDDE are viewable [here](<a href="http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/tree/master/Examples/" class="uri">http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/tree/master/Examples/</a>).</p>

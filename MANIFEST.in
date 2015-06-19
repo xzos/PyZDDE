@@ -1,0 +1,16 @@
+include LICENSE.txt
+include README.rst
+include MANIFEST.in
+include Notice.txt
+recursive-include Doc *.rst *.html
+include pyzdde/emfplus.exe
+include pyzdde/convert.exe
+include pyzdde/settings.ini-dist
+recursive-include pyzdde/arraytrace *.dll *h *c
+recursive-include Examples/Scripts *.py *.zbf *.png *.txt *.CFG
+recursive-include Examples/Misc *.py 
+recursive-include Examples/IPNotebooks *.ipynb
+recursive-include ZPLMacros *.ZPL
+recursive-include ZMXFILES *.ZMX *.zmx *.SES *.CFG *.txt
+prune Test
+prune Examples/IPNotebooks/.ipynb_checkpoints

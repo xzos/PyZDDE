@@ -53,7 +53,7 @@ def trace_zSpiralSpot(ln, hx=0.0, hy=0.4, waveNum=1, spirals=10, numRays=600):
     x, y, z, _ = ln.zSpiralSpot(hx, hy, waveNum=waveNum, spirals=spirals, 
                                 rays=numRays)
     endTime = time.clock()
-    print("Execution time = {:4.2f}".format((endTime - startTime)*10e3), "ms")
+    print("Execution time (zSpiralSpot) = {:4.2f}".format((endTime - startTime)*10e3), "ms")
     plotTracedData(x, y)
 
 
@@ -83,7 +83,7 @@ def spiralSpot_using_zArrayTrace(hx=0.0, hy=0.4, waveNum=1, spirals=10, numRays=
             x[i-1] = rd[i].x
             y[i-1] = rd[i].y
         endTime = time.clock()
-        print("Execution time = {:4.2f}".format((endTime - startTime)*10e3), "ms")
+        print("Execution time (zArrayTrace) = {:4.2f}".format((endTime - startTime)*10e3), "ms")
         plotTracedData(x, y)
     else:
         print("Error in tracing rays")
@@ -104,7 +104,7 @@ def spiralSpot_using_zGetTraceArray(hx=0.0, hy=0.4, waveNum=1, spirals=10, numRa
     # parse traced data and plot 
     err, _, x, y, _, _, _, _, _, _, _, _, _ = tData
     endTime = time.clock()
-    print("Execution time = {:4.2f}".format((endTime - startTime)*10e3), "ms")
+    print("Execution time (zGetTraceArray) = {:4.2f}".format((endTime - startTime)*10e3), "ms")
     if sum(err)==0:
         plotTracedData(x, y)
     else:
@@ -112,13 +112,10 @@ def spiralSpot_using_zGetTraceArray(hx=0.0, hy=0.4, waveNum=1, spirals=10, numRa
 
 
 if __name__=='__main__':
-    # specify the zmx file to use
-    zmxfile = 'Cooke 40 degree field.zmx'
-    cDir = ospath.dirname(ospath.realpath(__file__))
-    ind = cDir.find('Examples')
-    pDir = cDir[0:ind-1]
-    filename = ospath.join(pDir, 'ZMXFILES', zmxfile)
+    # Create link and load Zemax file
     ln = pyz.createLink()
+    filename = ospath.join(ln.zGetPath()[1], 'Sequential', 'Objectives', 
+                           'Cooke 40 degree field.zmx')
     # Load a lens file into the Zemax DDE server
     ln.zLoadFile(filename)
     SPIRALS, RAYS = 100, 6000

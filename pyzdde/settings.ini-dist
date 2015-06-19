@@ -1,8 +1,8 @@
 [zemax_text_encoding]
-encoding = ascii
+encoding = unicode
 
 [zemax_file_encoding]
-encoding = ascii
+encoding = unicode
 
 [imageMagick_config]
 useinstalled = False

@@ -16,8 +16,9 @@ import unittest
 
 # Put both the "Test" and the "PyZDDE" directory in the python search path.
 testdirectory = os.path.dirname(os.path.realpath(__file__))
-ind = testdirectory.find('Test')
-pyzddedirectory = testdirectory[0:ind-1]
+#ind = testdirectory.find('Test')
+pyzddedirectory = os.path.split(testdirectory)[0]
+
 if testdirectory not in sys.path:
     sys.path.append(testdirectory)
 if pyzddedirectory not in sys.path:
@@ -1700,7 +1701,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.ln.zSetTimeout(3)
         
     def test_zTiltDecenterElements(self):
-        print("\TEST: zTiltDecenterElements()")        
+        print("\nTEST: zTiltDecenterElements()")        
         # Load a lens file into the DDE server
         ln = self.ln
         filename = get_test_file()

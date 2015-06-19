@@ -22,16 +22,12 @@ from math import sqrt as sqrt
 
 if sys.version_info[0] > 2:
     xrange = range
-
-# The ZEMAX file path
 cd = os.path.dirname(os.path.realpath(__file__))
-ind = cd.find('Examples')
-pDir = cd[0:ind-1]
-zmxfile = 'Cooke 40 degree field.zmx'
-filename = os.path.join(pDir, 'ZMXFILES', zmxfile)
 
 def trace_rays():
     ln = pyz.createLink()
+    filename = os.path.join(ln.zGetPath()[1], 'Sequential', 'Objectives', 
+                            'Cooke 40 degree field.zmx')
     ln.zLoadFile(filename)
     print("Loaded zemax file:", ln.zGetFile())
     ln.zGetUpdate()   # In general this should be done ...
@@ -81,6 +77,7 @@ def trace_rays():
                                     rd[k].Eyi, rd[k].Ezr, rd[k].Ezi, rd[k].intensity))
                     f.write(line)
         print("Success")
+        print("Ray trace data outputted to the file {}".format(outputfile))
     else:
         print("There was some problem in ray tracing")
 
