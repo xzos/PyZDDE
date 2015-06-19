@@ -39,6 +39,11 @@ local.properties
 .spyderworkspace
 .spyderproject
 
+#################
+## PyCharm
+#################
+.idea/
+
 ###############################
 ## Visual Studio/ PTVS projects
 ###############################

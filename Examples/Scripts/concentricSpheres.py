@@ -176,10 +176,10 @@ def spot_radius_map(nFields= 15, N=51, EE=80, zoom=10, bsavefig=False):
 
 if __name__ == '__main__':
     cd = os.path.dirname(os.path.realpath(__file__))
-    ind = cd.find('Examples')
+    ind = cd.find('Examples')  
     pDir = cd[0:ind-1]
     zmxfile = 'ConcentricSpheres.zmx'
-    filename = os.path.join(pDir, 'ZMXFILES', zmxfile)
+    filename = os.path.join(pDir, 'ZMXFILES', zmxfile) # Change the filename appropriately 
     ln = pyz.createLink() 
     ln.zLoadFile(filename)
     ln.zPushLens() # push lens to the LDE as array tracing only works with the file in the LDE

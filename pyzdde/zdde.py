@@ -56,16 +56,11 @@ except ImportError:
 else:
     _global_mpl_img_load = True
 
-# Import intra-package modules
-# TODO!!! Appending current dir trick should be removed once packaging is used
-_currDir = _os.path.dirname(_os.path.realpath(__file__))
-_index = _currDir.find('pyzdde')
-_pDir = _currDir[0:_index-1]
-if _pDir not in _sys.path:
-    _sys.path.append(_pDir)
-
 # The first module to import that is not one of the standard modules MUST
 # be the config module as it sets up the different global and settings variables
+_currDir = _os.path.dirname(_os.path.realpath(__file__))
+_pDir = _os.path.split(_currDir)[0]
+
 settings_file = _os.path.join(_currDir, "settings.ini")
 if not _os.path.isfile(settings_file):
     src = _os.path.join(_currDir, "settings.ini-dist")

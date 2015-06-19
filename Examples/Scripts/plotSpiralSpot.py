@@ -9,25 +9,13 @@
 # Licence:   MIT License
 #-------------------------------------------------------------------------------
 from __future__ import print_function
-import sys
 import os
 import matplotlib.pyplot as plt
-
-# *********** Add PyZDDE to the python search path ***********************
-cd = os.path.dirname(os.path.realpath(__file__))
-ind = cd.find('Examples')
-pDir = cd[0:ind-1]
-##
-if pDir not in sys.path:
-    sys.path.append(pDir)
-# ************************************************************************
 import pyzdde.zdde as pyz
 
-# The ZEMAX file path
-zmxfile = 'Cooke 40 degree field.zmx'
-filename = os.path.join(pDir, 'ZMXFILES', zmxfile)
-
 ln = pyz.createLink()
+filename = os.path.join(ln.zGetPath()[1], 'Sequential', 'Objectives', 
+                        'Cooke 40 degree field.zmx')
 # Load a lens file into the ZEMAX DDE server
 ln.zLoadFile(filename)
 hx = 0.0
