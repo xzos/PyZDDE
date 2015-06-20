@@ -16,8 +16,23 @@ page.
 Install PyZDDE from PyPI
 ''''''''''''''''''''''''
 
-After downloading and extracting the package, ``cd`` into the package directory. 
-Once in the package directory execute the following in a command prompt:
+You can either use `pip <https://pip.pypa.io/en/stable/>`__ or the ``setup.py`` script 
+from the extracted folder.
+
+Use the following command from the command line to install PyZDDE from PyPI:
+
+.. code:: python
+
+  pip install pyzdde
+
+Note that when you install PyZDDE using pip (the above method), the "Examples" folder 
+will not be downloaded. However, pip is the most convenient way to install Python packages.
+Also, ensure that you have the `pip` package in your environment. 
+
+If you would like to download the "Examples" folder too, please download and extract PyZDDE 
+package from the `Python Package Index <https://pypi.python.org/pypi/PyZDDE>`__. Then,  
+``cd`` into the extracted folder where the ``setup.py`` script is visible and execute 
+the following in a command prompt:
 
 .. code:: python
 
@@ -33,10 +48,7 @@ A list of all files that were added and their locations will be available in the
 file "files.txt" in the same directory.  
 
 
-More information about installing Python modules is available 
-`here <https://docs.python.org/2/install/>`__.
-
-To get the latest code please download from 
+To get the latest PyZDDE code please download (or fork or clone) from 
 `GitHub repository <https://github.com/indranilsinharoy/PyZDDE>`__.
 
 

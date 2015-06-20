@@ -211,10 +211,18 @@ ZMXFILES/"Fiber Coupling_POPunittest_Irradiance.CFG"
 ZMXFILES/"Fiber Coupling_POPunittest_NoFiberCompute.CFG"
 ZMXFILES/"Fiber Coupling_POPunittest_Phase.CFG"
 ZMXFILES/"Cooke 40 degree field_unittest.CFG"
+ZMXFILES/"Cooke 40 degree field_PreSettings_OnlyCardinals.CFG"
+ZMXFILES/Fiber\ Coupling_POPunittest.CFG
+ZMXFILES/Fiber\ Coupling_POPunittest_Irradiance.CFG
+ZMXFILES/Fiber\ Coupling_POPunittest_NoFiberCompute.CFG
+ZMXFILES/Fiber\ Coupling_POPunittest_Phase.CFG
+ZMXFILES/Cooke\ 40\ degree\ field_unittest.CFG
+ZMXFILES/Cooke\ 40\ degree\ field_PreSettings_OnlyCardinals.CFG
 Examples/Scripts/pikachu2.zbf
 ZMXFILES/None
 Examples/*.txt
 Examples/Scripts/*.txt
+Examples/Scripts/coupEffSgleModePOPEx.CFG
 
 
 
@@ -222,15 +230,14 @@ Examples/Scripts/*.txt
 # don't need to commit changes in them everytime
 ZMXFILES/*.zmx
 ZMXFILES/*.ZMX
-ZMXFILES/*.CFG
-ZMXFILES/*.cfg
+#ZMXFILES/*.CFG
+#ZMXFILES/*.cfg
 
 # ZEMAX settings files and sessions files
-*.CFG
+#*.CFG
 *.SES
 *.ZMX
 *.zmx
-*.CFG
 
 # Files that needs to be synced on/off sometimes
 .dll
