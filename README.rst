@@ -52,15 +52,20 @@ To get the latest PyZDDE code please download (or fork or clone) from
 `GitHub repository <https://github.com/indranilsinharoy/PyZDDE>`__.
 
 
+Documentation
+'''''''''''''
+
+The PyZDDE documentation is currently hosted in the `GitHub Wiki <https://github.com/indranilsinharoy/PyZDDE/wiki>`__.
+
 Initial setup
-~~~~~~~~~~~~~
+'''''''''''''
 
 1. **PUSH LENS PERMISSION:** All operations through the DDE affect the lens in the DDE server (except for array ray tracing). In order to copy the lens from the DDE server to the Zemax application /LDE, you need to "push" the lens from the server to the LDE. To do so, please enable the option "Allow Extensions to Push Lenses", under File->Preferences->Editors tab.
 2. **ANSI/UNICODE TEXT ENCODING:** PyZDDE supports both ANSI and UNICODE text from Zemax. Please set the appropriate text encoding in PyZDDE by calling module function `pyz.setTextEncoding(text_encoding)` (assuming that PyZDDE was imported as `import pyzdde.zdde as pyz`). By default, UNICODE text encoding is set in PyZDDE. You can check the current text encoding by calling `pyz.getTextEncoding()` function. Please note that you need to do this only when you change the text setting in Zemax and not for every session.
 3. **PURE NSC MODE:** (This is more of a note) If want to work on an optical design in pure NSC mode, please start ZEMAX in pure NSC mode before initiating the communication with PyZDDE. There is no way to switch the ZEMAX mode using external interfaces.
 
 ZPL macros files supplied with PyZDDE
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 PyZDDE comes with few ZPL macro files that are present in the directory "ZPLMacros". They are occasionally used by PyZDDE (for example in the function ``ipzCaptureWindowLQ()``). Please copy/move the files from the folder "ZPLMacros" to the folder where Zemax/ Optic studio expects to find ZPL macros (By default, this folder is ``C:\<username>\Documents\ZEMAX\Macros``). A copy of the "ZPLMacros" folder is always available in (installed with) the PyZDDE package.
 
@@ -97,6 +102,7 @@ In addition, the repository
 `Intro2LensDesignByGeary <https://github.com/indranilsinharoy/Intro2LensDesignByGeary>`__
 contains notes from few chapters of the book "Introduction to Lens
 Design," by Joseph M. Geary, in the form of IPython notebooks.
+
 
 Modules in PyZDDE
 '''''''''''''''''
@@ -208,7 +214,7 @@ Chat room
 
 |Gitter chat|
 
-.. |DOI| image:: https://zenodo.org/badge/doi/10.5281/zenodo.15763.svg
-   :target: http://dx.doi.org/10.5281/zenodo.15763
+.. |DOI| image:: https://zenodo.org/badge/doi/10.5281/zenodo.18751.svg
+   :target: http://dx.doi.org/10.5281/zenodo.18751
 .. |Gitter chat| image:: https://badges.gitter.im/indranilsinharoy/PyZDDE.png
    :target: https://gitter.im/indranilsinharoy/PyZDDE

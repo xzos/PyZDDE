@@ -9307,15 +9307,15 @@ class PyZDDE(object):
 
         Notes
         -----
-        If the macro path is different from the default macro path at \
-        ``<data>/Macros``, then first use ``zSetMacroPath()`` to set the \
+        If the macro path is different from the default macro path at 
+        ``<data>/Macros``, then first use ``zSetMacroPath()`` to set the 
         macropath and then use ``zExecuteZPLMacro()``.
 
         .. warning::
 
-          1. can only "execute" an existing ZPL macro. i.e. you can't \
+          1. can only "execute" an existing ZPL macro. i.e. you can't 
              create a ZPL macro on-the-fly and execute it.
-          2. If it is required to redirect the result of executing the ZPL \
+          2. If it is required to redirect the result of executing the ZPL 
              to a text file, modify the ZPL macro in the following way:
 
             -   Add the following two lines at the beginning of the file:
@@ -9324,8 +9324,9 @@ class PyZDDE(object):
             -   Add the following line at the end of the file:
                 ``OUTPUT SCREEN`` # close the file and re-enable screen printing
 
-          3. If there are more than two macros which have the same first 3 letters
-             then all of them will be executed by Zemax.
+          3. If there are more than one macros which have the same first 3 letters
+             then the top macro in the list as sorted by the filesystem 
+             will be executed.
         """
         status = -1
         if self._macroPath:

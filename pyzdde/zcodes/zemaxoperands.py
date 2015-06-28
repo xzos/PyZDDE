@@ -300,38 +300,38 @@ class _Operands(object):
     "NORX": "Normal vector x component.",
     "NORY": "Normal vector y component.",
     "NORZ": "Normal vector z component.",
-    "NPGT": "Non-sequential parameter greater than.",
-    "NPLT": "Non-sequential parameter less than. See NPGT.",
-    "NPVA": "Non-sequential parameter value. See NPGT.",
-    "NPXG": "Non-sequential object position x greater than.",
-    "NPXL": "Non-sequential object position x less than. See NPXG.",
-    "NPXV": "Non-sequential object position x value. See NPXG.",
-    "NPYG": "Non-sequential object position y greater than. See NPXG.",
-    "NPYL": "Non-sequential object position y less than. See NPXG.",
-    "NPYV": "Non-sequential object position y value. See NPXG.",
-    "NPZG": "Non-sequential object position z greater than. See NPXG.",
-    "NPZL": "Non-sequential object position z less than. See NPXG.",
-    "NPZV": "Non-sequential object position z value. See NPXG.",
-    "NSDC": "Non-sequential coherent data. See also NSDD.",
-    "NSDD": "Non-sequential incoherent intensity (brightness) data. NSDD is used "
+    "NPGT": "Non-sequential (NS) parameter greater than.",
+    "NPLT": "Non-sequential (NS) parameter less than. See NPGT.",
+    "NPVA": "Non-sequential (NS) parameter value. See NPGT.",
+    "NPXG": "Non-sequential (NS) object position x greater than.",
+    "NPXL": "Non-sequential (NS) object position x less than. See NPXG.",
+    "NPXV": "Non-sequential (NS) object position x value. See NPXG.",
+    "NPYG": "Non-sequential (NS) object position y greater than. See NPXG.",
+    "NPYL": "Non-sequential (NS) object position y less than. See NPXG.",
+    "NPYV": "Non-sequential (NS) object position y value. See NPXG.",
+    "NPZG": "Non-sequential (NS) object position z greater than. See NPXG.",
+    "NPZL": "Non-sequential (NS) object position z less than. See NPXG.",
+    "NPZV": "Non-sequential (NS) object position z value. See NPXG.",
+    "NSDC": "Non-sequential (NS) coherent data. See also NSDD.",
+    "NSDD": "Non-sequential (NS) incoherent intensity (brightness) data. NSDD is used "
             "to clear detectors and to read out detector data. It is one of the "
             "most common NSC operands.",
-    "NSDE": "Non-sequential Detector Color object data. See also NSDD and NSDP.",
-    "NSDP": "Non-sequential Detector Polar object data. See also NSDD and NSDE.",
-    "NSRA": "Non-sequential single ray trace.",
-    "NSRM": "Non-sequential Rotation Matrix component.",
-    "NSST": "Non-sequential single ray trace. See also NSTR.",
-    "NSTR": "Non-sequential trace. It is used to trace rays from NSC sources. "
+    "NSDE": "Non-sequential (NS) Detector Color object data. See also NSDD and NSDP.",
+    "NSDP": "Non-sequential (NS) Detector Polar object data. See also NSDD and NSDE.",
+    "NSRA": "Non-sequential (NS) single ray trace.",
+    "NSRM": "Non-sequential (NS) Rotation Matrix component.",
+    "NSST": "Non-sequential (NS) single ray trace. See also NSTR.",
+    "NSTR": "Non-sequential (NS) trace. It is used to trace rays from NSC sources. "
             "It is one of the most common NSC operands. See also NSST.",
-    "NTXG": "Non-sequential object tilt about x greater than. See NPXG.",
-    "NTXL": "Non-sequential object tilt about x less than. See NPXG.",
-    "NTXV": "Non-sequential object tilt about x value. See NPXG.",
-    "NTYG": "Non-sequential object tilt about y greater than. See NPXG.",
-    "NTYL": "Non-sequential object tilt about y less than. See NPXG.",
-    "NTYV": "Non-sequential object tilt about y value. See NPXG.",
-    "NTZG": "Non-sequential object tilt about z greater than. See NPXG.",
-    "NTZL": "Non-sequential object tilt about z less than. See NPXG.",
-    "NTZV": "Non-sequential object tilt about z value. See NPXG.",
+    "NTXG": "Non-sequential (NS) object tilt about x greater than. See NPXG.",
+    "NTXL": "Non-sequential (NS) object tilt about x less than. See NPXG.",
+    "NTXV": "Non-sequential (NS) object tilt about x value. See NPXG.",
+    "NTYG": "Non-sequential (NS) object tilt about y greater than. See NPXG.",
+    "NTYL": "Non-sequential (NS) object tilt about y less than. See NPXG.",
+    "NTYV": "Non-sequential (NS) object tilt about y value. See NPXG.",
+    "NTZG": "Non-sequential (NS) object tilt about z greater than. See NPXG.",
+    "NTZL": "Non-sequential (NS) object tilt about z less than. See NPXG.",
+    "NTZV": "Non-sequential (NS) object tilt about z value. See NPXG.",
     "OBSN": "Object space numerical aperture.",
     "OOFF": "This operand indicates an unused entry in the operand list.",
     "OPDC": "Optical path difference with respect to chief ray in waves at the "
@@ -647,8 +647,8 @@ class _Operands(object):
     "MDPG": "Model glass dPgF.",
     "MIND": "Model glass index.",
     "MOFF": "Off.",
-    "NCOM": "Modifies the comment for non-sequential objects in the NSC Editor.",
-    "NCOT": "Non-sequential coating.",
+    "NCOM": "Modifies the comment for non-sequential (NS) objects in the NSC Editor.",
+    "NCOT": "Non-sequential (NS) coating.",
     "NGLS": "Nonsequential object glass.",
     "NPAR": "NSCE object parameter.",
     "NPOS": "NSCE object position.",
@@ -848,9 +848,9 @@ def findZOperand(keywords):
     Found 2 Macro operands.
 
     >>> zo.findZOperand('trace')
-    [NSRA] Non-sequential single ray trace.
-    [NSTR] Non-sequential trace. See also NSST.
-    [NSST] Non-sequential single ray trace. See also NSTR.
+    [NSRA] Non-sequential (NS) single ray trace.
+    [NSTR] Non-sequential (NS) trace. See also NSST.
+    [NSST] Non-sequential (NS) single ray trace. See also NSTR.
 
     Found 3 Optimization operands.
     """
