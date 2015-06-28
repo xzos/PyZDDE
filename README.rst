@@ -57,6 +57,7 @@ Documentation
 
 The PyZDDE documentation is currently hosted in the `GitHub Wiki <https://github.com/indranilsinharoy/PyZDDE/wiki>`__.
 
+
 Initial setup
 '''''''''''''
 
@@ -64,8 +65,8 @@ Initial setup
 2. **ANSI/UNICODE TEXT ENCODING:** PyZDDE supports both ANSI and UNICODE text from Zemax. Please set the appropriate text encoding in PyZDDE by calling module function `pyz.setTextEncoding(text_encoding)` (assuming that PyZDDE was imported as `import pyzdde.zdde as pyz`). By default, UNICODE text encoding is set in PyZDDE. You can check the current text encoding by calling `pyz.getTextEncoding()` function. Please note that you need to do this only when you change the text setting in Zemax and not for every session.
 3. **PURE NSC MODE:** (This is more of a note) If want to work on an optical design in pure NSC mode, please start ZEMAX in pure NSC mode before initiating the communication with PyZDDE. There is no way to switch the ZEMAX mode using external interfaces.
 
-ZPL macros files supplied with PyZDDE
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**ZPL macros files supplied with PyZDDE**
 
 PyZDDE comes with few ZPL macro files that are present in the directory "ZPLMacros". They are occasionally used by PyZDDE (for example in the function ``ipzCaptureWindowLQ()``). Please copy/move the files from the folder "ZPLMacros" to the folder where Zemax/ Optic studio expects to find ZPL macros (By default, this folder is ``C:\<username>\Documents\ZEMAX\Macros``). A copy of the "ZPLMacros" folder is always available in (installed with) the PyZDDE package.
 
@@ -177,7 +178,7 @@ A complete list of helper functions is available
 
 
 Getting started, usage, and other documentation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Getting started with PyZDDE is really very simple as shown in the "Hello world" program above. Please refer to the `Wiki page <https://github.com/indranilsinharoy/PyZDDE/wiki>`__. It has detailed guide on how to start using PyZDDE.
 
