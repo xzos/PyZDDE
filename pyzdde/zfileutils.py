@@ -12,6 +12,7 @@
 from __future__ import print_function, division
 import os as _os
 import sys as _sys
+import collections as _co
 import ctypes as _ctypes
 from struct import unpack as _unpack
 from struct import pack as _pack
@@ -567,6 +568,177 @@ def writeBeamFile(beamfilename, version, n, ispol, units, d, zposition, rayleigh
     except:
         print("Unexpected error:", _sys.exc_info()[0])
         return -995          
+
+#%% Reading text files outputted by Zemax
+
+# passing pyz object to readDetectorViewerTextFile() is hackish; however
+# it is probably the best option right now. It will probably take some effort
+# to move the relevant functions from the zdde module to here. 
+def readDetectorViewerTextFile(pyz, textFileName, displayData=False):
+    """read text file outputted from NSC detector viewer window
+
+    Parameters
+    ----------
+    pyz : module object 
+        the `pyzdde.zdde` module object. This is bit of a hack. See Examples  
+    textFileName : string 
+        full filename of the text file 
+    displayData : bool 
+        whether to return display data. if `False` (default) then only 
+        the meta-data associated with the detector viewer window data 
+        is returned 
+
+    Return 
+    ------
+    dvwData : tuple 
+        dvwData is a 1-tuple containing just ``dvwInfo`` (see below)
+        if ``displayData`` is ``False`` (default).
+        If ``displayData`` is ``True``, ``dvwData`` is a 2-tuple
+        containing ``dvwInfo`` (a named tuple) and ``data``. ``data``
+        is either a 2-tuple containing ``coordinate`` and ``values``
+        as list elements if "Show as" is row/column cross-section, or 
+        a 2D list of values otherwise.
+
+        dvwInfo : named tuple
+            surfNum : integer
+                NSCG surface number
+            detNum : integer 
+                detector number 
+            width, height : float
+                width and height of the detector 
+            xPix, yPix : integer
+                number of pixels in x and y direction
+            totHits : integer 
+                total ray hits 
+            peakIrr : float or None 
+                peak irradiance (only available for Irradiance type of data) 
+            totPow : float or None 
+                total power (only available for Irradiance type of data)
+            smooth : integer 
+                the integer smoothing value  
+            dType : string
+                the "Show Data" type 
+            x, y, z, tiltX, tiltY, tiltZ : float 
+                the x, y, z positions and tilt values 
+            posUnits : string 
+                position units
+            units : string 
+                units  
+            rowOrCol : string or None
+                indicate whether the cross-section data is a row or column 
+                cross-section 
+            rowColNum : float or None
+                the row or column number for cross-section data 
+            rowColVal : float or None 
+                the row or column value for cross-section data
+
+        data : 2-tuple or 2-D list 
+            if cross-section data then `data = (coordinates, values)` where, 
+            `coordinates` and `values` are 1-D lists otherwise, `data` is a 
+            2-D list of grid data. Note that the coherent phase data is 
+            in degrees.
+
+    Examples
+    -------- 
+    >>> import pyzdde.zdde as pyz 
+    >>> import pyzdde.zfileutils as zfu 
+    >>> info = zfu.readDetectorViewerTextFile(pyz, textFileName)
+    >>> # following line assumes row/column cross-section data 
+    >>> info, coordinates, values = zfu.readDetectorViewerTextFile(pyz, textFileName, True)
+    >>> # following line assumes 2d data 
+    >>> info, gridData = zfu.readDetectorViewerTextFile(pyz, textFileName, True)         
+    """
+    line_list = pyz._readLinesFromFile(pyz._openFile(textFileName))
+    # Meta data
+    detNumSurfNumPat = r'Detector\s*\d{1,4}\s*,\s*NSCG\sSurface\s*\d{1,4}'
+    detNumSurfNum = line_list[pyz._getFirstLineOfInterest(line_list, detNumSurfNumPat)]
+    detNum = int(pyz._re.search(r'\d{1,4}', detNumSurfNum.split(',')[0]).group())
+    nscgSurfNum = int(pyz._re.search(r'\d{1,4}', detNumSurfNum.split(',')[1]).group())
+    sizePixelsHitsPat = r'Size[0-9a-zA-Z\s\,\.]*Pixels[0-9a-zA-Z\s\,\.]*Total\sHits'
+    sizePixelsHits = line_list[pyz._getFirstLineOfInterest(line_list, sizePixelsHitsPat)]
+    sizeinfo, pixelsinfo , hitsinfo =  sizePixelsHits.split(',')
+    #note: width<-->rows<-->xPix;; height<-->cols<-->yPix 
+    width, height = [float(each) for each in pyz._re.findall(r'\d{1,4}\.\d{1,8}', sizeinfo)]
+    xPix, yPix =  [int(each) for each in pyz._re.findall(r'\d{1,6}', pixelsinfo)]
+    totHits = int(pyz._re.search(r'\d{1,10}', hitsinfo).group())
+
+    #peak irradiance and total power. only present for irradiance types
+    peakIrr, totPow = None, None 
+    peakIrrLineNum = pyz._getFirstLineOfInterest(line_list, 'Peak\sIrradiance')
+    if peakIrrLineNum:
+        peakIrr = float(pyz._re.search(r'\d{1,4}\.\d{3,8}[Ee][-\+]\d{3}', 
+                                       line_list[peakIrrLineNum]).group())
+        totPow = float(pyz._re.search(r'\d{1,4}\.\d{3,8}[Ee][-\+]\d{3}', 
+                                      line_list[peakIrrLineNum + 1]).group())
+
+    # section of text starting with 'Smoothing' (common to all)
+    smoothLineNum = pyz._getFirstLineOfInterest(line_list, 'Smoothing')
+    smooth = line_list[smoothLineNum].split(':')[1].strip()
+    smooth = 0 if smooth == 'None' else int(smooth)
+    dType = line_list[smoothLineNum + 1].split(':')[1].strip()
+    posX = float(line_list[smoothLineNum + 2].split(':')[1].strip()) # 'Detector X'
+    posY = float(line_list[smoothLineNum + 3].split(':')[1].strip()) # 'Detector Y'
+    posZ = float(line_list[smoothLineNum + 4].split(':')[1].strip()) # 'Detector Z'
+    tiltX = float(line_list[smoothLineNum + 5].split(':')[1].strip())
+    tiltY = float(line_list[smoothLineNum + 6].split(':')[1].strip())
+    tiltZ = float(line_list[smoothLineNum + 7].split(':')[1].strip())
+    posUnits = line_list[smoothLineNum + 8].split(':')[1].strip()
+    units =  line_list[smoothLineNum + 9].split(':')[1].strip()
+
+    # determine "showAs" type 
+    rowPat = r'Row\s[0-9A-Za-z]*,\s*Y'
+    colPat = r'Column\s[0-9A-Za-z]*,\s*X'
+    rowColPat = '|'.join([rowPat, colPat])
+    showAsRowCol = pyz._getFirstLineOfInterest(line_list, rowColPat)
+
+    if showAsRowCol:
+        # exatract specific meta data
+        rowOrColPosLine = line_list[showAsRowCol]
+        rowOrColIndicator = rowOrColPosLine.split(' ', 2)[0]
+        assert rowOrColIndicator in ('Row', 'Column'), 'Error: Unable to determine '
+        '"Row" or "Column" type for the cross section plot'
+        rowOrCol = 'row' if rowOrColIndicator == 'Row' else 'col' 
+        #rowColNum = line_list[showAsRowCol].split(' ', 2)[1]
+        rowColNum = pyz._re.search(r'\d{1,4}|Center', rowOrColPosLine).group()
+        rowColNum = 0 if rowColNum=='Center' else int(rowColNum)
+        rowColVal = pyz._re.search(r'-?\d{1,4}\.\d{3,8}[Ee][-\+]\d{3}', 
+                                   rowOrColPosLine).group()
+        rowColVal = float(rowColVal)
+
+        if displayData:
+            dataPat = (r'\s*(-?\d{1,4}\.\d{3,8}[Ee][-\+]\d{3}\s*)' + r'{{{num}}}'
+                       .format(num=2)) # coordinate, value
+            start_line = pyz._getFirstLineOfInterest(line_list, dataPat)
+            data_mat = pyz._get2DList(line_list, start_line, yPix)
+            data_matT = pyz._transpose2Dlist(data_mat)
+            coordinate = data_matT[0]
+            value = data_matT[1]
+    else:
+        # note: it is still possible to 1d data here if `showAsRowCol` was corrupted
+        rowOrCol, rowColNum, rowColVal = None, None, None # meta-data not available for 2D data
+        if displayData:
+            dataPat = (r'\s*\d{1,4}\s*(-?\d{1,4}\.\d{3,8}([Ee][-\+]\d{3,8})*\s*)' 
+                       + r'{{{num}}}'.format(num=xPix))
+            start_line = pyz._getFirstLineOfInterest(line_list, dataPat)
+            gridData = pyz._get2DList(line_list, start_line, yPix, startCol=1)
+
+    deti = _co.namedtuple('dvwInfo', ['surfNum', 'detNum', 'width', 'height',
+                                      'xPix', 'yPix', 'totHits', 'peakIrr',
+                                      'totPow', 'smooth', 'dType', 'x', 'y', 
+                                      'z', 'tiltX', 'tiltY', 'tiltZ', 'posUnits', 
+                                      'units', 'rowOrCol', 'rowColNum', 'rowColVal'])
+    detInfo = deti(nscgSurfNum, detNum, width, height, xPix, yPix, totHits,
+                   peakIrr, totPow, smooth, dType, posX, posY, posZ, tiltX, 
+                   tiltY, tiltZ, posUnits, units, rowOrCol, rowColNum, rowColVal)
+
+    if displayData:
+        if showAsRowCol:
+            return (detInfo, coordinate, value)
+        else:
+            return (detInfo, gridData)
+    else:
+        return detInfo
+
         
 #%% Zemax surface modifier utilities
 

@@ -6,6 +6,9 @@
 #            emulates the "NSCTraceDemo.c" external program that is
 #            shipped with Zemax.
 #
+# Note:      The program assumes that an appropriate lens design file is already
+#            loaded into Zemax LDE.
+#
 # Author:     Indranil Sinharoy
 #
 # Created:    Mon Mar 02 00:06:19 2015

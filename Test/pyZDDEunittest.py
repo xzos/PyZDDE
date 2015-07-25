@@ -432,7 +432,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
             # Change to phase data, with few different settings but with the
             # same settings file name
             sfilename_new = self.ln.zSetPOPSettings(data=1,
-                                 settingsFileName=sfilename, startSurf=1,
+                                 settingsFile=sfilename, startSurf=1,
                                  endSurf=4, field=1, wave=1, beamType=0,
                                  paramN=srcParam, pIrr=1, sampx=3, sampy=3,
                                  widex=40, widey=40, fibComp=0, fibType=0,
@@ -1431,6 +1431,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zSetNSCPosition(self):
         print("\nTEST: zSetNSCPosition()")
         pass
+    
+    @unittest.skip("To implement test")
+    def test_zSetNSCPositionTuple(self):
+        print("\nTEST: zSetNSCPositionTuple()")
+        pass
 
     @unittest.skip("To implement test")
     def test_zSetNSCProperty(self):
@@ -1444,6 +1449,30 @@ class TestPyZDDEFunctions(unittest.TestCase):
     @unittest.skip("To implement test")
     def test_zSetNSCSolve(self):
         print("\nTEST: zSetNSCSolve()")
+        pass
+       
+    @unittest.skip("To implement test")
+    def test_zInsertNSCSourceEllipse(self):
+        pass
+    
+    @unittest.skip("To implement test")
+    def test_zInsertNSCSourceRectangle(self):
+        pass
+    
+    @unittest.skip("To implement test")
+    def test_zInsertNSCEllipse(self):
+        pass
+    
+    @unittest.skip("To implement test")
+    def test_zInsertNSCRectangle(self):
+        pass
+    
+    @unittest.skip("To implement test")
+    def test_zInsertNSCDetectorRectangle(self):
+        pass
+    
+    @unittest.skip("To implement test")
+    def test_zNSCDetectorClear(self):
         pass
 
     def test_zSetPolState(self):
@@ -1712,8 +1741,8 @@ class TestPyZDDEFunctions(unittest.TestCase):
         xdec, ydec, xtilt, ytilt, ztilt = 0.25, 0.5, 5.0, 10.0, -15.0
         # get the Thickness and solve on the thickness (if any) on the 
         # last surface to include in tilt-decenter group
-        thick = ln.zGetSurfaceData(surfaceNumber=lastSurf, code=ln.SDAT_THICK)
-        solve = ln.zGetSolve(surfaceNumber=lastSurf, code=ln.SOLVE_SPAR_THICK)
+        thick = ln.zGetSurfaceData(surfNum=lastSurf, code=ln.SDAT_THICK)
+        solve = ln.zGetSolve(surfNum=lastSurf, code=ln.SOLVE_SPAR_THICK)
         ret = ln.zTiltDecenterElements(firstSurf, lastSurf, xdec, ydec, 
                                                xtilt, ytilt, ztilt, suppressMsgBox=True)
         cb1, cb2, dummy = ret
@@ -1721,19 +1750,19 @@ class TestPyZDDEFunctions(unittest.TestCase):
         numSurfAfter = ln.zGetNumSurf()
         self.assertEqual(numSurfAfter, numSurfBefore + 3)
         # Test the restoration of axis in the second CB
-        self.assertEqual(ln.zGetSurfaceParameter(surfaceNumber=cb2, parameter=1), -xdec)
-        self.assertEqual(ln.zGetSurfaceParameter(surfaceNumber=cb2, parameter=2), -ydec)
-        self.assertEqual(ln.zGetSurfaceParameter(surfaceNumber=cb2, parameter=3), -xtilt)
-        self.assertEqual(ln.zGetSurfaceParameter(surfaceNumber=cb2, parameter=4), -ytilt)
-        self.assertEqual(ln.zGetSurfaceParameter(surfaceNumber=cb2, parameter=5), -ztilt)
+        self.assertEqual(ln.zGetSurfaceParameter(surfNum=cb2, param=1), -xdec)
+        self.assertEqual(ln.zGetSurfaceParameter(surfNum=cb2, param=2), -ydec)
+        self.assertEqual(ln.zGetSurfaceParameter(surfNum=cb2, param=3), -xtilt)
+        self.assertEqual(ln.zGetSurfaceParameter(surfNum=cb2, param=4), -ytilt)
+        self.assertEqual(ln.zGetSurfaceParameter(surfNum=cb2, param=5), -ztilt)
         # Test the value of the thickness and solve on the dummy surface        
-        thickDummy = ln.zGetSurfaceData(surfaceNumber=dummy, code=ln.SDAT_THICK)
-        solveDummy = ln.zGetSolve(surfaceNumber=dummy, code=ln.SOLVE_SPAR_THICK)
+        thickDummy = ln.zGetSurfaceData(surfNum=dummy, code=ln.SDAT_THICK)
+        solveDummy = ln.zGetSolve(surfNum=dummy, code=ln.SOLVE_SPAR_THICK)
         self.assertEqual(thickDummy, thick)
         self.assertEqual(solveDummy, solve)
         # Test the order flags which should be 0 and 1 (default case)
-        self.assertEqual(ln.zGetSurfaceParameter(surfaceNumber=cb1, parameter=6), 0)
-        self.assertEqual(ln.zGetSurfaceParameter(surfaceNumber=cb2, parameter=6), 1)        
+        self.assertEqual(ln.zGetSurfaceParameter(surfNum=cb1, param=6), 0)
+        self.assertEqual(ln.zGetSurfaceParameter(surfNum=cb2, param=6), 1)        
 
     @unittest.skip("To implement test")
     def test_readZRD(self):

@@ -77,14 +77,14 @@ def zMakeIdealThinLens(ddeLn, fl=50, fn=5, stop_pos=0, stop_shift=0, opd_mode=1,
     para_surf = 1 if stop_pos else 2
     ddeLn.zNewLens()
     ddeLn.zInsertSurface(para_surf)
-    ddeLn.zSetSystemAper(aType=0, stopSurf=stop_surf, apertureValue=epd)
+    ddeLn.zSetSystemAper(aType=0, stopSurf=stop_surf, aperVal=epd)
     if stop_pos:
         ddeLn.zSetSurfaceData(para_surf, code=3, value=stop_shift)
     else:
         ddeLn.zSetSurfaceData(stop_surf, code=3, value=stop_shift)
     ddeLn.zSetSurfaceData(para_surf, code=0, value='PARAXIAL')
-    ddeLn.zSetSurfaceParameter(para_surf, parameter=1, value=fl) # focallength
-    ddeLn.zSetSurfaceParameter(para_surf, parameter=2, value=opd_mode)
+    ddeLn.zSetSurfaceParameter(para_surf, param=1, value=fl) # focallength
+    ddeLn.zSetSurfaceParameter(para_surf, param=2, value=opd_mode)
     surf_beforeIMA, thickness_code = 2, 1
     solve_type, height, pupil_zone = 2, 0, 0 # Marginal ray height
     ddeLn.zSetSolve(surf_beforeIMA, thickness_code, solve_type, height, pupil_zone)
@@ -141,13 +141,13 @@ def zMakeIdealCollimator(ddeLn, fl=50, fn=5, ima_dist=10, opd_mode=1, zmx_mode=0
     """
     epd = fl/fn
     ddeLn.zNewLens()
-    ddeLn.zSetSystemAper(aType=0, stopSurf=1, apertureValue=epd)
+    ddeLn.zSetSystemAper(aType=0, stopSurf=1, aperVal=epd)
     ddeLn.zSetSystemProperty(code=18, value1=1) # Afocal Image Space
-    ddeLn.zSetSurfaceData(surfaceNumber=0, code=3, value=fl)
-    ddeLn.zSetSurfaceData(surfaceNumber=1, code=0, value='PARAXIAL')
-    ddeLn.zSetSurfaceData(surfaceNumber=1, code=3, value=ima_dist)
-    ddeLn.zSetSurfaceParameter(surfaceNumber=1, parameter=1, value=fl) # focallength
-    ddeLn.zSetSurfaceParameter(surfaceNumber=1, parameter=2, value=opd_mode)
+    ddeLn.zSetSurfaceData(surfNum=0, code=3, value=fl)
+    ddeLn.zSetSurfaceData(surfNum=1, code=0, value='PARAXIAL')
+    ddeLn.zSetSurfaceData(surfNum=1, code=3, value=ima_dist)
+    ddeLn.zSetSurfaceParameter(surfNum=1, param=1, value=fl) # focallength
+    ddeLn.zSetSurfaceParameter(surfNum=1, param=2, value=opd_mode)
 
 def zMakeBeamExpander(ddeLn, inDia=5.0, outDia=10.0, expGlass='N-BK7', expThick=10.0,
                       colGlass='N-BK7', colThick=10.0, preExpThick=5.0, preColThick=200.0,
@@ -222,7 +222,7 @@ def zMakeBeamExpander(ddeLn, inDia=5.0, outDia=10.0, expGlass='N-BK7', expThick=
     if insertAfter is None:
         ddeLn.zNewLens()
     if setSysAper:
-        ddeLn.zSetSystemAper(aType=0, stopSurf=stop_surf, apertureValue=epd)
+        ddeLn.zSetSystemAper(aType=0, stopSurf=stop_surf, aperVal=epd)
     if afocal:
         ddeLn.zSetSystemProperty(code=18, value1=1) # Afocal Image Space
     # instert surfaces

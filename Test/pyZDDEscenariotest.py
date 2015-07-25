@@ -23,7 +23,7 @@ if pyzddedirectory not in sys.path:
 
 # Import the pyzdde module
 #import pyzdde
-import pyzdde.zdde
+import pyzdde.zdde as pyz
 
 # ZEMAX file directory
 zmxfp = pyzddedirectory+'\\ZMXFILES\\'
@@ -36,52 +36,52 @@ def testSetup():
 def test_scenario_multipleChannel():
     """Test multiple channels of communication with ZEMAX"""
     # Create multiple client objects
-    link0 = pyzdde.zdde.PyZDDE()
-    link1 = pyzdde.zdde.PyZDDE()
-    link2 = pyzdde.zdde.PyZDDE()
+    ln0 = pyz.PyZDDE()
+    ln1 = pyz.PyZDDE()
+    ln2 = pyz.PyZDDE()
 
     # Initialize
-    ch0_status = link0.zDDEInit()
-    print("Status for link 0:", ch0_status)
+    ch0_status = ln0.zDDEInit()
+    print("\nStatus for link 0:", ch0_status)
     assert ch0_status==0  # Note that this will case the program to terminate without shutting down the server. The program will have to be restarted.
-    print("App Name for Link 0:", link0.appName)
-    print("Connection status for Link 0:", link0.connection)
+    print("App Name for Link 0:", ln0._appName)
+    print("Connection status for Link 0:", ln0._connection)
     time.sleep(0.1) # Not required, but just for observation
 
-    ch1_status = link1.zDDEInit()
-    print("Status for link 1:",ch1_status)
+    ch1_status = ln1.zDDEInit()
+    print("\nStatus for link 1:",ch1_status)
     assert ch1_status == 0 # Note that this will case the program to terminate without shutting down the server. The program will have to be restarted.
-    print("App Name for Link 1:", link1.appName)
-    print("Connection status for Link 1:", link1.connection)
+    print("App Name for Link 1:", ln1._appName)
+    print("Connection status for Link 1:", ln1._connection)
     time.sleep(0.1)   # Not required, but just for observation
 
     # Create a new lens in the first ZEMAX DDE server
-    link0.zNewLens()
-    sysPara = link0.zGetSystem()
-    sysParaNew = link0.zSetSystem(0,sysPara[2],0,0,20,1,-1)
-    link0.zInsertSurface(1)
+    ln0.zNewLens()
+    sysPara = ln0.zGetSystem()
+    sysParaNew = ln0.zSetSystem(0,sysPara[2], 0, 0, 20, 1, -1)
+    ln0.zInsertSurface(1)
 
     # Delete one of the objects
-    del link2   # We can delete this object like this since no DDE conversation object was created for it.
+    del ln2   # We can delete this object like this since no DDE conversation object was created for it.
 
     # Load a lens into the second ZEMAX DDE server
     filename = zmxfp+"Cooke 40 degree field.zmx"
-    ret = link1.zLoadFile(filename)
+    ret = ln1.zLoadFile(filename)
     assert ret == 0
-    print("zLoadFile test successful")
+    print("\nzLoadFile test successful")
 
 
     #Get system from both the channels
-    recSys0Data = link0.zGetSystem()
-    recSys1Data = link1.zGetSystem()
+    recSys0Data = ln0.zGetSystem()
+    recSys1Data = ln1.zGetSystem()
 
-    print("System data from 1st system:\n",recSys0Data)
-    print("System data from 2nd system:\n",recSys1Data)
+    print("\nSystem data from 1st system:", recSys0Data)
+    print("\nSystem data from 2nd system:", recSys1Data)
 
 
     # Close the channels
-    link0.zDDEClose()
-    link1.zDDEClose()
+    ln0.zDDEClose()
+    ln1.zDDEClose()
 
 if __name__ == '__main__':
     # Set the python optimization flag (generally this should be "False"

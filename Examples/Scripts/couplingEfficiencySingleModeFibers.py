@@ -45,7 +45,7 @@ srcParam = ((1, 2, 3, 4), (2, 2, 0.00911890, 0.00911890))
 fibParam = ((1, 2, 3, 4), (0.008, 0.008, 2.290622, 2.290622))
 
 # Setup POP analysis
-ln.zSetPOPSettings(data=0, settingsFileName=cfgFile, startSurf=1, endSurf=1,
+ln.zSetPOPSettings(data=0, settingsFile=cfgFile, startSurf=1, endSurf=1,
                    field=1, wave=1, beamType=2, paramN=srcParam, tPow=1,
                    sampx=4, sampy=4, widex=40, widey=40, fibComp=1, fibType=2,
                    fparamN=fibParam)
@@ -63,7 +63,7 @@ popInfo_dst_irr, data_dst_irr =  ln.zGetPOP(settingsFile=cfgFile, displayData=Tr
 
 # modify the POP settings to get Phase data at the source surface. Note that
 # when changing the data type, we need to pass all settings again.
-ln.zSetPOPSettings(data=1, settingsFileName=cfgFile, startSurf=1, endSurf=1,
+ln.zSetPOPSettings(data=1, settingsFile=cfgFile, startSurf=1, endSurf=1,
                    field=1, wave=1, beamType=2, paramN=srcParam, tPow=1,
                    sampx=4, sampy=4, widex=40, widey=40, fibComp=1, fibType=2,
                    fparamN=fibParam)

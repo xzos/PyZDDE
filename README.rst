@@ -6,7 +6,7 @@ PyZDDE: Python Zemax Dynamic Data Exchange
 Current revision
 '''''''''''''''''
 
-1.1.1 (Last significant update on 06/18/2015)
+2.0.0 (Last significant update on 07/25/2015)
 
 Brief change-log is available in the `News and
 Updates <https://github.com/indranilsinharoy/PyZDDE/wiki/News-and-updates>`__
@@ -119,7 +119,7 @@ Features
 -  Functions for using all "data items" defined in Zemax manual
 -  Supports both Python 2.7 and Python 3.3/3.4
 -  Supports both Unicode and extended ascii text
--  Over 25 additional functions for more efficient use (more will be added in future). Examples include ``zSetTimeout()``,
+-  Over 60 additional functions for more efficient use (more will be added in future). Examples include ``zSetTimeout()``,
    ``zExecuteZPLMacro()``, ``zSpiralSpot()``, ``zGetSeidelAberration()``, ``zSetFieldTuple()``,
    ``zGetFieldTuple()``, ``zSetWaveTuple()``, ``zGetWaveTuple()``, ``zCalculateHiatus()``, ``zGetPupilMagnification()``, ``zGetPOP()``,
    ``zSetPOPSettings()``, ``zModifyPOPSettings()``, ``zGetPSF()``, ``zGetPSFCrossSec()``, ``zGetMTF()``, ``zGetImageSimulation()``

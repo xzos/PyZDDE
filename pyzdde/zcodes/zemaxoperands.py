@@ -313,16 +313,19 @@ class _Operands(object):
     "NPZL": "Non-sequential (NS) object position z less than. See NPXG.",
     "NPZV": "Non-sequential (NS) object position z value. See NPXG.",
     "NSDC": "Non-sequential (NS) coherent data. See also NSDD.",
-    "NSDD": "Non-sequential (NS) incoherent intensity (brightness) data. NSDD is used "
-            "to clear detectors and to read out detector data. It is one of the "
-            "most common NSC operands.",
+    "NSDD": "Non-sequential (NS) incoherent intensity detector data (DD). NSDD is used "
+            "to clear detectors (Det# parameter set to 0), and to read out incoherent "
+            "intensity detector data. By using NSDD in the merit function editor, a number "
+            "of results may be obtained depending on the values specified for the Pix# and "
+            "Data parameters. For example, the mean flux, the maximum flux/area, the "
+            "standard deviation of all non-zero pixel data, RMS spot radius, etc.",
     "NSDE": "Non-sequential (NS) Detector Color object data. See also NSDD and NSDP.",
     "NSDP": "Non-sequential (NS) Detector Polar object data. See also NSDD and NSDE.",
     "NSRA": "Non-sequential (NS) single ray trace.",
     "NSRM": "Non-sequential (NS) Rotation Matrix component.",
     "NSST": "Non-sequential (NS) single ray trace. See also NSTR.",
     "NSTR": "Non-sequential (NS) trace. It is used to trace rays from NSC sources. "
-            "It is one of the most common NSC operands. See also NSST.",
+            "See also NSST.",
     "NTXG": "Non-sequential (NS) object tilt about x greater than. See NPXG.",
     "NTXL": "Non-sequential (NS) object tilt about x less than. See NPXG.",
     "NTXV": "Non-sequential (NS) object tilt about x value. See NPXG.",
@@ -408,16 +411,25 @@ class _Operands(object):
     "PROD": "Product of two operands (Op#1 X Op#2). See PROB.",
     "QOAC": "Unused.",
     "QSUM": "Quadratic sum. See also SUMM, OSUM, EQUA.",
-    "RAED": "Real ray angle of exitance. See also RAID.",
-    "RAEN": "Real ray angle of exitance. See also RAIN.",
+    "RAED": "Real ray angle of exitance. This is the angle in degrees between the "
+            "surface normal and the ray after refraction or reflection for the surface "
+            "defined by `Surf` at the wavelength defined by `Wave`. See also RAID.",
+    "RAEN": "Real ray angle of exitance. This is the cosine of the angle between the "
+            "surface normal and the ray after refraction or reflection at the surface "
+            "defined by Surf at the wavelength defined by Wave. See also RAIN.",
     "RAGA": "Global ray x-direction cosine.",
     "RAGB": "Global ray y-direction cosine. See RAGA.",
     "RAGC": "Global ray z-direction cosine. See RAGA.",
     "RAGX": "Global ray x-coordinate.",
     "RAGY": "Global ray y-coordinate. See RAGX.",
     "RAGZ": "Global ray z-coordinate. See RAGX.",
-    "RAID": "Real ray angle of incidence.See also RAED.",
-    "RAIN": "Real ray angle of incidence.See also RAEN.",
+    "RAID": "Real ray angle of incidence. This is the angle in degrees between the "
+            "surface normal and the incident ray at the surface defined by Surf at "
+            "the wavelength defined by Wave. Note the angle of incidence is always "
+            "positive. See also RAED, RAIN",
+    "RAIN": "Real ray angle of incidence. This is the cosine of the angle between "
+            "the surface normal and the ray before refraction at the surface defined "
+            "by Surf at the wavelength defined by Wave. See also RAEN, RAID.",
     "RANG": "Ray angle in radians with respect to z axis.",
     "REAA": "Real ray x-direction cosine of the ray after refraction from the "
             "surface defined by Surf at the wavelength defined by Wave.",
@@ -647,12 +659,15 @@ class _Operands(object):
     "MDPG": "Model glass dPgF.",
     "MIND": "Model glass index.",
     "MOFF": "Off.",
-    "NCOM": "Modifies the comment for non-sequential (NS) objects in the NSC Editor.",
-    "NCOT": "Non-sequential (NS) coating.",
-    "NGLS": "Nonsequential object glass.",
-    "NPAR": "NSCE object parameter.",
-    "NPOS": "NSCE object position.",
-    "NPRO": "NSC object property.",
+    "NCOM": "Modifies the comment for non-sequential objects in the NSC Editor. NSC, NSCE",
+    "NCOT": "Non-sequential (NS) coating. NSC, NSCE",
+    "NGLS": "Nonsequential object glass. NSC, NSCE",
+    "NPAR": "Non-sequential Editor object parameter. NSC, NSCE",
+    "NPOS": "Non-sequential Editor object position. Modifies the x, y, z, tilt x, tilt y, "
+            "and tilt z position values for non-sequential objects in the NSC Editor. The "
+            "position flag is an integer between 1 and 6 for x, y, z, tilt x, tilt y, and "
+            "tilt z, respectively. NSC, NSCE",
+    "NPRO": "Non-sequential object property. NSC, NSCE",
     "PAR1": "Parameter 1. Obsolete, use PRAM instead.",
     "PAR2": "Parameter 2. Obsolete, use PRAM instead.",
     "PAR3": "Parameter 3. Obsolete, use PRAM instead.",
@@ -845,7 +860,7 @@ def findZOperand(keywords):
     [APDY] Surface aperture Y-decenter.
     [APDX] Surface aperture X-decenter.
 
-    Found 2 Macro operands.
+    Found 2 Multi-configuration operands.
 
     >>> zo.findZOperand('trace')
     [NSRA] Non-sequential (NS) single ray trace.
@@ -884,7 +899,7 @@ def findZOperand(keywords):
                 break # break the inner for loop
     if previousFoundKeys:
         _print_mod(_boldifyText("Found ", str(len(previousFoundKeys)),
-                              " Macro operands",'blue','red','blue'))
+                              " Multi-configuration operands",'blue','red','blue'))
 
 def __find(word2find, instring):
     r = _re.compile(r'\b({0})\b'.format(word2find), flags=_re.IGNORECASE)
@@ -906,7 +921,7 @@ if __name__ == '__main__':
     print("'TSDX' is a Tolerence oprand type (True/False):", isZOperand('TSDX',2))
     print("'TSDX' is an Oprimization oprand type (True/False):", isZOperand('TSDX',1))
     print("'RANDOM' is a Tolerence operand type (True/False):", isZOperand('RANDOM',2))
-    print("'PUCN' is a Mico-configuration operand type (True/False):", isZOperand('PUCN',3))
+    print("'PUCN' is a Multi-configuration operand type (True/False):", isZOperand('PUCN',3))
     print("'GQPO' is a ZEMAX operand (True/False):", isZOperand('GQPO',0))
     #Test showZOperandDescription()
     showZOperandDescription('RANDOM')
