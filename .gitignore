@@ -230,11 +230,11 @@ Examples/Scripts/coupEffSgleModePOPEx.CFG
 # don't need to commit changes in them everytime
 ZMXFILES/*.zmx
 ZMXFILES/*.ZMX
-#ZMXFILES/*.CFG
-#ZMXFILES/*.cfg
+ZMXFILES/*.CFG
+ZMXFILES/*.cfg
 
 # ZEMAX settings files and sessions files
-#*.CFG
+*.CFG
 *.SES
 *.ZMX
 *.zmx
