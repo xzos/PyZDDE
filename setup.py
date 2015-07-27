@@ -28,7 +28,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     classifiers=[
-        'Development Status :: 5 - Production/Stable',
+        'Development Status :: 3 - Alpha',
         'Intended Audience :: Science/Research',
         'Natural Language :: English',
         'Environment :: Win32 (MS Windows)',
