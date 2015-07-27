@@ -4,7 +4,6 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    0.1
 #-------------------------------------------------------------------------------
 """
 This script will install the PyZDDE library into your Lib/site-packages directory
@@ -18,7 +17,7 @@ with open('README.rst') as fh:
 
 setup(
     name='PyZDDE',
-    version='1.1.1',
+    version='2.0.0a1',
     description='Zemax / OpticStudio standalone extension using Python',
     long_description=long_description,
     author='Indranil Sinharoy',
