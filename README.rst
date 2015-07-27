@@ -35,7 +35,7 @@ flag:
 
 .. code:: python
   
-  python install pyzdde --pre  
+  pip install pyzdde --pre  
 
 
 Note 2. When you install PyZDDE using pip (the above method), the "Examples" folder 
