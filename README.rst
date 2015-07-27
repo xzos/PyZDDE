@@ -64,13 +64,13 @@ Note 3. To uninstall pyzdde using pip use
 
 .. code:: python
 
-  python uninstall pyzdde
+  pip uninstall pyzdde
 
 
-LATEST CODE:
+GET THE LATEST CODE:
+~~~~~~~~~~~~~~~~~~~
 
-
-To get the latest PyZDDE code please download (or fork or clone) from 
+To get the latest PyZDDE code please download / fork / clone from 
 `GitHub repository <https://github.com/indranilsinharoy/PyZDDE>`__.
 
 
@@ -108,9 +108,9 @@ Here is a simple but complete "Hello world" code which prints the version of Zem
 .. code:: python
 
     import pyzdde.zdde as pyz
-    link = pyz.createLink()
-    print("Hello Zemax version: ", link.zGetVersion())
-    link.close()
+    ln = pyz.createLink() # DDE link object
+    print("Hello Zemax version: ", ln.zGetVersion())
+    ln.close()
 
 More examples
 ^^^^^^^^^^^^^^
@@ -142,13 +142,14 @@ Features
 -  Supports both Python 2.7 and Python 3.3/3.4
 -  Supports both Unicode and extended ascii text
 -  Over 60 additional functions for more efficient use (more will be added in future). Examples include ``zSetTimeout()``,
-   ``zExecuteZPLMacro()``, ``zSpiralSpot()``, ``zGetSeidelAberration()``, ``zSetFieldTuple()``,
+   ``zExecuteZPLMacro()``, ``zGetSeidelAberration()``, ``zSetFieldTuple()``,
    ``zGetFieldTuple()``, ``zSetWaveTuple()``, ``zGetWaveTuple()``, ``zCalculateHiatus()``, ``zGetPupilMagnification()``, ``zGetPOP()``,
-   ``zSetPOPSettings()``, ``zModifyPOPSettings()``, ``zGetPSF()``, ``zGetPSFCrossSec()``, ``zGetMTF()``, ``zGetImageSimulation()``
+   ``zSetPOPSettings()``, ``zModifyPOPSettings()``, ``zGetPSF()``, ``zGetPSFCrossSec()``, ``zGetMTF()``, ``zGetImageSimulation()``.
+   A list of the additional functions are available `here <https://github.com/indranilsinharoy/PyZDDE/wiki/List-of-helper-functions-in-PyZDDE>`__.
 -  Special functions for better interactive use with IPython notebooks.
    Examples include ``ipzCaptureWindow()``, ``ipzGetFirst()``, ``ipzGetPupil()``, ``ipzGetSystemAper()``, ``ipzGetTextWindow()``
 -  Quick generation of few simple optical systems (see ``pyzdde.systems`` module)
--  Array ray tracing using a separate and standalone module ``arraytrace``, that has helper functions for performing array ray tracing.
+-  Array ray tracing using a separate and standalone module ``arraytrace`` along with helper functions for performing array ray tracing.
 
 Overview
 ~~~~~~~~
