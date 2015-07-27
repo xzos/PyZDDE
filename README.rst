@@ -27,7 +27,18 @@ Use the following command from the command line to install PyZDDE from PyPI:
 
   pip install pyzdde
 
-Note that when you install PyZDDE using pip (the above method), the "Examples" folder 
+
+Note 1. By default only the latest stable version is installed by default, using
+the above command. To install pre-release versions add the 
+`--pre <https://pip.pypa.io/en/latest/reference/pip_install.html#pre-release-versions>`__
+flag:
+
+.. code:: python
+  
+  python install pyzdde --pre  
+
+
+Note 2. When you install PyZDDE using pip (the above method), the "Examples" folder 
 will not be downloaded. However, pip is the most convenient way to install Python packages.
 Also, ensure that you have the `pip` package in your environment. 
 
@@ -48,6 +59,15 @@ If you would like to see what files were added and where you may use:
 
 A list of all files that were added and their locations will be available in the 
 file "files.txt" in the same directory.  
+
+Note 3. To uninstall pyzdde using pip use
+
+.. code:: python
+
+  python uninstall pyzdde
+
+
+LATEST CODE:
 
 
 To get the latest PyZDDE code please download (or fork or clone) from 
