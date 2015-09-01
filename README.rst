@@ -6,7 +6,7 @@ PyZDDE: Python Zemax Dynamic Data Exchange
 Current revision
 '''''''''''''''''
 
-2.0.0 (Last significant update on 09/01/2015)
+2.0.1 (Last significant update on 09/01/2015)
 
 Change log
 ~~~~~~~~~~
@@ -67,8 +67,8 @@ Note 3. To uninstall pyzdde using pip use
   pip uninstall pyzdde
 
 
-GET THE LATEST CODE:
-~~~~~~~~~~~~~~~~~~~
+Get the latest code
+'''''''''''''''''''
 
 To get the latest PyZDDE code please download / fork / clone from 
 `GitHub repository <https://github.com/indranilsinharoy/PyZDDE>`__.

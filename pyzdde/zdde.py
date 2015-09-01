@@ -405,7 +405,7 @@ class PyZDDE(object):
     __server = 0
     __appNameDict = _createAppNameDict(_MAX_PARALLEL_CONV)  # {'ZEMAX': False, 'ZEMAX1': False}
 
-    version = '2.0.0'
+    version = '2.0.1'
     
     # Other class variables
     # Surface data codes for getting and setting surface data
