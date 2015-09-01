@@ -405,7 +405,7 @@ class PyZDDE(object):
     __server = 0
     __appNameDict = _createAppNameDict(_MAX_PARALLEL_CONV)  # {'ZEMAX': False, 'ZEMAX1': False}
 
-    version = '2.0.0a1'
+    version = '2.0.0'
     
     # Other class variables
     # Surface data codes for getting and setting surface data
@@ -1661,7 +1661,7 @@ class PyZDDE(object):
 
         See Also
         --------
-        zSetMulticon()
+        zSetMulticon(), zGetConfig()
         """
         cmd = "GetMulticon,{config:d},{row:d}".format(config=config,row=row)
         reply = self._sendDDEcommand(cmd)
@@ -4853,7 +4853,7 @@ class PyZDDE(object):
 
         See Also
         --------
-        zGetConfig()
+        zGetConfig(), zSetMulticon()
         """
         reply = self._sendDDEcommand("SetConfig,{:d}".format(config))
         rs = reply.split(',')
