@@ -9821,6 +9821,8 @@ class PyZDDE(object):
         """Return the pupil magnification, which is the ratio of the
         exit-pupil diameter to the entrance pupil diameter.
 
+        The pupils are paraxial pupils. 
+
         Parameters
         ----------
         None
