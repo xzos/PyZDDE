@@ -7549,23 +7549,39 @@ class PyZDDE(object):
         data_spacing = float(_re.search(r'\d{1,3}\.\d{2,6}', data_spacing_line).group())
         data_area_line = line_list[_getFirstLineOfInterest(line_list, 'Data area')]
         data_area = float(_re.search(r'\d{1,5}\.\d{2,6}', data_area_line).group())
+        if which=='huygens':
+            ctr_ref_line = line_list[_getFirstLineOfInterest(line_list, 'Center coordinates')]
+        else:
+            ctr_ref_line = line_list[_getFirstLineOfInterest(line_list, 'Reference Coordinates')]
+        ctr_ref_x, ctr_ref_y = [float(i) for i in _re.findall('-?\d\.\d{4,10}[Ee][-\+]\d{3}', ctr_ref_line)]
         img_grid_line = line_list[_getFirstLineOfInterest(line_list, 'Image grid size')]
         img_grid_x, img_grid_y = [int(i) for i in _re.findall(r'\d{2,5}', img_grid_line)]
         pupil_grid_line = line_list[_getFirstLineOfInterest(line_list, 'Pupil grid size')]
         pupil_grid_x, pupil_grid_y = [int(i) for i in _re.findall(r'\d{2,5}', pupil_grid_line)]
         center_point_line = line_list[_getFirstLineOfInterest(line_list, 'Center point')]
         center_point_x, center_point_y = [int(i) for i in _re.findall(r'\d{2,5}', center_point_line)]
+
         # The 2D data
         pat = (r'(-?\d\.\d{4,6}[Ee][-\+]\d{3}\s*)' + r'{{{num}}}'
                .format(num=img_grid_x))
         start_line = _getFirstLineOfInterest(line_list, pat)
         psfGridData = _get2DList(line_list, start_line, img_grid_y)
 
-        psfi = _co.namedtuple('PSFinfo', ['dataSpacing', 'dataArea', 'pupilGridX',
-                                          'pupilGridY', 'imgGridX', 'imgGridY',
-                                          'centerPtX', 'centerPtY'])
+        if which=='huygens':
+                psfi = _co.namedtuple('PSFinfo', ['dataSpacing', 'dataArea', 'pupilGridX',
+                                                  'pupilGridY', 'imgGridX', 'imgGridY',
+                                                  'centerPtX', 'centerPtY',
+                                                  'centerCoordX', 'centerCoordY'])
+        else:
+                psfi = _co.namedtuple('PSFinfo', ['dataSpacing', 'dataArea', 'pupilGridX',
+                                                  'pupilGridY', 'imgGridX', 'imgGridY',
+                                                  'centerPtX', 'centerPtY',
+                                                  'refCoordX', 'refCoordY'])
+
         psfInfo = psfi(data_spacing, data_area, pupil_grid_x, pupil_grid_y,
-                       img_grid_x, img_grid_y, center_point_x, center_point_y)
+                               img_grid_x, img_grid_y, center_point_x, center_point_y,
+                               ctr_ref_x, ctr_ref_y)
+
         if not keepFile:
             _deleteFile(textFileName)
         return (psfInfo, psfGridData)
