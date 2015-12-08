@@ -2581,11 +2581,11 @@ class PyZDDE(object):
         ENPD : float
             entrance pupil diameter (in lens units)
         ENPP : float
-            entrance pupil position (in lens units)
+            entrance pupil position from the first surface (in lens units)
         EXPD : float
             exit pupil diameter (in lens units)
         EXPP : float
-            exit pupil position (in lens units)
+            exit pupil position from the image plane (in lens units)
         apodization_type : integer
             the apodization type is indicated as follows:
 
@@ -6499,6 +6499,36 @@ class PyZDDE(object):
 # -------------------
 # System functions
 # -------------------
+    def zGetAngularMagnification(self, wave=None):
+        """Get angular magnification of paraxial system.
+
+        The angular magnification is defined as the ratio of the image space 
+        paraxial chief ray angle to the object space paraxial chief ray angle 
+
+        Parameters
+        ---------- 
+        wave : integer, optional 
+            the wavelength defined by `wave`. If `None`, the primary wave 
+            number is used.
+
+        Returns
+        ------- 
+        amag : real 
+            angular magnification. See Notes.
+
+        Notes
+        ----- 
+        Zemax returns zero (0) for angular magnification if the only field 
+        defined in the field editor is the on-axis field.
+
+        See Also
+        -------- 
+        zGetPupilMagnification()    
+        """
+        if wave==None:
+            wave = self.zGetPrimaryWave()
+        return self.zOperandValue('AMAG', wave)
+
     def zGetNumField(self):
         """Returns the total number of fields defined
 
@@ -7524,7 +7554,7 @@ class PyZDDE(object):
         psfInfo : named tuple
             meta data about the PSF analysis data, such as data spacing
             (microns), data area (microns wide), pupil and image grid
-            sizes, and center point information
+            sizes, center point, and center/reference coordinate information
         psfGridData : 2D list
             the two-dimensional list of the PSF data
 
@@ -9712,6 +9742,10 @@ class PyZDDE(object):
         ----------
         .. [UPRT] Understanding Paraxial Ray-Tracing, Mark Nicholson, Zemax
                   Knowledgebase, July 21, 2005.
+
+        See Also
+        -------- 
+        pyz.numAper2fnum()
         """
         prim_wave_num = self.zGetPrimaryWave()
         last_surf = self.zGetNumSurf()
@@ -10782,9 +10816,9 @@ class PyZDDE(object):
         else:
             pupil['Value (system aperture)'] = pupilData[1]
         pupil['Entrance pupil diameter'] = pupilData[2]
-        pupil['Entrance pupil position'] = pupilData[3]
+        pupil['Entrance pupil position (from surface 1)'] = pupilData[3]
         pupil['Exit pupil diameter'] = pupilData[4]
-        pupil['Exit pupil position'] = pupilData[5]
+        pupil['Exit pupil position (from IMA)'] = pupilData[5]
         pupil['Apodization type'] = apo_type[pupilData[6]]
         pupil['Apodization factor'] = pupilData[7]
         if pprint:

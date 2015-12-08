@@ -292,7 +292,7 @@ def showZButtonDescription(buttonCode):
         print("{} is NOT a valid ZEMAX button code.".format(str(buttonCode)))
 
 def findZButtonCode(keywords):
-    """Find/search Zemax button codes using specific keywords of interest.
+    """Find Zemax button codes using specific keywords of interest.
 
     findZButtonCode("keyword#1 [, keyword#2, keyword#3, ...]")->searchResult
 
@@ -331,7 +331,7 @@ def findZButtonCode(keywords):
                               " Button codes",'blue','red','blue'))
 
 def __find(word2find,instring):
-    r = _re.compile(r'\b({0})\b'.format(word2find),flags=_re.IGNORECASE)
+    r = _re.compile(r'\b({0})s?\b'.format(word2find),flags=_re.IGNORECASE)
     if r.search(instring):
         return True
     else:

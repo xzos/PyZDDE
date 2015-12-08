@@ -10,62 +10,41 @@
 '''
 from __future__ import print_function
 
-# Try to import IPython if it is available (for notebook helper functions)
+# Use IPython's display module to print objects if module is executing in an IPython
+# environment, else use standard print()
+
 try:
-    from IPython.core.display import display
+    import IPython.core as ipcore 
 except ImportError:
-    #print("Couldn't import display from IPython.core.display")
     IPLoad = False
 else:
     IPLoad = True
-# Even if IPython is available for import, it is not necessary that the module
-# is running in an IPython environment such as QtConsole or notebook.
-# Use regular "print" function if not in IPython environment.
-if IPLoad:
-    try:
-        get_ipython()
-    except Exception:
-        _print_mod = print   # regular print if not running on an IPython shell
+    if ipcore.getipython.get_ipython():
+        _print_mod = ipcore.display.display  
     else:
-        _print_mod = display # use IPython's display to prettify print
-else:
-    _print_mod = print    # regular print if IPython is not available.
+        _print_mod = print    
 
-# Try to import matplot lib
 try:
     import matplotlib.pyplot as plt
 except ImportError:
-    #print("Couldn't import matplotlib pybplot")
     MplPltLoad = False
 else:
     MplPltLoad = True
 
-# Try to import Numpy
 try:
     import numpy as np
 except ImportError:
-    #print("Couldn't import numpy")
     NpyLoad = False
 else:
     NpyLoad = True
 
 
 class _prettifyCodeDesc(object):
-    """Class to enable colorized Code-Description string output in IPython notebook
+    """Class to enable colorized Code-Description string output in IPython environment
 
-    In order to colorize the Code-Description, use the following idioms:
-
-        print_mod(prettifyCodeDesc("CODE", "Description")
-        or
-        print_mode(pretifyText("text0", "text1" [, "text2", "color0", "color1", "color2"])
-        or
-        print_mode(boldifyText("text0", "text1" [, "text2", "color0", "color1", "color2"])
-
-    If IPython environment is available, the above functions will produce colorized
-    text output, using IPython's display module and if IPython is not available,
-    simple print will be used.
+    Usage: ``_print_mod(_prettifyCodeDesc("CODE", "Description")``
     """
-    def __init__(self,code,desc,color0='blue',color1='magenta'):
+    def __init__(self, code, desc, color0='blue', color1='magenta'):
         self.code = code
         self.desc = desc
         self.color0 = color0
@@ -78,8 +57,9 @@ class _prettifyCodeDesc(object):
         return "[%s] %s" % (self.code, self.desc)
 
 class _prettifyText(object):
-    """Class to enable colorized string output in IPython notebook
-    See _prettifyCodeDec for details
+    """Class to enable colorized string output in IPython environment
+    
+    Usage: ``_print_mod(_prettifyText("text0", "text1" [, "text2", "color0", "color1", "color2"])``
     """
     def __init__(self,text0,text1,text2='',color0='red',color1='green',color2='red'):
         self.text0 = text0
@@ -98,8 +78,9 @@ class _prettifyText(object):
         return "%s%s%s" % (self.text0, self.text1, self.text2)
 
 class _boldifyText(object):
-    """Class to enable colorized and bold string output in IPython notebook
-    See _prettifyCodeDec for details
+    """Class to enable colorized and bold string output in IPython environment
+    
+    Usage: ``_print_mod(_boldifyText("text0", "text1" [, "text2", "color0", "color1", "color2"])``
     """
     def __init__(self,text0,text1,text2='',color0='red',color1='green',color2='red'):
         self.text0 = text0
@@ -210,3 +191,6 @@ def imshow(pixarr, cropBorderPixels=(0, 0, 0, 0), figsize=None, title=None, fig=
             plt.show()
     else:
         print("The function couldn't be executed. Requires Numpy and/or Matplotlib")
+
+if __name__ == '__main__':
+    pass

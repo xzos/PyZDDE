@@ -25,11 +25,12 @@ class _Operands(object):
     opt_operands = {  # key is operand type, value is a short description
     "ABCD": ("The ABCD values used by the grid distortion feature to compute "
             "generalized distortion. See also DISA."),
-    "ABGT":"Absolute value of operand greater than.",
+    "ABGT": "Absolute value of operand greater than.",
     "ABLT": "Absolute value of operand less than.",
     "ABSO": "Absolute value of the operand defined by Op#.",
     "ACOS": "Arccosine of the value of the operand defined by Op#.",
-    "AMAG": "Angular magnification.",
+    "AMAG": "Angular magnification, defined as the ratio of the paraxial image "
+            "space chief ray angle to the paraxial object space chief ray angle.",
     "ANAC": ("Angular aberration radial direction measured in image space with "
             "respect to the centroid at the wavelength defined by Wave."),
     "ANAR": ("Angular aberration radius measured in image space at the "
@@ -101,25 +102,25 @@ class _Operands(object):
     "COSI": "Cosine of the value of the operand defined by Op#.",
     "COVA": "Conic value. Returns the conic constant of the surface defined by Surf.",
     "CTGT": "Center thickness greater than. See also MNCT.",
-    "CTLT": "Center thickness less than. See also MXCT.",
+    "CTLT": "Center thickness less than. See also `MXCT`.",
     "CTVA": "Center thickness value.",
     "CVGT": "Curvature greater than.",
     "CVIG": "Clears the vignetting factors.See also `SVIG`.",
     "CVLT": "Curvature less than.",
     "CVOL": "Cylinder volume.",
     "CVVA": "Curvature value.",
-    "DENC": "Diffraction Encircled Energy (distance). See also DENF, GENC and XENC.",
-    "DENF": "Diffraction Encircled Energy (fraction). See also DENC, GENC, GENF, and XENC.",
+    "DENC": "Diffraction Encircled Energy (distance). See also `DENF`, `GENC` and `XENC`.",
+    "DENF": "Diffraction Encircled Energy (fraction). See also `DENC`, `GENC`, `GENF`, and `XENC`.",
     "DIFF": "Difference of two operands (Op#1 - Op#2).",
     "DIMX": "Distortion maximum. See also DIST,",
     "DISA": "Distortion, ABCD. See also `ABCD` and `DISG`.",
     "DISC": "Distortion, calibrated.",
     "DISG": "Generalized distortion, either in percent or as an absolute distance.",
-    "DIST": ("Distortion in waves contributed by the surface defined by Surf at "
-            "the wavelength defined by Wave. See also DISG."),
+    "DIST": ("Distortion in waves contributed by the surface defined by `Surf` at "
+            "the wavelength defined by Wave. See also `DISG`."),
     "DIVB": ("Divides the value of any prior operand defined by Op# by any factor"
-            " defined by Factor."),
-    "DIVI": "Division of first by second operand (Op#1 / Op#2). See also 'RECI'.",
+            " defined by `Factor`. See also `DIVI`."),
+    "DIVI": "Divides first operand by second operand (Op#1 / Op#2). See also `RECI`.",
     "DLTN": ("Delta N. Computes the diff. between the max & min index of "
             "refraction on axis for a gradient index surface."),
     "DMFS": "Default merit function start.",
@@ -215,7 +216,8 @@ class _Operands(object):
     "HACG": "Unused.",
     "HHCN": "Test for the hyperhemisphere condition.",
     "IMAE": "Image analysis data.",
-    "IMSF": "Image Surface",
+    "IMSF": "Dynamically assign any intermediate surface defined by `Surface` as "
+            "the image surface for analysis and optimization by subsequent operands.",
     "INDX": "Index of refraction.",
     "InGT": "Index n greater than.",
     "InLT": "Index n less than.",
@@ -837,7 +839,7 @@ def showZOperandDescription(operand):
         print("{} is a NOT a valid ZEMAX operand.".format(str(operand)))
 
 def findZOperand(keywords):
-    """Find/search Zemax operands using specific keywords of interest.
+    """Find Zemax operands using specific keywords of interest.
 
     findZOperand("keyword#1 [, keyword#2, keyword#3, ...]")->searchResult
 
@@ -847,7 +849,7 @@ def findZOperand(keywords):
 
     Example
     -------
-    >>> zo.findZOperand("decenter")
+    >>> pyz.findZOperand("decenter")
     [TEDY] Tolerance on element y-decenter in lens units
     [TEDX] Tolerance on element x-decenter in lens units
     [TUDX] Tolerance on user defined x-decenter in lens units
@@ -862,7 +864,13 @@ def findZOperand(keywords):
 
     Found 2 Multi-configuration operands.
 
-    >>> zo.findZOperand('trace')
+    >>> pyz.findZOperand("divide, reciprocal")
+    [DIVI] Divides first operand by second operand (Op#1 / Op#2). See also `RECI`.
+    [DIVB] Divides the value of any prior operand defined by Op# by any factor defined by `Factor`. See also `DIVI`.
+    [RECI] Returns the reciprocal of the value of operand Op#1. See also `DIVI`.
+    Found 3 Optimization operands
+
+    >>> pyz.findZOperand('trace')
     [NSRA] Non-sequential (NS) single ray trace.
     [NSTR] Non-sequential (NS) trace. See also NSST.
     [NSST] Non-sequential (NS) single ray trace. See also NSTR.
@@ -902,7 +910,7 @@ def findZOperand(keywords):
                               " Multi-configuration operands",'blue','red','blue'))
 
 def __find(word2find, instring):
-    r = _re.compile(r'\b({0})\b'.format(word2find), flags=_re.IGNORECASE)
+    r = _re.compile(r'\b({0})s?\b'.format(word2find), flags=_re.IGNORECASE)
     if r.search(instring):
         return True
     else:
