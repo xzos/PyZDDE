@@ -164,6 +164,16 @@ class TestPyZDDEFunctions(unittest.TestCase):
     def test_zGetAddress(self):
         print("\nTEST: zGetAddress()")
         pass
+    
+    def test_zGetAngularMagnification(self):
+        print("\nTEST: zGetAngularMagnification()")
+        # Load a lens file into the DDE server
+        filename = get_test_file()
+        self.ln.zLoadFile(filename)
+        aMag =self.ln.zGetAngularMagnification()
+        self.assertAlmostEqual(0.977161033, aMag, places=4)
+        if TestPyZDDEFunctions.pRetVar:
+            print('zGetAngularMagnification test successful')       
 
     @unittest.skip("To implement")
     def test_zGetAperture(self):
