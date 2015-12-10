@@ -881,7 +881,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
             print("zGetTextFile return value", ret)
         # Request zemax to dump prescription file, with a settings
         ret = self.ln.zGetRefresh()
-        settingsFileName = "Cooke 40 degree field_PreSettings_OnlyCardinals.CFG"
+        settingsFileName = "Cooke_40_degree_field_PreSettings_OnlyCardinals.CFG"
         preFileName = 'Prescription_unitTest_01.txt'
         textFileName = testdirectory + '\\' + preFileName
         ret = self.ln.zGetTextFile(textFileName,'Pre',settingsFileName,1)
@@ -1862,15 +1862,15 @@ def get_test_file(fileType='seq', settings=False, **kwargs):
         filenames are complete complete paths
     """
     zmxfp = os.path.join(pyzddedirectory, 'ZMXFILES')
-    lensFile = ["Cooke 40 degree field.zmx",
-                "Double Gauss 5 degree field.ZMX",
+    lensFile = ["Cooke_40_degree_field.zmx",
+                "Double_Gauss_5_degree_field.ZMX",
                 "LENS.ZMX",]
-    settingsFile = ["Cooke 40 degree field_unittest.CFG", ]
-    popFiles = ["Fiber Coupling.ZMX", ]
-    popSettingsFile = ["Fiber Coupling_POPunittest.CFG",
-                       "Fiber Coupling_POPunittest_Irradiance.CFG",
-                       "Fiber Coupling_POPunittest_Phase.CFG",
-                       "Fiber Coupling_POPunittest_NoFiberCompute.CFG", ]
+    settingsFile = ["Cooke_40_degree_field_unittest.CFG", ]
+    popFiles = ["Fiber_Coupling.ZMX", ]
+    popSettingsFile = ["Fiber_Coupling_POPunittest.CFG",
+                       "Fiber_Coupling_POPunittest_Irradiance.CFG",
+                       "Fiber_Coupling_POPunittest_Phase.CFG",
+                       "Fiber_Coupling_POPunittest_NoFiberCompute.CFG", ]
     
     lenFileIndex = 0
     setFileIndex = 0    

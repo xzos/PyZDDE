@@ -15,15 +15,26 @@ from __future__ import print_function
 
 try:
     import IPython.core as ipcore 
-except ImportError:
+except ImportError: # No IPython
     IPLoad = False
-else:
-    IPLoad = True
-    if ipcore.getipython.get_ipython():
-        _print_mod = ipcore.display.display  
+    _print_mod = print
+else: # 
+    try:
+        ipyEnv = ipcore.getipython.get_ipython() 
+    except: # older version of IPython (ver < 4.0)
+        try:
+            get_ipython()
+        except:
+            _print_mod = print
+        else:
+            import IPython.core.display as display
+            _print_mod = display.display
     else:
-        _print_mod = print    
-
+        if ipyEnv:
+            _print_mod = ipcore.display.display # in modern IPython environment
+        else:
+            _print_mod = print
+        
 try:
     import matplotlib.pyplot as plt
 except ImportError:
