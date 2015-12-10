@@ -1793,17 +1793,50 @@ class TestPyZDDEFunctions(unittest.TestCase):
         # Load a lens file into the DDE server
         ln = self.ln
         filename = get_test_file()
+        
+        # Test to match Zemax's Tilt/Decenter Tool's default behaviour        
+        ln.zLoadFile(filename)
+        firstSurf, lastSurf = 3, 4
+        cb1, cb2, dummy = ln.zTiltDecenterElements(firstSurf, lastSurf)
+        # check surface numbers
+        self.assertSequenceEqual(seq1=(cb1, cb2, dummy), seq2=(3, 6, 7))       
+        # check order parameters
+        self.assertEqual(ln.zGetSurfaceParameter(surfNum=cb1, param=6), 0)
+        self.assertEqual(ln.zGetSurfaceParameter(surfNum=cb2, param=6), 1)
+        # check Thickness solves
+        posSlvOnThick, pickSlvThick = 7, 5
+        slvType, fromSurf, length, _, _ = ln.zGetSolve(surfNum=cb2-1, code=ln.SOLVE_SPAR_THICK)
+        self.assertSequenceEqual(seq1=(slvType,       fromSurf, length), 
+                                 seq2=(posSlvOnThick, cb1,      0) )
+        slvType, param1, param2, param3, param4 = ln.zGetSolve(surfNum=cb2, code=ln.SOLVE_SPAR_THICK)
+        scale, offset, currCol = -1, 0, 0        
+        self.assertSequenceEqual(seq1=(slvType,      param1, param2, param3, param4),
+                                 seq2=(pickSlvThick, cb2-1,  scale,  offset, currCol))
+
+        # Test alternate order parameters setting
+        ln.zLoadFile(filename)
+        firstSurf, lastSurf = 3, 4
+        cb1, cb2, dummy = ln.zTiltDecenterElements(firstSurf, lastSurf, order=1)
+        self.assertEqual(ln.zGetSurfaceParameter(surfNum=cb1, param=6), 1)
+        self.assertEqual(ln.zGetSurfaceParameter(surfNum=cb2, param=6), 0)
+        
+        # Test dummy surface semi-diameter setting
+        ln.zLoadFile(filename)
+        firstSurf, lastSurf = 3, 4
+        cb1, cb2, dummy = ln.zTiltDecenterElements(firstSurf, lastSurf, dummySemiDiaToZero=True)
+        self.assertEqual(ln.zGetSurfaceData(surfNum=dummy, code=ln.SDAT_SEMIDIA), 0)
+         
+        # Test the accuracy of values of tilts and restorations
+        # load file again
         ln.zLoadFile(filename)
         numSurfBefore = ln.zGetNumSurf()
-
         firstSurf, lastSurf = 5, 6
         xdec, ydec, xtilt, ytilt, ztilt = 0.25, 0.5, 5.0, 10.0, -15.0
         # get the Thickness and solve on the thickness (if any) on the 
         # last surface to include in tilt-decenter group
         thick = ln.zGetSurfaceData(surfNum=lastSurf, code=ln.SDAT_THICK)
         solve = ln.zGetSolve(surfNum=lastSurf, code=ln.SOLVE_SPAR_THICK)
-        ret = ln.zTiltDecenterElements(firstSurf, lastSurf, xdec, ydec, 
-                                               xtilt, ytilt, ztilt, suppressMsgBox=True)
+        ret = ln.zTiltDecenterElements(firstSurf, lastSurf, xdec, ydec, xtilt, ytilt, ztilt)
         cb1, cb2, dummy = ret
         # Test number of surfaces                                         
         numSurfAfter = ln.zGetNumSurf()

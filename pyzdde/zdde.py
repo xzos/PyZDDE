@@ -2743,8 +2743,19 @@ class PyZDDE(object):
         Returns
         -------
         solveData : tuple
-            tuple is depending on the code value according to the table
+            tuple is depending on the code value according to the table;
             returns -1 if error occurs
+
+        Examples
+        -------- 
+        >>> solvetype, param1, param2, param3, pickup = ln.zGetSolve(3, ln.SOLVE_SPAR_THICK)
+
+        In the above example, since the solve is on Thickness (code=ln.SOLVE_SPAR_THICK), 
+        if the `solvetype` is "Position" (7), then `param1` is "From Surface", 
+        `param2` is "Length", and `param3` and `pickup` are un-specified. So, a typical 
+        output could be `(7, 3.0, 0.0, 0.0, 0)`. Instead of "Position", if the `solvetype`
+        is "Pickup" (5), then `param1` is "From Surface", `param2` is "Scale Factor", 
+        `param3` is "Offset", and `pickup` is "Pickup column"     
 
         Notes
         -----
@@ -10057,13 +10068,9 @@ class PyZDDE(object):
         
         
     def zTiltDecenterElements(self, firstSurf, lastSurf, xdec=0.0, ydec=0.0, xtilt=0.0, 
-                              ytilt=0.0, ztilt=0.0, order=0, cb2Ord=None, cbComment1=None, 
-                              cbComment2=None, suppressMsgBox=False):
+                              ytilt=0.0, ztilt=0.0, order=0, cbComment1=None, 
+                              cbComment2=None, dummySemiDiaToZero=False):
         '''Tilt decenter elements using CBs around the `firstSurf` and `lastSurf`. 
-        
-        Please check the options "Skip Rays To This Surface" and "Do Not Draw 
-        This Surface" under the "Draw" tab of the "Surface Properties" of the 
-        dummy surface manually. 
         
         Parameters
         ----------
@@ -10081,21 +10088,15 @@ class PyZDDE(object):
             tilt about y (degrees)
         ztilt : float
             tilt about z (degrees)
-        order : integer (0/1), optional
-            0 (default) = decenter then tilt; 1 = tilt then decenter
-        cb2Ord : None or integer (0/1), optional
-            order flag on second cb surface. If 1, second CB is executed 
-            in reverse order. This is required if more than one tilt is 
-            used. (It is a good practice). If `order` is 1 and `cb2Ord` 
-            is `None`, then `cb2Ord` is set to 0 (Zemax behavior)
-        comment1 : string, optional
+        order : integer (0/1), optional, default = 0
+            0 = decenter then tilt; 1 = tilt then decenter
+        comment1 : string, optional, default = 'Element Tilt'
             comment on the first CB surface
-        comment2 : string, optional
-            comment on the second CB surface
-        suppressMsgBox : bool, optional
-            if `False`, the message box that is used to remind users
-            to apply the manual settings to the dummy surface (e.g.
-            to skip rays) is suppressed. Default is `True`.
+        comment2 : string, optional, default = 'Element Tilt:return'
+            comment on the second CB surface. 
+        dummySemiDiaToZero : bool, optional, default = False
+            if `True` the semi-diameter of the dummy surface (afer CB2) is 
+            set to zero.
         
         Returns
         -------
@@ -10105,17 +10106,13 @@ class PyZDDE(object):
             surface number of the second (for restoring axis) coordinate 
             break surface
         dummy : integer
-            surface number of the dummy surface. It is always `cb2` + 1
+            surface number of the dummy surface. It is always `CB2` + 1
         
         Notes
         -----
         1. In total, 3 more surfaces are added to the existing system -- the 
            first CB, before `firstSurf`, the second CB after `lastSurf`, and 
            a dummy surface after the second CB. 
-        2. The "Skip Rays To This Surface" and "Do Not Draw This Surface" under 
-           the "Draw" tab of the "Surface Properties" of the dummy surface MUST 
-           be checked manually after the execution of this function. 
-           Unfortunately there is no way to do it automatically. 
         '''
         numSurfBetweenCBs = lastSurf - firstSurf + 1
         cb1 = firstSurf
@@ -10135,6 +10132,8 @@ class PyZDDE(object):
         self.zSetSurfaceData(surfNum=cb2, code=self.SDAT_COMMENT, value=cbComment2)
         self.zSetSurfaceData(surfNum=cb2, code=self.SDAT_TYPE, value='COORDBRK')
         self.zSetSurfaceData(surfNum=dummy, code=self.SDAT_COMMENT, value='Dummy')
+        if dummySemiDiaToZero:
+            self.zSetSemiDiameter(surfNum=dummy, value=0)
         # transfer thickness and solve on thickness (if any) of the surface just before
         # the cb2 (originally lastSurf) to the dummy surface
         lastSurf += 1  # last surface number incremented by 1 bcoz of cb 1
@@ -10157,11 +10156,13 @@ class PyZDDE(object):
         self.zSetSolve(lastSurf, self.SOLVE_SPAR_THICK, self.SOLVE_THICK_POS, cb1 , 0)
         # use a pickup solve to restore position at the back of the lastSurf
         self.zSetSolve(cb2, self.SOLVE_SPAR_THICK, self.SOLVE_THICK_PICKUP, 
-                       lastSurf, scale, offset, 2)
-        # set order flag on first cb
-        self.zSetSurfaceParameter(surfNum=cb1, param=6, value=order)    
-        # set order flag on second cb
-        cb2Ord = (cb2Ord if cb2Ord else 0) if order else 1
+                       lastSurf, scale, offset, 0)
+        # set the appropriate orders on the surfaces
+        if order: # Tilt and then decenter
+            cb1Ord, cb2Ord = 1, 0
+        else: # Decenter and then tilt (default)
+            cb1Ord, cb2Ord = 0, 1
+        self.zSetSurfaceParameter(surfNum=cb1, param=6, value=cb1Ord)    
         self.zSetSurfaceParameter(surfNum=cb2, param=6, value=cb2Ord)
         # set the decenter and tilt values in the first cb
         params = range(1, 6)
@@ -10169,16 +10170,6 @@ class PyZDDE(object):
         for par, val in zip(params, values):
             self.zSetSurfaceParameter(surfNum=cb1, param=par, value=val)
         self.zGetUpdate()
-        if not suppressMsgBox:
-            msg = ('Recommended task: \n'
-                   '1. Please use zPushLens(1) to push lens to the LDE. \n' 
-                   '2. Use the "Draw" tab under "Surface Properties" of the \n'
-                   '  "Dummy" surface (number {}) and check "Skip Rays To \n'
-                   '  This Surface" and "Do Not Draw This Surface", and\n'
-                   '3. Use zGetRefresh() to move lens to the DDE server.'
-                   .format(dummy))
-            title = 'Tilt and Decenter Elements'
-            showMessageBox(msg=msg, title=title, msgtype='info')
         return cb1, cb2, dummy
 
     def zInsertNSCSourceEllipse(self, surfNum=1, objNum=1, x=0.0, y=0.0, z=0.0, 
