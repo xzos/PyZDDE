@@ -6379,13 +6379,11 @@ class PyZDDE(object):
             retVal = 0
         return retVal
 
-# ****************************************************************
-#                      ADDITIONAL FUNCTIONS
-# ****************************************************************
+    #%% ADDITIONAL FUNCTIONS 
 
-# -------------------
-# Editor functions
-# -------------------
+    # -------------------------------------------------------
+    # Editor function for both getting and setting parameters
+    # -------------------------------------------------------
     def zGetOperandRow(self, row):
         """Returns a row of the Multi Function Editor
 
@@ -6496,9 +6494,9 @@ class PyZDDE(object):
                 self.zSetOperand(row=row, column=i+12, value=val)
         return self.zGetOperandRow(row)
 
-# -------------------
-# System functions
-# -------------------
+    # -------------------
+    # System functions
+    # -------------------
     def zGetAngularMagnification(self, wave=None):
         """Get angular magnification of paraxial system.
 
@@ -6909,11 +6907,11 @@ class PyZDDE(object):
                 mode = 0  # sequential
         return (mode,tuple(nscSurfNums))
         
-# -------------------
-# Analysis functions
-# -------------------
-
-# Spot diagram analysis functions
+    # -------------------
+    # Analysis functions
+    # -------------------
+    
+    # Spot diagram analysis functions
     def zSpiralSpot(self, hx, hy, waveNum, spirals, rays, mode=0):
         """Returns positions and intensity of rays traced in a spiral
         over the entrance pupil to the image surface.
@@ -6970,7 +6968,7 @@ class PyZDDE(object):
                 # !!! FIX raise an error here
         return (x, y, z, intensity)
 
-# POP analysis functions
+    # POP analysis functions
     def zGetPOP(self, settingsFile=None, displayData=False, txtFile=None,
                 keepFile=False, timeout=None):
         """Returns Physical Optics Propagation (POP) data
@@ -7426,7 +7424,7 @@ class PyZDDE(object):
                                     fibType, fparamN, ignPol, pos, tiltx, tilty)
             return dst
 
-# FFT and Huygens PSF, MTF analysis functions
+    # FFT and Huygens PSF, MTF analysis functions
     def zGetPSFCrossSec(self, which='fft', settingsFile=None, txtFile=None,
                         keepFile=False, timeout=120):
         """Returns the cross-section data of FFT or Huygens PSF analysis
@@ -8532,7 +8530,7 @@ class PyZDDE(object):
                                            pol, useDash)
             return dst
 
-# Image simulation functions
+    # Image simulation functions
     def zGetImageSimulation(self, settingsFile=None, txtFile=None, keepFile=False,
                             timeout=120):
         """Returns image simulation analysis results
@@ -8842,7 +8840,7 @@ class PyZDDE(object):
                                                 flipSimImg, outFile)
             return dst
 
-# NSC detector viewer data
+    # NSC detector viewer data
     def zGetDetectorViewer(self, settingsFile=None, displayData=False, txtFile=None,
                            keepFile=False, timeout=60):
         """Returns NSC detector viewer data. 
@@ -9111,7 +9109,7 @@ class PyZDDE(object):
             return dst        
 
 
-# Aberration coefficients analysis functions
+    # Aberration coefficients analysis functions
     def zGetSeidelAberration(self, which='wave', txtFile=None, keepFile=False):
         """Return the Seidel Aberration coefficients
 
@@ -9320,11 +9318,11 @@ class PyZDDE(object):
             _deleteFile(textFileName)
         return zInfo, zCoeff
 
-# -------------------
-# Tools functions
-# -------------------
-
-# System modification functions
+    # -------------------
+    # Tools functions
+    # -------------------
+    
+    # System modification functions
     def zLensScale(self, factor=2.0, ignoreSurfaces=None):
         """Scale the lens design by factor specified.
 
@@ -9554,7 +9552,7 @@ class PyZDDE(object):
                                                  tuple(fieldDataTupleScaled))
         return ret
 
-# Design functions
+    # Design functions
     def zOptimize2(self, numCycle=1, algo=0, histLen=5, precision=1e-12,
                    minMF=1e-15, tMinCycles=5, tMaxCycles=None, timeout=None):
         """A wrapper around zOptimize() providing few control features
@@ -9630,7 +9628,7 @@ class PyZDDE(object):
             tCycles = count*numCycle
         return (finalMerit, tCycles)
 
-# Other functions
+    # Other functions
     def zExecuteZPLMacro(self, zplMacroCode, timeout=None):
         """Executes a ZPL macro present in the <data>/Macros folder.
 
@@ -9966,11 +9964,102 @@ class PyZDDE(object):
         opd = self.zOperandValue(code, 0, wave, hx, hy, px, py)
         return opd
 
+    def zSetSemiDiameter(self, surfNum, value=0):
+        """Set the Semi-Diameter of the surface with number `surfNum`.  
+        
+        A "fixed" solve type is set on the semi-diameter of the surface.
+    
+        Parameters
+        ---------- 
+        surfNum : integer
+            surface number
+        value : real, optional
+            value of the semi-diameter to set
+    
+        Returns
+        ------- 
+        semidia : real
+            value of the semi-diameter of the surface after setting it.
+        """
+        self.zSetSolve(surfNum, self.SOLVE_SPAR_SEMIDIA, self.SOLVE_SEMIDIA_FIXED)
+        self.zSetSurfaceData(surfNum=surfNum, code=self.SDAT_SEMIDIA, value=value)
+        return self.zGetSurfaceData(surfNum=surfNum, code=self.SDAT_SEMIDIA)
+        
+    def zInsertDummySurface(self, surfNum, comment='dummy', thick=None, semidia=None):
+        """Insert dummy surface at surface number indicated by `surfNum` 
+    
+        Parameters
+        ---------- 
+        surfNum : integer
+            surface number at which to insert the dummy surface 
+        comment : string, optional, default is 'dummy'
+            comment on the surface 
+        thick : real, optional
+            thickness of the surface 
+        semidia : real, optional 
+            semi diameter of the surface 
+            
+        Returns
+        -------
+        nsur : integer
+            total number of surfaces in the LDE including the new dummy surface.
+        """
+        self.zInsertSurface(surfNum)
+        self.zSetSurfaceData(surfNum=surfNum, code=self.SDAT_COMMENT, value=comment)
+        if thick is not None:
+            self.zSetSurfaceData(surfNum=surfNum, code=self.SDAT_THICK, value=thick)
+        if semidia is not None:
+            self.zSetSemiDiameter(surfNum=surfNum, value=semidia)
+        return self.zGetNumSurf()
+        
+    def zInsertCoordinateBreak(self, surfNum, xdec=0.0, ydec=0.0, xtilt=0.0, ytilt=0.0,
+                               ztilt=0.0, order=0, thick=None, comment=None):
+        """Insert Coordinate Break at the surface position indicated by `surfNum`
+        
+        Parameters
+        ----------
+        surfNum : integer
+            surface number at which to insert the coordinate break 
+        xdec : float, optional, default = 0.0
+            decenter x (in lens units)
+        ydec : float, optional, default = 0.0
+            decenter y (in lens units)
+        xtilt : float, optional, default = 0.0
+            tilt about x (degrees)
+        ytilt : float, optional, default = 0.0
+            tilt about y (degrees)
+        ztilt : float, optional, default = 0.0
+            tilt about z (degrees)
+        order : integer (0/1), optional, default = 0
+            0 = decenter then tilt; 1 = tilt then decenter
+        thick : real, optional
+            set the thickness of the cb surface 
+        comment : string, optional 
+            surface comment 
 
+        Returns
+        ------- 
+        ret : integer
+            0 if no error   
+        """
+        self.zInsertSurface(surfNum=surfNum) 
+        self.zSetSurfaceData(surfNum=surfNum, code=self.SDAT_TYPE, value='COORDBRK')
+        # set the decenter and tilt values and order 
+        params = range(1, 7)
+        values = [xdec, ydec, xtilt, ytilt, ztilt, order]
+        for par, val in zip(params, values):
+            self.zSetSurfaceParameter(surfNum=surfNum, param=par, value=val)
+        if thick is not None:
+            self.zSetSurfaceData(surfNum=surfNum, code=self.SDAT_THICK, value=thick)
+        if comment is not None:
+             self.zSetSurfaceData(surfNum=surfNum, code=self.SDAT_COMMENT, value=comment)
+        return 0
+        
+        
     def zTiltDecenterElements(self, firstSurf, lastSurf, xdec=0.0, ydec=0.0, xtilt=0.0, 
                               ytilt=0.0, ztilt=0.0, order=0, cb2Ord=None, cbComment1=None, 
                               cbComment2=None, suppressMsgBox=False):
-        '''tilt decenter elements using CBs around the `firstSurf` and `lastSurf`. 
+        '''Tilt decenter elements using CBs around the `firstSurf` and `lastSurf`. 
         
         Please check the options "Skip Rays To This Surface" and "Do Not Draw 
         This Surface" under the "Draw" tab of the "Surface Properties" of the 

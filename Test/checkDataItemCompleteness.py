@@ -62,7 +62,7 @@ def main():
     # Other functions not defined in ZEMAX manual
     extraFunctions_set = dataItemSet_pyzdde.difference(dataItemSet_zemax)
     extraFunctions = [''.join(['z', exfun]) for exfun in extraFunctions_set]
-    print("\Extra functions:")
+    print("\nExtra functions:")
     print(extraFunctions)
     print("Total extra functions: ", len(extraFunctions))
     print("\nipz helper functions:")

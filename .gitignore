@@ -228,16 +228,16 @@ Examples/Scripts/coupEffSgleModePOPEx.CFG
 
 # Although the following files are in the repository for the unit-test, we 
 # don't need to commit changes in them everytime
-#ZMXFILES/*.zmx
-#ZMXFILES/*.ZMX
-#ZMXFILES/*.CFG
-#ZMXFILES/*.cfg
+ZMXFILES/*.zmx
+ZMXFILES/*.ZMX
+ZMXFILES/*.CFG
+ZMXFILES/*.cfg
 
 # ZEMAX settings files and sessions files
-#*.CFG
+*.CFG
 *.SES
-#*.ZMX
-#*.zmx
+*.ZMX
+*.zmx
 
 # Files that needs to be synced on/off sometimes
 .dll

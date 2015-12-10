@@ -1739,6 +1739,55 @@ class TestPyZDDEFunctions(unittest.TestCase):
         print("\nTEST: zSetTimeout()")
         self.ln.zSetTimeout(3)
         
+    def test_zSetSemiDiameter(self):
+        print("\nTEST: zSetSemiDiameter()")
+        # Load a lens file into the DDE server
+        ln = self.ln
+        filename = get_test_file()
+        ln.zLoadFile(filename)
+        ln.zInsertSurface(surfNum=3) # semi-dia will be non-zero for this surface
+        retVal = ln.zSetSemiDiameter(surfNum=3, value=0)
+        self.assertEqual(retVal, 0)
+        #ln.zGetSolve(surfNum=3, code=ln.SOLVE_SPAR_SEMIDIA)
+        retVal = ln.zGetSurfaceData(surfNum=3, code=ln.SDAT_SEMIDIA)
+        self.assertEqual(retVal, 0)
+        retVal = ln.zSetSemiDiameter(surfNum=3, value=10.25)
+        self.assertEqual(retVal, 10.25)
+        if TestPyZDDEFunctions.pRetVar:
+            print('zSetSemiDiameter test successful')       
+        
+    def test_zInsertDummySurface(self):
+        print("\nTEST: zInsertDummySurface()")
+        # Load a lens file into the DDE server
+        ln = self.ln
+        filename = get_test_file()
+        ln.zLoadFile(filename)
+        numSurf = ln.zGetNumSurf()
+        self.assertEqual(ln.zInsertDummySurface(surfNum=1), numSurf+1)
+        self.assertEqual(ln.zInsertDummySurface(surfNum=1, thick=10), numSurf+2)
+        self.assertEqual(ln.zInsertDummySurface(surfNum=1, semidia=5.0), numSurf+3)
+        self.assertEqual(ln.zGetSurfaceData(surfNum=1, code=ln.SDAT_SEMIDIA), 5.0)
+        if TestPyZDDEFunctions.pRetVar:
+            print('zInsertDummySurface test successful')        
+
+    def test_zInsertCoordinateBreak(self):
+        print("\nTEST: zInsertCoordinateBreak()")
+        # Load a lens file into the DDE server
+        ln = self.ln
+        filename = get_test_file()
+        ln.zLoadFile(filename)
+        xdec, ydec, xtilt, ytilt, ztilt, order, thick = 1.5, 2.5, 5, 10, 15, 1, 10
+        comment = 'tilt'
+        params = [xdec, ydec, xtilt, ytilt, ztilt, order]
+        surf = 1
+        retVal = ln.zInsertCoordinateBreak(surf, xdec, ydec, xtilt, ytilt, ztilt, order, thick, comment)
+        self.assertEqual(retVal, 0)
+        for para, value in enumerate(params, 1):
+            self.assertAlmostEqual(value, ln.zGetSurfaceParameter(surf, para))
+        self.assertAlmostEqual(thick, ln.zGetSurfaceData(surf, code=ln.SDAT_THICK))
+        if TestPyZDDEFunctions.pRetVar:
+            print('zInsertDummySurface test successful')  
+
     def test_zTiltDecenterElements(self):
         print("\nTEST: zTiltDecenterElements()")        
         # Load a lens file into the DDE server
@@ -1772,7 +1821,9 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertEqual(solveDummy, solve)
         # Test the order flags which should be 0 and 1 (default case)
         self.assertEqual(ln.zGetSurfaceParameter(surfNum=cb1, param=6), 0)
-        self.assertEqual(ln.zGetSurfaceParameter(surfNum=cb2, param=6), 1)        
+        self.assertEqual(ln.zGetSurfaceParameter(surfNum=cb2, param=6), 1)
+        if TestPyZDDEFunctions.pRetVar:
+            print('zTiltDecenterElements test successful')          
 
     @unittest.skip("To implement test")
     def test_readZRD(self):
