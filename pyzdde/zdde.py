@@ -29,6 +29,7 @@ import re as _re
 import shutil as _shutil
 import warnings as _warnings
 import codecs as _codecs
+
 # Try to import IPython if it is available (for notebook helper functions)
 try:
     from IPython.core.display import display as _display
@@ -113,6 +114,7 @@ _system_aperture = {0 : 'EPD',
                     4 : 'Paraxial working F/#',
                     5 : 'Object cone angle'}
 
+macheps = _sys.float_info.epsilon  # machine epsilon
 
 #%% Helper function for debugging
 def _debugPrint(level, msg):
@@ -11097,6 +11099,31 @@ def fresnelNumber(r, z, wl=550e-6, approx=False):
         return (r**2)/(wl*z)
     else:
         return 2.0*(_math.sqrt(z**2 + r**2) - z)/wl
+
+def approx_equal(x, y, tol=macheps):
+    """compare two float values using relative difference as measure
+    
+    Parameters
+    ----------
+    x, y : floats
+        floating point values to be compared
+    tol : float
+        tolerance (default=`macheps`, which is the difference between 1 and the next 
+        representable float. `macheps` is equal to 2^{−23} ≃ 1.19e-07 for 32 bit 
+        representation and equal to 2^{−52} ≃ 2.22e-16 for 64 bit representation)
+    
+    Returns
+    -------
+    rel_diff : bool
+        ``True`` if ``x`` and ``y`` are approximately equal within the tol   
+    
+    Notes
+    -----
+    1. relative difference: http://en.wikipedia.org/wiki/Relative_change_and_difference
+    3. In future, this function could be replaced by a standard library function. See
+       PEP0485 for details. https://www.python.org/dev/peps/pep-0485/
+    """
+    return abs(x - y) <= max(abs(x), abs(y)) * tol
 
 # scales to SI-meter
 #                    mm  , cm  , inch  , m

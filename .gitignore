@@ -218,6 +218,7 @@ ZMXFILES/Fiber\ Coupling_POPunittest_NoFiberCompute.CFG
 ZMXFILES/Fiber\ Coupling_POPunittest_Phase.CFG
 ZMXFILES/Cooke\ 40\ degree\ field_unittest.CFG
 ZMXFILES/Cooke\ 40\ degree\ field_PreSettings_OnlyCardinals.CFG
+ZMXFILES/speckleusingpop_gridsagsurf.CFG
 Examples/Scripts/pikachu2.zbf
 ZMXFILES/None
 Examples/*.txt
@@ -228,16 +229,16 @@ Examples/Scripts/coupEffSgleModePOPEx.CFG
 
 # Although the following files are in the repository for the unit-test, we 
 # don't need to commit changes in them everytime
-ZMXFILES/*.zmx
-ZMXFILES/*.ZMX
+#ZMXFILES/*.zmx
+#ZMXFILES/*.ZMX
 ZMXFILES/*.CFG
 ZMXFILES/*.cfg
 
 # ZEMAX settings files and sessions files
-*.CFG
+.CFG
 *.SES
-*.ZMX
-*.zmx
+#.ZMX
+#.zmx
 
 # Files that needs to be synced on/off sometimes
 .dll
