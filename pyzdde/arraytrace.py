@@ -226,6 +226,16 @@ def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
     PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
     -998 = timeout reached
 
+    Examples
+    -------- 
+    >>> n = 9**2
+    >>> nx = np.linspace(-1, 1, np.sqrt(n))
+    >>> hx, hy = np.meshgrid(nx, nx)
+    >>> hx, hy = hx.flatten().tolist(), hy.flatten().tolist()
+    >>> rayData = at.zGetTraceArray(numRays=n, hx=hx, hy=hy, mode=0)
+    >>> err, vig = rayData[0], rayData[1]
+    >>> x, y, z = rayData[2], rayData[3], rayData[4]
+
     Notes
     -----
     The opd can only be computed if the last surface is the image surface,

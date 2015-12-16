@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    2.0.0a1
+# Revision:    2.0.1
 #-------------------------------------------------------------------------------
 """PyZDDE, which is a toolbox written in Python, is used for communicating
 with ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging
@@ -643,7 +643,7 @@ class PyZDDE(object):
             PyZDDE.__liveCh += 1 # increment the number of live channels
             self._connection = True
             return 0
-
+  
     def close(self):
         """Helper function to close current communication link
 
@@ -673,7 +673,7 @@ class PyZDDE(object):
             Use this method (as ``pyz.closeLink(ln)``) or ``ln.close()``
             if the link was created as ``ln = pyz.createLink()``
         """
-        closeLink(self)
+        return closeLink(self)
 
     def zDDEClose(self):
         """Close the DDE link with Zemax server.
@@ -1444,6 +1444,7 @@ class PyZDDE(object):
         zGetSystem() :
             Use ``zGetSystem()`` to get general system data,
         zGetSystemProperty()
+        ipzGetFirst()
         """
         fd = _co.namedtuple('firstOrderData',
                             ['EFL', 'paraWorkFNum', 'realWorkFNum',
@@ -6525,7 +6526,10 @@ class PyZDDE(object):
         Returns
         ------- 
         amag : real 
-            angular magnification. See Notes.
+            angular magnification, at least one non-zero field point is 
+            defined in the Field Data Editor.
+            Returns error code -999 if only on-axis field is defined. 
+            See Notes.
 
         Notes
         ----- 
@@ -6538,7 +6542,10 @@ class PyZDDE(object):
         """
         if wave==None:
             wave = self.zGetPrimaryWave()
-        return self.zOperandValue('AMAG', wave)
+        if self.zAnyOffAxisField():
+            return self.zOperandValue('AMAG', wave)
+        else:
+            return -999
 
     def zGetNumField(self):
         """Returns the total number of fields defined
@@ -6555,6 +6562,26 @@ class PyZDDE(object):
             number of fields defined
         """
         return self.zGetSystemProperty(101)
+
+    def zAnyOffAxisField(self):
+        """Returns `True` if at least one off-axis X-Field or Y-Field is 
+        defined in the Field Data Editor.
+
+        Fields with zero weights are also considered to be "defined".
+
+        Parameters
+        ---------- 
+        None 
+
+        Returns
+        ------- 
+        retVal : bool 
+            `True` if any off-axis field is found, else `False`
+        """
+        fdata = self.zGetFieldTuple()
+        fx = [f[0] for f in fdata]
+        fy = [f[1] for f in fdata]
+        return any(fy) or any(fx)
 
     def zGetFieldTuple(self):
         """Get all field data in a single n-tuple.
@@ -10136,13 +10163,21 @@ class PyZDDE(object):
         self.zSetSurfaceData(surfNum=dummy, code=self.SDAT_COMMENT, value='Dummy')
         if dummySemiDiaToZero:
             self.zSetSemiDiameter(surfNum=dummy, value=0)
-        # transfer thickness and solve on thickness (if any) of the surface just before
-        # the cb2 (originally lastSurf) to the dummy surface
+        # transfer thickness of the surface just before the cb2 (originally 
+        # lastSurf) to the dummy surface
         lastSurf += 1  # last surface number incremented by 1 bcoz of cb 1
         self.zSetSurfaceData(surfNum=lastSurf, code=self.SDAT_THICK, value=0.0)
         self.zSetSolve(lastSurf, self.SOLVE_SPAR_THICK, self.SOLVE_THICK_FIXED)
         self.zSetSurfaceData(surfNum=dummy, code=self.SDAT_THICK, value=thick)
-        self.zSetSolve(dummy, self.SOLVE_SPAR_THICK, *solve)
+        # transfer the solve on the thickness (if any) of the surface just before
+        # the cb2 (originally lastSurf) to the dummy surface. The param1 of 
+        # solve type "Thickness" may need to be modified before transferring.
+        if solve[0] in {5, 7, 8, 9}: # param1 is a integer surface number
+            param1 = int(solve[1]) if solve[1] < cb1 else int(solve[1]) + 1
+        else: # param1 is a floating value, or macro name
+            param1 = solve[1]
+        self.zSetSolve(dummy, self.SOLVE_SPAR_THICK, solve[0], param1, solve[2], 
+                       solve[3], solve[4])
         # use pick-up solve on glass surface of dummy to pickup from lastSurf
         self.zSetSolve(dummy, self.SOLVE_SPAR_GLASS, self.SOLVE_GLASS_PICKUP, lastSurf)
         # use pick-up solves on second CB; set scale factor of -1 to lock the second
@@ -10543,8 +10578,24 @@ class PyZDDE(object):
             assert self.zSetNSCParameter(surfNum, objNum, paramNum=i, data=each) == each, \
             'Error in setting NSC parameter {} to {} at object {}'.format(i, param[i], objNum) 
     
+    #%% Interaction friendly (but duplicate) functions
+    @property
+    def refresh(self):
+        """push lens from LDE to DDE server"""
+        return self.zGetRefresh()
 
-    #%%  IPYTHON NOTEBOOK UTILITY FUNCTIONS
+    @property
+    def push(self):
+        """push lens from DDE server to LDE and update lens"""
+        return self.zPushLens(1) 
+
+    @property
+    def update(self):
+        """update -- recompute all pupil positions, slovles, etc."""
+        return self.zGetUpdate()
+    
+
+    #%% IPYTHON NOTEBOOK UTILITY FUNCTIONS
 
     def ipzCaptureWindowLQ(self, num=1, *args, **kwargs):
         """Capture graphic window from Zemax and display in IPython
@@ -11004,6 +11055,29 @@ class PyZDDE(object):
         _deleteFile(textFileName)
 
 
+    def ipzGetFieldData(self):
+        """Prints formatted field data in IPython QtConsole or Notebook  
+        """
+        fieldType = {0 : 'Angles in degrees', 
+                     1 : 'Object height', 
+                     2 : 'Paraxial image height', 
+                     3 : 'Real image height'}
+        fieldNormalization = {0 : 'Radial', 1 : 'Rectangular'}
+        fieldMetaData = self.zGetField(0)
+        fieldMeta = {}
+        fieldMeta['Type'] = fieldType[fieldMetaData.type]
+        fieldMeta['Number of Fields'] = fieldMetaData.numFields
+        fieldMeta['Max X'] = fieldMetaData.maxX
+        fieldMeta['Max Y'] = fieldMetaData.maxY
+        fieldMeta['Field Normalization'] = fieldNormalization[fieldMetaData.normMethod]
+        _print_dict(fieldMeta)
+        print(("{:^8}{:^8}{:^8}{:^8}{:^8}{:^8}{:^8}{:^8}"
+               .format('X', 'Y', 'Weight', 'VDX', 'VDY', 'VCX', 'VCY', 'VAN')))
+        for each in self.zGetFieldTuple():
+            print(("{:< 8.2f}{:< 8.2f}{:<8.4f}{:<8.4f}{:<8.4f}"
+                   "{:<8.4f}{:<8.4f}{:<8.4f}"
+                   .format(each.xf, each.yf, each.wgt, each.vdx, each.vdy, 
+                           each.vcx, each.vcy, each.van)))
 
 #%% OTHER MODULE HELPER FUNCTIONS THAT DO NOT REQUIRE A RUNNING ZEMAX SESSION
 
