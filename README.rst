@@ -115,10 +115,13 @@ Here is a simple but complete "Hello world" code which prints the version of Zem
 More examples
 ^^^^^^^^^^^^^^
 
-You can find few examples
-`here <http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/tree/master/Examples/>`__.
+Examples demonstrating the use of IPython/Jupyter notebooks with Zemax and PyZDDE 
+are `here <https://github.com/indranilsinharoy/PyZDDE/wiki/IPython-Jupyter-notebook>`__.
 
-Some examples specific to array ray tracing are catalogued
+Example Python scripts are
+`here <https://github.com/indranilsinharoy/PyZDDE/tree/master/Examples/Scripts/>`__.
+
+Examples specific to array ray tracing are catalogued
 `here <https://github.com/indranilsinharoy/PyZDDE/wiki/Array-ray-tracing-examples>`__.
 
 In addition, the repository
@@ -207,6 +210,8 @@ Getting started with PyZDDE is really very simple as shown in the "Hello world" 
 
 Dependencies
 ''''''''''''
+
+The core PyZDDE library only depends on the standard Python Library. 
 
 1. Python 2.7 / Python 3.3 and above; 32/64 bit version
 2. Matplotlib (optional, used in some of the example programs)

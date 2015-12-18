@@ -3775,7 +3775,6 @@ class PyZDDE(object):
         ----------
         filename : string
             full path of the ZEMAX file to be loaded.
-            For example: "C:\ZEMAX\Samples\cooke.zmx"
         append : integer, optional
             if a non-zero value of append is passed, then the new file is
             appended to the current file starting at the surface number
@@ -3785,14 +3784,42 @@ class PyZDDE(object):
         -------
         status : integer
             0 = file successfully loaded;
-            -999 = file could not be loaded (check if the file really
-                   exists, or check the path;
+            -999 = file could not be loaded (check if the filename pattern is 
+                problematic or check the path);
             -998 = the command timed out;
             other = the upload failed.
 
+        Notes
+        -----
+        Filename patterns that are fine:
+
+            a. "C:\\ZEMAX\\Samples\\cooke.zmx"
+            b. "C:\ZEMAX\Samples\cooke.zmx"
+            c. "C:\\ZEMAX\\My Documents\\Sample\\cooke.zmx"  # spaces in file 
+               path is OK.
+
+        Problematic filename patterns:
+
+            a. "C:\ZEMAX\Samples\Example, cooke.zmx"   # a comma (,) in the 
+               filename is problematic.
+
+        Examples
+        -------- 
+        >>> lens = "C:\ZEMAX\Samples\cooke.zmx"
+        >>> ln.zLoadFile(lens)
+        0
+        >>> lens = os.path.join(ln.zGetPath()[1], 'Sequential', 'Objectives', 
+                               'Cooke 40 degree field.zmx')
+        >>> ln.zLoadFile(lens)
+        0
+        >>> usr = os.path.expandvars("%userprofile%")
+        >>> zmf = 'Double Gauss 5 degree field.zmx'
+        >>> lens = os.path.join(usr, 'Documents\Zemax\Samples\Sequential\Objectives', zmf)
+        0
+
         See Also
         --------
-        zSaveFile(), zGetPath(), zPushLens(), zuiLoadFile()
+        zSaveFile(), zGetPath(), zPushLens()
         """
         reply = None
         isAbsPath = _os.path.isabs(fileName)
@@ -7242,8 +7269,79 @@ class PyZDDE(object):
         ----------
         settingsFile : string
             filename of the settings file including path and extension
-        others :
-            see the parameter definitions of ``zSetPOPSettings()``
+        startSurf : integer, optional
+            the starting surface (in General Tab)
+        endSurf : integer, optional
+            the end surface (in General Tab)
+        field : integer, optional
+            the field number (in General Tab)
+        wave : integer, optional
+            the wavelength number (in General Tab)
+        auto : integer, optional
+            simulates the pressing of the "auto" button which chooses
+            appropriate X and Y widths based upon the sampling and
+            other settings (in Beam Definition Tab)
+        beamType : integer (0...6), optional
+            0 = Gaussian Waist; 1 = Gaussian Angle; 2 = Gaussian Size +
+            Angle; 3 = Top Hat; 4 = File; 5 = DLL; 6 = Multimode.
+            (in Beam Definition Tab)
+        paramN : 2-tuple, optional
+            sets beam parameter n, for example ((1, 4),(0.1, 0.5)) sets
+            parameters 1 and 4 to 0.1 and 0.5 respectively. These
+            parameter names and values change depending upon the beam type
+            setting. For example, for the Gaussian Waist beam, n=1 for
+            Waist X, 2 for Waist Y, 3 for Decenter X, 4 for Decenter Y,
+            5 for Aperture X, 6 for Aperture Y, 7 for Order X, and 8 for
+            Order Y (in Beam Definition Tab)
+        pIrr : float, optional
+            sets the normalization by peak irradiance. It is the initial
+            beam peak irradiance in power per area. It is an alternative
+            to Total Power (tPow) [in Beam Definition Tab]
+        tPow : float, optional
+            sets the normalization by total beam power. It is the initial
+            beam total power. This is an alternative to Peak Irradiance
+            (pIrr) [in Beam Definition Tab]
+        sampx : integer (1...10), optional
+            the X direction sampling. 1 for 32; 2 for 64; 3 for 128;
+            4 for 256; 5 for 512; 6 for 1024; 7 for 2048; 8 for 4096;
+            9 for 8192; 10 for 16384; (in Beam Definition Tab)
+        sampy : integer (1...10), optional
+            the Y direction sampling. 1 for 32; 2 for 64; 3 for 128;
+            4 for 256; 5 for 512; 6 for 1024; 7 for 2048; 8 for 4096;
+            9 for 8192; 10 for 16384; (in Beam Definition Tab)
+        srcFile : string, optional
+            The file name if the starting beam is defined by a ZBF file,
+            DLL, or multimode file; (in Beam Definition Tab)
+        widex : float, optional
+            the initial X direction width in lens units; 
+            (X-Width in Beam Definition Tab)
+        widey : float, optional
+            the initial Y direction width in lens units;
+            (Y-Width in Beam Definition Tab)
+        fibComp : integer (1/0), optional
+            use 1 to check the fiber coupling integral ON, 0 for OFF
+            (in Fiber Data Tab)
+        fibFile : string, optional
+            the file name if the fiber mode is defined by a ZBF or DLL
+            (in Fiber Data Tab)
+        fibType : string, optional
+            use the same values as ``beamType`` above, except for
+            multimode which is not yet supported
+            (in Fiber Data Tab)
+        fparamN : 2-tuple, optional
+            sets fiber parameter n, for example ((2,3),(0.5, 0.6)) sets
+            parameters 2 and 3 to 0.5 and 0.6 respectively. See the hint
+            for ``paramN`` (in Fiber Data Tab)
+        ignPol : integer (0/1), optional
+            use 1 to ignore polarization, 0 to consider polarization
+            (in Fiber Data Tab)
+        pos : integer (0/1), optional 
+            fiber position setting. use 0 for chief ray, 1 for surface vertex
+            (in Fiber Data Tab)
+        tiltx : float, optional
+            tilt about X in degrees (in Fiber Data Tab)
+        tilty : float, optional
+            tilt about Y in degrees (in Fiber Data Tab)
 
         Returns
         -------
@@ -7664,9 +7762,27 @@ class PyZDDE(object):
         ----------
         settingsFile : string
             filename of the settings file including path and extension
-        others :
-            see the parameter definitions of
-            ``zSetFFTPSFCrossSecSettings()``
+        dtype : integer (0-9), optional
+            0 = x-linear, 1 = y-linear, 2 = x-log, 3 = y-log, 4 = x-phase,
+            5 = y-phase, 6 = x-real, 7 = y-real, 8 = x-imaginary,
+            9 = y-imaginary.
+        row : integer, optional
+            the row number (for x scan) or column number (for y scan) or
+            use 0 for center.
+        sample : integer, optional
+            the sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128; 4 = 256x256;
+            5 = 512x512; 6 = 1024x1024; 7 = 2048x2048; 8 = 4096x4096;
+            9 = 8192x8192; 10 = 16384x16384;
+        wave : integer, optional
+            the wavelength number, use 0 for polychromatic.
+        field : integer, optional
+            the field number
+        pol : integer (0/1), optional
+            the polarization. 0 for unpolarized, 1 for polarized.
+        norm : integer (0/1), optional
+            normalization. 0 for unnormalized, 1 for unity normalization
+        scale : float, optional
+            the plot scale
 
         Returns
         -------
@@ -7803,8 +7919,24 @@ class PyZDDE(object):
         ----------
         settingsFile : string
             filename of the settings file including path and extension
-        others :
-            see the parameter definitions of ``zSetFFTPSFSettings()``
+        dtype : integer (0-4), optional
+            0 = linear, 1 = log, 2 = phase, 3 = real, 4 = imaginary.
+        sample : integer, optional
+            the (pupil) sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128;
+            4 = 256x256; 5 = 512x512; 6 = 1024x1024; 7 = 2048x2048;
+            8 = 4096x4096; 9 = 8192x8192; 10 = 16384x16384;
+        wave : integer, optional
+            the wavelength number, use 0 for polychromatic.
+        field : integer, optional
+            the field number
+        surf : integer, optional
+            the surface number. Use 0 for image
+        pol : integer (0/1), optional
+            the polarization. 0 for unpolarized, 1 for polarized.
+        norm : integer (0/1), optional
+            normalization. 0 for unnormalized, 1 for unity normalization
+        imgDelta : float, optional
+            the image point spacing in micrometers
 
         Returns
         -------
@@ -7939,9 +8071,24 @@ class PyZDDE(object):
         ----------
         settingsFile : string
             filename of the settings file including path and extension
-        others :
-            see the parameter definitions of
-            ``zSetHuygensPSFCrossSecSettings()``
+        pupilSample : integer, optional
+            the pupil sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128;
+            4 = 256x256; 5 = 512x512; 6 = 1024x1024; 7 = 2048x2048;
+            8 = 4096x4096; 9 = 8192x8192; 10 = 16384x16384;
+        imgSample : integer, optional
+            the image sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128;
+            4 = 256x256; 5 = 512x512; 6 = 1024x1024; 7 = 2048x2048;
+            8 = 4096x4096; 9 = 8192x8192; 10 = 16384x16384;
+        wave : integer, optional
+            the wavelength number, use 0 for polychromatic
+        field : integer, optional
+            the field number
+        imgDelta : float, optional
+            the image point spacing in micrometers
+        dtype : integer (0-9), optional
+            0 = x-linear, 1 = y-log, 2 = y-linear, 3 = y-log, 4 = x-real,
+            5 = y-real, 6 = x-imaginary, 7 = y-imaginary, 8 = x-phase,
+            9 = y-phase.
 
         Returns
         -------
@@ -8072,8 +8219,23 @@ class PyZDDE(object):
         ----------
         settingsFile : string
             filename of the settings file including path and extension
-        others :
-            see the parameter definitions of ``zSetHuygensPSFSettings()``
+        pupilSample : integer, optional
+            the pupil sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128;
+            4 = 256x256; 5 = 512x512; 6 = 1024x1024; 7 = 2048x2048;
+            8 = 4096x4096; 9 = 8192x8192; 10 = 16384x16384;
+        imgSample : integer, optional
+            the image sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128;
+            4 = 256x256; 5 = 512x512; 6 = 1024x1024; 7 = 2048x2048;
+            8 = 4096x4096; 9 = 8192x8192; 10 = 16384x16384;
+        wave : integer, optional
+            the wavelength number, use 0 for polychromatic
+        field : integer, optional
+            the field number
+        imgDelta : float, optional
+            the image point spacing in micrometers
+        dtype : integer (0-8), optional
+            0 = linear, 1 = log -1, 2 = log -2, 3 = log -3, 4 = log -4,
+            5 = log -5, 6 = real, 7 = imaginary, 8 = phase.
 
         Returns
         -------
@@ -8297,9 +8459,27 @@ class PyZDDE(object):
         ----------
         settingsFile : string
             filename of the settings file including path and extension
-        others :
-            see the parameter definitions of
-            ``zSetFFTMTFSettings()``
+        sample : integer, optional
+            the sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128; 4 = 256x256;
+            5 = 512x512; 6 = 1024x1024; 7 = 2048x2048; 8 = 4096x4096;
+            9 = 8192x8192; 10 = 16384x16384;
+        wave : integer, optional
+            the wavelength number, use 0 for polychromatic.
+        field : integer, optional
+            the field number, 0 for all
+        dtype : integer (0-4), optional
+            0 = modulation, 1 = real, 2 = imaginary, 3 = phase, 4 = square
+            wave.
+        surf : integer, optional
+            the surface number. Use 0 for image
+        maxFreq : real, optional
+            the maximum frequency, use 0 for default
+        showDiff : integer (0/1)
+            show diffraction limit, 0 for no, 1 for yes
+        pol : integer (0/1), optional
+            the polarization. 0 for unpolarized, 1 for polarized.
+        useDash : integer (0/1)
+            use dashes, 0 for no, 1 for yes
 
         Returns
         -------
@@ -8437,8 +8617,30 @@ class PyZDDE(object):
         ----------
         settingsFile : string
             filename of the settings file including path and extension
-        others :
-            see the parameter definitions of ``zSetHuygensMTFSettings()``
+        pupilSample : integer, optional
+            the pupil sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128;
+            4 = 256x256; 5 = 512x512; 6 = 1024x1024; 7 = 2048x2048;
+            8 = 4096x4096; 9 = 8192x8192; 10 = 16384x16384;
+        imgSample : integer, optional
+            the image sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128;
+            4 = 256x256; 5 = 512x512; 6 = 1024x1024; 7 = 2048x2048;
+            8 = 4096x4096; 9 = 8192x8192; 10 = 16384x16384;
+        imgDelta : float, optional
+            the image point spacing in micrometers
+        config : integer, optional
+            the configuration number. Use 0 for all, 1 for current, etc.
+        wave : integer, optional
+            the wavelength number. Use 0 for polychromatic
+        field : integer, optional
+            the field number
+        dtype : integer, optional
+            the data type. Currently only 0 is supported
+        maxFreq : float, optional
+            the maximum spatial frequency
+        pol : integer, optional
+            polarization. 0 for no, 1 for yes
+        useDash : integer, optional
+            use dashes. 0 for no, 1 for yes
 
         Returns
         -------
@@ -8685,9 +8887,56 @@ class PyZDDE(object):
         ----------
         settingsFile : string
             filename of the settings file including path and extension
-        others :
-            see the parameter definitions of
-            ``zSetImageSimulationSettings()``
+        image : string, optional
+            The input file name. This should be specified without a path.
+        height : float, optional
+            The field height, which defines the full height of the source
+            bitmap in field coordinates, may be either lens units or
+            degrees, depending upon the current field definition (heights
+            or angles, respectively).
+        over : integer, optional
+            Oversample value. Use 0 for none, 1 for 2X, 2 for 4x, etc.
+        guard : integer, optional
+            Guard band value. Use 0 for none, 1 for 2X, 2 for 4x, etc.
+        flip : integer, optional
+            Flip Source. Use 0 for none, 1 for TB, 2 for LR, 3 for TB&LR.
+        rotate : integer, optional
+            Rotate Source. Use 0 for none, 1 for 90, 2 for 180, 3 for 270.
+        wave : integer, optional
+            Wavelength. Use 0 for RGB, 1 for 1+2+3, 2 for wave #1, 3 for
+            wave #2, etc.
+        field : integer, optional
+            Field number.
+        pupilSample : integer, optional
+            Pupil Sampling. Use 1 for 32x32, 2 for 64x64, etc.
+        imgSample : integer, optional
+            Image Sampling. Use 1 for 32x32, 2 for 64x64, etc.
+        psfx, psfy : integer, optional
+            The number of PSF grid points.
+        aberr : integer, optional
+            Use 0 for none, 1 for geometric, 2 for diffraction.
+        pol : integer, optional
+            Polarization. Use 0 for no, 1 for yes.
+        fixedAper : integer, optional
+            Apply fixed aperture? Use 0 for no, 1 for yes (apply fixed
+            aperture).
+        illum : integer, optional
+            Relative illumination. Use 0 for no, 1 for yes.
+        showAs : integer, optional
+            Use 0 for Simulated Image, 1 for Source Bitmap, and 2 for PSF
+            Grid.
+        reference : integer, optional
+            Use 0 for chief ray, 1 for vertex, 2 for primary chief ray.
+        suppress : integer, optional
+            Use 0 for no, 1 for yes.
+        pixelSize : integer, optional
+            Use 0 for default or the size in lens units.
+        xpix, ypix : integer, optional
+            Use 0 for default or the number of pixels.
+        flipSimImg : integer, optional
+            Use 0 for none, 1 for top-bottom, etc.
+        outFile : string, optional
+            The output file name or empty string for no output file.
 
         Returns
         -------
@@ -9006,8 +9255,36 @@ class PyZDDE(object):
         ----------
         settingsFile : string
             filename of the settings file including path and extension
-        others :
-            see the parameter definitions of ``zSetDetectorViewerSettings()``
+        surfNum : integer, optional
+            the surface number. Use 1 for Non-Sequential mode
+        detectNum : integer, optional
+            the detector number
+        showAs : integer, optional
+            0 = full pixel data; 1 = cross section row; 2 = cross 
+            section column. For Graphics Windows see Notes below. 
+        rowcolNum: integer, optional
+            the row or column number for cross section plots
+        zPlaneNum : integer, optional
+            the Z-Plane number for detector volumes
+        scale : integer, optional 
+            the scale mode. Use 0 for linear, 1 for Log -5, 2 for Log -10, and
+            3 for Log - 15.
+        smooth : integer, optional 
+            the smoothing value 
+        dType : integer, optional 
+            use 0 for incoherent irradiance, 1 for coherent irradiance, 2 for
+            coherent phase, 3 for radiant intensity, 4 for radiance (position 
+            space), and 5 for radiance (angle space).
+        zrd : string, optional 
+            the ray data base name, or null for none.
+        dfilter : string, optional 
+            the filter string  
+        maxPltScale : float, optional 
+            the maximum plot scale 
+        minPltScale : float, optional 
+            the minimim plot scale 
+        outFileName : string, optional
+            the output file name 
 
         Returns
         -------
