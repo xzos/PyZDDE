@@ -157,10 +157,11 @@ Features
 Overview
 ~~~~~~~~
 
-PyZDDE is a Python-based standalone extension for communicating with `ZEMAX/OpticStudio <http://www.radiantzemax.com/>`__ using the DDE
-protocol. It is similar to---and very much inspired by---the Matlab-based `MZDDE toolbox <http://kb-en.radiantzemax.com/KnowledgebaseArticle50204.aspx>`__ developed by Derek Griffith at CSIR.
+PyZDDE is a Python-based standalone extension for communicating with `ZEMAX/OpticStudio <http://www.zemax.com/>`__ using the DDE
+protocol. It is similar to---and very much inspired by---the Matlab-based `MZDDE toolbox <http://www.zemax.com/support/resource-center/knowledgebase/how-to-talk-to-zemax-from-matlab>`__ developed by Derek Griffith at CSIR.
 
-PyZDDE can be used with regular Python scripts as well as in an interactive environment such as an IPython shell, `QtConsole <http://ipython.org/ipython-doc/dev/interactive/qtconsole.html>`__ or `IPython Notebook <http://ipython.org/ipython-doc/dev/interactive/htmlnotebook.html>`__.
+PyZDDE can be used with regular Python scripts as well as in an interactive environment such as an IPython shell, 
+`QtConsole <http://ipython.readthedocs.org/en/stable/interactive/qtconsole.html>`__ or `IPython Notebook <http://ipython.org/ipython-doc/dev/interactive/htmlnotebook.html>`__.
 
 There are 4 types of functions, and a separate module for array ray tracing in the toolbox:
 
