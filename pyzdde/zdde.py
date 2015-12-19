@@ -151,6 +151,27 @@ isZOperand = zo.isZOperand
 showZOperandList = zo.showZOperandList
 showZOperandDescription = zo.showZOperandDescription
 
+# decorator for automatically push and refresh to and from LDE (Experimental)
+APR = False      # Automatic Push Request
+# if True then the `GetRefresh` dataitem is automatically called before 
+# executing any command function whose name startswith `zGet`; and the 
+# dataitem `PushLens,1` is called after executing commands whose name 
+# starts with `zSet` 
+def autopushandrefresh(func): 
+    def wrapped(self, *args, **kwargs):
+        global AUTOPR
+        if AUTOPR:
+            if args[0].startswith('Get'):
+                self._conversation.Request('GetRefresh')
+            reply = func(self, *args, **kwargs)
+            if args[0].startswith('Set'):
+                self._conversation.Request('PushLens,1')
+        else:
+            reply = func(self, *args, **kwargs)
+        return reply
+    return wrapped 
+
+
 _global_dde_linkObj = {}
 
 def createLink():
@@ -388,7 +409,6 @@ def _getAppName(appNameDict):
             return k_available
         else:
             return None
-
 
 #%% PyZDDE class
 
@@ -761,6 +781,7 @@ class PyZDDE(object):
         """
         return self._conversation.GetDDETimeout()
 
+    @autopushandrefresh
     def _sendDDEcommand(self, cmd, timeout=None):
         """Method to send command to DDE client
         """
@@ -3176,7 +3197,7 @@ class PyZDDE(object):
         ----------
         textFileName : string
             name of the file to be created including the full path and
-            extension
+            extension.
         analysisType : string
             3 letter case-sensitive label that indicates the type of the
             analysis to be performed. They are identical to the button
@@ -8824,11 +8845,18 @@ class PyZDDE(object):
         matplotlib's imshow function after converting the data into a
         Numpy (np) array.
 
-        >>> img_info, img_data = ln.zGetImageSimulationData()
+        >>> cfgfile = ln.zSetImageSimulationSettings(image='RGB_CIRCLES.BMP', height=1)
+        >>> img_info, img_data = ln.zGetImageSimulationData(settingsFile=cfgfile)
         >>> img_data_np = np.array(img_data, dtype='uint8')
         >>> left, right = -img_info.imgW/2, img_info.imgW/2
         >>> bottom, top = -img_info.imgH/2, img_info.imgH/2
         >>> plt.imshow(img_data_np, extent=[left, right, bottom, top])
+
+        Notes
+        ----- 
+        It is recommended that a settings files is first generated using the 
+        ``zSetImageSimulationSettings()`` functions prior to calling 
+        ``zGetImageSimulation()``.
 
         See Also
         --------
@@ -8836,9 +8864,10 @@ class PyZDDE(object):
         """
         settings = _txtAndSettingsToUse(self, txtFile, settingsFile, 'Sim')
         textFileName, cfgFile, getTextFlag = settings
+
         ret = self.zGetTextFile(textFileName, 'Sim', cfgFile, getTextFlag,
                                 timeout)
-        assert ret == 0
+        assert ret == 0, 'zGetTextFile() returned error code {}'.format(ret)
         line_list = _readLinesFromFile(_openFile(textFileName))
 
         # Meta data
@@ -8894,40 +8923,41 @@ class PyZDDE(object):
             bitmap in field coordinates, may be either lens units or
             degrees, depending upon the current field definition (heights
             or angles, respectively).
-        over : integer, optional
-            Oversample value. Use 0 for none, 1 for 2X, 2 for 4x, etc.
-        guard : integer, optional
-            Guard band value. Use 0 for none, 1 for 2X, 2 for 4x, etc.
-        flip : integer, optional
-            Flip Source. Use 0 for none, 1 for TB, 2 for LR, 3 for TB&LR.
-        rotate : integer, optional
+        over : integer, optional, [0-6]
+            Oversample value. Use 0 for None, 1 for 2X, 2 for 4x, etc.
+        guard : integer, optional, [0-6]
+            Guard band value. Use 0 for None, 1 for 2X, 2 for 4x, etc.
+        flip : integer, optional, [0-3]
+            Flip Source. Use 0 for None, 1 for top-bottom, 2 for left-right, 
+            3 for top-bottom & left-right.
+        rotate : integer, optional, [0-3]
             Rotate Source. Use 0 for none, 1 for 90, 2 for 180, 3 for 270.
-        wave : integer, optional
+        wave : integer, optional, 
             Wavelength. Use 0 for RGB, 1 for 1+2+3, 2 for wave #1, 3 for
             wave #2, etc.
         field : integer, optional
             Field number.
-        pupilSample : integer, optional
+        pupilSample : integer, optional, [1-10]
             Pupil Sampling. Use 1 for 32x32, 2 for 64x64, etc.
-        imgSample : integer, optional
+        imgSample : integer, optional, [1-5]
             Image Sampling. Use 1 for 32x32, 2 for 64x64, etc.
-        psfx, psfy : integer, optional
+        psfx, psfy : integer, optional, [1-51]
             The number of PSF grid points.
-        aberr : integer, optional
+        aberr : integer, optional, [0-2]
             Use 0 for none, 1 for geometric, 2 for diffraction.
-        pol : integer, optional
+        pol : integer, optional, [0-1]
             Polarization. Use 0 for no, 1 for yes.
-        fixedAper : integer, optional
+        fixedAper : integer, optional, [0-1]
             Apply fixed aperture? Use 0 for no, 1 for yes (apply fixed
             aperture).
-        illum : integer, optional
+        illum : integer, optional, [0-1]
             Relative illumination. Use 0 for no, 1 for yes.
-        showAs : integer, optional
+        showAs : integer, optional, [0-2]
             Use 0 for Simulated Image, 1 for Source Bitmap, and 2 for PSF
             Grid.
-        reference : integer, optional
+        reference : integer, optional, [0-2]
             Use 0 for chief ray, 1 for vertex, 2 for primary chief ray.
-        suppress : integer, optional
+        suppress : integer, optional, [0-1]
             Use 0 for no, 1 for yes.
         pixelSize : integer, optional
             Use 0 for default or the size in lens units.
@@ -9041,40 +9071,41 @@ class PyZDDE(object):
             bitmap in field coordinates, may be either lens units or
             degrees, depending upon the current field definition (heights
             or angles, respectively).
-        over : integer, optional
-            Oversample value. Use 0 for none, 1 for 2X, 2 for 4x, etc.
-        guard : integer, optional
-            Guard band value. Use 0 for none, 1 for 2X, 2 for 4x, etc.
-        flip : integer, optional
-            Flip Source. Use 0 for none, 1 for TB, 2 for LR, 3 for TB&LR.
-        rotate : integer, optional
+        over : integer, optional, [0-6]
+            Oversample value. Use 0 for None, 1 for 2X, 2 for 4x, etc.
+        guard : integer, optional, [0-6]
+            Guard band value. Use 0 for None, 1 for 2X, 2 for 4x, etc.
+        flip : integer, optional, [0-3]
+            Flip Source. Use 0 for None, 1 for top-bottom, 2 for left-right, 
+            3 for top-bottom & left-right.
+        rotate : integer, optional, [0-3]
             Rotate Source. Use 0 for none, 1 for 90, 2 for 180, 3 for 270.
-        wave : integer, optional
+        wave : integer, optional, 
             Wavelength. Use 0 for RGB, 1 for 1+2+3, 2 for wave #1, 3 for
             wave #2, etc.
         field : integer, optional
             Field number.
-        pupilSample : integer, optional
+        pupilSample : integer, optional, [1-10]
             Pupil Sampling. Use 1 for 32x32, 2 for 64x64, etc.
-        imgSample : integer, optional
+        imgSample : integer, optional, [1-5]
             Image Sampling. Use 1 for 32x32, 2 for 64x64, etc.
-        psfx, psfy : integer, optional
+        psfx, psfy : integer, optional, [1-51]
             The number of PSF grid points.
-        aberr : integer, optional
+        aberr : integer, optional, [0-2]
             Use 0 for none, 1 for geometric, 2 for diffraction.
-        pol : integer, optional
+        pol : integer, optional, [0-1]
             Polarization. Use 0 for no, 1 for yes.
-        fixedAper : integer, optional
+        fixedAper : integer, optional, [0-1]
             Apply fixed aperture? Use 0 for no, 1 for yes (apply fixed
             aperture).
-        illum : integer, optional
+        illum : integer, optional, [0-1]
             Relative illumination. Use 0 for no, 1 for yes.
-        showAs : integer, optional
+        showAs : integer, optional, [0-2]
             Use 0 for Simulated Image, 1 for Source Bitmap, and 2 for PSF
             Grid.
-        reference : integer, optional
+        reference : integer, optional, [0-2]
             Use 0 for chief ray, 1 for vertex, 2 for primary chief ray.
-        suppress : integer, optional
+        suppress : integer, optional, [0-1]
             Use 0 for no, 1 for yes.
         pixelSize : integer, optional
             Use 0 for default or the size in lens units.
@@ -12083,6 +12114,7 @@ def _txtAndSettingsToUse(self, txtFile, settingsFile, anaType):
             cfgFile = ''
             getTextFlag = 0
     return textFileName, cfgFile, getTextFlag
+
 #
 #
 if __name__ == "__main__":
