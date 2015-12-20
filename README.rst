@@ -11,7 +11,7 @@ Current revision
 Change log
 ~~~~~~~~~~
 Brief change-log is available in the `News and
-Updates <https://github.com/indranilsinharoy/PyZDDE/wiki/News-and-updates>`__
+Updates <https://github.com/indranilsinharoy/PyZDDE/wiki/08.-News-and-updates>`__
 page.
 
 
@@ -116,13 +116,13 @@ More examples
 ^^^^^^^^^^^^^^
 
 Examples demonstrating the use of IPython/Jupyter notebooks with Zemax and PyZDDE 
-are `here <https://github.com/indranilsinharoy/PyZDDE/wiki/IPython-Jupyter-notebook>`__.
+are `here <https://github.com/indranilsinharoy/PyZDDE/wiki/03.-Using-IPython-Jupyter-notebook>`__.
 
 Example Python scripts are
 `here <https://github.com/indranilsinharoy/PyZDDE/tree/master/Examples/Scripts/>`__.
 
 Examples specific to array ray tracing are catalogued
-`here <https://github.com/indranilsinharoy/PyZDDE/wiki/Array-ray-tracing-examples>`__.
+`here <https://github.com/indranilsinharoy/PyZDDE/wiki/05.-Examples-of-array-ray-tracing>`__.
 
 In addition, the repository
 `Intro2LensDesignByGeary <https://github.com/indranilsinharoy/Intro2LensDesignByGeary>`__
@@ -148,7 +148,7 @@ Features
    ``zExecuteZPLMacro()``, ``zGetSeidelAberration()``, ``zSetFieldTuple()``,
    ``zGetFieldTuple()``, ``zSetWaveTuple()``, ``zGetWaveTuple()``, ``zCalculateHiatus()``, ``zGetPupilMagnification()``, ``zGetPOP()``,
    ``zSetPOPSettings()``, ``zModifyPOPSettings()``, ``zGetPSF()``, ``zGetPSFCrossSec()``, ``zGetMTF()``, ``zGetImageSimulation()``.
-   A list of the additional functions are available `here <https://github.com/indranilsinharoy/PyZDDE/wiki/List-of-helper-functions-in-PyZDDE>`__.
+   A list of the additional functions are available `here <https://github.com/indranilsinharoy/PyZDDE/wiki/07.-List-of-helper-functions-in-PyZDDE>`__.
 -  Special functions for better interactive use with IPython notebooks.
    Examples include ``ipzCaptureWindow()``, ``ipzGetFirst()``, ``ipzGetPupil()``, ``ipzGetSystemAper()``, ``ipzGetTextWindow()``
 -  Quick generation of few simple optical systems (see ``pyzdde.systems`` module)
@@ -227,9 +227,9 @@ Contributions and credits
 '''''''''''''''''''''''''
 
 You are encouraged to use, provide feedbacks and contribute to the PyZDDE project. The generous people who have contributed to PyZDDE are
-in `Contributors <https://github.com/indranilsinharoy/PyZDDE/wiki/Contributors>`__. Thanks a lot to all of you.
+in `Contributors <https://github.com/indranilsinharoy/PyZDDE/wiki/09.-Contributors>`__. Thanks a lot to all of you.
 
-Other projects that are using PyZDDE are listed `here <https://github.com/indranilsinharoy/PyZDDE/wiki/Projects-using-PyZDDE>`__.
+Other projects that are using PyZDDE are listed `here <https://github.com/indranilsinharoy/PyZDDE/wiki/10.-Projects-using-PyZDDE>`__.
 
 
 Citing

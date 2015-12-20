@@ -159,8 +159,8 @@ APR = False      # Automatic Push Request
 # starts with `zSet` 
 def autopushandrefresh(func): 
     def wrapped(self, *args, **kwargs):
-        global AUTOPR
-        if AUTOPR:
+        global APR
+        if APR:
             if args[0].startswith('Get'):
                 self._conversation.Request('GetRefresh')
             reply = func(self, *args, **kwargs)
