@@ -15,6 +15,45 @@ Updates <https://github.com/indranilsinharoy/PyZDDE/wiki/08.-News-and-updates>`_
 page.
 
 
+Examples
+''''''''
+
+Examples included with PyZDDE are in the folder "Examples". Please move the examples to your desired location after extracting the PyZDDE package. 
+
+
+Hello world
+~~~~~~~~~~~
+
+Here is a simple but complete "Hello world" code which prints the version of Zemax. (If you are using Python 2.x, don't forget to add
+``from __future__ import print_function`` before these lines.)
+
+.. code:: python
+
+    import pyzdde.zdde as pyz
+    ln = pyz.createLink() # DDE link object
+    print("Hello Zemax version: ", ln.zGetVersion())
+    ln.close()
+
+More examples (view online)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A gallery of notebooks demonstrating the use of PyZDDE within Jupyter (previously IPython) notebooks 
+are `here <https://github.com/indranilsinharoy/PyZDDE/wiki/03.-Using-PyZDDE-in-Jupyter:-A-Gallery-of-notebooks>`__.
+
+Examples of using Zemax interactively from a Python shell is `here <https://github.com/indranilsinharoy/PyZDDE/wiki/02.-Using-PyZDDE-interactively-in-a-Python-shell>`_.
+
+Example Python scripts are
+`here <https://github.com/indranilsinharoy/PyZDDE/tree/master/Examples/Scripts/>`__.
+
+Examples specific to array ray tracing are catalogued
+`here <https://github.com/indranilsinharoy/PyZDDE/wiki/05.-Examples-of-array-ray-tracing>`__.
+
+In addition, the repository
+`Intro2LensDesignByGeary <https://github.com/indranilsinharoy/Intro2LensDesignByGeary>`__
+contains notes from few chapters of the book "Introduction to Lens
+Design," by Joseph M. Geary, in the form of IPython notebooks.
+
+
 Install PyZDDE from PyPI
 ''''''''''''''''''''''''
 
@@ -93,43 +132,6 @@ Initial setup
 PyZDDE comes with few ZPL macro files that are present in the directory "ZPLMacros". They are occasionally used by PyZDDE (for example in the function ``ipzCaptureWindowLQ()``). Please copy/move the files from the folder "ZPLMacros" to the folder where Zemax/ Optic studio expects to find ZPL macros (By default, this folder is ``C:\<username>\Documents\ZEMAX\Macros``). A copy of the "ZPLMacros" folder is always available in (installed with) the PyZDDE package.
 
 
-Examples
-~~~~~~~~
-
-Examples shipped with PyZDDE are in the folder "Examples". Please move the examples to your desired location after extracting the PyZDDE package. 
-
-
-Hello world
-^^^^^^^^^^^
-
-Here is a simple but complete "Hello world" code which prints the version of Zemax. (If you are using Python 2.x, don't forget to add
-``from __future__ import print_function`` before these lines.)
-
-.. code:: python
-
-    import pyzdde.zdde as pyz
-    ln = pyz.createLink() # DDE link object
-    print("Hello Zemax version: ", ln.zGetVersion())
-    ln.close()
-
-More examples
-^^^^^^^^^^^^^^
-
-Examples demonstrating the use of IPython/Jupyter notebooks with Zemax and PyZDDE 
-are `here <https://github.com/indranilsinharoy/PyZDDE/wiki/03.-Using-IPython-Jupyter-notebook>`__.
-
-Example Python scripts are
-`here <https://github.com/indranilsinharoy/PyZDDE/tree/master/Examples/Scripts/>`__.
-
-Examples specific to array ray tracing are catalogued
-`here <https://github.com/indranilsinharoy/PyZDDE/wiki/05.-Examples-of-array-ray-tracing>`__.
-
-In addition, the repository
-`Intro2LensDesignByGeary <https://github.com/indranilsinharoy/Intro2LensDesignByGeary>`__
-contains notes from few chapters of the book "Introduction to Lens
-Design," by Joseph M. Geary, in the form of IPython notebooks.
-
-
 Modules in PyZDDE
 '''''''''''''''''
 
@@ -144,7 +146,7 @@ Features
 -  Functions for using all "data items" defined in Zemax manual
 -  Supports both Python 2.7 and Python 3.3/3.4
 -  Supports both Unicode and extended ascii text
--  Over 60 additional functions for more efficient use (more will be added in future). Examples include ``zSetTimeout()``,
+-  Over 80 additional functions for more efficient use (more will be added in future). Examples include ``zSetTimeout()``,
    ``zExecuteZPLMacro()``, ``zGetSeidelAberration()``, ``zSetFieldTuple()``,
    ``zGetFieldTuple()``, ``zSetWaveTuple()``, ``zGetWaveTuple()``, ``zCalculateHiatus()``, ``zGetPupilMagnification()``, ``zGetPOP()``,
    ``zSetPOPSettings()``, ``zModifyPOPSettings()``, ``zGetPSF()``, ``zGetPSFCrossSec()``, ``zGetMTF()``, ``zGetImageSimulation()``.

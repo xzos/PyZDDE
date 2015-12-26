@@ -546,10 +546,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
 ##        pass
 
     def test_zGetMulticon(self):
-        print("\nTEST: zGetMulticon()")
-        # Test zGetMulticon return when the MCE is "empty" (it shouldn't error out)
-        multiConData = self.ln.zGetMulticon(2,3)  # configuration 2, row 3 (both are fictitious)
-        self.assertIsInstance(multiConData,tuple)
+        print("***\nTEST: zGetMulticon()***")
+        print("Lens", self.ln.zGetFile())
+        # Test zGetMulticon return when the MCE is "empty" (it should return None)
+        multiConData = self.ln.zGetMulticon(2, 3)  # configuration 2, row 3 (both are fictitious)
+        self.assertEqual(multiConData, None)
         # insert an additional configuration (column)
         self.ln.zInsertConfig(1)
         # insert an additional operand (row)

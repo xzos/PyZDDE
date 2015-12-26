@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    2.0.1
+# Revision:    2.0.2-alpha
 #-------------------------------------------------------------------------------
 """PyZDDE, which is a toolbox written in Python, is used for communicating
 with ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging
@@ -156,15 +156,21 @@ APR = False      # Automatic Push Request
 # if True then the `GetRefresh` dataitem is automatically called before 
 # executing any command function whose name startswith `zGet`; and the 
 # dataitem `PushLens,1` is called after executing commands whose name 
-# starts with `zSet` 
+# starts with `zSet`. For commands starting with "Insert" and "Delete" 
+# the current lens is first transferred from from LDE to DDE, the command
+# executed, and then the lens is transferred back form DDE to LDE
 def autopushandrefresh(func): 
     def wrapped(self, *args, **kwargs):
         global APR
         if APR:
-            if args[0].startswith('Get'):
+            if (args[0].startswith('Get') or 
+                args[0].startswith('Insert') or 
+                args[0].startswith('Delete')):
                 self._conversation.Request('GetRefresh')
             reply = func(self, *args, **kwargs)
-            if args[0].startswith('Set'):
+            if (args[0].startswith('Set') or 
+                args[0].startswith('Insert') or 
+                args[0].startswith('Delete')):
                 self._conversation.Request('PushLens,1')
         else:
             reply = func(self, *args, **kwargs)
@@ -427,7 +433,7 @@ class PyZDDE(object):
     __server = 0
     __appNameDict = _createAppNameDict(_MAX_PARALLEL_CONV)  # {'ZEMAX': False, 'ZEMAX1': False}
 
-    version = '2.0.1'
+    version = '2.0.2-alpha'
     
     # Other class variables
     # Surface data codes for getting and setting surface data
@@ -1449,16 +1455,24 @@ class PyZDDE(object):
 
         Returns
         -------
-        focal : float
+        EFL : float
             Effective Focal Length (EFL) in lens units,
-        pwfn : float
+        paraWorkFNum : float
             paraxial working F/#,
-        rwfn : float
+        realWorkFNum : float
             real working F/#,
-        pima : float
+        paraImgHeight : float
             paraxial image height, and
-        pmag : float
-            paraxial magnification.
+        paramag : float
+            paraxial magnification. See Notes.
+
+        Notes
+        ----- 
+        The value of the magnification returned by this function is the
+        paraxial magnification. This value doesn't depend on the acutal 
+        image height or the actual location of the image surface from the 
+        principal planes; instead it depends on the paraxial image height.
+        For real magnification see `zGetMagnification()`.  
 
         See Also
         --------
@@ -1466,6 +1480,7 @@ class PyZDDE(object):
             Use ``zGetSystem()`` to get general system data,
         zGetSystemProperty()
         ipzGetFirst()
+        zGetMagnification()
         """
         fd = _co.namedtuple('firstOrderData',
                             ['EFL', 'paraWorkFNum', 'realWorkFNum',
@@ -1666,13 +1681,13 @@ class PyZDDE(object):
 
         Returns
         -------
-        multiConData : tuple
-            the exact elements of ``multiConData`` depends on the value of
-            ``config``
+        multiConData : tuple or None
+            if the MCE is empty `None` is returned. Else, the exact elements of 
+            ``multiConData`` depends on the value of ``config``
 
             If ``config > 0``
                 then the elements of ``multiConData`` are:
-                (value, num_config, num_row, status, pickuprow, pickupconfig,
+                (value, numConfig, numRow, status, pickupRow, pickupConfig,
                 scale, offset)
 
                 The ``status`` is 0 for fixed, 1 for variable, 2 for pickup,
@@ -1681,7 +1696,17 @@ class PyZDDE(object):
 
             If ``config = 0``
                 then the elements of ``multiConData`` are:
-                (operand_type, number1, number2, number3)
+                (operandType, num1, num2, num3)
+                
+                `num1` could be "Surface#", "Surface", "Field#", "Wave#', or 
+                "Ignored". 
+                `num2` could be "Object", "Extra Data Number", or "Parameter".
+                `num3` could be "Property", or "Face#". 
+                See [MCO]_
+
+        References
+        ----------
+        .. [MCO] "Summary of Multi-Configuration Operands," Zemax manual.
 
         See Also
         --------
@@ -1690,16 +1715,25 @@ class PyZDDE(object):
         cmd = "GetMulticon,{config:d},{row:d}".format(config=config,row=row)
         reply = self._sendDDEcommand(cmd)
         if config: # if config > 0
+            mcd = _co.namedtuple('MCD', ['value', 'numConfig', 'numRow', 'status', 
+                                         'pickupRow', 'pickupConfig', 'scale',
+                                         'offset'])
             rs = reply.split(",")
-            if '' in rs: # if the MCE is "empty"
-                rs[rs.index('')] = '0'
-            multiConData = [float(rs[i]) if (i==0 or i==6 or i==7) else int(rs[i])
-                                                         for i in range(len(rs))]
+
+            if len(rs) < 8:
+                if (self.zGetConfig() == (1, 1, 1)): # probably nothing set in MCE
+                    return None 
+                else:
+                    assert False, "Unexpected reply () from Zemax.".format(reply)
+            else:
+                multiConData = [float(rs[i]) if (i==0 or i==6 or i==7) else int(rs[i])
+                                                              for i in range(len(rs))]
         else: # if config == 0
+            mcd = _co.namedtuple('MCD', ['operandType', 'num1', 'num2', 'num3'])
             rs = reply.split(",")
             multiConData = [int(elem) for elem in rs[1:]]
             multiConData.insert(0, rs[0])
-        return tuple(multiConData)
+        return mcd._make(multiConData)
 
     def zGetName(self):
         """Returns the name of the lens
@@ -5111,7 +5145,7 @@ class PyZDDE(object):
         If ``config > 0``, then the function is used to set data in the
         MCE using the following syntax:
 
-        ``ln.zSetMulticon(config, row, value, status, pickuprow, pickupConfig, scale, offset) -> multiConData``
+        ``ln.zSetMulticon(config, row, value, status, pickupRow, pickupConfig, scale, offset) -> multiConData``
 
         Parameters
         ----------
@@ -5124,23 +5158,23 @@ class PyZDDE(object):
         status : integer
             the ``status`` is 0 for fixed, 1 for variable, 2 for pickup,
             and 3 for thermal pickup.
-            If ``status`` is 2 or 3, the ``pickuprow`` and ``pickupconfig``
+            If ``status`` is 2 or 3, the ``pickupRow`` and ``pickupConfig``
             values indicate the source data for the pickup solve.
-        pickuprow : integer
+        pickupRow : integer
             see ``status``
-        pickupconfig : integer
+        pickupConfig : integer
             see ``status``
         scale : float
-            ?
+            scale factor for the pickup value 
         offset : float
-            ?
+            offset to add to the pickup value. 
 
         Returns
         -------
-        multiConData : tuple
+        multiConData : namedtuple
             the ``multiConData`` is a 8-tuple whose elements are:
-            (value, num_config, num_row, status, pickuprow,
-            pickupconfig, scale, offset)
+            (value, numConfig, numRow, status, pickupRow,
+            pickupConfig, scale, offset)
 
 
         [``USAGE TYPE - II``]
@@ -5148,7 +5182,7 @@ class PyZDDE(object):
         If the ``config = 0``, the function may be used to set the operand
         type and number data using the following syntax:
 
-        ``ln.zSetMulticon(0, row, operand_type, number1, number2, number3) -> multiConData``
+        ``ln.zSetMulticon(0, row, operandType, num1, num2, num3) -> multiConData``
 
         Parameters
         ----------
@@ -5156,25 +5190,34 @@ class PyZDDE(object):
             for usage type II
         row : integer
             row or operand number in the MCE
-        operand_type : string
+        operandType : string
             the operand type, such as 'THIC', 'WLWT', etc.
-        number1 : integer
-            number data. See [MCO]_
-        number2 : integer
-            number data. See [MCO]_
-        number3 : integer
-            number data. See [MCO]_
+        num1 : integer
+            number data. `num1` could be "Surface#", "Surface", "Field#", 
+            "Wave#', or "Ignored". See [MCO]_
+        num2 : integer
+            number data. `num2` could be "Object", "Extra Data Number", 
+            or "Parameter". See [MCO]_
+        num3 : integer
+            number data. `num3` could be "Property", or "Face#". See [MCO]_
 
         Returns
         -------
-        multiConData is a 4-tuple whose elements are:
-        (operand_type,number1,number2,number3)
+        multiConData is a 4-tuple (named) whose elements are:
+        (operandType, num1, num2, num3)
 
         Examples
         --------
         The following example shows the USEAGE TYPE - I:
 
         >>> multiConData = ln.zSetMulticon(1, 5, 5.6, 0, 0, 0, 1.0, 0.0)
+
+        The following two lines show how to set a variable solve on the operand 
+        on the 4th row for configuration number 1 (the third line is the output):
+
+        >>> config=1; row=4; value=0.5; status=1; pickupRow=0; pickupConfig=0; scale=1; offset=0
+        >>> ln.zSetMulticon(config, row, value, status, pickupRow, pickupConfig, scale, offset)
+        MCD(value=0.5, numConfig=2, numRow=4, status=1, pickupRow=0, pickupConfig=0, scale=1.0, offset=0.0)
 
         The following example shows the USAGE TYPE - II:
 
@@ -5214,14 +5257,18 @@ class PyZDDE(object):
         # If the raise is removed, change code accordingly in the unittest.
         reply = self._sendDDEcommand(cmd)
         if config: # if config > 0
+            mcd = _co.namedtuple('MCD', ['value', 'numConfig', 'numRow', 'status',
+                                         'pickupRow', 'pickupConfig', 'scale',
+                                         'offset'])
             rs = reply.split(",")
             multiConData = [float(rs[i]) if (i == 0 or i == 6 or i== 7) else int(rs[i])
                                                  for i in range(len(rs))]
         else: # if config == 0
+            mcd = _co.namedtuple('MCD', ['operandType', 'num1', 'num2', 'num3'])
             rs = reply.split(",")
             multiConData = [int(elem) for elem in rs[1:]]
             multiConData.insert(0,rs[0])
-        return tuple(multiConData)
+        return mcd._make(multiConData)
 
     def zSetNSCObjectData(self, surfNum, objNum, code, data):
         """Sets the various data for NSC objects.
@@ -5755,6 +5802,10 @@ class PyZDDE(object):
                 data values 1+)     
     
                 end-of-table
+        4. If a parameter in the LDE is also present in the Multi-Configuration-Editor, 
+           Zemax doesn't allow the solve on that parameter to be set in the LDE. Instead,
+           change the "status" of that parameter to set a solve in the MCE using the 
+           command `zSetMulticon()`.
         
         Examples
         --------
@@ -5773,6 +5824,7 @@ class PyZDDE(object):
 
         See Also
         --------
+        zSetMulticon() : for setting solves on parameters in Multi-Configuration-Editor; 
         zGetSolve(), zGetNSCSolve(), zSetNSCSolve(), zRemoveVariables().
         """
         if not solveData:
@@ -6327,7 +6379,7 @@ class PyZDDE(object):
         n : 0
             the function sets general wavelength data
         arg1 : integer
-            primary wavelength value to set
+            primary wavelength number to set
         arg2 : integer
             total number of wavelengths to set
 
@@ -6458,8 +6510,9 @@ class PyZDDE(object):
         -------
         opertype : string
             operand type, column 1 in MFE
-        int1 : integer
-            column 2 in MFE
+        int1 : integer or string 
+            column 2 in MFE. The column 2 is a string, usually when opertype 
+            is 'BLNK', and there is some comments in the second column 
         int2 : integer
             column 3 in MFE
         data1 : float
@@ -6594,6 +6647,32 @@ class PyZDDE(object):
             return self.zOperandValue('AMAG', wave)
         else:
             return -999
+
+    def zGetMagnification(self):
+        """Returns the real magnification evaluated as the ratio of the image 
+        height to the object height 
+
+        Parameters
+        ---------- 
+        None 
+
+        Returns
+        ------- 
+        mag : real 
+            real magnification. see Notes.
+
+        Notes
+        ----- 
+        1. The function returns the real magnification of the system. It is 
+           affected by distortions, and the actual location of the image 
+           surface. For paraxial magnification use `zGetFirst().paraMag`
+        """
+        objHt = self.zGetSemiDiameter(0)
+        if objHt:
+            rtd = self.zGetTrace(waveNum=1, mode=0, surf=-1, hx=0, hy=1, px=0, py=0)        
+            return rtd.y/objHt
+        else:
+            return 0.0
 
     def zGetNumField(self):
         """Returns the total number of fields defined
@@ -8831,7 +8910,9 @@ class PyZDDE(object):
         -------
         imgInfo : named tuple
             meta data about the image analysis data containing 'xpix',
-            'ypix', 'objHeight', 'fieldPos', 'imgW', and 'imgH'
+            'ypix', 'objHeight', 'fieldPos', 'imgW', and 'imgH'. PSF 
+            Grid data doesn't have `imgW` and `imgH` and Source bitmap 
+            image data only has `xpix` and `ypix`. 
         imgData : 3D list
             the 3D list containing the RGB values of the output image.
             The first dimension of ``imgData`` represents height (rows),
@@ -8840,17 +8921,35 @@ class PyZDDE(object):
 
         Examples
         --------
-        In the following example the image simulation function is called
-        with default arguments, and the returned data is plotted using
-        matplotlib's imshow function after converting the data into a
-        Numpy (np) array.
+        In the following example the image simulation function is called with 
+        default arguments, and the returned data is plotted using matplotlib's 
+        imshow function after converting the data into a Numpy (np) array.
 
         >>> cfgfile = ln.zSetImageSimulationSettings(image='RGB_CIRCLES.BMP', height=1)
         >>> img_info, img_data = ln.zGetImageSimulationData(settingsFile=cfgfile)
-        >>> img_data_np = np.array(img_data, dtype='uint8')
-        >>> left, right = -img_info.imgW/2, img_info.imgW/2
-        >>> bottom, top = -img_info.imgH/2, img_info.imgH/2
-        >>> plt.imshow(img_data_np, extent=[left, right, bottom, top])
+        >>> img = np.array(img_data, dtype='uint8')
+        >>> fig, ax = plt.subplots(1,1, figsize=(10, 8))
+        >>> if len(img_info)==6: # image simulation data
+        >>>     bottom, top = -img_info.imgH/2, img_info.imgH/2
+        >>>     left, right = -img_info.imgW/2, img_info.imgW/2
+        >>>     extent=[left, right, bottom, top]
+        >>>     xl, yl = 'Image width (mm)', 'Image height (mm)'
+        >>>     t = 'Simulated Image'
+        >>> elif len(img_info)==4: # psf grid data
+        >>>     bottom, top = -img_info.objHeight/2, img_info.objHeight/2
+        >>>     aratio = img_info.xpix/img_info.ypix
+        >>>     left, right =  bottom*aratio, top*aratio
+        >>>     extent=[left, right, bottom, top]
+        >>>     xl, yl = 'Field width (mm)', 'Field height (mm)'
+        >>>     t = 'PSF Grid at field pos {:2.2f}'.format(img_info.fieldPos)
+        >>> else: # source bitmap
+        >>>     extent = [0, img_info.xpix, 0, img_info.ypix]
+        >>>     xl = '{} pixels wide'.format(img_info.xpix) 
+        >>>     yl = '{} pixels high'.format(img_info.ypix)
+        >>>     t = 'Source Bitmap'
+        >>> ax.imshow(img, extent=extent, interpolation='none')
+        >>> ax.set_xlabel(xl); ax.set_ylabel(yl); ax.set_title(t)
+        >>> plt.show()
 
         Notes
         ----- 
@@ -8871,20 +8970,44 @@ class PyZDDE(object):
         line_list = _readLinesFromFile(_openFile(textFileName))
 
         # Meta data
+        data = None
+        data_line = line_list[_getFirstLineOfInterest(line_list, 'Data')]
+        dataType = data_line.split(':')[1].strip()
+        if dataType == 'Simulated Image':
+            data = 'img'
+        elif dataType == 'PSF Grid':
+            data = 'psf'
+        else: # source bitmap
+            data = 'src'
+        
         bm_ht_line = line_list[_getFirstLineOfInterest(line_list, 'Bitmap Height')]
         bm_ht = int(_re.search(r'\b\d{1,5}\b', bm_ht_line).group()) # pixels
         bm_wd_line = line_list[_getFirstLineOfInterest(line_list, 'Bitmap Width')]
         bm_wd = int(_re.search(r'\b\d{1,5}\b', bm_wd_line).group())   # pixels
-        obj_ht_line = line_list[_getFirstLineOfInterest(line_list, 'Object Height')]
-        obj_ht = float(_re.search(r'\b-?\d{1,3}\.\d{1,5}\b', obj_ht_line).group())
-        fld_pos_line = line_list[_getFirstLineOfInterest(line_list, 'Field position')]
-        fld_pos = float(_re.search(r'\b-?\d{1,3}\.\d{1,5}\b', fld_pos_line).group())
-        img_siz_line = line_list[_getFirstLineOfInterest(line_list, 'Image Size')]
-        pat = r'\d{1,3}\.\d{4,6}'
-        img_wd, img_ht = [float(i) for i in _re.findall(pat, img_siz_line)] # physical units
-        img_info = _co.namedtuple('ImgSimInfo', ['xpix', 'ypix', 'objHeight',
-                                  'fieldPos', 'imgW', 'imgH'])
-        img_info_data = img_info._make([bm_wd, bm_ht, obj_ht, fld_pos, img_wd, img_ht])
+        
+        if data=='img' or data=='psf':
+            obj_ht_line = line_list[_getFirstLineOfInterest(line_list, 'Object Height')]
+            obj_ht = float(_re.search(r'\b-?\d{1,3}\.\d{1,5}\b', obj_ht_line).group())
+            fld_pos_line = line_list[_getFirstLineOfInterest(line_list, 'Field position')]
+            fld_pos = float(_re.search(r'\b-?\d{1,3}\.\d{1,5}\b', fld_pos_line).group())
+        
+        if data=='img':
+            img_siz_line = line_list[_getFirstLineOfInterest(line_list, 'Image Size')]
+            pat = r'\d{1,3}\.\d{4,6}'
+            img_wd, img_ht = [float(i) for i in _re.findall(pat, img_siz_line)] # physical units
+
+        if data=='img':
+            img_info = _co.namedtuple('ImgSimInfo', ['xpix', 'ypix', 'objHeight',
+                                      'fieldPos', 'imgW', 'imgH'])
+            img_info_data = img_info._make([bm_wd, bm_ht, obj_ht, fld_pos, img_wd, img_ht])
+        elif data=='psf':
+            img_info = _co.namedtuple('PSFGridInfo', ['xpix', 'ypix', 'objHeight',
+                                      'fieldPos'])
+            img_info_data = img_info._make([bm_wd, bm_ht, obj_ht, fld_pos])
+        else: # source bitmap / data = src
+            img_info = _co.namedtuple('SrcImgInfo', ['xpix', 'ypix'])
+            img_info_data = img_info._make([bm_wd, bm_ht])
+        
         img_data = [[[0 for c in range(3)] for i in range(bm_wd)] for j in range(bm_ht)]
         r, g, b = 0, 1, 2
         pat = r'xpix\s{1,4}ypix\s{1,4}R\s{1,4}G\s{1,4}B'
@@ -9087,8 +9210,10 @@ class PyZDDE(object):
             Field number.
         pupilSample : integer, optional, [1-10]
             Pupil Sampling. Use 1 for 32x32, 2 for 64x64, etc.
+            i.e. [32*(2**i) for i in range(10)]
         imgSample : integer, optional, [1-5]
             Image Sampling. Use 1 for 32x32, 2 for 64x64, etc.
+            i.e. [32*(2**i) for i in range(5)]
         psfx, psfy : integer, optional, [1-51]
             The number of PSF grid points.
         aberr : integer, optional, [0-2]
@@ -10312,6 +10437,21 @@ class PyZDDE(object):
         opd = self.zOperandValue(code, 0, wave, hx, hy, px, py)
         return opd
 
+    def zGetSemiDiameter(self, surfNum):
+        """Get the Semi-Diameter value of the surface with number `surfNum`
+
+        Parameters
+        ---------- 
+        surfNum : integer 
+            surface number 
+
+        Returns
+        ------- 
+        semidia : real 
+            semi-diameter of the surface 
+        """
+        return self.zGetSurfaceData(surfNum=surfNum, code=self.SDAT_SEMIDIA)
+
     def zSetSemiDiameter(self, surfNum, value=0):
         """Set the Semi-Diameter of the surface with number `surfNum`.  
         
@@ -10330,8 +10470,124 @@ class PyZDDE(object):
             value of the semi-diameter of the surface after setting it.
         """
         self.zSetSolve(surfNum, self.SOLVE_SPAR_SEMIDIA, self.SOLVE_SEMIDIA_FIXED)
-        self.zSetSurfaceData(surfNum=surfNum, code=self.SDAT_SEMIDIA, value=value)
-        return self.zGetSurfaceData(surfNum=surfNum, code=self.SDAT_SEMIDIA)
+        return self.zSetSurfaceData(surfNum=surfNum, code=self.SDAT_SEMIDIA, value=value)
+
+    def zGetThickness(self, surfNum):
+        """Get the Thickness value of the surface with number `surfNum`
+
+        Parameters
+        ---------- 
+        surfNum : integer 
+            surface number 
+
+        Returns
+        ------- 
+        thick : real 
+            thickness of the surface 
+        """
+        return self.zGetSurfaceData(surfNum=surfNum, code=self.SDAT_THICK)
+
+    def zSetThickness(self, surfNum, value=0):
+        """Set the thickness of the surface with number `surfNum`.
+
+        Parameters
+        ---------- 
+        surfNum: integer
+            surface number 
+        value : real, optional
+            value of the thickness to set 
+
+        Returns
+        ------- 
+        thick : real 
+            value of the thickness of the surface after setting it.
+        """
+        return self.zSetSurfaceData(surfNum=surfNum, code=self.SDAT_THICK, value=value)
+
+    def zGetRadius(self, surfNum):
+        """Get the radius of the surface with number `surfNum`.
+
+        Parameters
+        ---------- 
+        surfNum : integer 
+            surface number 
+
+        Returns
+        ------- 
+        radius : real 
+            radius of the surface 
+        """
+        value = self.zGetSurfaceData(surfNum=surfNum, code=self.SDAT_CURV)
+        radius = 1.0/value if value else 1E10
+        return radius
+
+    def zSetRadius(self, surfNum, value=1E10):
+        """Set the radius of the surface with number `surfNum`.
+
+        Parameters
+        ---------- 
+        surfNum : integer 
+            surface number
+        value : real 
+            radius of the surface  
+
+        Returns
+        ------- 
+        radius : real 
+            radius of the surface 
+        """
+        curv = 1.0/value if value else 1E10
+        ret = self.zSetSurfaceData(surfNum=surfNum, code=self.SDAT_CURV, value=curv)
+        return 1.0/ret if ret else 1E10  
+
+    def zSetGlass(self, surfNum, value=''):
+        """Set the glass of the surface with number `surfNum`
+
+        Parameters
+        ---------- 
+        surfNum : integer 
+            surface number 
+        value : string 
+            valid glass string code 
+
+        Returns
+        ------- 
+        glass : string 
+            glass for the surface 
+        """
+        return self.zSetSurfaceData(surfNum=surfNum, code=self.SDAT_GLASS, value=value)
+
+    def zGetConic(self, surfNum):
+        """Get the conic value of the surface with number `surfNum`
+
+        Parameters
+        ---------- 
+        surfNum : integer 
+            surface number 
+
+        Returns
+        ------- 
+        conic : real 
+            conic of the surface
+        """
+        return self.zGetSurfaceData(surfNum=surfNum, code=self.SDAT_CONIC)
+
+    def zSetConic(self, surfNum, value=0):
+        """Set the conic value of the surface with number `surfNum`
+
+        Parameters
+        ---------- 
+        surfNum : integer 
+            surface number 
+        value : real 
+            conic value
+
+        Returns
+        ------- 
+        conic : real 
+            conic of the surface
+        """
+        return self.zSetSurfaceData(surfNum=surfNum, code=self.SDAT_CONIC, value=value)
         
     def zInsertDummySurface(self, surfNum, comment='dummy', thick=None, semidia=None):
         """Insert dummy surface at surface number indicated by `surfNum` 
@@ -10953,19 +11209,6 @@ class PyZDDE(object):
         else:
             print("Couldn't import IPython modules.")
 
-    def ipzCaptureWindow2(self, *args, **kwargs):
-        """Capture any analysis window from Zemax main window, using
-        3-letter analysis code. Same as ``ipzCaptureWindow()``.
-
-        Notes
-        -----
-        This function is now present only for backward compatibility.
-        """
-        _warnings.warn('Method ipzCaptureWindow2() has been replaced by ipzCaptureWindow(). '
-                       'Please update code and use ipzCaptureWindow(). This method '
-                       'will be removed from the zdde module in future')
-        return self.ipzCaptureWindow(*args, **kwargs)
-
     def ipzCaptureWindow(self, analysisType, percent=12, MFFtNum=0, gamma=0.35,
                          settingsFile=None, flag=0, retArr=False, wait=10):
         """Capture any analysis window from Zemax main window, using
@@ -11028,6 +11271,8 @@ class PyZDDE(object):
            executing this command by setting the debug print level to
            1 as ``pyz._DEBUG_PRINT_LEVEL=1``, and running the function
            again.
+        4. The dataitem `GetMetaFile` has been removed since OpticStudio
+           14. Therefore, this function does not work in OpticStudio. 
 
         References
         ----------
@@ -11099,7 +11344,9 @@ class PyZDDE(object):
                     else:
                         print("Timeout reached before PNG file was ready")
                 else:
-                    print("Timeout reached before Metafile file was ready")
+                    print(("Timeout reached before Metafile file was ready. "
+                           "This function doesn't work in newer OpticStudio. "
+                           "Please consider using ipzCaptureWindowLQ()."))
             else:
                 print("Metafile couldn't be created.")
         else:
@@ -11216,20 +11463,30 @@ class PyZDDE(object):
         """
         if pprint:
             print("Multi-Function Editor contents:")
-            print('{:^8}{:>12}{:>12}{:>14}'
-                  .format("Oper", "Target", "Weight", "Value"))
+            print('{:^8}{:>6}{:>6}{:>8}{:>8}{:>8}{:>8}{:>8}{:>10}{:>8}{:>10}'
+                  .format("Oper", "int1", "int2", "data1", "data2", "data3", "data4", 
+                          "data5", "Target", "Weight", "Value"))
         else:
-            mfed = _co.namedtuple('MFEdata', ['Oper', 'Target',
+            mfed = _co.namedtuple('MFEdata', ['Oper', 'int1', 'int2', 'data1', 'data2', 
+                                              'data3', 'data4', 'data5', 'Target',
                                               'Weight', 'Value'])
             mfeData = []
         for i in range(start_row, end_row + 1):
-            opr, tgt = self.zGetOperand(i, 1), self.zGetOperand(i, 8)
-            wgt, val = self.zGetOperand(i, 9), self.zGetOperand(i, 10)
+            #opr, tgt = self.zGetOperand(i, 1), self.zGetOperand(i, 8)
+            #wgt, val = self.zGetOperand(i, 9), self.zGetOperand(i, 10)
+            
+            odata = self.zGetOperandRow(row=i)
+            opr, i1, i2, d1, d2, d3, d4, d5, d6, tgt, wgt, val, per = odata   
+
             if pprint:
-                print('{:^8}{:>12.4f}{:>12.4f}{:>14.6f}'
-                      .format(opr, tgt, wgt, val))
+                if isinstance(i1, str):
+                    print('{:^8}{}'
+                          .format(opr, i1, tgt, wgt, val))
+                else:
+                    print('{:^8}{:>6.2f}{:>6.2f}{:>8.4f}{:>8.4f}{:>8.4f}{:>8.4f}{:>8.4f}{:>10.6f}{:>8.4f}{:>10.6f}'
+                          .format(opr, i1, i2, d1, d2, d3, d4, d5, tgt, wgt, val))
             else:
-                data = mfed._make([opr, tgt, wgt, val])
+                data = mfed._make([opr, i1, i2, d1, d2, d3, d4, d5, tgt, wgt, val])
                 mfeData.append(data)
         if not pprint:
             return tuple(mfeData)
@@ -11324,14 +11581,16 @@ class PyZDDE(object):
         else:
             return surfdata
 
-    def ipzGetLDE(self):
+    def ipzGetLDE(self, num=None):
         """Prints the sequential mode LDE data into the IPython cell
 
         Usage: ``ipzGetLDE()``
 
         Parameters
         ----------
-        None
+        num : integer, optional 
+            if not None, sufaces upto surface number equal to `num` 
+            will be retrieved
 
         Returns
         -------
@@ -11347,11 +11606,12 @@ class PyZDDE(object):
         assert ret == 0
         recSystemData = self.zGetSystem() # Get the current system parameters
         numSurf = recSystemData[0]
+        numSurf2show = num if num is not None else numSurf 
         line_list = _readLinesFromFile(_openFile(textFileName))
         for line_num, line in enumerate(line_list):
             sectionString = ("SURFACE DATA SUMMARY:") # to use re later
             if line.rstrip()== sectionString:
-                for i in range(numSurf + 4): # 1 object surf + 3 extra lines before actual data
+                for i in range(numSurf2show + 4): # 1 object surf + 3 extra lines before actual data
                     lde_line = line_list[line_num + i].rstrip()
                     print(lde_line)
                 break
@@ -11788,8 +12048,9 @@ def _process_get_set_Operand(column, reply):
             return str(rs)
         else:
             return -1
-    elif column in (2,3):
-        return int(float(rs))
+    elif column in (2,3): # if thre is a comment, it will be in column 2
+        #return int(float(rs))
+        return _regressLiteralType(rs)
     else:
         return float(rs)
 
