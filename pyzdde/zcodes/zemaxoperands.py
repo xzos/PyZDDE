@@ -460,14 +460,26 @@ class _Operands(object):
     "RETY": "Real ray y-direction ray tangent (slope) at the surface defined by "
             "Surf at the wavelength defined by Wave.",
     "RGLA": "Reasonable glass.",
-    "RSCE": "RMS spot radius with respect to the centroid in lens units.",
-    "RSCH": "RMS spot radius with respect to the chief ray in lens units.",
-    "RSRE": "RMS spot radius with respect to the centroid in lens units.",
-    "RSRH": "RMS spot radius with respect to the chief ray in lens units.",
-    "RWCE": "RMS wavefront error with respect to the centroid in waves.",
-    "RWCH": "RMS wavefront error with respect to the chief ray in waves.",
-    "RWRE": "RMS wavefront error with respect to the centroid in waves.",
-    "RWRH": "RMS wavefront error with respect to the chief ray in waves.",
+    "RSCE": "RMS spot radius with respect to the centroid in lens units; using "
+            "Guassian quadrature method that is accurate for systems with unvignetted "
+            "circular pupils.",
+    "RSCH": "RMS spot radius with respect to the chief ray in lens units; using "
+            "Guassian quadrature method that is accurate for systems with unvignetted "
+            "circular pupils.",
+    "RSRE": "RMS spot radius with respect to the centroid in lens units; using "
+            "rectangular grid of rays.",
+    "RSRH": "RMS spot radius with respect to the chief ray in lens units; using "
+            "rectangular grid of rays.",
+    "RWCE": "RMS wavefront error with respect to the centroid in waves; using "
+            "Guassian quadrature method that is accurate for systems with unvignetted "
+            "circular pupils.",
+    "RWCH": "RMS wavefront error with respect to the chief ray in waves; using "
+            "Guassian quadrature method that is accurate for systems with unvignetted "
+            "circular pupils.",
+    "RWRE": "RMS wavefront error with respect to the centroid in waves; using "
+            "rectangular grid of rays.",
+    "RWRH": "RMS wavefront error with respect to the chief ray in waves; using "
+            "rectangular grid of rays.",
     "SAGX": "The sag in lens units of the surface defined by Surf at X = the "
             "semi-diameter, and Y = 0. See also SSAG.",
     "SAGY": "The sag in lens units of the surface defined by Surf at Y = the "

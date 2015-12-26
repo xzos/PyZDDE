@@ -152,18 +152,14 @@ showZOperandList = zo.showZOperandList
 showZOperandDescription = zo.showZOperandDescription
 
 # decorator for automatically push and refresh to and from LDE (Experimental)
-APR = False      # Automatic Push Request
-# if True then the `GetRefresh` dataitem is automatically called before 
-# executing any command function whose name startswith `zGet`; and the 
-# dataitem `PushLens,1` is called after executing commands whose name 
-# starts with `zSet`. For commands starting with "Insert" and "Delete" 
-# the current lens is first transferred from from LDE to DDE, the command
-# executed, and then the lens is transferred back form DDE to LDE
+APR = False      # Automatic Push Request boolean switch
+
 def autopushandrefresh(func): 
     def wrapped(self, *args, **kwargs):
         global APR
         if APR:
-            if (args[0].startswith('Get') or 
+            if (args[0].startswith('Get') or
+                args[0].startswith('Set') or
                 args[0].startswith('Insert') or 
                 args[0].startswith('Delete')):
                 self._conversation.Request('GetRefresh')
