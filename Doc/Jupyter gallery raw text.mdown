@@ -1,0 +1,34 @@
+## <font color="#FF6347">Using PyZDDE within Jupyter Notebook</font>
+
+The [Jupyter (previously IPython) notebook] (http://ipython.readthedocs.org/en/stable/) is a great tool for numerical computing, exploratory analysis, documenting thoughts and research processes, knowledge sharing and teaching. 
+
+This page showcases some examples of using PyZDDE with Zemax within the notebook environment (more to be added over time).
+
+
+#### Basic, general examples
+
+
+|                                |                                             |
+|--------------------------------|---------------------------------------------|
+|[![](https://raw.githubusercontent.com/indranilsinharoy/PyZDDE/master/Doc/Images/articlePic_00_usingZemax.png)](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/blob/master/Examples/IPNotebooks/00%20Using%20ZEMAX%20and%20PyZDDE%20with%20IPython%20notebook.ipynb) |1. [Using ZEMAX and PyZDDE with IPython notebook] (http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/blob/master/Examples/IPNotebooks/00%20Using%20ZEMAX%20and%20PyZDDE%20with%20IPython%20notebook.ipynb) -- introduces basic capabilities of PyZDDE.|
+|[![](https://raw.githubusercontent.com/indranilsinharoy/PyZDDE/master/Doc/Images/articlePic_01_ipzcapturewindow.png)](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/blob/master/Examples/IPNotebooks/01%20Notes%20on%20ipzCaptureWindow%20functions.ipynb)  |2. [Notes on ``ipzCaptureWindow()`` and ``ipzCaptureWindowLQ()`` functions for embedding Zemax graphics into notebooks](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/blob/master/Examples/IPNotebooks/01%20Notes%20on%20ipzCaptureWindow%20functions.ipynb) -- shows how to use the two functions to directly import graphics windows from Zemax into the notebook.|
+|[![](https://raw.githubusercontent.com/indranilsinharoy/PyZDDE/master/Doc/Images/articlePic_04_acqnanaImageSim.png)](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/blob/master/Examples/IPNotebooks/04%20Acquisition%20and%20analysis%20Image%20Simulation%20data%20from%20Zemax.ipynb)|3. [Acquisition and analysis Image Simulation data from Zemax](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/blob/master/Examples/IPNotebooks/04%20Acquisition%20and%20analysis%20Image%20Simulation%20data%20from%20Zemax.ipynb) -- demonstrates how to use the Image Simulation feature of Zemax using PyZDDE.|
+
+
+
+#### Application showcases
+ 
+|                                |                                             |
+|--------------------------------|---------------------------------------------|
+|[![](https://raw.githubusercontent.com/indranilsinharoy/PyZDDE/master/Doc/Images/articlePic_02_fibercoupling.png)](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/blob/master/Examples/IPNotebooks/02%20Simple%20fiber%20coupling%20analysis%20using%20Zemax%27s%20POP.ipynb)|1. [Simple fiber coupling analysis using Zemax's POP](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/blob/master/Examples/IPNotebooks/02%20Simple%20fiber%20coupling%20analysis%20using%20Zemax%27s%20POP.ipynb) -- demonstrates how to access Zemax's POP analysis features using PyZDDE.|
+|[![](https://raw.githubusercontent.com/indranilsinharoy/PyZDDE/master/Doc/Images/articlePic_03_speckleGridSag.png)](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/blob/master/Examples/IPNotebooks/03%20Generation%20of%20Speckle%20using%20Zemax%20Grid%20Sag%20Surface.ipynb)|2. [Speckle generation using Zemax's Grid Sag Surface](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/blob/master/Examples/IPNotebooks/03%20Generation%20of%20Speckle%20using%20Zemax%20Grid%20Sag%20Surface.ipynb) -- demonstrates the use of Zemax's Grid Sag surface and POP analysis features to simulate speckle. Further, the first and second order characteristics of the speckle field are analyzed using Numpy and Matplotlib.|
+
+
+
+
+Basic pattern 
+
+|                                |                                             |
+|--------------------------------|---------------------------------------------|
+|            a                   |                    b                        |
+|            c                  |                    d                        |
