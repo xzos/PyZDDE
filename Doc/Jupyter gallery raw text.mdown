@@ -2,7 +2,7 @@
 
 The [Jupyter (previously IPython) notebook] (http://ipython.readthedocs.org/en/stable/) is a great tool for numerical computing, exploratory analysis, documenting thoughts and research processes, knowledge sharing and teaching. 
 
-This page showcases some examples of using PyZDDE with Zemax within the notebook environment (more to be added over time).
+This page showcases examples of using PyZDDE with Zemax within Jupyter. Please note that these notebooks are not "finished work" -- they are intended to evolve and improve over time (based on my own improvement in understanding of different topics, corrections, suggestions, and criticisms, which are most welcome.
 
 
 #### Basic, general examples
@@ -21,7 +21,7 @@ This page showcases some examples of using PyZDDE with Zemax within the notebook
 |                                |                                             |
 |--------------------------------|---------------------------------------------|
 |[![](https://raw.githubusercontent.com/indranilsinharoy/PyZDDE/master/Doc/Images/articlePic_02_fibercoupling.png)](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/blob/master/Examples/IPNotebooks/02%20Simple%20fiber%20coupling%20analysis%20using%20Zemax%27s%20POP.ipynb)|1. [Simple fiber coupling analysis using Zemax's POP](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/blob/master/Examples/IPNotebooks/02%20Simple%20fiber%20coupling%20analysis%20using%20Zemax%27s%20POP.ipynb) -- demonstrates how to access Zemax's POP analysis features using PyZDDE.|
-|[![](https://raw.githubusercontent.com/indranilsinharoy/PyZDDE/master/Doc/Images/articlePic_03_speckleGridSag.png)](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/blob/master/Examples/IPNotebooks/03%20Generation%20of%20Speckle%20using%20Zemax%20Grid%20Sag%20Surface.ipynb)|2. [Speckle generation using Zemax's Grid Sag Surface](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/blob/master/Examples/IPNotebooks/03%20Generation%20of%20Speckle%20using%20Zemax%20Grid%20Sag%20Surface.ipynb) -- demonstrates the use of Zemax's Grid Sag surface and POP analysis features to simulate speckle. Further, the first and second order characteristics of the speckle field are analyzed using Numpy and Matplotlib.|
+|[![](https://raw.githubusercontent.com/indranilsinharoy/PyZDDE/master/Doc/Images/articlePic_03_speckleGridSag.png)](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/blob/master/Examples/IPNotebooks/03%20Generation%20of%20Speckle%20using%20Zemax%20Grid%20Sag%20Surface.ipynb)|2. [Speckle generation using Zemax's Grid Sag Surface](http://nbviewer.ipython.org/github/indranilsinharoy/PyZDDE/blob/master/Examples/IPNotebooks/03%20Generation%20of%20Speckle%20using%20Zemax%20Grid%20Sag%20Surface.ipynb) -- demonstrates the use of Grid Sag surface & POP analysis to simulate speckle. Further, the first & second order characteristics of the speckle field are analyzed.|
 
 
 
