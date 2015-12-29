@@ -152,12 +152,9 @@ showZOperandList = zo.showZOperandList
 showZOperandDescription = zo.showZOperandDescription
 
 # decorator for automatically push and refresh to and from LDE (Experimental)
-APR = False      # Automatic Push Request boolean switch
-
 def autopushandrefresh(func): 
     def wrapped(self, *args, **kwargs):
-        global APR
-        if APR:
+        if self.apr: # if automatic push refresh is True
             if (args[0].startswith('Get') or
                 args[0].startswith('Set') or
                 args[0].startswith('Insert') or 
@@ -176,7 +173,7 @@ def autopushandrefresh(func):
 
 _global_dde_linkObj = {}
 
-def createLink():
+def createLink(apr=False):
     """Create a DDE communication link with Zemax
 
     Usage: ``import pyzdde.zdde as pyz; ln = pyz.createLink()``
@@ -186,7 +183,8 @@ def createLink():
 
     Parameters
     ----------
-    None
+    apr : bool 
+        if `True`, automatically push and refresh lens to and from LDE to DDE 
 
     Returns
     -------
@@ -207,7 +205,7 @@ def createLink():
     global _MAX_PARALLEL_CONV
     dlen = len(_global_dde_linkObj)
     if dlen < _MAX_PARALLEL_CONV:
-        link = PyZDDE()
+        link = PyZDDE(apr=apr)
         status = link.zDDEInit()
         if not status:
             _global_dde_linkObj[link] = link._appName  # This can be something more useful later
@@ -565,14 +563,15 @@ class PyZDDE(object):
     ANA_PSF_SAMPLE_8192x8192 = 9 
     ANA_PSF_SAMPLE_16384x16384 = 10
 
-    def __init__(self):
+    def __init__(self, apr=False):
         """Creates an instance of PyZDDE class
 
         Usage: ``ln = pyz.PyZDDE()``
 
         Parameters
         ----------
-        None
+        apr : bool 
+            if `True`, automatically push and refresh lens to and from LDE to DDE
 
         Returns
         -------
@@ -596,6 +595,7 @@ class PyZDDE(object):
         self._connection = False  # 1/0 depending on successful connection or not
         self._macroPath = None    # variable to store macro path
         self._filesCreated = set()   # .cfg & other files to be cleaned at session end
+        self._apr = apr
 
     def __repr__(self):
         return ("PyZDDE(appName=%r, appNum=%r, connection=%r, macroPath=%r)" %
@@ -607,6 +607,16 @@ class PyZDDE(object):
 
     def __eq__(self, other):
         return (self._appNum == other._appNum)
+
+    @property
+    def apr(self):
+        return self._apr
+
+    @apr.setter
+    def apr(self, val):
+        self._apr = val
+
+    
 
     # ZEMAX <--> PyZDDE client connection methods
     #--------------------------------------------
