@@ -1,6 +1,6 @@
 ## <font color="#FF6347">Using PyZDDE within Jupyter Notebook</font>
 
-The [Jupyter (previously IPython) notebook] (http://ipython.readthedocs.org/en/stable/) is a great tool for numerical computing, exploratory analysis, documenting thoughts and research processes, knowledge sharing and teaching. 
+The [Jupyter (previously IPython) notebook] (http://ipython.readthedocs.org/en/stable/) is a great tool for numerical computing, exploratory analysis. It is a computational notebook for documenting thoughts and research processes, knowledge sharing and teaching. 
 
 This page showcases examples of using PyZDDE with Zemax within Jupyter. Please note that these notebooks are not "finished work" -- they are intended to evolve and improve over time (based on my own improvement in understanding of different topics, corrections, suggestions, and criticisms, which are most welcome.
 
