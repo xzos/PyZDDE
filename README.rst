@@ -6,7 +6,7 @@ PyZDDE: Python Zemax Dynamic Data Exchange
 Current revision
 '''''''''''''''''
 
-2.0.1 (Last significant update on 09/01/2015)
+2.0.2-alpha (Last significant update on 01/01/2016)
 
 Change log
 ~~~~~~~~~~
@@ -139,6 +139,7 @@ Modules in PyZDDE
 -  **arraytrace** (``import pyzdde.arraytrace as at``): provides functions for tracing large number of rays
 -  **zfileutils** (``import pyzdde.zfileutils as zfu``): provides helper functions for various Zemax file handling operations such as reading and writing beam files, .ZRD files, creating .DAT and .GRD files for grid phase /grid sag surfaces, etc.
 -  **systems** (``import pyzdde.systems as osys``): provides helper functions for quickly creating basic optical systems.
+-  **misc** (``import pyzdde.misc as mys``): contains miscellaneous collection of utility functions that may be used with PyZDDE.
 
 Features
 ~~~~~~~~

@@ -17,7 +17,7 @@ with open('README.rst') as fh:
 
 setup(
     name='PyZDDE',
-    version='2.0.1',
+    version='2.0.2-alpha',
     description='Zemax / OpticStudio standalone extension using Python',
     long_description=long_description,
     author='Indranil Sinharoy',
@@ -28,7 +28,6 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     classifiers=[
-        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Science/Research',
         'Natural Language :: English',
         'Environment :: Win32 (MS Windows)',
