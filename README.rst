@@ -6,7 +6,7 @@ PyZDDE: Python Zemax Dynamic Data Exchange
 Current revision
 '''''''''''''''''
 
-2.0.2-alpha (Last significant update on 01/01/2016)
+2.0.2 (Last significant update on 01/03/2016)
 
 Change log
 ~~~~~~~~~~
