@@ -1,7 +1,10 @@
-PyZDDE: Python Zemax Dynamic Data Exchange
-------------------------------------------
+..  image:: https://raw.githubusercontent.com/indranilsinharoy/PyZDDE/master/Doc/Images/logo_text_small.png
+
 
 |DOI|
+
+PyZDDE: Python Zemax Dynamic Data Exchange
+------------------------------------------
 
 Current revision
 '''''''''''''''''
@@ -247,7 +250,7 @@ Chat room
 
 |Gitter chat|
 
-.. |DOI| image:: https://zenodo.org/badge/doi/10.5281/zenodo.18751.svg
-   :target: http://dx.doi.org/10.5281/zenodo.18751
+.. |DOI| image:: https://zenodo.org/badge/doi/10.5281/zenodo.44295.svg
+   :target: http://dx.doi.org/10.5281/zenodo.44295
 .. |Gitter chat| image:: https://badges.gitter.im/indranilsinharoy/PyZDDE.png
    :target: https://gitter.im/indranilsinharoy/PyZDDE
