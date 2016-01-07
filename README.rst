@@ -1,10 +1,10 @@
 ..  image:: https://raw.githubusercontent.com/indranilsinharoy/PyZDDE/master/Doc/Images/logo_text_small.png
 
 
-|DOI|
+Python Zemax Dynamic Data Exchange
+-----------------------------------
 
-PyZDDE: Python Zemax Dynamic Data Exchange
-------------------------------------------
+|DOI|
 
 Current revision
 '''''''''''''''''
