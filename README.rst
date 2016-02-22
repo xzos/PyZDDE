@@ -11,6 +11,11 @@ Current revision
 
 2.0.2 (Last significant update on 01/03/2016)
 
+
+**NEW**: We are also working on a Python library, called PyZOS, to provide better interactivity
+with the new Zemax OpticStudio API (COM based interface). The project is hosted at `Github <https://github.com/pyzos/pyzos>`__. 
+
+
 Change log
 ~~~~~~~~~~
 Brief change-log is available in the `News and
@@ -163,7 +168,7 @@ Features
 Overview
 ~~~~~~~~
 
-PyZDDE is a Python-based standalone extension for communicating with `ZEMAX/OpticStudio <http://www.zemax.com/>`__ using the DDE
+PyZDDE is a Python-based extension for communicating with `ZEMAX/OpticStudio <http://www.zemax.com/>`__ using the DDE
 protocol. It is similar to---and very much inspired by---the Matlab-based `MZDDE toolbox <http://www.zemax.com/support/resource-center/knowledgebase/how-to-talk-to-zemax-from-matlab>`__ developed by Derek Griffith at CSIR.
 
 PyZDDE can be used with regular Python scripts as well as in an interactive environment such as an IPython shell, 
