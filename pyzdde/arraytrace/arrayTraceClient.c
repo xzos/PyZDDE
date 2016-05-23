@@ -90,7 +90,7 @@ int __stdcall arrayTrace(DDERAYDATA * pRAD, unsigned int timeout)
     return RETVAL;
 }
 
-int __stdcall arrayGetTrace(int nrays, double field[][2], double pupil[][2], double intensity[], int wave_num[], int mode, int surf, int want_opd,
+int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2], double intensity[], int wave_num[], int mode, int surf, int want_opd,
                               int error[], int vigcode[], double pos[][3], double dir[][3], double normal[][3], double opd[], unsigned int timeout)
 {
     int i;

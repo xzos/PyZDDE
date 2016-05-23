@@ -30,7 +30,7 @@ char *GetString(char *szBuffer, int n, char *szSubString);
 int  PostArrayTraceMessage(char *szBuffer, DDERAYDATA *RD);
 void rayTraceFunction();
 DLL_EXPORT int __stdcall arrayTrace(DDERAYDATA * pRAD, unsigned int timeout);
-DLL_EXPORT int __stdcall arrayGetTrace(int nrays, double field[][2], double pupil[][2], 
+DLL_EXPORT int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2], 
   double intensity[], int wave_num[], int mode, int surf, int want_opd, 
   int error[], int vigcode[], double pos[][3], double dir[][3], double normal[][3], 
   double opd[], unsigned int timeout);

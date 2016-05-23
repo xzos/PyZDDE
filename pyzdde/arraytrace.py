@@ -29,7 +29,6 @@ import sys as _sys
 import ctypes as _ct
 import collections as _co
 import numpy as _np
-from numpy.ctypeslib import ndpointer as NPTR
 #import gc as _gc
 
 if _sys.version_info[0] > 2:
@@ -162,7 +161,7 @@ def getRayDataArray(numRays, tType=0, mode=0, startSurf=None, endSurf=-1,
     return rd
 
   
-def zGetTraceArray_new(field, pupil, waveNum=None, intensity=None, 
+def zGetTraceNumpy(field, pupil, waveNum=None, intensity=None, 
                        mode=0, surf=-1, want_opd=0, timeout=5000):
 
   # handle input arguments 
@@ -182,15 +181,15 @@ def zGetTraceArray_new(field, pupil, waveNum=None, intensity=None,
   normal=_np.zeros((nRays,3));
   opd=_np.zeros(nRays);
                  
-  # arrayGetTrace(int nrays, double field[][2], double pupil[][2], 
+  # numpyGetTrace(int nrays, double field[][2], double pupil[][2], 
   #   double intensity[], int wave_num[], int mode, int surf, int want_opd, 
   #   int error[], int vigcode[], double pos[][3], double dir[][3], double normal[][3], 
   #  double opd[], unsigned int timeout);
-  _arrayGetTrace = _array_trace_lib.arrayGetTrace
-  _arrayGetTrace.restype = _INT
-  _arrayGetTrace.argtypes= [_INT,_DBL2D,_DBL2D,_DBL1D,_INT1D,_INT,_INT,_INT,
+  _numpyGetTrace = _array_trace_lib.numpyGetTrace
+  _numpyGetTrace.restype = _INT
+  _numpyGetTrace.argtypes= [_INT,_DBL2D,_DBL2D,_DBL1D,_INT1D,_INT,_INT,_INT,
                             _INT1D,_INT1D,_DBL2D,_DBL2D,_DBL2D,_DBL1D,_ct.c_uint]
-  _arrayGetTrace(nRays,field,pupil,intensity,waveNum,mode,surf,want_opd,
+  _numpyGetTrace(nRays,field,pupil,intensity,waveNum,mode,surf,want_opd,
                  error,vigcode,pos,dir,normal,opd,timeout)
 
   return (error,vigcode,pos,dir,normal,opd,intensity);
@@ -1025,11 +1024,11 @@ def _test_arraytrace_module_basic():
         print(rd[k].intensity)
     print("Success!")
     
-def _test_arrayGetTrace():
-    """very basic test for the arrayGetTrace function
+def _test_zGetTraceNumpy():
+    """very basic test for the zGetTraceNumpy function
     """
     # Basic test of the module functions
-    print("Basic test of arrayGetTrace module:")
+    print("Basic test of zGetTraceNumpy module:")
     x = _np.linspace(-1,1,10)
     px= _np.linspace(-1,1,3)    
     grid = _np.meshgrid(x,x,px,px);
@@ -1037,7 +1036,7 @@ def _test_arrayGetTrace():
     pupil= _np.transpose(grid[2:4]).reshape(-1,2);
     
     (error,vigcode,pos,dir,normal,opd,intensity) = \
-        zGetTraceArray_new(field,pupil,mode=0);
+        zGetTraceNumpy(field,pupil,mode=0);
     
     print(" number of rays: %d" % len(pos));
     if len(pos)<1e5:
@@ -1049,11 +1048,11 @@ def _test_arrayGetTrace():
     
     print("Success!")
 
-def _test_arraytrace_vs_arrayGetTrace():
+def _test_zArrayTrace_vs_zGetTraceNumpy():
     """compare the two implementations against each other
     """
     # Basic test of the module functions
-    print("Comparison of arraytrace and arrayGetTrace:")
+    print("Comparison of zArrayTrace and zGetTraceNumpy:")
     nr = 441
     rd = getRayDataArray(nr)
     # Fill the rest of the ray data array
@@ -1073,7 +1072,7 @@ def _test_arraytrace_vs_arrayGetTrace():
                              r.Exr,r.Eyr,r.Ezr,r.opd,r.intensity] for r in rd[1:]] );
     # results of GetTraceArray
     (error,vigcode,pos,dir,normal,opd,intensity) = \
-        zGetTraceArray_new(field,pupil,mode=0);
+        zGetTraceNumpy(field,pupil,mode=0);
     # compare
     def check(A,B): 
       isequal = _np.array_equal(A,B);      
@@ -1089,27 +1088,9 @@ def _test_arraytrace_vs_arrayGetTrace():
 
 
 if __name__ == '__main__':
-    # load example zemax file
-    import pyzdde.zdde as pyz
-    import os
-    link = pyz.createLink();
-    if link is None: raise RuntimeError("Zemax DDE link could not be established.");
-    try:
-      zmxfile = os.path.join(link.zGetPath()[1], 'Sequential', 'Objectives', 'Cooke 40 degree field.zmx')    
-      ret = link.zLoadFile(zmxfile);
-      if ret<>0:
-          raise IOError("Could not load Zemax file '%s'. Error code %d" % (zmxfile,ret));
-      print("Successfully loaded zemax file: %s"%link.zGetFile())
-      link.zGetUpdate() 
-      if not link.zPushLensPermission():
-          raise RuntimeError("Extensions not allowed to push lenses. Please enable in Zemax.")
-      link.zPushLens(1)
-      
-      # run the test functions
-      #_test_getRayDataArray()
-      #_test_arraytrace_module_basic()
-      _test_arrayGetTrace()
-      #_test_arraytrace_vs_arrayGetTrace()
-    finally:
-      link.close();
+    # run the test functions
+    _test_getRayDataArray()
+    _test_arraytrace_module_basic()
+    _test_zGetTraceNumpy()
+    _test_zArrayTrace_vs_zGetTraceNumpy()
     
