@@ -1,4 +1,4 @@
-// The code here has been adapted from the C programs zclient.c and ArrayDemo.c, 
+// The code here has been adapted from the C programs zclient.c and ArrayDemo.c,
 // which were originally written by Kenneth Moore, and they are shipped with Zemax.
 // zclient.c
 // Originally written by Kenneth Moore June 1997
@@ -20,8 +20,8 @@ DDERAYDATA *rdpGRD = NULL;
 DDERAYDATA *gPtr2RD = NULL;  /* used for passing the ray data array to the user function */
 unsigned int DdeTimeout;
 int RETVAL = 0;              /* Return value to Python indicating general error conditions*/
-                             /* 0 = SUCCESS, -1 = Couldn't retrieve data in PostArrayTraceMessage, 
-                                -999 = Couldn't communicate with Zemax, -998 = timeout reached, etc*/
+                             /* 0 = SUCCESS, -1 = Couldn't retrieve data in PostArrayTraceMessage, */
+                             /* -999 = Couldn't communicate with Zemax, -998 = timeout reached, etc*/
 
 BOOL APIENTRY DllMain(HINSTANCE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
 {
@@ -76,7 +76,7 @@ int __stdcall arrayTrace(DDERAYDATA * pRAD, unsigned int timeout)
         DdeTimeout = timeout;
     else
         DdeTimeout = DDE_TIMEOUT;
-    
+
     hwnd = CreateWindow(szAppName, "ZEMAX Client", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
              CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, globalhInstance, NULL);
     UpdateWindow(hwnd);
@@ -87,6 +87,62 @@ int __stdcall arrayTrace(DDERAYDATA * pRAD, unsigned int timeout)
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
+    return RETVAL;
+}
+
+int __stdcall arrayGetTrace(int nrays, double field[][2], double pupil[][2], double intensity[], int wave_num[], int mode, int surf, int want_opd,
+                              int error[], int vigcode[], double pos[][3], double dir[][3], double normal[][3], double opd[], unsigned int timeout)
+{
+    int i;
+    // how to call this function ? 
+    // http://scipy.github.io/old-wiki/pages/Cookbook/Ctypes#NumPy.27s_ndpointer_with_ctypes_argtypes
+
+    // allocate memory for list of structures expected by ZEMAX
+    DDERAYDATA* RD = malloc((nrays+1) * sizeof(*RD));
+
+    // set parameters for raytrace (in 0'th element)
+    // see Zemax manual for meaning of the fields (do not infer from field names!)
+    RD[0].opd=0;         // set type 0 (GetTrace)
+    RD[0].wave=mode;     // 0 for real rays, 1 for paraxial rays
+    RD[0].error=nrays;
+    RD[0].vigcode=0;
+    RD[0].want_opd=surf; // surface to trace to, -1 for image, or any valid surface number
+
+    // initialize ray-structure with initial sampling
+    for (i=0; i<nrays; i++) {
+      RD[i+1].x = field[i][0];
+      RD[i+1].y = field[i][1];
+      RD[i+1].z = pupil[i][0];
+      RD[i+1].l = pupil[i][1];
+      RD[i+1].intensity = intensity[i];
+      RD[i+1].wave = wave_num[i];
+      RD[i+1].error= 0;
+      RD[i+1].vigcode=0;
+      RD[i+1].want_opd=want_opd;
+    }
+
+    // arrayTrace
+    if(arrayTrace(RD,timeout)==0) {
+
+    // was successful, fill return values
+    for (i=0; i<nrays; i++) {
+      error[i] = RD[i+1].error;
+      vigcode[i]=RD[i+1].vigcode;
+      pos[i][0] = RD[i+1].x;
+      pos[i][1] = RD[i+1].y;
+      pos[i][2] = RD[i+1].z;
+      dir[i][0] = RD[i+1].l;
+      dir[i][1] = RD[i+1].m;
+      dir[i][2] = RD[i+1].n;
+      normal[i][0]=RD[i+1].Exr;
+      normal[i][1]=RD[i+1].Eyr;
+      normal[i][2]=RD[i+1].Ezr;
+      opd[i]      =RD[i+1].opd;
+      intensity[i]=RD[i+1].intensity;
+    }
+
+    } // end-if array trace suceeded
+    free(RD);
     return RETVAL;
 }
 

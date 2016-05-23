@@ -11594,8 +11594,8 @@ class PyZDDE(object):
 
         Parameters
         ----------
-        num : integer, optional 
-            if not None, sufaces upto surface number equal to `num` 
+        num : integer, optional
+            if not None, sufaces upto surface number equal to `num`
             will be retrieved
 
         Returns
@@ -11606,8 +11606,8 @@ class PyZDDE(object):
         ----
         Only works in sequential/hybrid mode. Can't retrieve NSC objects.
         """
-        cd = _os.path.dirname(_os.path.realpath(__file__))
-        textFileName = cd +"\\"+"prescriptionFile.txt"
+        fdir = _os.path.dirname(_os.path.realpath(self.zGetFile()))
+        textFileName = _os.path.join(fdir,"_ipzGetLDE_prescriptionFile.txt")
         ret = self.zGetTextFile(textFileName,'Pre', "None", 0)
         assert ret == 0
         recSystemData = self.zGetSystem() # Get the current system parameters

@@ -1,0 +1,101 @@
+#-------------------------------------------------------------------------
+# NMAKE-Makefile
+#-------------------------------------------------------------------------
+
+PROJ=ArrayTrace
+ARCH=Win32 Release
+
+#-------------------------------------------------------------------------
+# Compiler and Linker
+#-------------------------------------------------------------------------
+
+CC   = cl /nologo
+LINK = link /nologo
+NMAKE= nmake /nologo /C /f Makefile.win
+
+#-------------------------------------------------------------------------
+# Compiler-Flags
+#-------------------------------------------------------------------------
+
+CGFLAGS=/c /MT /D_WINDOWS /D_USRDLL /D_WINDLL /EHsc /W4 /Zp1
+CRFLAGS=/DNDEBUG /Ox
+CDFLAGS=/Ge /MLd /Od /Zi
+
+#-------------------------------------------------------------------------
+# Linker-Flags
+#-------------------------------------------------------------------------
+
+LGFLAGS=/DLL
+LRFLAGS=/RELEASE
+LDFLAGS=/DEBUG
+
+#-------------------------------------------------------------------------
+# Architecture
+#-------------------------------------------------------------------------
+
+!IF "$(ARCH)" == "Win32 Release"
+RELEASEDIR=win32\Release
+CFLAGS=$(CGFLAGS) /DWIN32 $(CRFLAGS)  
+LFLAGS=$(LGFLAGS) $(LRFLAGS)
+!ELSEIF "$(ARCH)" == "Win32 Debug"
+RELEASEDIR=win32\Debug
+CFLAGS=$(CGFLAGS) /DWIN32 $(CDFLAGS)  
+LFLAGS=$(LGFLAGS) $(LDFLAGS)
+!ELSEIF "$(ARCH)" == "x64 Release"
+RELEASEDIR=x64\Release
+CFLAGS=$(CGFLAGS) $(CRFLAGS)  
+LFLAGS=$(LGFLAGS) $(LRFLAGS)
+!ELSEIF "$(ARCH)" == "x64 Debug"
+RELEASEDIR=x64\Debug
+CFLAGS=$(CGFLAGS) $(CDFLAGS)  
+LFLAGS=$(LGFLAGS) $(LDFLAGS)
+!ENDIF
+
+
+#-------------------------------------------------------------------------
+# Targets
+#-------------------------------------------------------------------------
+
+help:
+  @echo.
+  @echo "Syntax   : NMAKE ARCH="Win32 Release" target"
+  @echo.
+  @echo "Targets  : help      - Show this text."
+  @echo "           all       - release32/64, debug32/64
+  @echo "           release32 - Creates $(PROJ).DLL for win32 architecture."
+  @echo "           release64 - Creates $(PROJ).DLL for x64 architecture."
+  @echo "           debug32   - Creates $(PROJ).DLL for win32 architecture."
+  @echo "           debug64   - Creates $(PROJ).DLL for x64 architecture."
+  @echo "           clean     - clean directory
+  @echo.
+  @echo "Examples: NMAKE /c /f Makefile.win"
+  @echo "          NMAKE /c /f Makefile.win release64"
+  @echo.
+
+all: debug32 debug64 release32 release64
+  @echo.
+  @echo Done.
+
+release: clean $(RELEASEDIR)\ArrayTrace.dll
+release32: 
+  @$(NMAKE) ARCH="Win32 Release" release
+release64:  
+  @$(NMAKE) ARCH="x64 Release" release
+debug32: 
+  @$(NMAKE) ARCH="Win32 Debug" release
+debug64: 
+  @$(NMAKE) ARCH="x64 Debug" release
+
+clean:
+  @-erase  *.obj *.pdb *.ilk *.pch $(RELEASEDIR)\*.dll $(RELEASEDIR)\*.lib $(RELEASEDIR)\*.exp
+
+
+#-------------------------------------------------------------------------
+# Sub-Targets
+#-------------------------------------------------------------------------
+
+arrayTraceClient.obj: arrayTraceClient.c arrayTraceClient.h
+  $(CC) $(CFLAGS) arrayTraceClient.c
+$(RELEASEDIR)\ArrayTrace.dll: arrayTraceClient.obj
+  $(LINK) $(LFLAGS) /OUT:$@ $**
+

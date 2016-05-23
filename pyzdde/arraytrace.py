@@ -28,6 +28,8 @@ import os as _os
 import sys as _sys
 import ctypes as _ct
 import collections as _co
+import numpy as _np
+from numpy.ctypeslib import ndpointer as NPTR
 #import gc as _gc
 
 if _sys.version_info[0] > 2:
@@ -49,16 +51,22 @@ def _is64bit():
     """
     return _sys.maxsize > 2**31 - 1
 
-_dllDir = "arraytrace\\x64\\Release\\" if _is64bit() else "arraytrace\\Release\\"
+_dllDir = "arraytrace\\x64\\Release\\" if _is64bit() else "arraytrace\\win32\\Release\\"
 _dllName = "ArrayTrace.dll"
 _dllpath = _os.path.join(_os.path.dirname(_os.path.realpath(__file__)), _dllDir)
 # load the arrayTrace library
 _array_trace_lib = _ct.WinDLL(_dllpath + _dllName)
+# shorthands for Types
+_INT  = _ct.c_int;
+_INT1D = _np.ctypeslib.ndpointer(ndim=1,dtype=_np.int,flags=["C_CONTIGUOUS","ALIGNED"])
+_INT2D = _np.ctypeslib.ndpointer(ndim=2,dtype=_np.int,flags=["C_CONTIGUOUS","ALIGNED"])
+_DBL1D = _np.ctypeslib.ndpointer(ndim=1,dtype=_np.double,flags=["C_CONTIGUOUS","ALIGNED"])
+_DBL2D = _np.ctypeslib.ndpointer(ndim=2,dtype=_np.double,flags=["C_CONTIGUOUS","ALIGNED"])
+# int __stdcall arrayTrace(DDERAYDATA * pRAD, unsigned int timeout)
 _arrayTrace = _array_trace_lib.arrayTrace
-# specify argtypes and restype
-_arrayTrace.restype = _ct.c_int
-_arrayTrace.argtypes = [_ct.POINTER(DdeArrayData), _ct.c_uint]
-
+_arrayTrace.restype = _INT
+_arrayTrace.argtypes = [_ct.POINTER(DdeArrayData), _INT]
+                          
 
 def zArrayTrace(rd, timeout=5000):
     """function to trace large number of rays on lens file in the LDE of main
@@ -152,6 +160,40 @@ def getRayDataArray(numRays, tType=0, mode=0, startSurf=None, endSurf=-1,
         for k in kwargs:
             setattr(rd[0], k, kwargs[k])
     return rd
+
+  
+def zGetTraceArray_new(field, pupil, waveNum=None, intensity=None, 
+                       mode=0, surf=-1, want_opd=0, timeout=5000):
+
+  # handle input arguments 
+  assert 2 == field.ndim == pupil.ndim, 'field and pupil should be 2d arrays'                 
+  assert field.shape == pupil.shape, 'we expect field and pupil points for each ray'
+  nRays = field.shape[0];
+  if waveNum is None: waveNum=1;
+  if _np.isscalar(waveNum): waveNum=_np.zeros(nRays,dtype=_np.int)+waveNum;
+  if intensity is None: intensity=1;
+  if _np.isscalar(intensity): intensity=_np.zeros(nRays)+intensity;                 
+                   
+  # set up output arguments
+  error=_np.zeros(nRays,dtype=_np.int);                   
+  vigcode=_np.zeros(nRays,dtype=_np.int);
+  pos=_np.zeros((nRays,3));
+  dir=_np.zeros((nRays,3));
+  normal=_np.zeros((nRays,3));
+  opd=_np.zeros(nRays);
+                 
+  # arrayGetTrace(int nrays, double field[][2], double pupil[][2], 
+  #   double intensity[], int wave_num[], int mode, int surf, int want_opd, 
+  #   int error[], int vigcode[], double pos[][3], double dir[][3], double normal[][3], 
+  #  double opd[], unsigned int timeout);
+  _arrayGetTrace = _array_trace_lib.arrayGetTrace
+  _arrayGetTrace.restype = _INT
+  _arrayGetTrace.argtypes= [_INT,_DBL2D,_DBL2D,_DBL1D,_INT1D,_INT,_INT,_INT,
+                            _INT1D,_INT1D,_DBL2D,_DBL2D,_DBL2D,_DBL1D,_ct.c_uint]
+  _arrayGetTrace(nRays,field,pupil,intensity,waveNum,mode,surf,want_opd,
+                 error,vigcode,pos,dir,normal,opd,timeout)
+
+  return (error,vigcode,pos,dir,normal,opd,intensity);
 
 def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
                    waveNum=None, mode=0, surf=-1, want_opd=0, timeout=5000):
@@ -982,8 +1024,92 @@ def _test_arraytrace_module_basic():
     for i in range(1, 11):
         print(rd[k].intensity)
     print("Success!")
+    
+def _test_arrayGetTrace():
+    """very basic test for the arrayGetTrace function
+    """
+    # Basic test of the module functions
+    print("Basic test of arrayGetTrace module:")
+    x = _np.linspace(-1,1,10)
+    px= _np.linspace(-1,1,3)    
+    grid = _np.meshgrid(x,x,px,px);
+    field= _np.transpose(grid[0:2]).reshape(-1,2);
+    pupil= _np.transpose(grid[2:4]).reshape(-1,2);
+    
+    (error,vigcode,pos,dir,normal,opd,intensity) = \
+        zGetTraceArray_new(field,pupil,mode=0);
+    
+    print(" number of rays: %d" % len(pos));
+    if len(pos)<1e5:
+      import matplotlib.pylab as plt
+      from mpl_toolkits.mplot3d import Axes3D
+      fig = plt.figure()
+      ax = fig.add_subplot(111, projection='3d')
+      ax.scatter(*pos.T,c=opd);#_np.linalg.norm(pupil,axis=1));
+    
+    print("Success!")
+
+def _test_arraytrace_vs_arrayGetTrace():
+    """compare the two implementations against each other
+    """
+    # Basic test of the module functions
+    print("Comparison of arraytrace and arrayGetTrace:")
+    nr = 441
+    rd = getRayDataArray(nr)
+    # Fill the rest of the ray data array
+    pupil = 2*_np.random.rand(nr,2)-1;
+    field = 2*_np.random.rand(nr,2)-1;
+    for k in xrange(nr):
+      rd[k+1].x = field[k,0];
+      rd[k+1].y = field[k,1];
+      rd[k+1].z = pupil[k,0];
+      rd[k+1].l = pupil[k,1];
+      rd[k+1].intensity = 1.0;
+      rd[k+1].wave = 1;
+      rd[k+1].want_opd = 0
+    # results of zArrayTrace  
+    assert(zArrayTrace(rd)==0);
+    results = _np.asarray( [[r.error,r.vigcode,r.x,r.y,r.z,r.l,r.m,r.n,\
+                             r.Exr,r.Eyr,r.Ezr,r.opd,r.intensity] for r in rd[1:]] );
+    # results of GetTraceArray
+    (error,vigcode,pos,dir,normal,opd,intensity) = \
+        zGetTraceArray_new(field,pupil,mode=0);
+    # compare
+    def check(A,B): 
+      isequal = _np.array_equal(A,B);      
+      return "ok" if isequal else "failed"
+    print("   error    : %s " % check(error,results[:,0]));
+    print("   vigcode  : %s " % check(vigcode,results[:,1]));
+    print("   x,y,z    : %s " % check(pos,results[:,2:5]));
+    print("   l,m,n    : %s " % check(dir,results[:,5:8]));
+    print("   l2,m2,n2 : %s " % check(normal,results[:,8:11]));
+    print("   opd      : %s " % check(opd,results[:,11]));
+    print("   intensity: %s " % check(intensity,results[:,12]));
+    
+
 
 if __name__ == '__main__':
-    # run the test functions
-    _test_getRayDataArray()
-    _test_arraytrace_module_basic()
+    # load example zemax file
+    import pyzdde.zdde as pyz
+    import os
+    link = pyz.createLink();
+    if link is None: raise RuntimeError("Zemax DDE link could not be established.");
+    try:
+      zmxfile = os.path.join(link.zGetPath()[1], 'Sequential', 'Objectives', 'Cooke 40 degree field.zmx')    
+      ret = link.zLoadFile(zmxfile);
+      if ret<>0:
+          raise IOError("Could not load Zemax file '%s'. Error code %d" % (zmxfile,ret));
+      print("Successfully loaded zemax file: %s"%link.zGetFile())
+      link.zGetUpdate() 
+      if not link.zPushLensPermission():
+          raise RuntimeError("Extensions not allowed to push lenses. Please enable in Zemax.")
+      link.zPushLens(1)
+      
+      # run the test functions
+      #_test_getRayDataArray()
+      #_test_arraytrace_module_basic()
+      _test_arrayGetTrace()
+      #_test_arraytrace_vs_arrayGetTrace()
+    finally:
+      link.close();
+    
