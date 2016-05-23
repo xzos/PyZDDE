@@ -340,10 +340,10 @@ void WaitForData(HWND hwnd)
         {
             DispatchMessage(&msg);
         }
-        /* Give the server a chance to respond */
-        Sleep(0);
+        /* Give the server a chance to respond: wait for 100ms */
+        Sleep(100);
         sleep_count++;
-        if (sleep_count > 10000)
+        if (sleep_count > 10)   /* check every second if timeout is reached */
         {
             if (GetCurrentTime() - dwTime > DdeTimeout)
             { 
