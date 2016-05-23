@@ -64,14 +64,13 @@ class TestArrayTrace(unittest.TestCase):
     
   def test_zArrayTrace(self):
     print("\nTEST: arraytrace.zArrayTrace()")
-    # Load a lens file into the DDE server
+    # Load a lens file into the Lde
     filename = get_test_file()
     self.ln.zLoadFile(filename)    
-    self.ln.zGetUpdate();
-
+    self.ln.zPushLens(1);
+    # set up field and pupil sampling
     nr = 9
     rd = at.getRayDataArray(nr)
-    # Fill the rest of the ray data array
     k = 0
     for i in xrange(-10, 11, 10):
         for j in xrange(-10, 11, 10):
@@ -105,10 +104,10 @@ class TestArrayTrace(unittest.TestCase):
     
   def test_zGetTraceNumpy(self):
     print("\nTEST: arraytrace.zGetTraceNumpy()")
-    # Load a lens file into the DDE server
+    # Load a lens file into the LDE
     filename = get_test_file()
     self.ln.zLoadFile(filename)
-    self.ln.zGetUpdate();    
+    self.ln.zPushLens(1);  
     # set-up field and pupil sampling
     x = np.linspace(-1,1,3)
     px= np.linspace(-1,1,3)    
@@ -133,9 +132,13 @@ class TestArrayTrace(unittest.TestCase):
 
   def test_cross_check_zArrayTrace_vs_zGetTraceNumpy(self):
     print("\nTEST: comparison of zArrayTrace and zGetTraceNumpy")
+    # Load a lens file into the LDE
+    filename = get_test_file()
+    self.ln.zLoadFile(filename)
+    self.ln.zPushLens(1);  
+    # set-up field and pupil sampling
     nr = 22;
     rd = at.getRayDataArray(nr)
-    # Fill the rest of the ray data array
     pupil = 2*np.random.rand(nr,2)-1;
     field = 2*np.random.rand(nr,2)-1;
     for k in xrange(nr):

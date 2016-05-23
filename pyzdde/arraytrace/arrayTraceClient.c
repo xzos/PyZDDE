@@ -20,8 +20,7 @@ DDERAYDATA *rdpGRD = NULL;
 DDERAYDATA *gPtr2RD = NULL;  /* used for passing the ray data array to the user function */
 unsigned int DdeTimeout;
 int RETVAL = 0;              /* Return value to Python indicating general error conditions*/
-                             /* 0 = SUCCESS, -1 = Couldn't retrieve data in PostArrayTraceMessage, */
-                             /* -999 = Couldn't communicate with Zemax, -998 = timeout reached, etc*/
+                             /* 0 = SUCCESS, -999 = Couldn't communicate with Zemax, -998 = timeout reached, etc*/
 
 BOOL APIENTRY DllMain(HINSTANCE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
 {
@@ -44,7 +43,6 @@ void rayTraceFunction(void)
     static char szBuffer[5000];
     int ret = 0;
     ret = PostArrayTraceMessage(szBuffer, gPtr2RD);
-    RETVAL = ret;  /* ret = -1, if couldn't get data*/
     /* clear the pointer */
     gPtr2RD = NULL;
 }
@@ -330,7 +328,7 @@ void WaitForData(HWND hwnd)
     int sleep_count;
     MSG msg;
     DWORD dwTime;
-    dwTime = GetCurrentTime();
+    dwTime = GetTickCount();
 
     sleep_count = 0;
 
@@ -345,7 +343,7 @@ void WaitForData(HWND hwnd)
         sleep_count++;
         if (sleep_count > 10)   /* check every second if timeout is reached */
         {
-            if (GetCurrentTime() - dwTime > DdeTimeout)
+            if (GetTickCount() - dwTime > DdeTimeout)
             { 
                 printf("\nTimeout reached!\n");      /* will be visible in stdout*/
                 RETVAL = -998;                     /* indicate to python calling function */
