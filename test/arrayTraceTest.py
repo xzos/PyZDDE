@@ -16,6 +16,8 @@ import numpy as np
 
 import pyzdde.zdde as pyzdde
 import pyzdde.arraytrace as at
+import pyzdde.arraytrace.numpy_interface as nt
+
 from   test.pyZDDEunittest import get_test_file
 
 class TestArrayTrace(unittest.TestCase):
@@ -115,7 +117,7 @@ class TestArrayTrace(unittest.TestCase):
     field= np.transpose(grid[0:2]).reshape(-1,2);
     pupil= np.transpose(grid[2:4]).reshape(-1,2);
     # array trace (C-extension)
-    ret = at.zGetTraceNumpy(field,pupil,mode=0);
+    ret = nt.zGetTraceArray(field,pupil,mode=0);
     self.assertEqual(len(field),3**4);
         
     #for i in xrange(len(ret)):
@@ -156,7 +158,7 @@ class TestArrayTrace(unittest.TestCase):
                              r.Exr,r.Eyr,r.Ezr,r.opd,r.intensity] for r in rd[1:]] );
     # results of GetTraceArray
     (error,vigcode,pos,dir,normal,opd,intensity) = \
-        at.zGetTraceNumpy(field,pupil,mode=0);
+        nt.zGetTraceArray(field,pupil,mode=0);
 
     # compare
     self.assertTrue(np.array_equal(error,results[:,0]),msg="error differs");    
