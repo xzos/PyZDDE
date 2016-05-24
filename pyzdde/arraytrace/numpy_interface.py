@@ -7,14 +7,15 @@
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
 #-------------------------------------------------------------------------------
-"""Module for doing array ray tracing as described in Zemax manual. The following
-2 functions are provided according to 5 different modes discussed in the Zemax manual:
+"""
+Module for doing array ray tracing as described in Zemax manual. The following
+functions are provided according to 5 different modes discussed in the Zemax manual:
 
     1. zGetTraceArray()
     2. zGetTraceDirectArray()
-    3. zGetPolTraceArray()
-    4. zGetPolTraceDirectArray()
-    5. zGetNSCTraceArray()
+    ToDo: 3. zGetPolTraceArray()
+    ToDo: 4. zGetPolTraceDirectArray()
+    ToDo: 5. zGetNSCTraceArray()
 """
 import os as _os
 import sys as _sys
@@ -75,10 +76,9 @@ def zGetTraceArray(field, pupil, intensity=None, waveNum=None,
     Returns
     -------
     error : list of integers
-        * ``0`` = ray traced successfully;
-        * ``+ve`` number = the ray missed the surface;
-        * ``-ve`` number = the ray total internal reflected (TIR) at surface \
-                     given by the absolute value of the ``error``
+        * =0: ray traced successfully
+        * <0: ray missed the surface number indicated by ``error``
+        * >0: total internal reflection of ray at the surface number given by ``-error``
     vigcode : list of integers
         the first surface where the ray was vignetted. Unless an error occurs
         at that surface or subsequent to that surface, the ray will continue
@@ -95,7 +95,8 @@ def zGetTraceArray(field, pupil, intensity=None, waveNum=None,
         computed optical path difference if ``want_opd <> 0``
     intensity : list of reals
         the relative transmitted intensity of the ray, including any pupil
-        or surface apodization defined.
+        or surface apodization defined. Note mode 0 considers pupil apodization, 
+        while mode 1 does not.
 
     If ray tracing fails, an RuntimeError is raised.
     
@@ -118,7 +119,17 @@ def zGetTraceArray(field, pupil, intensity=None, waveNum=None,
     Notes
     -----
     The opd can only be computed if the last surface is the image surface,
-    otherwise, the opd value will be zero.
+    otherwise, the opd value will be zero. It is not yet clear, if want_opd
+    works as described in the manual: 
+    
+      If want_opd is less than zero(such as -1) then the both the chief ray and
+      specified  ray  are requested, and the  OPD  is  the phase  difference  
+      between  the two  in  waves  of  the current wavelength. If want_opd is
+      greater than zero, then the most recently traced chief ray data is used. 
+      Therefore, the want_opd flag should be -1 whenever the chief ray changes; 
+      and +1 for all subsequent rays which do not require the chief ray be 
+      traced again. Generally the chief ray changes only when the field 
+      coordinates or wavelength changes.
     """
     # handle input arguments 
     assert 2 == field.ndim == pupil.ndim, 'field and pupil should be 2d arrays'                 
