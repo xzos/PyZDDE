@@ -88,7 +88,14 @@ int __stdcall arrayTrace(DDERAYDATA * pRAD, unsigned int timeout)
     return RETVAL;
 }
 
-int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2], double intensity[], int wave_num[], int mode, int surf, int want_opd,
+/* ----------------------------------------------------------------------------------
+  ArrayTrace functions that accespt Numpy arrays as arguments
+  avoids large overhead times in Python wrapper functions
+   ----------------------------------------------------------------------------------
+ */
+
+// Mode 0: similar to GetTrace (rays defined by field and pupil coordinates)
+int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2], double intensity[], int wave_num[], int mode, int surf, int want_opd[],
                               int error[], int vigcode[], double pos[][3], double dir[][3], double normal[][3], double opd[], unsigned int timeout)
 {
     int i;
@@ -96,8 +103,8 @@ int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2], dou
     // http://scipy.github.io/old-wiki/pages/Cookbook/Ctypes#NumPy.27s_ndpointer_with_ctypes_argtypes
 
     // allocate memory for list of structures expected by ZEMAX
-    DDERAYDATA* RD = malloc((nrays+1) * sizeof(*RD));
-
+    DDERAYDATA* RD = calloc(nrays+1,sizeof(*RD));
+    
     // set parameters for raytrace (in 0'th element)
     // see Zemax manual for meaning of the fields (do not infer from field names!)
     RD[0].opd=0;         // set type 0 (GetTrace)
@@ -116,7 +123,7 @@ int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2], dou
       RD[i+1].wave = wave_num[i];
       RD[i+1].error= 0;
       RD[i+1].vigcode=0;
-      RD[i+1].want_opd=want_opd;
+      RD[i+1].want_opd=want_opd[i];
     }
 
     // arrayTrace
@@ -124,8 +131,6 @@ int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2], dou
 
     // was successful, fill return values
     for (i=0; i<nrays; i++) {
-      error[i] = RD[i+1].error;
-      vigcode[i]=RD[i+1].vigcode;
       pos[i][0] = RD[i+1].x;
       pos[i][1] = RD[i+1].y;
       pos[i][2] = RD[i+1].z;
@@ -137,12 +142,14 @@ int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2], dou
       normal[i][2]=RD[i+1].Ezr;
       opd[i]      =RD[i+1].opd;
       intensity[i]=RD[i+1].intensity;
+      error[i]    =RD[i+1].error;
+      vigcode[i]  =RD[i+1].vigcode;    
     }
-
     } // end-if array trace suceeded
     free(RD);
     return RETVAL;
 }
+
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {

@@ -12,7 +12,8 @@ Module for doing array ray tracing as described in Zemax manual. The following
 functions are provided according to 5 different modes discussed in the Zemax manual:
 
     1. zGetTraceArray()
-    2. zGetTraceDirectArray()
+    2. zGetOPDArray()
+    ToDo: 2. zGetTraceDirectArray()
     ToDo: 3. zGetPolTraceArray()
     ToDo: 4. zGetPolTraceDirectArray()
     ToDo: 5. zGetNSCTraceArray()
@@ -44,7 +45,7 @@ _DBL1D = _np.ctypeslib.ndpointer(ndim=1,dtype=_np.double,flags=["C_CONTIGUOUS","
 _DBL2D = _np.ctypeslib.ndpointer(ndim=2,dtype=_np.double,flags=["C_CONTIGUOUS","ALIGNED"])
   
 def zGetTraceArray(field, pupil, intensity=None, waveNum=None,
-                   mode=0, surf=-1, want_opd=0, timeout=60000):
+                   bParaxial=False, surf=-1, want_opd=0, timeout=60000):
     """Trace large number of rays defined by their normalized field and pupil
     coordinates on lens file in the LDE of main Zemax application (not in the DDE server)
 
@@ -62,14 +63,16 @@ def zGetTraceArray(field, pupil, intensity=None, waveNum=None,
         wavelength number. If a vector of integers of length ``numRays`` is given
         it is used. If a single integer value is passed, all rays use the same
         value for wavelength number. Default: wavelength number equal to 1.
-    mode : integer, optional
-        0 = real (Default), 1 = paraxial
+    bParaxial : bool, optional
+        If True, a paraxial raytrace is performed (default: False, real raytrace)
     surf : integer, optional
         surface to trace the ray to. Usually, the ray data is only needed at
         the image surface (``surf = -1``, default)
-    want_opd : integer, optional
-        0 if OPD data is not needed (Default), 1 if it is. See Zemax manual
-        for details.
+    want_opd : integer or vector of length ``numRays``, optional, requires ``surf==-1``
+        determines (for each ray), if optical path difference (OPD) is calculated
+        * 0: OPD is not calculated (Default),
+        *-1: OPD between ray and corresponding chief-ray is calculated (doubled time!)
+        * 1: OPD between ray and last chief-ray is calculated. See Notes below.
     timeout : integer, optional
         command timeout specified in milli-seconds (default: 1min), at least 1s
 
@@ -92,7 +95,8 @@ def zGetTraceArray(field, pupil, intensity=None, waveNum=None,
         local direction cosines ``(l2,m2,n2)`` of the surface normals at the 
         intersection point of the ray with the requested surface
     opd : list of reals
-        computed optical path difference if ``want_opd <> 0``
+        computed optical path difference in waves of the current wavelength,
+        only computed, if ``want_opd <> 0`` and ``surf=-1``
     intensity : list of reals
         the relative transmitted intensity of the ray, including any pupil
         or surface apodization defined. Note mode 0 considers pupil apodization, 
@@ -112,19 +116,19 @@ def zGetTraceArray(field, pupil, intensity=None, waveNum=None,
     >>> pupil= np.transpose(grid[2:4]).reshape(-1,2);
     >>> # run array-trace
     >>> (error,vigcode,pos,dir,normal,opd,intensity) = \\
-    >>>      zGetTraceNumpy(field,pupil,mode=0);
+    >>>      zGetTraceArray(field,pupil);
     >>> # plot results
     >>> plt.scatter(pos[:,0],pos[:,1])
 
     Notes
     -----
     The opd can only be computed if the last surface is the image surface,
-    otherwise, the opd value will be zero. It is not yet clear, if want_opd
-    works as described in the manual: 
+    otherwise, the opd value will be zero. The meaning of want_opd is explained
+    in the Zemax manual:
     
       If want_opd is less than zero(such as -1) then the both the chief ray and
-      specified  ray  are requested, and the  OPD  is  the phase  difference  
-      between  the two  in  waves  of  the current wavelength. If want_opd is
+      specified ray are requested, and the OPD is the phase difference  
+      between the two in waves of the current wavelength. If want_opd is
       greater than zero, then the most recently traced chief ray data is used. 
       Therefore, the want_opd flag should be -1 whenever the chief ray changes; 
       and +1 for all subsequent rays which do not require the chief ray be 
@@ -132,15 +136,18 @@ def zGetTraceArray(field, pupil, intensity=None, waveNum=None,
       coordinates or wavelength changes.
     """
     # handle input arguments 
-    assert 2 == field.ndim == pupil.ndim, 'field and pupil should be 2d arrays'                 
-    assert field.shape == pupil.shape, 'we expect field and pupil points for each ray'
     nRays = field.shape[0];
+    assert (nRays,2) == field.shape == pupil.shape, 'field and pupil should have shape (nRays,2)'
     if intensity is None: intensity=1;
-    if _np.isscalar(intensity): intensity=_np.zeros(nRays)+intensity;        
+    if _np.isscalar(intensity): intensity=_np.full(nRays,intensity,dtype=_np.double);        
     if waveNum is None: waveNum=1;
-    if _np.isscalar(waveNum): waveNum=_np.zeros(nRays,dtype=_np.int)+waveNum;
-             
-                     
+    if _np.isscalar(waveNum): waveNum=_np.full(nRays,waveNum,dtype=_np.int);
+    if surf<>-1: want_opd=0;    
+    if _np.isscalar(want_opd):want_opd=_np.full(nRays,want_opd,dtype=_np.int); 
+    assert intensity.shape == (nRays,), 'intensity must be scalar or a vector of length nRays'        
+    assert waveNum.shape == (nRays,), 'waveNum must be scalar or a vector of length nRays'
+    assert want_opd.shape == (nRays,), 'want_opd must be scalar or a vector of length nRays'
+    
     # set up output arguments
     error=_np.zeros(nRays,dtype=_np.int);                   
     vigcode=_np.zeros(nRays,dtype=_np.int);
@@ -150,19 +157,21 @@ def zGetTraceArray(field, pupil, intensity=None, waveNum=None,
     opd=_np.zeros(nRays);
                    
     # numpyGetTrace(int nrays, double field[][2], double pupil[][2], 
-    #   double intensity[], int wave_num[], int mode, int surf, int want_opd, 
+    #   double intensity[], int wave_num[], int mode, int surf, int want_opd[], 
     #   int error[], int vigcode[], double pos[][3], double dir[][3], double normal[][3], 
     #  double opd[], unsigned int timeout);
     _numpyGetTrace = _array_trace_lib.numpyGetTrace
     _numpyGetTrace.restype = _INT
-    _numpyGetTrace.argtypes= [_INT,_DBL2D,_DBL2D,_DBL1D,_INT1D,_INT,_INT,_INT,
+    _numpyGetTrace.argtypes= [_INT,_DBL2D,_DBL2D,_DBL1D,_INT1D,_INT,_INT,_INT1D,
                               _INT1D,_INT1D,_DBL2D,_DBL2D,_DBL2D,_DBL1D,_ct.c_uint]
-    ret = _numpyGetTrace(nRays,field,pupil,intensity,waveNum,mode,surf,want_opd,
+    ret = _numpyGetTrace(nRays,field,pupil,intensity,waveNum,int(bParaxial),surf,want_opd,
                    error,vigcode,pos,dir,normal,opd,timeout)
     # analyse error - flag
     if ret==-1: raise RuntimeError("Couldn't retrieve data in PostArrayTraceMessage.")
     if ret==-999: raise RuntimeError("Couldn't communicate with Zemax.");
     if ret==-998: raise RuntimeError("Timeout reached after %dms"%timeout);
+    # set opd to NaN, where it was not calculated to avoid confusion
+    opd[want_opd==0]=_np.nan;
   
     return (error,vigcode,pos,dir,normal,opd,intensity);
 
@@ -179,23 +188,22 @@ def _test_zGetTraceArray():
     """
     # Basic test of the module functions
     print("Basic test of zGetTraceNumpy module:")
-    x = _np.linspace(-1,1,10)
+    x = _np.linspace(-1,1,4)
     px= _np.linspace(-1,1,3)    
     grid = _np.meshgrid(x,x,px,px);
     field= _np.transpose(grid[0:2]).reshape(-1,2);
     pupil= _np.transpose(grid[2:4]).reshape(-1,2);
     
     (error,vigcode,pos,dir,normal,opd,intensity) = \
-        zGetTraceArray(field,pupil,mode=0);
+        zGetTraceArray(field,pupil,bParaxial=False,want_opd=1,surf=-1);
     
     print(" number of rays: %d" % len(pos));
     if len(pos)<1e5:
       import matplotlib.pylab as plt
       from mpl_toolkits.mplot3d import Axes3D
       fig = plt.figure()
-      ax = fig.add_subplot(111, projection='3d')
-      ax.scatter(*pos.T,c=opd);#_np.linalg.norm(pupil,axis=1));
-    
+      ax = fig.add_subplot(111,projection='3d')
+      ax.scatter(*pos.T,c=opd);
     print("Success!")
 
 
