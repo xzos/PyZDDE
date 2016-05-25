@@ -17,6 +17,22 @@ functions are provided according to 5 different modes discussed in the Zemax man
     ToDo: 3. zGetPolTraceArray()
     ToDo: 4. zGetPolTraceDirectArray()
     ToDo: 5. zGetNSCTraceArray()
+    
+Note
+-----
+
+The parameter want_opd is very confusing as it alters the behavior of GetTraceArray.
+If the calculation of OPD is requested for a ray, 
+- vigcode becomes a different meaning (seems to be 1 if vignetted, but no longer related to surface)
+- bParaxial (mode) becomes inactive, Zemax always performs a real-raytrace !
+- the surface normal is not calculated
+- if the calculation of the chief ray data is not requested for the first ray, 
+  e.g. by setting all want_opd to 1, wrong OPD values are returned (without any relation to the real values)
+- this affects only rays with want_opd<>0 -> i.e. if it is mixed, one obtains a total mess
+
+
+The pupil apodization seems to be always considered independent of the mode / bParaxial value
+in contrast to the note in the Zemax Manual (tested with Zemax 13 Release 2 SP 5 Premium 64bit)
 """
 import os as _os
 import sys as _sys
@@ -109,7 +125,7 @@ def zGetTraceArray(field, pupil, intensity=None, waveNum=None,
     >>> import numpy as np     
     >>> import matplotlib.pylab as plt
     >>> # cartesian sampling in field an pupil
-    >>> x = np.linspace(-1,1,10)
+    >>> x = np.linspace(-1,1,4)
     >>> px= np.linspace(-1,1,3)    
     >>> grid = np.meshgrid(x,x,px,px);
     >>> field= np.transpose(grid[0:2]).reshape(-1,2);
@@ -147,6 +163,11 @@ def zGetTraceArray(field, pupil, intensity=None, waveNum=None,
     assert intensity.shape == (nRays,), 'intensity must be scalar or a vector of length nRays'        
     assert waveNum.shape == (nRays,), 'waveNum must be scalar or a vector of length nRays'
     assert want_opd.shape == (nRays,), 'want_opd must be scalar or a vector of length nRays'
+    
+    # if opd is requested, make sure that chief ray data is initialized at first requested ray
+    if _np.any(want_opd<>0):    
+      first_ray = _np.where(want_opd<>0)[0][0];
+      want_opd[first_ray] = -1;
     
     # set up output arguments
     error=_np.zeros(nRays,dtype=_np.int);                   
