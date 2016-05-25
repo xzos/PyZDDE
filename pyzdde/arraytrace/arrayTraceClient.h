@@ -32,10 +32,9 @@ void rayTraceFunction();
 // general arrayTrace function accepting DDERAYDATA structure
 DLL_EXPORT int __stdcall arrayTrace(DDERAYDATA * pRAD, unsigned int timeout);
 // wrapper for numpy arrays: mode 0
-DLL_EXPORT int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2], 
-  double intensity[], int wave_num[], int mode, int surf, int want_opd[], 
-  int error[], int vigcode[], double pos[][3], double dir[][3], double normal[][3], 
-  double opd[], unsigned int timeout);
+DLL_EXPORT int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2],  
+   double intensity[], int wave_num[], int mode, int surf, int error[], int vigcode[], 
+   double pos[][3], double dir[][3], double normal[][3], unsigned int timeout);
 
 #ifdef __cplusplus
 }

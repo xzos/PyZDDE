@@ -117,10 +117,8 @@ class TestArrayTrace(unittest.TestCase):
     for mode in (0,1):
       print("  compare with GetTrace for %s raytrace"% mode_descr[mode]);
       ret = nt.zGetTraceArray(field,pupil,bParaxial=(mode==1),waveNum=w,surf=-1);
-      mask = np.ones(13,dtype=np.bool); mask[-2]=False;   # mask array for removing opd from ret  
       ret = np.column_stack(ret).T;
-      ret = ret[mask];
-             
+                   
       # compare with results from GetTrace, returns (error,vig,x,y,z,l,m,n,l2,m2,n2,intensity)
       ret_descr = ('error','vigcode','x','y','z','l','m','n','Exr','Eyr','Ezr','intensity')
       for i in xrange(nr):
@@ -152,15 +150,15 @@ class TestArrayTrace(unittest.TestCase):
       rd[k+1].l = pupil[k,1];
       rd[k+1].intensity = 1.0;
       rd[k+1].wave = 1;
-      rd[k+1].want_opd = -1;
+      rd[k+1].want_opd = 0;
     # results of zArrayTrace  
     ret = at.zArrayTrace(rd);
     self.assertEqual(ret,0);
     results = np.asarray( [[r.error,r.vigcode,r.x,r.y,r.z,r.l,r.m,r.n,\
                              r.Exr,r.Eyr,r.Ezr,r.opd,r.intensity] for r in rd[1:]] );
     # results of GetTraceArray
-    (error,vigcode,pos,dir,normal,opd,intensity) = \
-        nt.zGetTraceArray(field,pupil,bParaxial=0,want_opd=-1);
+    (error,vigcode,pos,dir,normal,intensity) = \
+        nt.zGetTraceArray(field,pupil,bParaxial=0);
 
     # compare
     self.assertTrue(np.array_equal(error,results[:,0]),msg="error differs");    
@@ -168,7 +166,6 @@ class TestArrayTrace(unittest.TestCase):
     self.assertTrue(np.array_equal(pos,results[:,2:5]),msg="pos differs");    
     self.assertTrue(np.array_equal(dir,results[:,5:8]),msg="dir differs");    
     self.assertTrue(np.array_equal(normal,results[:,8:11]),msg="normal differs");    
-    self.assertTrue(np.array_equal(opd,results[:,11]),msg="opd differs");    
     self.assertTrue(np.array_equal(intensity,results[:,12]),msg="intensity differs");    
 
     

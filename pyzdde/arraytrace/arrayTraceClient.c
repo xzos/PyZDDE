@@ -95,8 +95,9 @@ int __stdcall arrayTrace(DDERAYDATA * pRAD, unsigned int timeout)
  */
 
 // Mode 0: similar to GetTrace (rays defined by field and pupil coordinates)
-int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2], double intensity[], int wave_num[], int mode, int surf, int want_opd[],
-                              int error[], int vigcode[], double pos[][3], double dir[][3], double normal[][3], double opd[], unsigned int timeout)
+int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2],  
+   double intensity[], int wave_num[], int mode, int surf, int error[], int vigcode[], 
+   double pos[][3], double dir[][3], double normal[][3], unsigned int timeout)
 {
     int i;
     // how to call this function ? 
@@ -121,9 +122,9 @@ int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2], dou
       RD[i+1].l = pupil[i][1];
       RD[i+1].intensity = intensity[i];
       RD[i+1].wave = wave_num[i];
-      RD[i+1].error= 0;
-      RD[i+1].vigcode=0;
-      RD[i+1].want_opd=want_opd[i];
+      //RD[i+1].error= 0;     // already initialized to 0
+      //RD[i+1].vigcode=0;
+      //RD[i+1].want_opd=0;
     }
 
     // arrayTrace
@@ -140,7 +141,6 @@ int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2], dou
       normal[i][0]=RD[i+1].Exr;
       normal[i][1]=RD[i+1].Eyr;
       normal[i][2]=RD[i+1].Ezr;
-      opd[i]      =RD[i+1].opd;
       intensity[i]=RD[i+1].intensity;
       error[i]    =RD[i+1].error;
       vigcode[i]  =RD[i+1].vigcode;    
