@@ -7,6 +7,9 @@
 // Written by Kenneth Moore March 1999
 // The original zclient.c and ArrayDemo.c files are also available in the same 
 // directory for reference
+//
+// How to call these functions from Python ? see
+// http://scipy.github.io/old-wiki/pages/Cookbook/Ctypes#NumPy.27s_ndpointer_with_ctypes_argtypes
 
 #include "arrayTraceClient.h"
 
@@ -46,6 +49,11 @@ void rayTraceFunction(void)
     /* clear the pointer */
     gPtr2RD = NULL;
 }
+
+/* ----------------------------------------------------------------------------------
+  ArrayTrace functions that accespt DDERAYDATA as argument
+   ----------------------------------------------------------------------------------
+ */
 
 int __stdcall arrayTrace(DDERAYDATA * pRAD, unsigned int timeout)
 {
@@ -94,14 +102,13 @@ int __stdcall arrayTrace(DDERAYDATA * pRAD, unsigned int timeout)
    ----------------------------------------------------------------------------------
  */
 
+// ----------------------------------------------------------------------------------
 // Mode 0: similar to GetTrace (rays defined by field and pupil coordinates)
 int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2],  
    double intensity[], int wave_num[], int mode, int surf, int error[], int vigcode[], 
    double pos[][3], double dir[][3], double normal[][3], unsigned int timeout)
 {
     int i;
-    // how to call this function ? 
-    // http://scipy.github.io/old-wiki/pages/Cookbook/Ctypes#NumPy.27s_ndpointer_with_ctypes_argtypes
 
     // allocate memory for list of structures expected by ZEMAX
     DDERAYDATA* RD = calloc(nrays+1,sizeof(*RD));
@@ -150,6 +157,78 @@ int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2],
     return RETVAL;
 }
 
+
+// ----------------------------------------------------------------------------------
+// Calculate OPD for all rays indicated by normalized field and pupil coordinates
+// as well as a list of wavenumbers. The return values are multidimensional arrays
+// which can be indexed as opd[wave][field][pupil]
+int __stdcall numpyOpticalPathDifference(int nField, double field[][2], 
+   int nPupil, double pupil[][2], int nWave, int wave_num[], 
+   int error[], int vigcode[], double opd[], double pos[][3], 
+   double dir[][3], double intensity[], unsigned int timeout)
+{
+    int i,iField,iPupil,iWave;
+    int nrays = nWave*nField*nPupil;
+
+    // allocate memory for list of structures expected by ZEMAX
+    DDERAYDATA* RD = calloc(nrays+1,sizeof(*RD));
+    
+    // set parameters for raytrace (in 0'th element)
+    // see Zemax manual for meaning of the fields (do not infer from field names!)
+    RD[0].opd=0;         // set type 0 (GetTrace)
+    RD[0].wave=0;        // real ray trace, will be overwritten anyway by Zemax
+    RD[0].error=nrays;
+    RD[0].vigcode=0;
+    RD[0].want_opd=-1;   // trace to image surface
+
+    // initialize ray-structure with initial sampling
+    i=1;
+    for (iWave=0; iWave<nWave; iWave++) {
+      for (iField=0; iField<nField; iField++) {
+        for (iPupil=0; iPupil<nPupil; iPupil++) {
+            RD[i].x = field[iField][0];
+            RD[i].y = field[iField][1];
+            RD[i].z = pupil[iPupil][0];
+            RD[i].l = pupil[iPupil][1];
+            RD[i].intensity = 1.0;
+            RD[i].wave = wave_num[iWave];
+            RD[i].want_opd=1;
+            // request Zemax to trace chief ray as reference for OPD
+            if (iPupil==0) RD[i].want_opd=-1;
+            //RD[i+1].error= 0;     // already initialized to 0
+            //RD[i+1].vigcode=0;
+            i++;
+        }
+      }
+    }
+
+    // arrayTrace
+    if(arrayTrace(RD,timeout)==0) {
+
+    // was successful, fill return values
+    for (i=0; i<nrays; i++) {
+      pos[i][0] = RD[i+1].x;
+      pos[i][1] = RD[i+1].y;
+      pos[i][2] = RD[i+1].z;
+      dir[i][0] = RD[i+1].l;
+      dir[i][1] = RD[i+1].m;
+      dir[i][2] = RD[i+1].n;
+      // normal is not calculated if want_opd<>0 !
+      opd[i]    =RD[i+1].opd;
+      intensity[i]=RD[i+1].intensity;
+      error[i]  =RD[i+1].error;
+      vigcode[i]=RD[i+1].vigcode;    
+    }
+    } // end-if array trace suceeded
+    free(RD);
+    return RETVAL;
+}
+
+
+/* ----------------------------------------------------------------------------------
+  DDE Communication (from Zemax examples)
+   ----------------------------------------------------------------------------------
+ */
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 {

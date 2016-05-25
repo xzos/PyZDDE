@@ -54,13 +54,16 @@ _dllpath = _os.path.join(_os.path.dirname(_os.path.realpath(__file__)), _dllDir)
 _array_trace_lib = _ct.WinDLL(_dllpath + _dllName)
                           
 # shorthands for CTypes
+#  Make sure the arrays are C-contigous, see
+#http://stackoverflow.com/questions/26998223/what-is-the-difference-between-contiguous-and-non-contiguous-arrays
+#  Make sure the input array is aligned on proper boundaries for its data type.                         
 _INT  = _ct.c_int;
 _INT1D = _np.ctypeslib.ndpointer(ndim=1,dtype=_np.int,flags=["C_CONTIGUOUS","ALIGNED"])
 _INT2D = _np.ctypeslib.ndpointer(ndim=2,dtype=_np.int,flags=["C_CONTIGUOUS","ALIGNED"])
 _DBL1D = _np.ctypeslib.ndpointer(ndim=1,dtype=_np.double,flags=["C_CONTIGUOUS","ALIGNED"])
 _DBL2D = _np.ctypeslib.ndpointer(ndim=2,dtype=_np.double,flags=["C_CONTIGUOUS","ALIGNED"])
   
-def zGetTraceArray(field, pupil, intensity=None, waveNum=None,
+def zGetTraceArray(field, pupil, intensity=1., waveNum=1,
                    bParaxial=False, surf=-1, timeout=60000):
     """Trace large number of rays defined by their normalized field and pupil
     coordinates on lens file in the LDE of main Zemax application (not in the DDE server)
@@ -69,7 +72,7 @@ def zGetTraceArray(field, pupil, intensity=None, waveNum=None,
     ----------
     field : ndarray of shape (``numRays``,2)
         list of normalized field heights along x and y axis
-    px : ndarray of shape (``numRays``,2)
+    pupil : ndarray of shape (``numRays``,2)
         list of normalized heights in pupil coordinates, along x and y axis
     intensity : float or vector of length ``numRays``, optional
         initial intensities. If a vector of length ``numRays`` is given it is
@@ -107,8 +110,7 @@ def zGetTraceArray(field, pupil, intensity=None, waveNum=None,
         intersection point of the ray with the requested surface
     intensity : list of reals
         the relative transmitted intensity of the ray, including any pupil
-        or surface apodization defined. Note mode 0 considers pupil apodization, 
-        while mode 1 does not.
+        or surface apodization defined. 
 
     If ray tracing fails, an RuntimeError is raised.
     
@@ -124,26 +126,30 @@ def zGetTraceArray(field, pupil, intensity=None, waveNum=None,
     >>> pupil= np.transpose(grid[2:4]).reshape(-1,2);
     >>> # run array-trace
     >>> (error,vigcode,pos,dir,normal,intensity) = \\
-    >>>      zGetTraceArray(field,pupil);
+          zGetTraceArray(field,pupil);
     >>> # plot results
     >>> plt.scatter(pos[:,0],pos[:,1])
     """
+    # ensure correct memory alignment of input arrays
+    field    = _np.require(field,dtype=_np.double,requirements=['C','A']); 
+    pupil    = _np.require(pupil,dtype=_np.double,requirements=['C','A']);     
+    intensity=_np.require(intensity,dtype=_np.double,requirements=['C','A']); 
+    waveNum  =_np.require(waveNum,dtype=_np.int,requirements=['C','A']); 
+    
     # handle input arguments 
     nRays = field.shape[0];
     assert (nRays,2) == field.shape == pupil.shape, 'field and pupil should have shape (nRays,2)'
-    if intensity is None: intensity=1;
-    if _np.isscalar(intensity): intensity=_np.full(nRays,intensity,dtype=_np.double);        
-    if waveNum is None: waveNum=1;
-    if _np.isscalar(waveNum): waveNum=_np.full(nRays,waveNum,dtype=_np.int);
+    if intensity.size==1: intensity=_np.full(nRays,intensity,dtype=_np.double);        
+    if waveNum.size==1: waveNum=_np.full(nRays,waveNum,dtype=_np.int);
     assert intensity.shape == (nRays,), 'intensity must be scalar or a vector of length nRays'        
     assert waveNum.shape == (nRays,), 'waveNum must be scalar or a vector of length nRays'
     
-    # set up output arguments
+    # allocate memory for return values
     error=_np.zeros(nRays,dtype=_np.int);                   
     vigcode=_np.zeros(nRays,dtype=_np.int);
-    pos=_np.zeros((nRays,3));
-    dir=_np.zeros((nRays,3));
-    normal=_np.zeros((nRays,3));
+    pos=_np.zeros((nRays,3),dtype=_np.double);
+    dir=_np.zeros((nRays,3),dtype=_np.double);
+    normal=_np.zeros((nRays,3),dtype=_np.double);
                    
     # numpyGetTrace(int nrays, double field[][2], double pupil[][2],  double intensity[], 
     #   int wave_num[], int mode, int surf, int error[], int vigcode[], double pos[][3], 
@@ -162,6 +168,96 @@ def zGetTraceArray(field, pupil, intensity=None, waveNum=None,
     return (error,vigcode,pos,dir,normal,intensity);
 
 
+def zGetOpticalPathDifferenceArray(field,pupil,waveNum=1,timeout=60000):
+    """
+    Calculates the optical path difference (OPD) between real ray and 
+    real chief ray at the image plane for a large number of rays. The lens 
+    file in the LDE of main Zemax application (not in the DDE server) is used.
+
+    Parameters
+    ----------
+    field : ndarray of shape (``nField``,2)
+        list of normalized field heights along x and y axis
+    pupil : ndarray of shape (``nPupil``,2)
+        list of normalized heights in pupil coordinates, along x and y axis
+    waveNum : integer or vector of length ``nWave``, optional
+        list of wavelength numbers. Default: single wavelength number equal to 1.
+    timeout : integer, optional
+        command timeout specified in milli-seconds (default: 1min), at least 1s
+
+    Returns
+    -------
+    error : ndarray of shape (nWave,nField,nPupil)
+        * =0: ray traced successfully
+        * <0: ray missed the surface number indicated by ``error``
+        * >0: total internal reflection of ray at the surface number given by ``-error``
+    vigcode : ndarray of shape (nWave,nField,nPupil)
+        indicates if ray was vignetted (vigcode==1) or not (vigcode=0)
+    opd : ndarray of shape (nWave,nField,nPupil)
+        computed optical path difference in waves, corresponding to the 
+        wavelength of the individual ray
+    pos : ndarray of shape (nWave,nField,nPupil,3)
+        local image coordinates ``(x,y,z)`` of each ray
+    dir : ndarray of shape (nWave,nField,nPupil,3)
+        local direction cosines ``(l,m,n)`` at the image surface
+    intensity : ndarray of shape (nWave,nField,nPupil)
+        the relative transmitted intensity of the ray, including any pupil
+        or surface apodization defined.
+
+    If ray tracing fails, an RuntimeError is raised.
+    
+    Examples
+    -------- 
+    >>> import numpy as np     
+    >>> import matplotlib.pylab as plt
+    >>> # pupil sampling along diagonal (px,px)
+    >>> NP=51; px = _np.linspace(-1,1,NP);
+    >>> pupil = _np.vstack((px,px)).T;
+    >>> (error,vigcode,opd,pos,dir,intensity) = \\
+          zGetOpticalPathDifferenceArray(np.zeros((1,2)),pupil);
+    >>> plt.plot(px,opd[0,0,:])
+    """
+    # ensure correct memory alignment for input arrays
+    field    = _np.require(field,dtype=_np.double,requirements=['C','A']); 
+    pupil    = _np.require(pupil,dtype=_np.double,requirements=['C','A']);     
+    waveNum  = _np.require(_np.atleast_1d(waveNum),dtype=_np.int,requirements=['C','A']); 
+    
+    # handle input arguments 
+    nField = field.shape[0];  assert field.shape == (nField,2), 'field must have shape (nField,2)'
+    nPupil = pupil.shape[0];  assert pupil.shape == (nPupil,2), 'field must have shape (nPupil,2)'
+    nWave = waveNum.shape[0];
+    nRays = nWave*nField*nPupil;
+    
+    # allocate memory for return values
+    error=_np.zeros(nRays,dtype=_np.int);                   
+    vigcode=_np.zeros(nRays,dtype=_np.int);
+    opd=_np.zeros(nRays,dtype=_np.double);
+    pos=_np.zeros((nRays,3),dtype=_np.double);
+    dir=_np.zeros((nRays,3),dtype=_np.double);
+    intensity=_np.zeros(nRays,dtype=_np.double);
+                   
+    # int numpyOpticalPathDifference(int nField, double field[][2], 
+    #          int nPupil, double pupil[][2], int nWave, int wave_num[], 
+    #          int error[], int vigcode[], double opd[], double pos[][3], 
+    #          double dir[][3], double intensity[], unsigned int timeout)
+    # result arrays are multidimensional arrays indexed as [wave][field][pupil]
+    _numpyOPD = _array_trace_lib.numpyOpticalPathDifference
+    _numpyOPD.restype = _INT
+    _numpyOPD.argtypes= [_INT,_DBL2D, _INT,_DBL2D, _INT,_INT1D,
+                              _INT1D,_INT1D,_DBL1D,_DBL2D,_DBL2D,_DBL1D,_ct.c_uint]
+    ret = _numpyOPD(nField,field,nPupil,pupil,nWave,waveNum,
+                   error,vigcode,opd,pos,dir,intensity,timeout)
+    # analyse error - flag
+    if ret==-1: raise RuntimeError("Couldn't retrieve data in PostArrayTraceMessage.")
+    if ret==-999: raise RuntimeError("Couldn't communicate with Zemax.");
+    if ret==-998: raise RuntimeError("Timeout reached after %dms"%timeout);
+    
+    # reshape arrays as multidimensional arrays
+    s1=(nWave,nField,nPupil);
+    s3=(nWave,nField,nPupil,3);
+  
+    return (error.reshape(s1),vigcode.reshape(s1),opd.reshape(s1),
+            pos.reshape(s3),dir.reshape(s3),intensity.reshape(s1));
 
 
 # ###########################################################################
@@ -194,9 +290,31 @@ def _test_zGetTraceArray():
     print("Success!")
 
 
+def _test_zOPDArray():
+    """very basic test for the zGetTraceNumpy function
+    """
+    # Basic test of the module functions
+    print("Basic test of zGetTraceNumpy module:")
+    NP=21; px = _np.linspace(-1,1,NP); py=0*px;
+    pupil = _np.vstack((px,py)).T;
+    NF=5;  hx = _np.linspace(-1,1,NF); hy=0*hx;
+    field = _np.vstack((hx,hy)).T;
+    (error,vigcode,opd,pos,dir,intensity) = \
+        zGetOpticalPathDifferenceArray(field,pupil);
+    
+    print(" number of rays: %d" % opd.size);
+    if opd.size<1e5:
+      import matplotlib.pylab as plt
+      plt.figure();
+      for f in xrange(NF):
+        plt.plot(px,opd[0,f],label="hx=%5.3f"%field[f,0]);
+      plt.legend(loc=0);
+    print("Success!")
 
 
 if __name__ == '__main__':
     # run the test functions
     _test_zGetTraceArray()
+    _test_zOPDArray()
+    
     

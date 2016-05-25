@@ -36,6 +36,12 @@ DLL_EXPORT int __stdcall numpyGetTrace(int nrays, double field[][2], double pupi
    double intensity[], int wave_num[], int mode, int surf, int error[], int vigcode[], 
    double pos[][3], double dir[][3], double normal[][3], unsigned int timeout);
 
+// wrapper for numpy arrays: calculate opd
+DLL_EXPORT int __stdcall numpyOpticalPathDifference(int nField, double field[][2], 
+   int nPupil, double pupil[][2], int nWave, int wave_num[], 
+   int error[], int vigcode[], double opd[], double pos[][3], 
+   double dir[][3], double intensity[], unsigned int timeout);
+
 #ifdef __cplusplus
 }
 #endif
