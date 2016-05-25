@@ -2,6 +2,8 @@
 #-------------------------------------------------------------------------------
 # Name:        ArrayTraceUnittest.py
 # Purpose:     unit tests for ArrayTrace
+# Run:         from home directory of the project, i.e.,
+#              $ python -m unittest test.arrayTraceTest
 #
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
@@ -14,7 +16,7 @@ import sys
 import unittest
 import numpy as np
 
-import pyzdde.zdde as pyzdde
+import pyzdde.zdde as pyz
 import pyzdde.arraytrace as at
 import pyzdde.arraytrace.numpy_interface as nt
 
@@ -25,7 +27,7 @@ class TestArrayTrace(unittest.TestCase):
   @classmethod  
   def setUpClass(self):
     print('RUNNING TESTS FOR MODULE \'%s\'.'% at.__file__)
-    self.ln = pyzdde.createLink();
+    self.ln = pyz.createLink();
     self.ln.zGetUpdate();
    
   @classmethod
@@ -64,73 +66,73 @@ class TestArrayTrace(unittest.TestCase):
     self.assertEqual(rd[0].z,0.0)
     self.assertEqual(rd[0].error,1)
     
-  def test_zArrayTrace(self):
-    print("\nTEST: arraytrace.zArrayTrace()")
+  def test_zGetTraceArray(self):
+    print("\nTEST: arraytrace.zGetTraceArray()")
     # Load a lens file into the Lde
     filename = get_test_file()
     self.ln.zLoadFile(filename)    
     self.ln.zPushLens(1);
-    # set up field and pupil sampling
-    nr = 9
-    rd = at.getRayDataArray(nr)
-    k = 0
-    for i in xrange(-10, 11, 10):
-        for j in xrange(-10, 11, 10):
-            k += 1
-            rd[k].z = i/20.0                   # px
-            rd[k].l = j/20.0                   # py
-            rd[k].intensity = 1.0
-            rd[k].wave = 1
-            rd[k].want_opd = 0
-    # run array trace (C-extension)
-    ret = at.zArrayTrace(rd)
-    self.assertEqual(ret,0);
-    #r = rd[1]; # select first ray   
-    #for key in ('error','vigcode','x','y','z','l','m','n','Exr','Eyr','Ezr','opd','intensity'):
-    #  print('self.assertAlmostEqual(rd[1].%s,%.8g,msg=\'%s differs\');'%(key,getattr(rd[1],key),key));
-    self.assertAlmostEqual(rd[1].error,0,msg='error differs');
-    self.assertAlmostEqual(rd[1].vigcode,0,msg='vigcode differs');
-    self.assertAlmostEqual(rd[1].x,-0.0029856861,msg='x differs');
-    self.assertAlmostEqual(rd[1].y,-0.0029856861,msg='y differs');
-    self.assertAlmostEqual(rd[1].z,0,msg='z differs');
-    self.assertAlmostEqual(rd[1].l,0.050136296,msg='l differs');
-    self.assertAlmostEqual(rd[1].m,0.050136296,msg='m differs');
-    self.assertAlmostEqual(rd[1].n,0.99748318,msg='n differs');
-    self.assertAlmostEqual(rd[1].Exr,0,msg='Exr differs');
-    self.assertAlmostEqual(rd[1].Eyr,0,msg='Eyr differs');
-    self.assertAlmostEqual(rd[1].Ezr,-1,msg='Ezr differs');
-    self.assertAlmostEqual(rd[1].opd,64.711234,msg='opd differs',places=5);
-    self.assertAlmostEqual(rd[1].intensity,1,msg='intensity differs');
+    # set up field and pupil sampling with random values
+    nr = 22; np.random.seed(0);    
+    hx,hy,px,py = 2*np.random.rand(4,nr)-1;
+    w = 1; # wavenum    
+    
+    # run array trace (C-extension), returns (error,vig,x,y,z,l,m,n,l2,m2,n2,opd,intensity)
+    mode_descr = ("real","paraxial")    
+    for mode in (0,1):
+      print("  compare with GetTrace for %s raytrace"% mode_descr[mode]);
+      ret = at.zGetTraceArray(nr,list(hx),list(hy),list(px),list(py),
+                      intensity=1,waveNum=w,mode=mode,surf=-1,want_opd=0)
+      mask = np.ones(13,dtype=np.bool); mask[-2]=False;   # mask array for removing opd from ret  
+      ret = np.asarray(ret)[mask];
+       
+      # compare with results from GetTrace, returns (error,vig,x,y,z,l,m,n,l2,m2,n2,intensity)
+      ret_descr = ('error','vigcode','x','y','z','l','m','n','Exr','Eyr','Ezr','intensity')
+      for i in xrange(nr):
+        reference = self.ln.zGetTrace(w,mode,-1,hx[i],hy[i],px[i],py[i]); 
+        is_close = np.isclose(ret[:,i], np.asarray(reference));
+        msg = 'zGetTraceArray differs from GetTrace for %s ray #%d:\n' % (mode_descr[mode],i);
+        msg+= '  field: (%f,%f), pupil: (%f,%f) \n' % (hx[i],hy[i],px[i],py[i]);
+        msg+= '  parameter  zGetTraceArray  zGetTrace \n';
+        for j in np.arange(12)[~is_close]:
+          msg+= '%10s  %12g  %12g \n'%(ret_descr[j],ret[j,i],reference[j]);
+        self.assertTrue(np.all(is_close), msg=msg);
 
 
     
   def test_zGetTraceNumpy(self):
-    print("\nTEST: arraytrace.zGetTraceNumpy()")
+    print("\nTEST: arraytrace.numpy_interface.zGetTraceArray()")
     # Load a lens file into the LDE
     filename = get_test_file()
     self.ln.zLoadFile(filename)
     self.ln.zPushLens(1);  
     # set-up field and pupil sampling
-    x = np.linspace(-1,1,3)
-    px= np.linspace(-1,1,3)    
-    grid = np.meshgrid(x,x,px,px);
-    field= np.transpose(grid[0:2]).reshape(-1,2);
-    pupil= np.transpose(grid[2:4]).reshape(-1,2);
-    # array trace (C-extension)
-    ret = nt.zGetTraceArray(field,pupil,mode=0);
-    self.assertEqual(len(field),3**4);
-        
-    #for i in xrange(len(ret)):
-    #  name = ['error','vigcode','pos','dir','normal','opd','intensity']
-    #  print('self.assertAlmostEqual(ret[%d][1],%s,msg=\'%s differs\');'%(i,str(ret[i][1]),name[i]));
-    self.assertEqual(ret[0][1],0,msg='error differs');
-    self.assertEqual(ret[1][1],3,msg='vigcode differs');
-    self.assertTrue(np.allclose(ret[2][1],[-18.24210131, -0.0671553, 0.]),msg='pos differs');
-    self.assertTrue(np.allclose(ret[3][1],[-0.24287826, 0.09285061, 0.96560288]),msg='dir differs');
-    self.assertTrue(np.allclose(ret[4][1],[ 0, 0, -1]),msg='normal differs');
-    self.assertAlmostEqual(ret[5][1],66.8437599679,msg='opd differs');
-    self.assertAlmostEqual(ret[6][1],1.0,msg='intensity differs');
+    nr = 22; np.random.seed(0);    
+    field = 2*np.random.rand(nr,2)-1; hx,hy = field.T;
+    pupil = 2*np.random.rand(nr,2)-1; px,py = pupil.T;
+    w = 1; # wavenum    
     
+    # run array trace (C-extension), returns (error,vigcode,pos,dir,normal,opd,intensity)
+    mode_descr = ("real","paraxial")    
+    for mode in (0,1):
+      print("  compare with GetTrace for %s raytrace"% mode_descr[mode]);
+      ret = nt.zGetTraceArray(field,pupil,bParaxial=(mode==1),waveNum=w,surf=-1);
+      mask = np.ones(13,dtype=np.bool); mask[-2]=False;   # mask array for removing opd from ret  
+      ret = np.column_stack(ret).T;
+      ret = ret[mask];
+             
+      # compare with results from GetTrace, returns (error,vig,x,y,z,l,m,n,l2,m2,n2,intensity)
+      ret_descr = ('error','vigcode','x','y','z','l','m','n','Exr','Eyr','Ezr','intensity')
+      for i in xrange(nr):
+        reference = self.ln.zGetTrace(w,mode,-1,hx[i],hy[i],px[i],py[i]); 
+        is_close = np.isclose(ret[:,i], np.asarray(reference));
+        msg = 'zGetTraceArray differs from GetTrace for %s ray #%d:\n' % (mode_descr[mode],i);
+        msg+= '  field: (%f,%f), pupil: (%f,%f) \n' % (hx[i],hy[i],px[i],py[i]);
+        msg+= '  parameter  zGetTraceArray  zGetTrace \n';
+        for j in np.arange(12)[~is_close]:
+          msg+= '%10s  %12g  %12g \n'%(ret_descr[j],ret[j,i],reference[j]);
+        self.assertTrue(np.all(is_close), msg=msg);
+
 
   def test_cross_check_zArrayTrace_vs_zGetTraceNumpy(self):
     print("\nTEST: comparison of zArrayTrace and zGetTraceNumpy")
@@ -150,7 +152,7 @@ class TestArrayTrace(unittest.TestCase):
       rd[k+1].l = pupil[k,1];
       rd[k+1].intensity = 1.0;
       rd[k+1].wave = 1;
-      rd[k+1].want_opd = 0
+      rd[k+1].want_opd = -1;
     # results of zArrayTrace  
     ret = at.zArrayTrace(rd);
     self.assertEqual(ret,0);
@@ -158,7 +160,7 @@ class TestArrayTrace(unittest.TestCase):
                              r.Exr,r.Eyr,r.Ezr,r.opd,r.intensity] for r in rd[1:]] );
     # results of GetTraceArray
     (error,vigcode,pos,dir,normal,opd,intensity) = \
-        nt.zGetTraceArray(field,pupil,mode=0);
+        nt.zGetTraceArray(field,pupil,bParaxial=0,want_opd=-1);
 
     # compare
     self.assertTrue(np.array_equal(error,results[:,0]),msg="error differs");    
