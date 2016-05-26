@@ -98,37 +98,71 @@ class TestArrayTrace(unittest.TestCase):
           msg+= '%10s  %12g  %12g \n'%(ret_descr[j],ret[j,i],reference[j]);
         self.assertTrue(np.all(is_close), msg=msg);
 
-
-    
-  def test_zGetTraceNumpy(self):
-    print("\nTEST: arraytrace.numpy_interface.zGetTraceArray()")
+  def compare_array_with_single_trace(self,strace,atrace,param_descr,ret_descr,nr=22,seed=0):
+    """ 
+    helper function for comparing array raytrace and single raytrace functions
+    for nr random rays which are constructed from given params (e.g. ['hx','hy','px','py']).
+    The random number generator is initialized with given seed to ensure reproducibility.
+    """
     # Load a lens file into the LDE
     filename = get_test_file()
     self.ln.zLoadFile(filename)
     self.ln.zPushLens(1);  
     # set-up field and pupil sampling
-    nr = 22; np.random.seed(0);    
-    hx,hy,px,py = 2*np.random.rand(4,nr)-1;
-    w = 1; # wavenum    
+    np.random.seed(seed);    
+    params = 2*np.random.rand(len(param_descr),nr)-1;
+    # perform array trace
+    aret = atrace(*params)
+
+    # compare with results from single raytrace
+    for i in xrange(nr):
+      sret = strace(*params[:,i]);
+      is_close = np.isclose(aret[:,i], np.asarray(sret));
+      msg = 'array and single raytrace differ for ray #%d:\n' % i;
+      msg+= '  initial ray parameters: (%s)\n' % ",".join(param_descr);
+      msg+= '                       ' + str(params[:,i]) + "\n";
+      msg+= '  parameter  array-trace   single-trace \n';
+      for j in np.arange(aret.shape[0])[~is_close]:
+        msg+= '%10s  %12g  %12g \n'%(ret_descr[j],aret[j,i],sret[j]);
+      self.assertTrue(np.all(is_close), msg=msg);   
+
+  def test_zGetTraceNumpy(self):
+    print("\nTEST: arraytrace.numpy_interface.zGetTraceArray()")
+    w = 1; # wavenum
     
-    # run array trace (C-extension), returns (error,vigcode,pos,dir,normal,opd,intensity)
-    mode_descr = ("real","paraxial")    
-    for mode in (0,1):
-      print("  compare with GetTrace for %s raytrace"% mode_descr[mode]);
-      ret = nt.zGetTraceArray(hx,hy,px,py,bParaxial=(mode==1),waveNum=w,surf=-1);
-      ret = np.column_stack(ret).T;
-                   
-      # compare with results from GetTrace, returns (error,vig,x,y,z,l,m,n,l2,m2,n2,intensity)
-      ret_descr = ('error','vigcode','x','y','z','l','m','n','Exr','Eyr','Ezr','intensity')
-      for i in xrange(nr):
-        reference = self.ln.zGetTrace(w,mode,-1,hx[i],hy[i],px[i],py[i]); 
-        is_close = np.isclose(ret[:,i], np.asarray(reference));
-        msg = 'zGetTraceArray differs from GetTrace for %s ray #%d:\n' % (mode_descr[mode],i);
-        msg+= '  field: (%f,%f), pupil: (%f,%f) \n' % (hx[i],hy[i],px[i],py[i]);
-        msg+= '  parameter  zGetTraceArray  zGetTrace \n';
-        for j in np.arange(12)[~is_close]:
-          msg+= '%10s  %12g  %12g \n'%(ret_descr[j],ret[j,i],reference[j]);
-        self.assertTrue(np.all(is_close), msg=msg);
+    for mode,descr in [(0,"real"),(1,"paraxial")]:
+      print("  compare with GetTrace for %s raytrace"% descr);
+      # single trace (GetTrace), returns (error,vig,x,y,z,l,m,n,l2,m2,n2,intensity)
+      ret_descr = ('error','vigcode','x','y','z','l','m','n','l2','m2','n2','intensity')
+      def strace(hx,hy,px,py):
+        return self.ln.zGetTrace(w,mode,-1,hx,hy,px,py); 
+      # array trace (C-extension), returns (error,vigcode,pos(3),dir(3),normal(3)intensity)
+      def atrace(hx,hy,px,py):
+        ret = nt.zGetTraceArray(hx,hy,px,py,bParaxial=(mode==1),waveNum=w,surf=-1); 
+        return np.column_stack(ret).T;
+      # perform comparison  
+      self.compare_array_with_single_trace(strace,atrace,('hx','hy','px','py'),ret_descr);
+      
+      
+  def test_zGetOpticalPathDifference(self):
+    print("\nTEST: arraytrace.numpy_interface.zGetOpticalPathDifference()")
+    w = 1; # wavenum
+    px,py=1,0.5;  # we fix the pupil values, as GetOpticalPathDifference
+                  # traces rays to all pupil points for each field point
+    # single trace (GetTrace,OPDX), returns (error,vig,x,y,z,l,m,n,l2,m2,n2,intensity)
+    ret_descr = ('error','vigcode','opd','x','y','z','l','m','n','intensity')
+    def strace(hx,hy):
+      (error,vig,x,y,z,l,m,n,l2,m2,n2,intensity)=self.ln.zGetTrace(w,0,-1,hx,hy,px,py);  # real ray trace to image surface
+      opd=self.ln.zGetOpticalPathDifference(hx,hy,px,py,ref=0,wave=w);                   # calculate OPD, ref: chief ray
+      vig=1 if vig<>0 else 0;    # vignetting flag is only 0 or 1 in ArrayTrace, not the surface number
+      return (error,vig,opd,x,y,z,l,m,n,intensity);
+    # array trace (C-extension), returns (error,vigcode,opd,pos,dir,intensity) 
+    def atrace(hx,hy):
+      ret = nt.zGetOpticalPathDifferenceArray(hx,hy,px,py,waveNum=w);
+      ret = map(lambda a: a.reshape((ret[0].size,-1)), ret); # reshape arguments as (nRays,...)
+      return np.hstack(ret).T;
+    # perform comparison  
+    self.compare_array_with_single_trace(strace,atrace,('hx','hy'),ret_descr);
 
 
   def test_cross_check_zArrayTrace_vs_zGetTraceNumpy(self):
@@ -141,6 +175,7 @@ class TestArrayTrace(unittest.TestCase):
     nr = 22;
     rd = at.getRayDataArray(nr)
     hx,hy,px,py = 2*np.random.rand(4,nr)-1;
+    
     for k in xrange(nr):
       rd[k+1].x = hx[k];
       rd[k+1].y = hy[k];
