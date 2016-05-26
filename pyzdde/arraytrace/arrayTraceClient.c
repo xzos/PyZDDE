@@ -104,7 +104,7 @@ int __stdcall arrayTrace(DDERAYDATA * pRAD, unsigned int timeout)
 
 // ----------------------------------------------------------------------------------
 // Mode 0: similar to GetTrace (rays defined by field and pupil coordinates)
-int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2],  
+int __stdcall numpyGetTrace(int nrays, double hx[], double hy[], double px[], double py[],
    double intensity[], int wave_num[], int mode, int surf, int error[], int vigcode[], 
    double pos[][3], double dir[][3], double normal[][3], unsigned int timeout)
 {
@@ -123,10 +123,10 @@ int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2],
 
     // initialize ray-structure with initial sampling
     for (i=0; i<nrays; i++) {
-      RD[i+1].x = field[i][0];
-      RD[i+1].y = field[i][1];
-      RD[i+1].z = pupil[i][0];
-      RD[i+1].l = pupil[i][1];
+      RD[i+1].x = hx[i];
+      RD[i+1].y = hy[i];
+      RD[i+1].z = px[i];
+      RD[i+1].l = py[i];
       RD[i+1].intensity = intensity[i];
       RD[i+1].wave = wave_num[i];
       //RD[i+1].error= 0;     // already initialized to 0
@@ -162,8 +162,8 @@ int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2],
 // Calculate OPD for all rays indicated by normalized field and pupil coordinates
 // as well as a list of wavenumbers. The return values are multidimensional arrays
 // which can be indexed as opd[wave][field][pupil]
-int __stdcall numpyOpticalPathDifference(int nField, double field[][2], 
-   int nPupil, double pupil[][2], int nWave, int wave_num[], 
+int __stdcall numpyOpticalPathDifference(int nField, double hx[], double hy[], 
+   int nPupil, double px[], double py[], int nWave, int wave_num[], 
    int error[], int vigcode[], double opd[], double pos[][3], 
    double dir[][3], double intensity[], unsigned int timeout)
 {
@@ -186,10 +186,10 @@ int __stdcall numpyOpticalPathDifference(int nField, double field[][2],
     for (iWave=0; iWave<nWave; iWave++) {
       for (iField=0; iField<nField; iField++) {
         for (iPupil=0; iPupil<nPupil; iPupil++) {
-            RD[i].x = field[iField][0];
-            RD[i].y = field[iField][1];
-            RD[i].z = pupil[iPupil][0];
-            RD[i].l = pupil[iPupil][1];
+            RD[i].x = hx[iField];
+            RD[i].y = hy[iField];
+            RD[i].z = px[iPupil];
+            RD[i].l = py[iPupil];
             RD[i].intensity = 1.0;
             RD[i].wave = wave_num[iWave];
             RD[i].want_opd=1;

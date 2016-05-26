@@ -32,13 +32,13 @@ void rayTraceFunction();
 // general arrayTrace function accepting DDERAYDATA structure
 DLL_EXPORT int __stdcall arrayTrace(DDERAYDATA * pRAD, unsigned int timeout);
 // wrapper for numpy arrays: mode 0
-DLL_EXPORT int __stdcall numpyGetTrace(int nrays, double field[][2], double pupil[][2],  
+DLL_EXPORT int __stdcall numpyGetTrace(int nrays, double hx[], double hy[], double px[], double py[], 
    double intensity[], int wave_num[], int mode, int surf, int error[], int vigcode[], 
    double pos[][3], double dir[][3], double normal[][3], unsigned int timeout);
 
 // wrapper for numpy arrays: calculate opd
-DLL_EXPORT int __stdcall numpyOpticalPathDifference(int nField, double field[][2], 
-   int nPupil, double pupil[][2], int nWave, int wave_num[], 
+DLL_EXPORT int __stdcall numpyOpticalPathDifference(int nField, double hx[], double hy[], 
+   int nPupil, double px[], double py[], int nWave, int wave_num[], 
    int error[], int vigcode[], double opd[], double pos[][3], 
    double dir[][3], double intensity[], unsigned int timeout);
 

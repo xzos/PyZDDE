@@ -108,15 +108,14 @@ class TestArrayTrace(unittest.TestCase):
     self.ln.zPushLens(1);  
     # set-up field and pupil sampling
     nr = 22; np.random.seed(0);    
-    field = 2*np.random.rand(nr,2)-1; hx,hy = field.T;
-    pupil = 2*np.random.rand(nr,2)-1; px,py = pupil.T;
+    hx,hy,px,py = 2*np.random.rand(4,nr)-1;
     w = 1; # wavenum    
     
     # run array trace (C-extension), returns (error,vigcode,pos,dir,normal,opd,intensity)
     mode_descr = ("real","paraxial")    
     for mode in (0,1):
       print("  compare with GetTrace for %s raytrace"% mode_descr[mode]);
-      ret = nt.zGetTraceArray(field,pupil,bParaxial=(mode==1),waveNum=w,surf=-1);
+      ret = nt.zGetTraceArray(hx,hy,px,py,bParaxial=(mode==1),waveNum=w,surf=-1);
       ret = np.column_stack(ret).T;
                    
       # compare with results from GetTrace, returns (error,vig,x,y,z,l,m,n,l2,m2,n2,intensity)
@@ -141,13 +140,12 @@ class TestArrayTrace(unittest.TestCase):
     # set-up field and pupil sampling
     nr = 22;
     rd = at.getRayDataArray(nr)
-    pupil = 2*np.random.rand(nr,2)-1;
-    field = 2*np.random.rand(nr,2)-1;
+    hx,hy,px,py = 2*np.random.rand(4,nr)-1;
     for k in xrange(nr):
-      rd[k+1].x = field[k,0];
-      rd[k+1].y = field[k,1];
-      rd[k+1].z = pupil[k,0];
-      rd[k+1].l = pupil[k,1];
+      rd[k+1].x = hx[k];
+      rd[k+1].y = hy[k];
+      rd[k+1].z = px[k];
+      rd[k+1].l = py[k];
       rd[k+1].intensity = 1.0;
       rd[k+1].wave = 1;
       rd[k+1].want_opd = 0;
@@ -158,7 +156,7 @@ class TestArrayTrace(unittest.TestCase):
                              r.Exr,r.Eyr,r.Ezr,r.opd,r.intensity] for r in rd[1:]] );
     # results of GetTraceArray
     (error,vigcode,pos,dir,normal,intensity) = \
-        nt.zGetTraceArray(field,pupil,bParaxial=0);
+        nt.zGetTraceArray(hx,hy,px,py,bParaxial=0);
 
     # compare
     self.assertTrue(np.array_equal(error,results[:,0]),msg="error differs");    
