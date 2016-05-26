@@ -35,7 +35,11 @@ DLL_EXPORT int __stdcall arrayTrace(DDERAYDATA * pRAD, unsigned int timeout);
 DLL_EXPORT int __stdcall numpyGetTrace(int nrays, double hx[], double hy[], double px[], double py[], 
    double intensity[], int wave_num[], int mode, int surf, int error[], int vigcode[], 
    double pos[][3], double dir[][3], double normal[][3], unsigned int timeout);
-
+// wrapper for numpy arrays: mode 1
+DLL_EXPORT int __stdcall numpyGetTraceDirect(int nrays, double startpos[][3], 
+  double startdir[][3], double intensity[], int wave_num[], int mode, int startsurf, 
+  int lastsurf, int error[], int vigcode[], double pos[][3], double dir[][3], 
+  double normal[][3], unsigned int timeout);
 // wrapper for numpy arrays: calculate opd
 DLL_EXPORT int __stdcall numpyOpticalPathDifference(int nField, double hx[], double hy[], 
    int nPupil, double px[], double py[], int nWave, int wave_num[], 

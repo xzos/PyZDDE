@@ -159,6 +159,63 @@ int __stdcall numpyGetTrace(int nrays, double hx[], double hy[], double px[], do
 
 
 // ----------------------------------------------------------------------------------
+// Mode 1: similar to GetTraceDirect (rays defined by position and direction cosines on any starting surface)
+int __stdcall numpyGetTraceDirect(int nrays, double startpos[][3], double startdir[][3], 
+   double intensity[], int wave_num[], int mode, int startsurf, int lastsurf, int error[], 
+   int vigcode[], double pos[][3], double dir[][3], double normal[][3], unsigned int timeout)
+{
+    int i;
+
+    // allocate memory for list of structures expected by ZEMAX
+    DDERAYDATA* RD = calloc(nrays+1,sizeof(*RD));
+
+    // set parameters for raytrace (in 0'th element)
+    // see Zemax manual for meaning of the fields (do not infer from field names!)
+    RD[0].opd=1;         // set type 1 (GetTrace)
+    RD[0].wave=mode;     // 0 for real rays, 1 for paraxial rays
+    RD[0].error=nrays;
+    RD[0].vigcode=startsurf; // the surface on which the coordinates start
+    RD[0].want_opd=lastsurf; // surface to trace to, -1 for image, or any valid surface number
+
+    // initialize ray-structure with initial sampling
+    for (i=0; i<nrays; i++) {
+      RD[i+1].x = startpos[i][0];
+      RD[i+1].y = startpos[i][1];
+      RD[i+1].z = startpos[i][2];
+      RD[i+1].l = startdir[i][0];
+      RD[i+1].m = startdir[i][1];
+      RD[i+1].n = startdir[i][2];
+      RD[i+1].intensity = intensity[i];
+      RD[i+1].wave = wave_num[i];
+      //RD[i+1].error= 0;           // already initialized to 0
+      //RD[i+1].vigcode=0;
+    }
+
+    // arrayTrace
+    if(arrayTrace(RD,timeout)==0) {
+
+    // was successful, fill return values
+    for (i=0; i<nrays; i++) {
+      pos[i][0] = RD[i+1].x;
+      pos[i][1] = RD[i+1].y;
+      pos[i][2] = RD[i+1].z;
+      dir[i][0] = RD[i+1].l;
+      dir[i][1] = RD[i+1].m;
+      dir[i][2] = RD[i+1].n;
+      normal[i][0]=RD[i+1].Exr;
+      normal[i][1]=RD[i+1].Eyr;
+      normal[i][2]=RD[i+1].Ezr;
+      intensity[i]=RD[i+1].intensity;
+      error[i]    =RD[i+1].error;
+      vigcode[i]  =RD[i+1].vigcode;    
+    }
+    } // end-if array trace suceeded
+    free(RD);
+    return RETVAL;
+}
+
+
+// ----------------------------------------------------------------------------------
 // Calculate OPD for all rays indicated by normalized field and pupil coordinates
 // as well as a list of wavenumbers. The return values are multidimensional arrays
 // which can be indexed as opd[wave][field][pupil]
