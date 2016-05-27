@@ -19,7 +19,7 @@ NMAKE= nmake /nologo /C /f Makefile.win
 
 CGFLAGS=/c /MT /D_WINDOWS /D_USRDLL /D_WINDLL /EHsc /W4 /Zp1
 CRFLAGS=/DNDEBUG /Ox
-CDFLAGS=/Ge /MLd /Od /Zi
+CDFLAGS=/Od /Zi
 
 #-------------------------------------------------------------------------
 # Linker-Flags
@@ -77,7 +77,7 @@ all: debug32 debug64 release32 release64
   @echo.
   @echo Done.
 
-release: clean $(RELEASEDIR)\ArrayTrace.dll
+release: clean $(RELEASEDIR) $(RELEASEDIR)\ArrayTrace.dll
 release32: 
   @$(NMAKE) ARCH="Win32 Release" release
 release64:  
@@ -94,7 +94,7 @@ clean-all:
   @$(NMAKE) ARCH="x64 Debug" clean
 
 clean:
-  @-erase  *.obj *.pdb *.ilk *.pch $(RELEASEDIR)\*.dll $(RELEASEDIR)\*.lib $(RELEASEDIR)\*.exp
+  @erase  *.obj *.pdb *.ilk *.pch $(RELEASEDIR)\*.dll $(RELEASEDIR)\*.lib $(RELEASEDIR)\*.exp
 
 
 #-------------------------------------------------------------------------
@@ -103,6 +103,10 @@ clean:
 
 arrayTraceClient.obj: arrayTraceClient.c arrayTraceClient.h
   $(CC) $(CFLAGS) arrayTraceClient.c
+
+$(RELEASEDIR):
+  @mkdir "$(RELEASEDIR)"
+
 $(RELEASEDIR)\ArrayTrace.dll: arrayTraceClient.obj
   $(LINK) $(LFLAGS) /OUT:$@ $**
 

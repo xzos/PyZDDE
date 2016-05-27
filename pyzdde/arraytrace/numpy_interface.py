@@ -20,17 +20,6 @@ functions are provided according to 5 different modes discussed in the Zemax man
     
 Note
 -----
-
-The parameter want_opd is very confusing as it alters the behavior of GetTraceArray.
-If the calculation of OPD is requested for a ray, 
-- vigcode becomes a different meaning (seems to be 1 if vignetted, but no longer related to surface)
-- bParaxial (mode) becomes inactive, Zemax always performs a real-raytrace !
-- the surface normal is not calculated
-- if the calculation of the chief ray data is not requested for the first ray, 
-  e.g. by setting all want_opd to 1, wrong OPD values are returned (without any relation to the real values)
-- this affects only rays with want_opd<>0 -> i.e. if it is mixed, one obtains a total mess
-
-
 The pupil apodization seems to be always considered independent of the mode / bParaxial value
 in contrast to the note in the Zemax Manual (tested with Zemax 13 Release 2 SP 5 Premium 64bit)
 """
