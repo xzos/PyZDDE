@@ -75,7 +75,7 @@ _array_trace_lib = _ct.WinDLL(_dllpath + _dllName)
 # int __stdcall arrayTrace(DDERAYDATA * pRAD, unsigned int timeout)
 _arrayTrace = _array_trace_lib.arrayTrace
 _arrayTrace.restype = _ct.c_int
-_arrayTrace.argtypes = [_ct.POINTER(DdeArrayData), _ct.c_int]
+_arrayTrace.argtypes = [_ct.POINTER(DdeArrayData), _ct.c_uint]
                           
 
 def zArrayTrace(rd, timeout=5000):

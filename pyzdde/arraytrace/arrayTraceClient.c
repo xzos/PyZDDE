@@ -51,7 +51,7 @@ void rayTraceFunction(void)
 }
 
 /* ----------------------------------------------------------------------------------
-  ArrayTrace functions that accespt DDERAYDATA as argument
+  ArrayTrace functions that accept DDERAYDATA as argument
    ----------------------------------------------------------------------------------
  */
 
@@ -97,7 +97,7 @@ int __stdcall arrayTrace(DDERAYDATA * pRAD, unsigned int timeout)
 }
 
 /* ----------------------------------------------------------------------------------
-  ArrayTrace functions that accespt Numpy arrays as arguments
+  ArrayTrace functions that accept Numpy arrays as arguments
   avoids large overhead times in Python wrapper functions
    ----------------------------------------------------------------------------------
  */
