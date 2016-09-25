@@ -745,7 +745,7 @@ def readDetectorViewerTextFile(pyz, textFileName, displayData=False):
 def gridSagFile(z, dzBydx, dzBydy, d2zBydxdy, nx, ny, delx, dely, unitflag=0, 
                         xdec=0, ydec=0, fname='gridsag', comment=None, fext='.DAT'):
     """generates Grid Sag ASCII file for specifying the additional sag terms of the 
-    grid sag surfacd
+    grid sag surface
     
     Parameters
     ----------

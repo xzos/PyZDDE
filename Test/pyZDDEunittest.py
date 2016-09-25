@@ -1145,7 +1145,9 @@ class TestPyZDDEFunctions(unittest.TestCase):
         self.assertEqual(ret, -1)
         # Pass valid parameters and string type value
         ret = self.ln.zModifySettings(sfilename,'UN1_OPERAND', 'ZERN')
-        self.assertEqual(ret, 0)
+        self.assertEqual(ret, 0, 'This test fails in OpticStudio16 and above!')
+        # this test fails in OpticStidio16 and above, and I don't imagine Zemax 
+        # fixing any bugs in the DDE interface.
         if TestPyZDDEFunctions.pRetVar:
             print('zModifySettings test successful')
 

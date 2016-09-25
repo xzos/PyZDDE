@@ -218,6 +218,11 @@ ZMXFILES/Fiber\ Coupling_POPunittest_NoFiberCompute.CFG
 ZMXFILES/Fiber\ Coupling_POPunittest_Phase.CFG
 ZMXFILES/Cooke\ 40\ degree\ field_unittest.CFG
 ZMXFILES/Cooke\ 40\ degree\ field_PreSettings_OnlyCardinals.CFG
+ZMXFILES/LENS.SES
+ZMXFILES/Cooke_40_degree_field_unittest.CFG
+ZMXFILES/Fiber_Coupling_POPunittest.CFG
+ZMXFILES/Fiber_Coupling_POPunittest_NoFiberCompute.CFG
+ZMXFILES/Fiber_Coupling_POPunittest_Phase.CFG
 ZMXFILES/speckleusingpop_gridsagsurf.CFG
 Examples/Scripts/pikachu2.zbf
 ZMXFILES/None
@@ -242,4 +247,3 @@ ZMXFILES/*.cfg
 
 # Files that needs to be synced on/off sometimes
 *.dll
-ZMXFILES/LENS.SES

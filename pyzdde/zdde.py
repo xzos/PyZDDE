@@ -4135,7 +4135,7 @@ class PyZDDE(object):
             full name of the settings file, including the path & extension
         mType : string
             a mnemonic that indicates which setting within the file is to
-            be mdified. See the ZPL macro command "MODIFYSETTINGS" in the
+            be modified. See the ZPL macro command "MODIFYSETTINGS" in the
             Zemax manual for a complete list of the ``mType`` codes
         value : string or integer
             the new data for the specified setting
@@ -4533,7 +4533,7 @@ class PyZDDE(object):
 
         See Also
         --------
-        zHammer(), zLoadMerit(), zsaveMerit(), zOptimize2()
+        zHammer(), zLoadMerit(), zSaveMerit(), zOptimize2()
         """
         cmd = "Optimize,{:1.2g},{:d}".format(numOfCycles,algorithm)
         reply = self._sendDDEcommand(cmd, timeout)
@@ -7259,7 +7259,7 @@ class PyZDDE(object):
 
         # Point spacing
         pts_line = line_list[_getFirstLineOfInterest(line_list, 'Point spacing')]
-        pat = r'-?\d\.\d{4,6}[Ee][-\+]\d{3}'
+        pat = r'-?\d\.\d{4,6}[Ee][-\+]\d{2,3}'
         pts_x, pts_y =  [float(i) for i in _re.findall(pat, pts_line)]
 
         width_x = pts_x*grid_x
@@ -7267,7 +7267,7 @@ class PyZDDE(object):
         
         if data_is_irr:
             # Peak Irradiance and Total Power
-            pat_i = r'-?\d\.\d{4,6}[Ee][-\+]\d{3}' # pattern for P. Irr, T. Pow,
+            pat_i = r'-?\d\.\d{4,6}[Ee][-\+]\d{2,3}' # pattern for P. Irr, T. Pow,
             peakIrr, totPow = None, None
             pi_tp_line = _getFirstLineOfInterest(line_list, 'Peak Irradiance') 
             if pi_tp_line: # Transfer magnitude doesn't have Peak Irradiance info
@@ -7293,7 +7293,7 @@ class PyZDDE(object):
         # Pilot_size, Pilot_Waist, Pos, Rayleigh [... available for
         # both Phase and Irr data]
         pat_fe = r'\d\.\d{6}'   # pattern for fiber efficiency
-        pat_pi = r'-?\d\.\d{4,6}[Ee][-\+]\d{3}' # pattern for Pilot size/waist
+        pat_pi = r'-?\d\.\d{4,6}[Ee][-\+]\d{2,3}' # pattern for Pilot size/waist
         pilotSize, pilotWaist, pos, rayleigh = None, None, None, None
         pilot_line = line_list[_getFirstLineOfInterest(line_list, 'Pilot')]
         p_size_info, p_waist_info, p_pos_info, p_rayleigh_info = pilot_line.split(',')
@@ -7328,7 +7328,7 @@ class PyZDDE(object):
 
         if displayData:
             # Get the 2D data
-            pat = (r'(-?\d\.\d{4,6}[Ee][-\+]\d{3}\s*)' + r'{{{num}}}'
+            pat = (r'(-?\d\.\d{4,6}[Ee][-\+]\d{2,3}\s*)' + r'{{{num}}}'
                    .format(num=grid_x))
             start_line = _getFirstLineOfInterest(line_list, pat)
             powerGrid = _get2DList(line_list, start_line, grid_y)
@@ -7825,7 +7825,7 @@ class PyZDDE(object):
             ctr_ref_line = line_list[_getFirstLineOfInterest(line_list, 'Center coordinates')]
         else:
             ctr_ref_line = line_list[_getFirstLineOfInterest(line_list, 'Reference Coordinates')]
-        ctr_ref_x, ctr_ref_y = [float(i) for i in _re.findall('-?\d\.\d{4,10}[Ee][-\+]\d{3}', ctr_ref_line)]
+        ctr_ref_x, ctr_ref_y = [float(i) for i in _re.findall('-?\d\.\d{4,10}[Ee][-\+]\d{2,3}', ctr_ref_line)]
         img_grid_line = line_list[_getFirstLineOfInterest(line_list, 'Image grid size')]
         img_grid_x, img_grid_y = [int(i) for i in _re.findall(r'\d{2,5}', img_grid_line)]
         pupil_grid_line = line_list[_getFirstLineOfInterest(line_list, 'Pupil grid size')]
@@ -7834,7 +7834,7 @@ class PyZDDE(object):
         center_point_x, center_point_y = [int(i) for i in _re.findall(r'\d{2,5}', center_point_line)]
 
         # The 2D data
-        pat = (r'(-?\d\.\d{4,6}[Ee][-\+]\d{3}\s*)' + r'{{{num}}}'
+        pat = (r'(-?\d\.\d{4,6}[Ee][-\+]\d{2,3}\s*)' + r'{{{num}}}'
                .format(num=img_grid_x))
         start_line = _getFirstLineOfInterest(line_list, pat)
         psfGridData = _get2DList(line_list, start_line, img_grid_y)
