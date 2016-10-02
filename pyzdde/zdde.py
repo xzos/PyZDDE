@@ -6,7 +6,7 @@
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
-# Revision:    2.0.2
+# Revision:    2.0.3
 #-------------------------------------------------------------------------------
 """PyZDDE, which is a toolbox written in Python, is used for communicating
 with ZEMAX using the Microsoft's Dynamic Data Exchange (DDE) messaging
@@ -427,7 +427,7 @@ class PyZDDE(object):
     __server = 0
     __appNameDict = _createAppNameDict(_MAX_PARALLEL_CONV)  # {'ZEMAX': False, 'ZEMAX1': False}
 
-    version = '2.0.2'
+    version = '2.0.3'
     
     # Other class variables
     # Surface data codes for getting and setting surface data

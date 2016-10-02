@@ -9,11 +9,8 @@ Python Zemax Dynamic Data Exchange
 Current revision
 '''''''''''''''''
 
-2.0.2 (Last significant update on 01/03/2016)
+2.0.3 (Last significant update on 10/02/2016)
 
-
-**NEW**: We are also working on a Python library, called PyZOS, to provide better interactivity
-with the new Zemax OpticStudio API (COM based interface). The project is hosted at `Github <https://github.com/pyzos/pyzos>`__. 
 
 
 Change log
