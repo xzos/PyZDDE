@@ -3180,7 +3180,7 @@ class PyZDDE(object):
              64   - Convert thin film phase to ray equivalent (0:no, 1:yes)
              65   - Unpolarized. (0:no, 1:yes)
              66   - Method. (0:X-axis, 1:Y-axis, 2:Z-axis)
-             70   - Ray Aiming. (0:off, 1:on, 2:aberrated)
+             70   - Ray Aiming. (0:off, 1:on (paraxial), 2:aberrated (real))
              71   - Ray aiming pupil shift x.
              72   - Ray aiming pupil shift y.
              73   - Ray aiming pupil shift z.
@@ -11249,7 +11249,7 @@ class PyZDDE(object):
             If ``False`` (default), the image is embedded and no array is
             returned;
             If ``True``, an numpy array is returned that may be plotted
-            using Matpotlib.
+            using Matplotlib.
         wait : integer
             time in sec sent to Zemax for the requested analysis to
             complete and produce a file.
