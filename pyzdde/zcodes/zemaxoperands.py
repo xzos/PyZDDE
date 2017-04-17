@@ -2,6 +2,7 @@
 #-------------------------------------------------------------------------------
 # Name:        zemaxoperands.py
 # Purpose:     Class of ZEMAX operands
+#              Last updated: April 16, 2017
 #
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
@@ -63,9 +64,12 @@ class _Operands(object):
             "configurations in milliradians."),
     "BIPF": "Unused.",
     "BLNK": "Does nothing. Used for separating portions of the operand list.",
+    "BLTH": "Blank thickness. Computes the minimum thickness of the glass blank required to create the volume following the surface defined by Surf.",
     "BSER": "Boresight error.",
     "CEGT": ("Boundary operand that constrains the coating extinction offset to "
             "be greater than the target value."),
+    "CEHX": "Huygens PSF centroid X position. This operand uses the Huygens PSF to determine the x coordinate of the centroid for any field point.",
+    "CEHY": "Huygens PSF centroid Y position. See CEHX.",
     "CELT": ("Boundary operand that constrains the coating extinction offset to "
             "be less than the target value."),
     "CENX": "Centroid X position. See also CENY, CNPX, CNPY, CNAX, and CNAY.",
@@ -171,6 +175,7 @@ class _Operands(object):
             "following the specified surface.See GBPD.",
     "GBPS": "Gaussian beam (paraxial) size in the optical space following the "
             "specified surface. See GBPD.",
+    "GBPZ": "Gaussian beam (paraxial) Rayleigh range in the optical space following the specified surface. See GBPD.",
     "GBPW": "Gaussian beam (paraxial) waist in the optical space following the "
             "specified surface. See GBPD.",
     "GBSD": "Gaussian beam (skew) divergence in the optical space following the "
@@ -260,6 +265,8 @@ class _Operands(object):
             "Surf1 and Surf2 to be greater than the specified target value."
             " See also MXPD. This operand controls multiple surfaces "
             "simultaneously."),
+    "MNRE": "Minimum real ray angle of exitance. This boundary operand constrains the minimum ray exit angle over a range of surfaces...the angle of exitance is always positive. See also MXRE, MNRI, and MXRI.",
+    "MNRI": "Minimum real ray angle of incidence. This boundary operand constrains the minimum ray incidence angle over a range of surfaces...the angle of incidence is always positive. See also MNRE, MXRE, and MXRI.",
     "MNSD": "Minimum semi-diameter.",
     "MSWA": "Modulation square-wave transfer function, average of sagittal and "
             "tangential. See MTFA for details.",
@@ -297,47 +304,55 @@ class _Operands(object):
             "the deviation of the partial dispersion of surfaces between "
             "Surf1 and Surf2 to be less than the specified target value. "
             "See also MNPD. This operand controls multiple surfaces simultaneously."),
+    "MXRE": "Maximum real ray angle of exitance. This boundary operand constrains the maximum ray exit angle over a range of surfaces...the angle of exitance is always positive. See also MNRE, MNRI, and MXRI.",
+    "MXRI": "Maximum real ray angle of incidence. This boundary operand constrains the maximum ray incidence angle over a range of surfaces...the angle of incidence is always positive. See also MNRE, MNRI, and MXRE.",
     "MXSD": "Maximum semi-diameter.",
     "NORD": "Normal distance to the next surface.",
     "NORX": "Normal vector x component.",
     "NORY": "Normal vector y component.",
     "NORZ": "Normal vector z component.",
-    "NPGT": "Non-sequential (NS) parameter greater than.",
-    "NPLT": "Non-sequential (NS) parameter less than. See NPGT.",
-    "NPVA": "Non-sequential (NS) parameter value. See NPGT.",
-    "NPXG": "Non-sequential (NS) object position x greater than.",
-    "NPXL": "Non-sequential (NS) object position x less than. See NPXG.",
-    "NPXV": "Non-sequential (NS) object position x value. See NPXG.",
-    "NPYG": "Non-sequential (NS) object position y greater than. See NPXG.",
-    "NPYL": "Non-sequential (NS) object position y less than. See NPXG.",
-    "NPYV": "Non-sequential (NS) object position y value. See NPXG.",
-    "NPZG": "Non-sequential (NS) object position z greater than. See NPXG.",
-    "NPZL": "Non-sequential (NS) object position z less than. See NPXG.",
-    "NPZV": "Non-sequential (NS) object position z value. See NPXG.",
-    "NSDC": "Non-sequential (NS) coherent data. See also NSDD.",
-    "NSDD": "Non-sequential (NS) incoherent intensity detector data (DD). NSDD is used "
+    "NPGT": "Non-sequential (NSC) parameter greater than.",
+    "NPLT": "Non-sequential (NSC) parameter less than. See NPGT.",
+    "NPVA": "Non-sequential (NSC) parameter value. See NPGT.",
+    "NPXG": "Non-sequential (NSC) object position x greater than.",
+    "NPXL": "Non-sequential (NSC) object position x less than. See NPXG.",
+    "NPXV": "Non-sequential (NSC) object position x value. See NPXG.",
+    "NPYG": "Non-sequential (NSC) object position y greater than. See NPXG.",
+    "NPYL": "Non-sequential (NSC) object position y less than. See NPXG.",
+    "NPYV": "Non-sequential (NSC) object position y value. See NPXG.",
+    "NPZG": "Non-sequential (NSC) object position z greater than. See NPXG.",
+    "NPZL": "Non-sequential (NSC) object position z less than. See NPXG.",
+    "NPZV": "Non-sequential (NSC) object position z value. See NPXG.",
+    "NSDC": "Non-sequential (NSC) coherent data. See also NSDD.",
+    "NSDD": "Non-sequential (NSC) incoherent intensity detector data (DD). NSDD is used "
             "to clear detectors (Det# parameter set to 0), and to read out incoherent "
             "intensity detector data. By using NSDD in the merit function editor, a number "
             "of results may be obtained depending on the values specified for the Pix# and "
             "Data parameters. For example, the mean flux, the maximum flux/area, the "
             "standard deviation of all non-zero pixel data, RMS spot radius, etc.",
-    "NSDE": "Non-sequential (NS) Detector Color object data. See also NSDD and NSDP.",
-    "NSDP": "Non-sequential (NS) Detector Polar object data. See also NSDD and NSDE.",
-    "NSRA": "Non-sequential (NS) single ray trace.",
-    "NSRM": "Non-sequential (NS) Rotation Matrix component.",
-    "NSST": "Non-sequential (NS) single ray trace. See also NSTR.",
-    "NSTR": "Non-sequential (NS) trace. It is used to trace rays from NSC sources. "
+    "NSDE": "Non-sequential (NSC) Detector Color object data. See also NSDD and NSDP.",
+    "NSDP": "Non-sequential (NSC) Detector Polar object data. See also NSDD and NSDE.",
+    "NSLT": "Non-sequential (NSC) LightningTrace. This operand traces mesh rays as defined by the LightningTrace analysis. See also NSTR.",
+    "NSRA": "Non-sequential (NSC) single ray trace.",
+    "NSRM": "Non-sequential (NSC) Rotation Matrix component.",
+    "NSRW": "Non-sequential (NSC) roadway lighting data...intended to be used as part of the NSC Roadway Merit Function Tool. See also NSTW.",
+    "NSST": "Non-sequential (NSC) single ray trace. See also NSTR.",
+    "NSTR": "Non-sequential (NSC) trace. It is used to trace rays from NSC sources. "
             "See also NSST.",
-    "NTXG": "Non-sequential (NS) object tilt about x greater than. See NPXG.",
-    "NTXL": "Non-sequential (NS) object tilt about x less than. See NPXG.",
-    "NTXV": "Non-sequential (NS) object tilt about x value. See NPXG.",
-    "NTYG": "Non-sequential (NS) object tilt about y greater than. See NPXG.",
-    "NTYL": "Non-sequential (NS) object tilt about y less than. See NPXG.",
-    "NTYV": "Non-sequential (NS) object tilt about y value. See NPXG.",
-    "NTZG": "Non-sequential (NS) object tilt about z greater than. See NPXG.",
-    "NTZL": "Non-sequential (NS) object tilt about z less than. See NPXG.",
-    "NTZV": "Non-sequential (NS) object tilt about z value. See NPXG.",
+    "NSTW": "Non-sequential (NSC) roadway lighting raytrace. This operand is solely for optimizing roadway lighting applications in conjunction with the NSRW operand and the NSC Roadway Merit Function.",
+    "NTXG": "Non-sequential (NSC) object tilt about x greater than. See NPXG.",
+    "NTXL": "Non-sequential (NSC) object tilt about x less than. See NPXG.",
+    "NTXV": "Non-sequential (NSC) object tilt about x value. See NPXG.",
+    "NTYG": "Non-sequential (NSC) object tilt about y greater than. See NPXG.",
+    "NTYL": "Non-sequential (NSC) object tilt about y less than. See NPXG.",
+    "NTYV": "Non-sequential (NSC) object tilt about y value. See NPXG.",
+    "NTZG": "Non-sequential (NSC) object tilt about z greater than. See NPXG.",
+    "NTZL": "Non-sequential (NSC) object tilt about z less than. See NPXG.",
+    "NTZV": "Non-sequential (NSC) object tilt about z value. See NPXG.",
     "OBSN": "Object space numerical aperture.",
+    "OMMI": "Constrains the Minimum mechanical semi-diameter...This operand controls multiple surfaces simultaneously. See also OMMX.",
+    "OMMX": "Constrains the Maximum mechanical semi-diameter. See also OMMI.",
+    "OMSD": "Constrains the Mechanical Semi-Diameter. See also OMMI, OMMX.",
     "OOFF": "This operand indicates an unused entry in the operand list.",
     "OPDC": "Optical path difference with respect to chief ray in waves at the "
             "wavelength defined by Wave.",
@@ -459,6 +474,7 @@ class _Operands(object):
             "Surf at the wavelength defined by Wave.",
     "RETY": "Real ray y-direction ray tangent (slope) at the surface defined by "
             "Surf at the wavelength defined by Wave.",
+    "REVR": "Reverse Radiance. This operand returns the Total Flux computed by the reverse radiance feature.",
     "RGLA": "Reasonable glass.",
     "RSCE": "RMS spot radius with respect to the centroid in lens units; using "
             "Guassian quadrature method that is accurate for systems with unvignetted "
@@ -485,6 +501,7 @@ class _Operands(object):
     "SAGY": "The sag in lens units of the surface defined by Surf at Y = the "
             "semi-diameter, and X = 0. See also SSAG.",
     "SCUR": "Surface curvature.",
+    "SDRV": "Surface Derivative. Computes the first or second derivative of the surface sag (along the local Z axis) of the surface defined by Surf at the coordinate defined by X and Y.",
     "SFNO": "Sagittal working F/#, computed at the field point defined by Field "
             "and the wavelength defined by Wave. See TFNO.",
     "SINE": "Sine of the value of the operand defined by Op#. If Flag is 0, then "
@@ -544,6 +561,7 @@ class _Operands(object):
             "the thickness of Surf2. See TGTH.",
     "TTLT": "Total thickness less than. See TTGT.",
     "TTVA": "Total thickness value. See TTGT.",
+    "UDOC": "User defined operand. Used for optimizing numerical results computed in externally compiled programs written using the ZOS-API...See also ZPLM",
     "UDOP": ("User defined operand. Used for optimizing numerical results "
             "computed in externally compiled programs. See also ZPLM."),
     "USYM": ("If present in merit function, instructs ZEMAX to assume radial "
@@ -632,6 +650,7 @@ class _Operands(object):
 
     mco_operands = {  # key is operand type, value is a short description
     "AFOC": "Afocal Image Space mode.",
+    "AICN": "iPartFactory Number for the Autodesk Inventor part.",
     "APDF": "System apodization factor.",
     "APDT": "System apodization type.",
     "APDX": "Surface aperture X-decenter.",
@@ -640,8 +659,22 @@ class _Operands(object):
     "APMN": "Surface aperture minimum value.",
     "APMX": "Surface aperture maximum value.",
     "APTP": "Surface aperture type.",
+    "CADX": "Surface Tilt/Decenter after surface decenter x.",
+    "CADY": "Surface Tilt/Decenter after surface decenter y.",
+    "CATX": "Surface Tilt/Decenter after surface tilt x.",
+    "CATY": "Surface Tilt/Decenter after surface tilt y.",
+    "CATZ": "Surface Tilt/Decenter after surface tilt z.",
+    "CAOR": "Surface Tilt/Decenter after surface order. Use 0 for Decenter then Tilt, or 1 for Tilt then Decenter.",
+    "CBDX": "Surface Tilt/Decenter before surface decenter x.",
+    "CBDY": "Surface Tilt/Decenter before surface decenter y.",
+    "CBTX": "Surface Tilt/Decenter before surface tilt x.",
+    "CBTY": "Surface Tilt/Decenter before surface tilt y.",
+    "CBTZ": "Surface Tilt/Decenter before surface tilt z.",
+    "CBOR": "Surface Tilt/Decenter before surface order. Use 0 for Decenter then Tilt, or 1 for Tilt then Decenter.",
+    "CHZN": "Chip Zone.",
     "CONN": "Conic constant.",
     "COTN": "Coating name.",
+    "CPCN": "Family Table Instance Number for the Creo Parametric part.",
     "CROR": "Coordinate Return Orientation.",
     "CRSR": "Coordinate Return Surface.",
     "CRVT": "Surface curvature.",
@@ -666,22 +699,26 @@ class _Operands(object):
     "GQPO": "Obscuration value used for Gaussian Quadrature pupil sampling in "
             "the default merit function.",
     "HOLD": "Hold.",
+    "IGNM": "Sets Ignore This Surface status on a range of surfaces. Use 0 to consider the surfaces, and 1 to ignore the surfaces...If IGNR and IGNM operands are defined for the same surface, the one listed second will take precedence. ",
     "IGNR": "Ignore This Surface status.",
     "LTTL": "Lens title.",
     "MABB": "Model glass Abbe number.",
+    "MCHI": " Method to compute Huygens integral...Use 0 for Automatic, 1 for Force Planar, 2 for Force Spherical.",
     "MCOM": "Surface comment.",
+    "MCSD": "Mechanical Semi-Diameter.",
     "MDPG": "Model glass dPgF.",
     "MIND": "Model glass index.",
     "MOFF": "Off.",
+    "MTFU": "MTF units. Use 0 for cycles/millimeter or 1 for cycles/milliradian.",
     "NCOM": "Modifies the comment for non-sequential objects in the NSC Editor. NSC, NSCE",
-    "NCOT": "Non-sequential (NS) coating. NSC, NSCE",
-    "NGLS": "Nonsequential object glass. NSC, NSCE",
-    "NPAR": "Non-sequential Editor object parameter. NSC, NSCE",
-    "NPOS": "Non-sequential Editor object position. Modifies the x, y, z, tilt x, tilt y, "
+    "NCOT": "Non-sequential (NSC) coating. NSC, NSCE",
+    "NGLS": "Non-sequential (NSC) object glass. NSC, NSCE",
+    "NPAR": "Non-sequential (NSC) Editor object parameter. NSC, NSCE",
+    "NPOS": "Non-sequential (NSC) Editor object position. Modifies the x, y, z, tilt x, tilt y, "
             "and tilt z position values for non-sequential objects in the NSC Editor. The "
             "position flag is an integer between 1 and 6 for x, y, z, tilt x, tilt y, and "
             "tilt z, respectively. NSC, NSCE",
-    "NPRO": "Non-sequential object property. NSC, NSCE",
+    "NPRO": "Non-sequential (NSC) object property. NSC, NSCE",
     "PAR1": "Parameter 1. Obsolete, use PRAM instead.",
     "PAR2": "Parameter 2. Obsolete, use PRAM instead.",
     "PAR3": "Parameter 3. Obsolete, use PRAM instead.",
@@ -702,9 +739,12 @@ class _Operands(object):
     "PSP2": "Parameter solve parameter 2.",
     "PSP3": "Parameter solve parameter 3.",
     "PUCN": "Pickup range of values.",
+    "PXAR": "Physical optics setting 'Use X-axis Reference'...Use 0 for no, 1 for yes.",
     "RAAM": "Ray aiming.",
     "SATP": "System aperture type.",
     "SDIA": "Semi-diameter.",
+    "SDRW": "Modifies the do not draw this surface flag. Use 0 to draw and 1 to not draw.",
+    "SRTS": "Modifies the skip rays to this surface flag. Use 0 to draw rays and 1 to skip rays.",
     "STPS": "Stop surface number.",
     "SWCN": "Configuration number for the SolidWorks part.",
     "TCEX": "Thermal coefficient of expansion.",
@@ -883,9 +923,9 @@ def findZOperand(keywords):
     Found 3 Optimization operands
 
     >>> pyz.findZOperand('trace')
-    [NSRA] Non-sequential (NS) single ray trace.
-    [NSTR] Non-sequential (NS) trace. See also NSST.
-    [NSST] Non-sequential (NS) single ray trace. See also NSTR.
+    [NSRA] Non-sequential (NSC) single ray trace.
+    [NSTR] Non-sequential (NSC) trace. See also NSST.
+    [NSST] Non-sequential (NSC) single ray trace. See also NSTR.
 
     Found 3 Optimization operands.
     """
