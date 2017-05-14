@@ -21,7 +21,7 @@ import os as os
 import pyzdde.arraytrace as at  # Module for array ray tracing
 import pyzdde.zdde as pyz
 
-# NOTE: The program assumes that an appropriate lens design file is already
+# NOTE: The program assumes that a valid NSC lens file is already
 # loaded into Zemax LDE.
 
 ln = pyz.createLink()
@@ -45,6 +45,7 @@ maxSeg = ln.zGetNSCSettings().maxSeg
 nMaxSeg = maxSeg if maxSeg < 50 else 50
 
 # Trace a single in NSC mode with polarization and splitting, but no scattering.
+print("Starting to trace a single NSC ray")
 rayData = at.zGetNSCTraceArray(n=1, Eyr=1.0, intensity=1, surf=1, usePolar=1,
                                split=1, nMaxSegments=50)
 
