@@ -10,7 +10,7 @@
 # Author:      Indranil Sinharoy
 #
 # Created:     Tue Feb 17 15:58:13 2015
-# Copyright:   (c) Indranil Sinharoy, 2012 - 2015
+# Copyright:   (c) Indranil Sinharoy, 2012 - 2017
 # Licence:     MIT License
 #-------------------------------------------------------------------------------
 from __future__ import print_function, division
