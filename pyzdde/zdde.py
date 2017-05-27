@@ -9386,6 +9386,10 @@ class PyZDDE(object):
         >>> info, coordinates, values =ln.zGetDetectorViewer(settingsFile, True)
         >>> # following line assumes 2d data 
         >>> info, gridData = zfu.zGetDetectorViewer(settingsFile, True)  
+
+        See Also
+        --------
+        zSetDetectorViewerSettings(), zModifyDetectorViewerSettings()
         """
         settings = _txtAndSettingsToUse(self, txtFile, settingsFile, 'Dvw')
         textFileName, cfgFile, getTextFlag = settings
