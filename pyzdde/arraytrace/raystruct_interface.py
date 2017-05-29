@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Name:        arraytrace.py
-# Purpose:     Module for doing array ray tracing in Zemax.
+# Name:        raystruct_interface.py
+# Purpose:     Module for doing array ray tracing in Zemax using DDERAYDATA struct
+#              to pass ray data to Zemax
 # Licence:     MIT License
 #              This file is subject to the terms and conditions of the MIT License.
 #              For further details, please refer to LICENSE.txt
@@ -14,7 +15,7 @@ two main functions:
     2. getRayDataArray() -- Helper function that creates the ctypes ray data structure
                             array, fills up the first element and returns the array
 
-In addition the following helper functions are provided that supports 5 different
+In addition the following wrapper functions are provided that supports 5 different
 modes discussed in the Zemax manual
 
     1. zGetTraceArray()
@@ -22,6 +23,23 @@ modes discussed in the Zemax manual
     3. zGetPolTraceArray()
     4. zGetPolTraceDirectArray()
     5. zGetNSCTraceArray()
+
+Note
+-----
+
+The parameter want_opd is very confusing as it alters the behavior of GetTraceArray.
+If the calculation of OPD is requested for a ray, 
+- vigcode becomes a different meaning (seems to be 1 if vignetted, but no longer related to surface)
+- bParaxial (mode) becomes inactive, Zemax always performs a real-raytrace !
+- the surface normal is not calculated
+- if the calculation of the chief ray data is not requested for the first ray, 
+  e.g. by setting all want_opd to 1, wrong OPD values are returned (without any relation to the real values)
+- this affects only rays with want_opd<>0 -> i.e. if it is mixed, one obtains a total mess
+
+
+The pupil apodization seems to be always considered independent of the mode / bParaxial value
+in contrast to the note in the Zemax Manual (tested with Zemax 13 Release 2 SP 5 Premium 64bit)
+
 """
 from __future__ import print_function
 import os as _os
@@ -49,16 +67,16 @@ def _is64bit():
     """
     return _sys.maxsize > 2**31 - 1
 
-_dllDir = "arraytrace\\x64\\Release\\" if _is64bit() else "arraytrace\\Release\\"
+_dllDir = "x64\\Release\\" if _is64bit() else "win32\\Release\\"
 _dllName = "ArrayTrace.dll"
 _dllpath = _os.path.join(_os.path.dirname(_os.path.realpath(__file__)), _dllDir)
 # load the arrayTrace library
 _array_trace_lib = _ct.WinDLL(_dllpath + _dllName)
+# int __stdcall arrayTrace(DDERAYDATA * pRAD, unsigned int timeout)
 _arrayTrace = _array_trace_lib.arrayTrace
-# specify argtypes and restype
 _arrayTrace.restype = _ct.c_int
 _arrayTrace.argtypes = [_ct.POINTER(DdeArrayData), _ct.c_uint]
-
+                          
 
 def zArrayTrace(rd, timeout=5000):
     """function to trace large number of rays on lens file in the LDE of main
@@ -71,14 +89,13 @@ def zArrayTrace(rd, timeout=5000):
         ray tracing. Use the helper function getRayDataArray() to generate ``rd``
 
     timeout : integer
-        time in milliseconds (Default = 5000)
+        time in milliseconds (Default = 5s), at least 1s
 
     Returns
     -------
     ret : integer
-        Error codes meaning 0 = SUCCESS, -1 = Couldn't retrieve data in
-        PostArrayTraceMessage, -999 = Couldn't communicate with Zemax,
-        -998 = timeout reached
+        Error codes meaning 0 = SUCCESS, 
+        -999 = Couldn't communicate with Zemax, -998 = timeout reached
     """
     return _arrayTrace(rd, int(timeout))
 
@@ -254,7 +271,11 @@ def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
         waveNum = waveNum if isinstance(waveNum, list) else [waveNum]*numRays
     else:
         waveNum = [1] * numRays
-    want_opd = [want_opd] * numRays
+    
+    # if opd is requested, make sure that chief ray data is initialized at first ray
+    if want_opd==0: want_opd = [0] * numRays;
+    else:           want_opd = [-1] + [want_opd] * (numRays-1);
+      
     # fill up the structure
     for i in xrange(1, numRays+1):
         rd[i].x = hx[i-1]
@@ -264,7 +285,7 @@ def zGetTraceArray(numRays, hx=None, hy=None, px=None, py=None, intensity=None,
         rd[i].intensity = intensity[i-1]
         rd[i].wave = waveNum[i-1]
         rd[i].want_opd = want_opd[i-1]
-
+        
     # call ray tracing
     ret = zArrayTrace(rd, timeout)
 
@@ -982,8 +1003,10 @@ def _test_arraytrace_module_basic():
     for i in range(1, 11):
         print(rd[k].intensity)
     print("Success!")
+    
 
 if __name__ == '__main__':
     # run the test functions
     _test_getRayDataArray()
     _test_arraytrace_module_basic()
+    
