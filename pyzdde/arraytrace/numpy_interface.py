@@ -28,8 +28,8 @@ import sys as _sys
 import ctypes as _ct
 import numpy as _np
 
-if _sys.version_info[0] > 2:
-    xrange = range
+if _sys.version_info[0] < 3:
+    range = xrange
 
 def _is64bit():
     """return True if Python version is 64 bit
@@ -117,15 +117,18 @@ def zGetTraceArray(hx,hy, px,py, intensity=1., waveNum=1,
     -------- 
     >>> import numpy as np     
     >>> import matplotlib.pylab as plt
+    >>> import pyzdde.zdde as pyz
+    >>> import pyzdde.arraytrace.numpy_interface as nt
+    >>> ln = pyz.createLink()
     >>> # cartesian sampling in field an pupil
     >>> x = np.linspace(-1,1,4)
     >>> p = np.linspace(-1,1,3)    
     >>> hx,hy,px,py = np.meshgrid(x,x,p,p);
     >>> # run array-trace
-    >>> (error,vigcode,pos,dir,normal,intensity) = \\
-          zGetTraceArray(hx,hy,px,py);
+    >>> (error,vigcode,pos,dir,normal,intensity) = nt.zGetTraceArray(hx,hy,px,py);
     >>> # plot results
-    >>> plt.scatter(pos[:,0],pos[:,1],c=_np.sqrt(hx**2+hy**2))
+    >>> plt.scatter(pos[:,0],pos[:,1],c=np.sqrt(hx**2+hy**2))
+    >>> ln.close();
     """
     
     # handle input arguments 
@@ -222,6 +225,7 @@ def zGetTraceDirectArray(startpos, startdir, intensity=1., waveNum=1,
     >>> import numpy as np
     >>> import matplotlib.pylab as plt
     >>> import pyzdde.zdde as pyz
+    >>> import pyzdde.arraytrace.numpy_interface as nt
     >>> ln = pyz.createLink()
     >>> # launch rays from same from off-axis field point
     >>> # we create initial pos and dir using zGetTraceArray
@@ -229,15 +233,15 @@ def zGetTraceDirectArray(startpos, startdir, intensity=1., waveNum=1,
     >>> startsurf= 1;  # in case of collimated input beam    
     >>> lastsurf = ln.zGetNumSurf();
     >>> hx,hy,px,py = 0, 0.5, 0, np.linspace(-1,1,nRays);
-    >>> (_,_,pos,dir,_,_) = zGetTraceArray(hx,hy,px,py,bParaxial=False,surf=startsurf);    
+    >>> (_,_,pos,dir,_,_) = nt.zGetTraceArray(hx,hy,px,py,bParaxial=False,surf=startsurf);    
     >>> # trace ray until last surface
     >>> points = np.zeros((lastsurf+1,nRays,3));    # indexing: surf,ray,coord
     >>> z0=0; points[startsurf]=pos;                # ray intersection points on starting surface
-    >>> for isurf in xrange(startsurf,lastsurf):
+    >>> for isurf in range(startsurf,lastsurf):
     >>>   # trace to next surface
-    >>>   (error,vigcode,pos,dir,_,_)=zGetTraceDirectArray(pos,dir,bParaxial=False,startSurf=isurf,lastSurf=isurf+1);
+    >>>   (error,vigcode,pos,dir,_,_)=nt.zGetTraceDirectArray(pos,dir,bParaxial=False,startSurf=isurf,lastSurf=isurf+1);
     >>>   points[isurf+1]=pos;
-    >>>   points[isurf+1,vigcode<>0]=np.nan;        # remove vignetted rays
+    >>>   points[isurf+1,vigcode!=0]=np.nan;        # remove vignetted rays
     >>>   # add thickness of current surface (assumes absence of tilts or decenters in system)
     >>>   z0+=ln.zGetThickness(isurf);
     >>>   points[isurf+1,:,2]+=z0;
@@ -328,11 +332,14 @@ def zGetOpticalPathDifferenceArray(hx,hy, px,py, waveNum=1,timeout=60000):
     -------- 
     >>> import numpy as np     
     >>> import matplotlib.pylab as plt
+    >>> import pyzdde.zdde as pyz
+    >>> import pyzdde.arraytrace.numpy_interface as nt
+    >>> ln = pyz.createLink()
     >>> # pupil sampling along diagonal (px,px)
-    >>> NP=51; p = _np.linspace(-1,1,NP);
-    >>> (error,vigcode,opd,pos,dir,intensity) = \\
-          zGetOpticalPathDifferenceArray(0,0,p,p);
+    >>> NP=51; p = np.linspace(-1,1,NP);
+    >>> (error,vigcode,opd,pos,dir,intensity) = nt.zGetOpticalPathDifferenceArray(0,0,p,p);
     >>> plt.plot(p,opd[0,0,:])
+    >>> ln.close();
     """
 
     # handle input arguments 
@@ -397,7 +404,6 @@ def _test_zGetTraceArray():
     print(" number of rays: %d" % len(pos));
     if len(pos)<1e5:
       import matplotlib.pylab as plt
-      from mpl_toolkits.mplot3d import Axes3D
       fig = plt.figure()
       ax = fig.add_subplot(111,projection='3d')
       ax.scatter(*pos.T,c=_np.sqrt(px**2+py**2));
@@ -417,7 +423,7 @@ def _test_zGetTraceArrayDirect():
     # GetTraceArrayDirect
     ret = zGetTraceDirectArray(startpos,startdir,bParaxial=False,startSurf=0,lastSurf=-1);
     ret_descr = ('error','vigcode','pos','dir','normal','intensity')
-    for i in xrange(len(ref)):
+    for i in range(len(ref)):
       assert _np.allclose(ref[i],ret[i]), "difference in %s"%ret_descr[i];
 
 def _test_zOPDArray():
@@ -433,7 +439,7 @@ def _test_zOPDArray():
     if opd.size<1e5:
       import matplotlib.pylab as plt
       plt.figure();
-      for f in xrange(NF):
+      for f in range(NF):
         plt.plot(px,opd[0,f],label="hx=%5.3f"%hx[f]);
       plt.legend(loc=0);
 
@@ -452,11 +458,11 @@ def _plot_2D_layout_from_array_trace():
     # trace ray until last surface
     points = _np.zeros((lastsurf+1,nRays,3));    # indexing: surf,ray,coord
     z0=0; points[startsurf]=pos;                # ray intersection points on starting surface
-    for isurf in xrange(startsurf,lastsurf):
+    for isurf in range(startsurf,lastsurf):
       # trace to next surface
       (error,vigcode,pos,dir,_,_)=zGetTraceDirectArray(pos,dir,bParaxial=False,startSurf=isurf,lastSurf=isurf+1);
       points[isurf+1]=pos;
-      points[isurf+1,vigcode<>0]=_np.nan;        # remove vignetted rays
+      points[isurf+1,vigcode!=0]=_np.nan;        # remove vignetted rays
       # add thickness of current surface (assumes absence of tilts or decenters in system)      
       z0+=ln.zGetThickness(isurf);
       points[isurf+1,:,2]+=z0;

@@ -8,7 +8,7 @@
 #define DLL_EXPORT __declspec(dllexport)
 
 #define WM_USER_INITIATE (WM_USER + 1)
-#define DDE_TIMEOUT 1000
+#define DDE_TIMEOUT 1000           // minimal DDE timeout
 #pragma warning ( disable : 4996 ) // functions like strcpy are now deprecated for security reasons; this disables the warning
 #pragma comment(lib, "User32.lib")
 #pragma comment(lib, "gdi32.lib")

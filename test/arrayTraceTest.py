@@ -11,11 +11,11 @@
 #-------------------------------------------------------------------------------
 from __future__ import division
 from __future__ import print_function
-import os
-import sys
+
 import unittest
 import numpy as np
 
+from _context import pyzdde
 import pyzdde.zdde as pyz
 import pyzdde.arraytrace as at
 import pyzdde.arraytrace.numpy_interface as nt
@@ -77,7 +77,7 @@ class TestArrayTrace(unittest.TestCase):
     # Load a lens file into the LDE
     filename = get_test_file()
     ret = self.ln.zLoadFile(filename);
-    if ret<>0: raise IOError("Could not load Zemax file '%s'. Error code %d" % (filename,ret));
+    if ret!=0: raise IOError("Could not load Zemax file '%s'. Error code %d" % (filename,ret));
     if not self.ln.zPushLensPermission():
       raise RuntimeError("Extensions not allowed to push lenses. Please enable in Zemax.")
     self.ln.zPushLens(1);
@@ -88,7 +88,7 @@ class TestArrayTrace(unittest.TestCase):
     aret = atrace(*params)
 
     # compare with results from single raytrace
-    for i in xrange(nr):
+    for i in range(nr):
       sret = strace(*params[:,i]);
       is_close = np.isclose(aret[:,i], np.asarray(sret));
       msg = 'array and single raytrace differ for ray #%d:\n' % i;
@@ -99,7 +99,7 @@ class TestArrayTrace(unittest.TestCase):
         msg+= '%10s  %12g  %12g \n'%(ret_descr[j],aret[j,i],sret[j]);
       self.assertTrue(np.all(is_close), msg=msg);   
 
-
+  @unittest.skip("To be removed")
   def test_zGetTraceArrayOLd(self):
     print("\nTEST: arraytrace.zGetTraceArray()")
     # Load a lens file into the Lde
@@ -122,7 +122,7 @@ class TestArrayTrace(unittest.TestCase):
        
       # compare with results from GetTrace, returns (error,vig,x,y,z,l,m,n,l2,m2,n2,intensity)
       ret_descr = ('error','vigcode','x','y','z','l','m','n','Exr','Eyr','Ezr','intensity')
-      for i in xrange(nr):
+      for i in range(nr):
         reference = self.ln.zGetTrace(w,mode,-1,hx[i],hy[i],px[i],py[i]); 
         is_close = np.isclose(ret[:,i], np.asarray(reference));
         msg = 'zGetTraceArray differs from GetTrace for %s ray #%d:\n' % (mode_descr[mode],i);
@@ -153,6 +153,7 @@ class TestArrayTrace(unittest.TestCase):
       # perform comparison  
       self.compare_array_with_single_trace(strace,atrace,('hx','hy','px','py'),ret_descr,nr=nr);
   
+  @unittest.skip("To be removed")
   def test_cross_check_zArrayTrace_vs_zGetTraceNumpy_OLD(self):
     print("\nTEST: comparison of zArrayTrace and zGetTraceNumpy OLD")
     # Load a lens file into the LDE
@@ -164,7 +165,7 @@ class TestArrayTrace(unittest.TestCase):
     rd = at.getRayDataArray(nr)
     hx,hy,px,py = 2*np.random.rand(4,nr)-1;
     
-    for k in xrange(nr):
+    for k in range(nr):
       rd[k+1].x = hx[k];
       rd[k+1].y = hy[k];
       rd[k+1].z = px[k];
@@ -217,16 +218,22 @@ class TestArrayTrace(unittest.TestCase):
     def strace(hx,hy):
       (error,vig,x,y,z,l,m,n,l2,m2,n2,intensity)=self.ln.zGetTrace(w,0,-1,hx,hy,px,py);  # real ray trace to image surface
       opd=self.ln.zGetOpticalPathDifference(hx,hy,px,py,ref=0,wave=w);                   # calculate OPD, ref: chief ray
-      vig=1 if vig<>0 else 0;    # vignetting flag is only 0 or 1 in ArrayTrace, not the surface number
+      vig=1 if vig!=0 else 0;    # vignetting flag is only 0 or 1 in ArrayTrace, not the surface number
       return (error,vig,opd,x,y,z,l,m,n,intensity);
     # array trace (C-extension), returns (error,vigcode,opd,pos,dir,intensity) 
     def atrace(hx,hy):
       ret = nt.zGetOpticalPathDifferenceArray(hx,hy,px,py,waveNum=w);
-      ret = map(lambda a: a.reshape((ret[0].size,-1)), ret); # reshape arguments as (nRays,...)
+      ret = [ var.reshape((ret[0].size,-1)) for var in ret ]; # reshape each argument as (nRays,...)
       return np.hstack(ret).T;
     # perform comparison  
     self.compare_array_with_single_trace(strace,atrace,('hx','hy'),ret_descr);
 
+  # -----------------------------------------------------------------------------
+  # Test works with Zemax 13 R2
+  # Test fails with OpticStudio (ZOS16.5). We obtain different error and vigcodes 
+  # using either single raytrace or arraytrace. Should be handled in the python 
+  # interface to avoid confusion
+  # -----------------------------------------------------------------------------
   def test_zGetTraceDirectNumpy(self):
     print("\nTEST: arraytrace.numpy_interface.zGetTraceDirectArray()")
     w = 1; # wavenum
@@ -245,11 +252,41 @@ class TestArrayTrace(unittest.TestCase):
         n = np.sqrt(1-0.5*l**2-0.5*m**2); # calculate z-direction        
         pos = np.stack((x,y,z),axis=1);
         dir = np.stack((l,m,n),axis=1);
-        ret = nt.zGetTraceDirectArray(pos,dir,bParaxial=mode,startSurf=startSurf,lastSurf=lastSurf); 
+        ret = nt.zGetTraceDirectArray(pos,dir,bParaxial=mode,startSurf=startSurf,lastSurf=lastSurf,
+                                      intensity=1,waveNum=w);
         return np.column_stack(ret).T;
       # perform comparison  
       self.compare_array_with_single_trace(strace,atrace,('x','y','z','l','m'),ret_descr);
 
+  # -----------------------------------------------------------------------------
+  # Test works with Zemax 13 R2
+  # Test fails with OpticStudio (ZOS16.5). We obtain different error and vigcodes 
+  # using either single raytrace or arraytrace. Should be handled in the python 
+  # interface to avoid confusion
+  # -----------------------------------------------------------------------------
+  def test_zGetTraceDirectRaystruct(self):
+    print("\nTEST: arraytrace.raystruct_interface.zGetTraceDirectArray()")
+    w = 1; # wavenum
+    startSurf=0
+    lastSurf=-1
+    
+    for mode,descr in [(0,"real"),(1,"paraxial")]:
+      print("  compare with GetTraceDirect for %s raytrace"% descr);
+      # single trace (GetTraceDirect), returns (error,vig,x,y,z,l,m,n,l2,m2,n2,intensity)
+      ret_descr = ('error','vigcode','x','y','z','l','m','n','l2','m2','n2','intensity')
+      def strace(x,y,z,l,m):
+        n = np.sqrt(1-0.5*l**2-0.5*m**2); # calculate z-direction (scale l,m to < 1/sqrt(2))
+        return self.ln.zGetTraceDirect(w,mode,startSurf,lastSurf,x,y,z,l,m,n); 
+      # array trace (C-extension), returns (error,vigcode,x,y,z,l,m,n,l2,m2,n2,opd,intensity)
+      def atrace(x,y,z,l,m):
+        n = np.sqrt(1-0.5*l**2-0.5*m**2); # calculate z-direction  
+        ret = at.zGetTraceDirectArray(x.size,list(x),list(y),list(z),list(l),list(m),list(n),
+                                      mode=mode,startSurf=startSurf,lastSurf=lastSurf, 
+                                      intensity=1,waveNum=w);
+        mask = np.ones(13,dtype=np.bool); mask[-2]=False;   # mask array for removing opd from ret    
+        return np.column_stack(ret).T[mask];
+      # perform comparison  
+      self.compare_array_with_single_trace(strace,atrace,('x','y','z','l','m'),ret_descr);
   # -----------------------------------------------------------------------------
   # test fails for real raytrace, as arrayTrace from Zemax does not return
   # surface normal correctly. Should be handled in the python interface
@@ -279,4 +316,6 @@ class TestArrayTrace(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  # see https://docs.python.org/2/library/unittest.html
+  unittest.main(module='arrayTraceTest');
+                             
