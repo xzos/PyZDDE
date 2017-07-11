@@ -248,8 +248,8 @@ def readZRDFile(file_name, max_segs_per_ray=1000):
     format_dict = {c_int:'i', c_uint:'I', c_double:'d', c_float:'f'}
     file_handle = open(file_name, "rb")
     first_int = read_n_bytes(file_handle, formatChar='i')
-    zrd_type = _math.floor(first_int/10000)
-    zrd_version = _math.fmod(first_int,10000) 
+    zrd_type = int(_math.floor(first_int/10000))
+    zrd_version = int(_math.fmod(first_int,10000))
     max_n_segments = read_n_bytes(file_handle, formatChar='i')
     if zrd_type == 0:
         file_type = 'uncompressed'
@@ -318,7 +318,7 @@ def writeZRDFile(rayArray, file_name, file_type):
     c_double, c_float  = _ctypes.c_double, _ctypes.c_float
     format_dict = {c_int:'i', c_uint:'I', c_double:'d', c_float:'f'}
     file_handle = open(file_name, "wb")
-    file_handle.write(_pack('i', rayArray[0].zrd_version+zrd_type))    
+    file_handle.write(_pack('i', rayArray[0].zrd_version+zrd_type));
     file_handle.write(_pack('i', rayArray[0].n_segments)) # number of rays
     for ray in rayArray:
         file_handle.write(_pack('i', len(ray.status)))    # number of segments in the ray

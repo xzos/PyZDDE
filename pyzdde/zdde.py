@@ -7245,62 +7245,65 @@ class PyZDDE(object):
         # get line list
         line_list = _readLinesFromFile(_openFile(textFileName))
 
+        # set regexp for parsing float and int data
+        # see http://docs.python.org/2/library/re.html#simulating-scanf
+        # note: (?: opens a non-capturing group
+        pfloat = r'[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?'; # regexp for %e,%E,%f,%g
+        pint   = r'[-+]?(?:0[xX][\dA-Fa-f]+|0[0-7]*|\d+)';     # regexp for %i
+
         # Get data type ... phase or Irradiance?
         find_irr_data = _getFirstLineOfInterest(line_list, 'POP Irradiance Data',
                                                 patAtStart=False)
         data_is_irr = False if find_irr_data is None else True
+
         # Get the Surface number and Grid size
         grid_line_num = _getFirstLineOfInterest(line_list, 'Grid size')
         surf_line = line_list[grid_line_num - 1]
-        surf = int(_re.findall(r'\d{1,4}', surf_line)[0]) # assume: first int num in the line 
+        surf = int(_re.findall(pint, surf_line)[0]) # assume: first int num in the line 
                                  # is surf number. surf comment can have int or float nums 
         grid_line = line_list[grid_line_num]
-        grid_x, grid_y = [int(i) for i in _re.findall(r'\d{2,5}', grid_line)]
+        grid_x, grid_y = [int(i) for i in _re.findall(pint, grid_line)]
 
         # Point spacing
         pts_line = line_list[_getFirstLineOfInterest(line_list, 'Point spacing')]
-        pat = r'-?\d\.\d{4,6}[Ee][-\+]\d{3}'
-        pts_x, pts_y =  [float(i) for i in _re.findall(pat, pts_line)]
+        print(_re.findall(pfloat, pts_line))
+        pts_x, pts_y =  [float(i) for i in _re.findall(pfloat, pts_line)]
 
         width_x = pts_x*grid_x
         width_y = pts_y*grid_y
         
         if data_is_irr:
             # Peak Irradiance and Total Power
-            pat_i = r'-?\d\.\d{4,6}[Ee][-\+]\d{3}' # pattern for P. Irr, T. Pow,
             peakIrr, totPow = None, None
             pi_tp_line = _getFirstLineOfInterest(line_list, 'Peak Irradiance') 
             if pi_tp_line: # Transfer magnitude doesn't have Peak Irradiance info
                 pi_tp_line = line_list[pi_tp_line]
                 pi_info, tp_info = pi_tp_line.split(',')
-                pi = _re.search(pat_i, pi_info)
-                tp = _re.search(pat_i, tp_info)
+                pi = _re.search(pfloat, pi_info)
+                tp = _re.search(pfloat, tp_info)
                 if pi:
                     peakIrr = float(pi.group())
                 if tp:
                     totPow = float(tp.group())
         else:
             # Center Phase
-            pat_p = r'-?\d+\.\d{4,6}' # pattern for Center Phase Info
             centerPhase = None
             #cp_line = line_list[_getFirstLineOfInterest(line_list, 'Center Phase')]
             cp_line = _getFirstLineOfInterest(line_list, 'Center Phase')
             if cp_line: # Transfer magnitude / Phase doesn't have Center Phase info
                 cp_line = line_list[cp_line]
-                cp = _re.search(pat_p, cp_line)
+                cp = _re.search(pfloat, cp_line)
                 if cp:
                     centerPhase = float(cp.group())
         # Pilot_size, Pilot_Waist, Pos, Rayleigh [... available for
         # both Phase and Irr data]
-        pat_fe = r'\d\.\d{6}'   # pattern for fiber efficiency
-        pat_pi = r'-?\d\.\d{4,6}[Ee][-\+]\d{3}' # pattern for Pilot size/waist
         pilotSize, pilotWaist, pos, rayleigh = None, None, None, None
         pilot_line = line_list[_getFirstLineOfInterest(line_list, 'Pilot')]
         p_size_info, p_waist_info, p_pos_info, p_rayleigh_info = pilot_line.split(',')
-        p_size = _re.search(pat_pi, p_size_info)
-        p_waist = _re.search(pat_pi, p_waist_info)
-        p_pos = _re.search(pat_pi, p_pos_info)
-        p_rayleigh = _re.search(pat_pi, p_rayleigh_info)
+        p_size = _re.search(pfloat, p_size_info)
+        p_waist = _re.search(pfloat, p_waist_info)
+        p_pos = _re.search(pfloat, p_pos_info)
+        p_rayleigh = _re.search(pfloat, p_rayleigh_info)
         if p_size:
             pilotSize = float(p_size.group())
         if p_waist:
@@ -7316,9 +7319,9 @@ class PyZDDE(object):
         if effi_coup_line_num:
             efficiency_coupling_line = line_list[effi_coup_line_num]
             efs_info, fer_info, cou_info = efficiency_coupling_line.split(',')
-            fes = _re.search(pat_fe, efs_info)
-            fer = _re.search(pat_fe, fer_info)
-            cou = _re.search(pat_fe, cou_info)
+            fes = _re.search(pfloat, efs_info)
+            fer = _re.search(pfloat, fer_info)
+            cou = _re.search(pfloat, cou_info)
             if fes:
                 fibEffSys = float(fes.group())
             if fer:
@@ -7328,8 +7331,7 @@ class PyZDDE(object):
 
         if displayData:
             # Get the 2D data
-            pat = (r'(-?\d\.\d{4,6}[Ee][-\+]\d{3}\s*)' + r'{{{num}}}'
-                   .format(num=grid_x))
+            pat = r'(%s\s*){%s}' % (pfloat,grid_x);
             start_line = _getFirstLineOfInterest(line_list, pat)
             powerGrid = _get2DList(line_list, start_line, grid_y)
 
@@ -12177,6 +12179,9 @@ def _readLinesFromFile(fileObj):
                    from the file
     """
     lines = list(_getDecodedLineFromFile(fileObj))
+    # remove utf-8 file indicator \ufeff if present
+    # see https://stackoverflow.com/questions/40397086/python-3-x-about-encoding
+    lines[0]=lines[0].replace(u'\ufeff','');
     return lines
 
 def _getFirstLineOfInterest(line_list, pattern, patAtStart=True):
