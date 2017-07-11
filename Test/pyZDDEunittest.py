@@ -10,20 +10,10 @@
 from __future__ import division
 from __future__ import print_function
 import os
-import sys
 import imp
 import unittest
 
-# Put both the "Test" and the "PyZDDE" directory in the python search path.
-testdirectory = os.path.dirname(os.path.realpath(__file__))
-#ind = testdirectory.find('Test')
-pyzddedirectory = os.path.split(testdirectory)[0]
-
-if testdirectory not in sys.path:
-    sys.path.append(testdirectory)
-if pyzddedirectory not in sys.path:
-    sys.path.append(pyzddedirectory)
-
+from _context import pyzdde, testdir, moduledir
 import pyzdde.zdde as pyzdde
 import pyzdde.zfileutils as zfile
 
@@ -423,7 +413,6 @@ class TestPyZDDEFunctions(unittest.TestCase):
                                                paramN=srcParam, tPow=1, sampx=4,
                                                sampy=4, widex=40, widey=40,
                                                fibComp=1, fibType=0, fparamN=fibParam)
-        exception = None
         try:
             self.assertTrue(checkFileExist(sfilename),
                             "Expected function to create settings file")
@@ -453,14 +442,10 @@ class TestPyZDDEFunctions(unittest.TestCase):
             self.assertEqual(popinfo.blank, None, 'Expected None for blank phase field')
             self.assertEqual(popinfo.fibEffSys, None, 'Expected None for no fiber integral')
             self.assertEqual(popinfo.gridX, 128, 'Expected grid x be 128')
-        except Exception as exception:
-            pass # nothing to do here, raise it after cleaning up
         finally:
             # It is important to delete these settings files after the test. If not
             # deleted, they WILL interfere with the ohter POP tests
             deleteFile(sfilename)
-            if exception:
-                raise exception
         if TestPyZDDEFunctions.pRetVar:
             print('zSetPOPSettings test successful')
 
@@ -477,7 +462,6 @@ class TestPyZDDEFunctions(unittest.TestCase):
                                                paramN=srcParam, tPow=1, sampx=4,
                                                sampy=4, widex=40, widey=40,
                                                fibComp=1, fibType=0, fparamN=fibParam)
-        exception = None
         try:
             # Get POP info with the above settings
             popinfo = self.ln.zGetPOP(sfilename)
@@ -493,14 +477,11 @@ class TestPyZDDEFunctions(unittest.TestCase):
             print(popinfo)
             self.assertEqual(popinfo.totPow, 2.0, 'Expected tot pow 2.0')
             self.assertEqual(popinfo.gridX, 64, 'Expected grid x be 64')
-        except Exception as exception:
-            pass # nothing to do here, raise it after cleaning up
         finally:
             # It is important to delete these settings files after the test. If not
             # deleted, they WILL interfere with the ohter POP tests
             deleteFile(sfilename)
-            if exception:
-                raise exception
+
         if TestPyZDDEFunctions.pRetVar:
             print('zModifyPOPSettings test successful')
 
@@ -865,13 +846,13 @@ class TestPyZDDEFunctions(unittest.TestCase):
         ret = self.ln.zGetTextFile(preFileName,'Pre',"None",0)
         self.assertEqual(ret,-1)
         # filename path is absolute, however, doesn't have extension
-        textFileName = testdirectory + '\\' + os.path.splitext(preFileName)[0]
+        textFileName = os.path.join(testdir, os.path.splitext(preFileName)[0]);
         ret = self.ln.zGetTextFile(textFileName,'Pre',"None",0)
         self.assertEqual(ret,-1)
         # Request to dump prescription file, without providing a valid settings file
         # and flag = 0 ... so that the default settings will be used for the text
         # Create filename with full path
-        textFileName = testdirectory + '\\' + preFileName
+        textFileName = os.path.join(testdir, preFileName)
         ret = self.ln.zGetTextFile(textFileName,'Pre',"None",0)
         self.assertIn(ret,(0,-1,-998)) #ensure that the ret is any valid return
         if ret == -1:
@@ -884,7 +865,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         ret = self.ln.zGetRefresh()
         settingsFileName = "Cooke_40_degree_field_PreSettings_OnlyCardinals.CFG"
         preFileName = 'Prescription_unitTest_01.txt'
-        textFileName = testdirectory + '\\' + preFileName
+        textFileName = os.path.join(testdir, preFileName)
         ret = self.ln.zGetTextFile(textFileName,'Pre',settingsFileName,1)
         self.assertIn(ret,(0,-1,-998)) #ensure that the ret is any valid return
         if ret == -1:
@@ -1144,6 +1125,7 @@ class TestPyZDDEFunctions(unittest.TestCase):
         ret = self.ln.zModifySettings('invalidFileName.CFG','LAY_RAYS', 5)
         self.assertEqual(ret, -1)
         # Pass valid parameters and string type value
+        # might fail if wrong Zemax version is used.
         ret = self.ln.zModifySettings(sfilename,'UN1_OPERAND', 'ZERN')
         self.assertEqual(ret, 0)
         if TestPyZDDEFunctions.pRetVar:
@@ -1946,7 +1928,7 @@ def get_test_file(fileType='seq', settings=False, **kwargs):
     file : string/ tuple
         filenames are complete complete paths
     """
-    zmxfp = os.path.join(pyzddedirectory, 'ZMXFILES')
+    zmxfp = os.path.join(moduledir, 'ZMXFILES')
     lensFile = ["Cooke_40_degree_field.zmx",
                 "Double_Gauss_5_degree_field.ZMX",
                 "LENS.ZMX",]
@@ -2018,4 +2000,10 @@ def loadDefaultZMXfile2LDE(ln):
     ln.zPushLens(1)
         
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(module='pyZDDEunittest');
+    ## only run single test function, see https://docs.python.org/2/library/unittest.html
+    #test_function='test_zModifySettings';
+    #suite = unittest.TestSuite();
+    #suite.addTest(TestPyZDDEFunctions(test_function))
+    #unittest.TextTestRunner().run(suite)
+                 

@@ -13,9 +13,9 @@
 from __future__ import print_function
 import os
 import inspect
-import pyzdde.zdde as pyz
 
-testdirectory = os.path.dirname(os.path.realpath(__file__))
+from _context import pyzdde, testdir
+import pyzdde.zdde as pyz
 
 def main():
     # Get data items (class methods) from PyZDDE
@@ -34,7 +34,7 @@ def main():
 
     # Get data items from textfile
     dataItemSet_zemax = []
-    dataItemFile = open(testdirectory+os.path.sep+"zemaxDataItems.txt","r")
+    dataItemFile = open(os.path.join(testdir,"zemaxDataItems.txt"),"r")
     for line in dataItemFile:
         if line.rstrip() is not '':
             if not line.rstrip().startswith('#'):

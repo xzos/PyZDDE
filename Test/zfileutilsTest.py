@@ -13,8 +13,7 @@ import os as os
 #from struct import unpack, pack 
 import pyzdde.zfileutils as zfu
 #import ctypes as _ctypes
-
-testdir = os.path.dirname(os.path.realpath(__file__))
+from _context import testdir
 
 #%% Helper functions
 

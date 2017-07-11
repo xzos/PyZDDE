@@ -9,24 +9,13 @@
 #-------------------------------------------------------------------------------
 from __future__ import print_function
 import os
-import sys
 import time
 
-# Put both the "Test" and the "PyZDDE" directory in the python search path.
-testdirectory = os.path.dirname(os.path.realpath(__file__))
-ind = testdirectory.find('Test')
-pyzddedirectory = testdirectory[0:ind-1]
-if testdirectory not in sys.path:
-    sys.path.append(testdirectory)
-if pyzddedirectory not in sys.path:
-    sys.path.append(pyzddedirectory)
-
-# Import the pyzdde module
-#import pyzdde
+from _context import pyzdde, moduledir
 import pyzdde.zdde as pyz
 
 # ZEMAX file directory
-zmxfp = pyzddedirectory+'\\ZMXFILES\\'
+zmxfp = os.path.join(moduledir,'ZMXFILES');
 
 def testSetup():
     # Setup up the basic environment for the scenerio test
@@ -65,7 +54,8 @@ def test_scenario_multipleChannel():
     del ln2   # We can delete this object like this since no DDE conversation object was created for it.
 
     # Load a lens into the second ZEMAX DDE server
-    filename = zmxfp+"Cooke 40 degree field.zmx"
+    filename = os.path.join(zmxfp,'Cooke_40_degree_field.zmx');
+    assert os.path.exists(filename), "file not found: '%s'" % filename
     ret = ln1.zLoadFile(filename)
     assert ret == 0
     print("\nzLoadFile test successful")
