@@ -7266,7 +7266,6 @@ class PyZDDE(object):
 
         # Point spacing
         pts_line = line_list[_getFirstLineOfInterest(line_list, 'Point spacing')]
-        print(_re.findall(pfloat, pts_line))
         pts_x, pts_y =  [float(i) for i in _re.findall(pfloat, pts_line)]
 
         width_x = pts_x*grid_x
