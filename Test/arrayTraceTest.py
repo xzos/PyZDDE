@@ -20,7 +20,7 @@ import pyzdde.zdde as pyz
 import pyzdde.arraytrace as at
 import pyzdde.arraytrace.numpy_interface as nt
 
-from   test.pyZDDEunittest import get_test_file
+from   .pyZDDEunittest import get_test_file
 
 class TestArrayTrace(unittest.TestCase):
 
