@@ -8593,13 +8593,13 @@ class PyZDDE(object):
             sTuple.append(self.zModifySettings(dst, "WFM_WAVE", wave))
         if field is not None:
             sTuple.append(self.zModifySettings(dst, "WFM_FIELD", field))
-        if field is not None:
+        if subapertureRadius is not None:
             sTuple.append(self.zModifySettings(dst, "WFM_SUBSR",
                                                subapertureRadius))
-        if field is not None:
+        if subapertureXDecenter is not None:
             sTuple.append(self.zModifySettings(dst, "WFM_SUBSX",
                                                subapertureXDecenter))
-        if field is not None:
+        if subapertureYDecenter is not None:
             sTuple.append(self.zModifySettings(dst, "WFM_SUBSY",
                                                subapertureYDecenter))
         return tuple(sTuple)
@@ -12574,6 +12574,7 @@ def _txtAndSettingsToUse(self, txtFile, settingsFile, anaType):
                     'Zst':'zernikeStandardAnalysisFile.txt', # Zernike Standard coefficients
                     'Zat':'zernikeAnnularAnalysisFile.txt',  # Zernike Annular coefficients
                     'Dvw':'detectorViewerFile.txt',  # NSC detector viewer         
+                    'Wfm':'WfmAnalysisFile.txt', # Wavefront map
                     }
 
     anaCfgDict  = {'Pop':'_pyzdde_POP.CFG',
@@ -12590,6 +12591,7 @@ def _txtAndSettingsToUse(self, txtFile, settingsFile, anaType):
                    'Zst':'_pyzdde_ZST.CFG',  # is not supported of Aberration
                    'Zat':'_pyzdde_ZAT.CFG',  # coefficients by Zemax extensions
                    'Dvw':'_pyzdde_DVW.CFG',  # NSC detector viewer
+                   'Wfm':'_pyzdde_WFM.CFG',  # Wavefront map
                    }
     assert txtFileDict.keys() == anaCfgDict.keys(), \
            "Dicts don't have matching keys" # for code integrity
