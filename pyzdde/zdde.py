@@ -616,7 +616,17 @@ class PyZDDE(object):
     def apr(self, val):
         self._apr = val
 
-    
+    @property
+    def connection(self):
+        """Checks status of connection
+
+        Returns
+        -------
+        status: bool
+            True = connection online
+            False = connection offline
+        """
+        return self._connection
 
     # ZEMAX <--> PyZDDE client connection methods
     #--------------------------------------------
