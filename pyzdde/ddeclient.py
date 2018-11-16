@@ -192,6 +192,10 @@ class CreateConversation(object):
         """Exceptional error is handled in zdde Init() method, so the exception
         must be re-raised"""
         global number_of_apps_communicating
+
+        if number_of_apps_communicating >= 2:
+            raise DDEError('Too many open communications')
+
         self.ddeServerName = appName
         try:
             self.ddec = DDEClient(self.ddeServerName, self.ddeClientName) # establish conversation
