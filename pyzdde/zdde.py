@@ -9786,8 +9786,13 @@ class PyZDDE(object):
                          "Maximum fit error"]
         meta = []
         for i, pat in enumerate(meta_patterns):
-            meta_line = line_list[_getFirstLineOfInterest(line_list, pat)]
-            meta.append(float(_re.search(r'\d{1,3}\.\d{4,8}', meta_line).group()))
+
+            line_index = _getFirstLineOfInterest(line_list, pat)
+            if line_index is not None:
+                meta_line = line_list[line_index]
+                meta.append(float(_re.search(r'\d{1,3}\.\d{4,8}', meta_line).group()))
+            else:
+                meta.append(_math.nan)
 
         info = _co.namedtuple('zInfo', ['pToVChief', 'pToVCentroid', 'rmsToChief',
                                         'rmsToCentroid', 'variance', 'strehl',
@@ -9797,14 +9802,26 @@ class PyZDDE(object):
         # Extract coefficients
         start_line_pat = "Z\s+1\s+-?\d{1,3}\.\d{4,8}"
         start_line = _getFirstLineOfInterest(line_list, start_line_pat)
-        coeff_pat = _re.compile("-?\d{1,3}\.\d{4,8}")
-        zCoeffs = [0]*(line_list_len - start_line)
+        if start_line is not None:  # Zernikes obtained successfully
+            coeff_pat = _re.compile("-?\d{1,3}\.\d{4,8}")
+            zCoeffs = [0] * (line_list_len - start_line)
 
-        for i, line in enumerate(line_list[start_line:]):
-            zCoeffs[i] = float(_re.findall(coeff_pat, line)[0])
+            for i, line in enumerate(line_list[start_line:]):
+                zCoeffs[i] = float(_re.findall(coeff_pat, line)[0])
 
-        zCoeffId = _co.namedtuple('zCoeff',
-                    ['Z{}'.format(i+1) for i in range(line_list_len - start_line)])
+            zCoeffId = _co.namedtuple('zCoeff', ['Z{}'.format(i + 1) for i in range(line_list_len - start_line)])
+
+        else:  # Zernikes were not obtained
+            # Return maximum amount of zernike coefficients, filled with NaN
+            if which.lower() == 'fringe':
+                maxZern = 37  # maximum for the fringe zernike coefficients
+            else:
+                maxZern = 231  # maximum for standard and annular zernike coefficients
+
+            zCoeffs = [_math.nan] * maxZern
+
+            zCoeffId = _co.namedtuple('zCoeff', ['Z{}'.format(i) for i in range(1, maxZern + 1)])
+
         zCoeff = zCoeffId(*zCoeffs)
 
         if not keepFile:
