@@ -5074,6 +5074,7 @@ class PyZDDE(object):
         zGetField()
         """
         if n:
+            # TODO update to handle zemax bug where the return expxted by zGetWave is returned  for all instances of zgetfield
             fd = _co.namedtuple('fieldData', ['xf', 'yf', 'wgt',
                                               'vdx', 'vdy',
                                               'vcx', 'vcy', 'van'])
