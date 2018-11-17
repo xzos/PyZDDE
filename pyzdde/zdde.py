@@ -12161,17 +12161,20 @@ def _getDecodedLineFromFile(fileObj):
         with fenc as f:
             for line in f:
                 decodedLine = line.decode(unicode_type)
+                decodedLine = _zfu.checkDecimalSeparators(decodedLine)
                 yield decodedLine.rstrip()
     else: # ascii
         with fileObj as f:
             for line in f:
                 if _global_pyver3: # ascii and Python 3.x
+                    line = _zfu.checkDecimalSeparators(line)
                     yield line.rstrip()
                 else:      # ascii and Python 2.x
                     try:
                         decodedLine = line.decode('raw-unicode-escape')
                     except:
                         decodedLine = line.decode('ascii', 'replace')
+                    decodedLine = _zfu.checkDecimalSeparators(decodedLine)
                     yield decodedLine.rstrip()
 
 def _readLinesFromFile(fileObj):
