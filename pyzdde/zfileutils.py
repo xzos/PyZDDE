@@ -888,7 +888,7 @@ def randomGridSagFile(mu=0, sigma=1, semidia=1, nx=201, ny=201, unitflag=0,
 
 
 def checkDecimalSeparators(string):
-    """Replaces all comma decimals sperators into points in the input string.
+    """Replaces all comma decimals separators into points in the input string.
 
     Parameters
     ----------
@@ -900,5 +900,5 @@ def checkDecimalSeparators(string):
     string: str
         The new string with the replaced decimal separators
     """
-    return _re.sub(r'((?<=\d)|(?<=\A)|(?<=-)),(?=\d)', r'.', string)
+    return _re.sub(r'((?<=\d)|(?<=\A)|(?<=-)|(?<=\s)),(?=\d)', r'.', string)
 
