@@ -900,5 +900,5 @@ def checkDecimalSeparators(string):
     string: str
         The new string with the replaced decimal separators
     """
-    return _re.sub(r'(?<=\d),(?=\d)', r'.', string)
+    return _re.sub(r'((?<=\d)|(?<=\A)|(?<=-)),(?=\d)', r'.', string)
 
