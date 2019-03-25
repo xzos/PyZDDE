@@ -6066,7 +6066,7 @@ class PyZDDE(object):
                 cmd = cmd+','+str(value)
             else:
                 raise ValueError('Invalid input, expecting float type code')
-        if code > 70:
+        if code in (71, 72, 73, 74, 75, 76):
             if arg2 != None:
                 cmd = cmd+","+str(arg2)
             else:
