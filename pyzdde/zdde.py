@@ -6065,7 +6065,7 @@ class PyZDDE(object):
             if not isinstance(value,str):
                 cmd = cmd+','+str(value)
             else:
-                raise ValueError('Invalid input, expecting float type code')
+                raise ValueError('Invalid input, expecting additional argument')
         if code in (71, 72, 73, 74, 75, 76):
             if arg2 != None:
                 cmd = cmd+","+str(arg2)
