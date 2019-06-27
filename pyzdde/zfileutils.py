@@ -17,6 +17,7 @@ import ctypes as _ctypes
 from struct import unpack as _unpack
 from struct import pack as _pack
 import math as _math
+import re as _re
 
 import pyzdde.config as _config
 _global_pyver3 = _config._global_pyver3
@@ -884,3 +885,20 @@ def randomGridSagFile(mu=0, sigma=1, semidia=1, nx=201, ny=201, unitflag=0,
                               delx, dely, unitflag, xdec, ydec, 
                               fname, comment, fext)
     return z, gridsagfile
+
+
+def checkDecimalSeparators(string):
+    """Replaces all comma decimals separators into points in the input string.
+
+    Parameters
+    ----------
+    string: str
+        The input string in which the separators are to be replaced
+
+    Returns
+    -------
+    string: str
+        The new string with the replaced decimal separators
+    """
+    return _re.sub(r'((?<=\d)|(?<=\A)|(?<=-)|(?<=\s)),(?=\d)', r'.', string)
+
