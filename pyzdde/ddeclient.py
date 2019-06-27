@@ -192,6 +192,10 @@ class CreateConversation(object):
         """Exceptional error is handled in zdde Init() method, so the exception
         must be re-raised"""
         global number_of_apps_communicating
+
+        if number_of_apps_communicating >= 2:
+            raise DDEError('Too many open communications')
+
         self.ddeServerName = appName
         try:
             self.ddec = DDEClient(self.ddeServerName, self.ddeClientName) # establish conversation
@@ -301,6 +305,10 @@ class DDEClient(object):
             raise DDEError("Unable to register with DDEML (err=%s)" % hex(res))
 
         hszServName = DDE.CreateStringHandle(self._idInst, service, CP_WINUNICODE)
+
+        if hszServName is None:
+            raise DDEError("Unable to get proper String Handle for Server")
+
         hszTopic = DDE.CreateStringHandle(self._idInst, topic, CP_WINUNICODE)
         # Try to establish conversation with the Zemax server
         self._hConv = DDE.Connect(self._idInst, hszServName, hszTopic, PCONVCONTEXT())

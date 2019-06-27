@@ -5074,25 +5074,39 @@ class PyZDDE(object):
         zGetField()
         """
         if n:
-            fd = _co.namedtuple('fieldData', ['xf', 'yf', 'wgt',
-                                              'vdx', 'vdy',
-                                              'vcx', 'vcy', 'van'])
             arg3 = 1.0 if arg3 is None else arg3 # default weight
             cmd = ("SetField,{:d},{:1.20g},{:1.20g},{:1.20g},{:1.20g},{:1.20g}"
                    ",{:1.20g},{:1.20g},{:1.20g}"
                    .format(n, arg1, arg2, arg3, vdx, vdy, vcx, vcy, van))
+
+            reply = self._sendDDEcommand(cmd)
+            rs = reply.split(',')
+
+            if len(rs) == 2:  # The behaviour with the Zemax bug
+                fieldData = self.zGetField(n)
+
+            else:  # the expected behaviour, which is also expected to return
+                fd = _co.namedtuple('fieldData', ['xf', 'yf', 'wgt',
+                                                  'vdx', 'vdy',
+                                                  'vcx', 'vcy', 'van'])
+
+                fieldData = fd._make([float(elem) for elem in rs])
+
         else:
-            fd = _co.namedtuple('fieldData', ['type', 'numFields',
-                                              'maxX', 'maxY', 'normMethod'])
-            arg3 = 0 if arg3 is None else arg3 # default normalization
+            arg3 = 0 if arg3 is None else arg3  # default normalization
             cmd = ("SetField,{:d},{:d},{:d},{:d}".format(0, arg1, arg2, arg3))
-        reply = self._sendDDEcommand(cmd)
-        rs = reply.split(',')
-        if n:
-            fieldData = fd._make([float(elem) for elem in rs])
-        else:
-            fieldData = fd._make([int(elem) if (i==0 or i==1 or i==4)
-                                 else float(elem) for i, elem in enumerate(rs)])
+            reply = self._sendDDEcommand(cmd)
+            rs = reply.split(',')
+
+            if len(rs) == 2:  # The behaviour with the Zemax bug
+                fieldData = self.zGetField(n)
+
+            else:  # the expected behaviour, which is also expected to return
+                fd = _co.namedtuple('fieldData', ['type', 'numFields',
+                                                  'maxX', 'maxY', 'normMethod'])
+                fieldData = fd._make([int(elem) if (i == 0 or i == 1 or i == 4)
+                                      else float(elem) for i, elem in enumerate(rs)])
+
         return fieldData
 
     def zSetFloat(self):
