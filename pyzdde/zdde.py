@@ -8480,6 +8480,234 @@ class PyZDDE(object):
                                            field, imgDelta, dtype)
             return dst
 
+
+    def zGetWfm(self, settingsFile=None, txtFile=None,
+                keepFile=False, timeout=120):
+        """Returns Wavefront Map
+        Parameters
+        ----------
+        settingsFile : string, optional
+            * if passed, the Wavefront map analysis will be called with
+              the given configuration file (settings);
+            * if no ``settingsFile`` is passed, and config file ending
+              with the same name as the lens-file post-fixed with
+              "_pyzdde_WFM.CFG" is present, the
+              settings from this file will be used;
+            * if no ``settingsFile`` and no file-name post-fixed with
+              "_pyzdde_WFM.CFG" is found, but
+              a config file with the same name as the lens file is present,
+              the settings from that file will be used;
+            * if no settings file is found, then a default settings will
+              be used
+        txtFile : string, optional
+            if passed, the WFM analysis text file will be named such.
+            Pass a specific txtFile if you want to dump the file into
+            a separate directory.
+        keepFile : bool, optional
+            if ``False`` (default), the WFM text file will be deleted
+            after use.
+            If ``True``, the file will persist. If ``keepFile`` is ``True``
+            but a ``txtFile`` is not passed, the WFM text file will be
+            saved in the same directory as the lens (provided the required
+            folder access permissions are available)
+        timeout : integer, optional
+            timeout in seconds.
+        Returns
+        -------
+        wfmInfo : named tuple
+            meta data about the WFM analysis data, such as data center
+            point, pupil grid sizes, exit pupil diameter in mm,
+            peak to valley and rms in waves
+        wfmGridData : 2D list
+            the two-dimensional list of the Wavefront map data
+        See Also
+        --------
+        zModifyWFMSettings(), zSetWFMSettings(),
+        """
+        anaType = 'Wfm'
+        settings = _txtAndSettingsToUse(self, txtFile, settingsFile, anaType)
+        textFileName, cfgFile, getTextFlag = settings
+        ret = self.zGetTextFile(textFileName, anaType, cfgFile, getTextFlag,
+                                timeout)
+        assert ret == 0
+        line_list = _readLinesFromFile(_openFile(textFileName))
+
+        # Meta data
+        pupil_grid_line = line_list[_getFirstLineOfInterest(line_list, 'Pupil grid size')]
+        pupil_grid_x, pupil_grid_y = [int(i) for i in _re.findall(r'\d{2,5}', pupil_grid_line)]
+        center_point_line = line_list[_getFirstLineOfInterest(line_list, 'Center point')]
+        center_point_x, center_point_y = [int(i) for i in _re.findall(r'\d{2,5}', center_point_line)]
+        exit_pupil_diameter_line= line_list[_getFirstLineOfInterest(line_list, 'Exit Pupil Diameter')]
+        exit_pupil_diameter= float(_re.search('-?\d\.\d{4,10}[Ee][-\+]\d{2,3}', exit_pupil_diameter_line).group())
+        peak_to_valley_line= line_list[_getFirstLineOfInterest(line_list, 'Peak to valley')]
+        peak_to_valley, rms= [float(i) for i in _re.findall(r'\d{1,5}\.\d{2,6}', peak_to_valley_line)]
+
+
+        # The 2D data
+        pat = (r'(-?\d\.\d{4,6}[Ee][-\+]\d{2,3}\s*)' + r'{{{num}}}'
+               .format(num=pupil_grid_x))
+        start_line = _getFirstLineOfInterest(line_list, pat)
+        wfmGridData = _get2DList(line_list, start_line, pupil_grid_y)
+
+        wfmi = _co.namedtuple('WFMinfo', ['pupilGridX', 'pupilGridY',
+                                          'centerPtX', 'centerPtY',
+                                          'exitPupilDiameter',
+                                          'peakToValley', 'rms'])
+        wfmInfo = wfmi(pupil_grid_x, pupil_grid_y,
+                       center_point_x, center_point_y,
+                       exit_pupil_diameter, peak_to_valley, rms)
+
+        if not keepFile:
+            _deleteFile(textFileName)
+        return (wfmInfo, wfmGridData)
+
+
+    def zModifyWFMSettings(self, settingsFile, pupilSample=None,
+                           wave=None, field=None,
+                           subapertureRadius=None,
+                           subapertureXDecenter=None,
+                           subapertureYDecenter=None):
+        """Modify an existing WFM analysis settings (configuration)
+        file
+
+        Only those parameters that are non-None will be set.
+
+        Parameters
+        ----------
+        settingsFile : string
+            filename of the settings file including path and extension
+        pupilSample : integer, optional
+            the pupil sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128;
+            4 = 256x256; 5 = 512x512; 6 = 1024x1024; 7 = 2048x2048;
+            8 = 4096x4096; 9 = 8192x8192; 10 = 16384x16384;
+        wave : integer, optional
+            the wavelength number
+        field : integer, optional
+            the field number
+        subapertureRadius : float, optional
+            the subaperture radius
+        subapertureXDecenter : float, optional
+            the subaperture x decenter
+        subapertureYDecenter : float, optional
+            the subaperture y decenter
+        Returns
+        -------
+        statusTuple : tuple or -1
+            tuple of codes returned by ``zModifySettings()`` for each
+            non-None parameters. The status codes are as follows:
+            0 = no error;
+            -1 = invalid file;
+            -2 = incorrect version number;
+            -3 = file access conflict
+
+            The function returns -1 if ``settingsFile`` is invalid.
+
+        See Also
+        --------
+        zSetWFMSettings(), zGetWFM()
+        """
+        sTuple = []  # status tuple
+        if (_os.path.isfile(settingsFile) and settingsFile.lower().endswith('.cfg')):
+            dst = settingsFile
+        else:
+            return -1
+        if pupilSample is not None:
+            sTuple.append(self.zModifySettings(dst, "WFM_SAMP", pupilSample))
+        if wave is not None:
+            sTuple.append(self.zModifySettings(dst, "WFM_WAVE", wave))
+        if field is not None:
+            sTuple.append(self.zModifySettings(dst, "WFM_FIELD", field))
+        if subapertureRadius is not None:
+            sTuple.append(self.zModifySettings(dst, "WFM_SUBSR",
+                                               subapertureRadius))
+        if subapertureXDecenter is not None:
+            sTuple.append(self.zModifySettings(dst, "WFM_SUBSX",
+                                               subapertureXDecenter))
+        if subapertureYDecenter is not None:
+            sTuple.append(self.zModifySettings(dst, "WFM_SUBSY",
+                                               subapertureYDecenter))
+        return tuple(sTuple)
+
+
+    def zSetWFMSettings(self, settingsFile=None, pupilSample=None,
+                        wave=None, field=None,
+                        subapertureRadius=None,
+                        subapertureXDecenter=None,
+                        subapertureYDecenter=None):
+        """create and set a new WFM analysis settings file starting
+        from the "reset" settings state of the most basic lens in Zemax
+
+        To modify an existing WFM settings file, use
+        ``zModifyWFMSettings()``. Only those parameters that are
+        non-None will be set
+
+        Parameters
+        ----------
+        settingsFile : string, optional
+            name to give to the settings file to be created. It must be
+            the full file name, including path and extension of the
+            settings file.
+            If ``None``, then a CFG file with the name of the lens
+            followed by the string '_pyzdde_WFM.CFG' will be
+            created in the same directory as the lens file and returned
+        pupilSample : integer, optional
+            the pupil sampling. 1 = 32x32; 2 = 64x64; 3 = 128x128;
+            4 = 256x256; 5 = 512x512; 6 = 1024x1024; 7 = 2048x2048;
+            8 = 4096x4096; 9 = 8192x8192; 10 = 16384x16384;
+        wave : integer, optional
+            the wavelength number, use 0 for polychromatic
+        field : integer, optional
+            the field number
+        subapertureRadius : float, optional
+            the subaperture radius
+        subapertureXDecenter : float, optional
+            the subaperture x decenter
+        subapertureYDecenter : float, optional
+            the subaperture y decenter
+
+        Returns
+        -------
+        settingsFile : string
+            the full name, including path and extension, of the just
+            created settings file
+
+        Notes
+        -----
+        1. Further modifications of the settings file can be made using
+           ``zModifySettings()`` or ``zModifyWFMSettings()``
+           functions
+        2. The function creates settings file ending with
+           '_pyzdde_WFM.CFG' in order to prevent overwritting any
+           existing settings file not created by pyzdde for WFM
+           analysis.
+           This file eventually gets deleted when ``ln.close()`` or
+           ``pyz.closeLink()`` or ``ln.zDDEClose()`` is called.
+
+        See Also
+        --------
+        zGetPSF(), zModifyHuygensPSFSettings()
+        """
+        clean_cfg = 'RESET_SETTINGS_WFM.CFG'
+        src = _os.path.join(_pDir, 'ZMXFILES', clean_cfg)
+        if settingsFile:
+            dst = settingsFile
+        else:
+            filename_partial = _os.path.splitext(self.zGetFile())[0]
+            dst = filename_partial + '_pyzdde_WFM.CFG'
+            self._filesCreated.add(dst)
+        try:
+            _shutil.copy(src, dst)
+        except IOError:
+            print("ERROR: Invalid settingsFile {}".format(dst))
+            return
+        else:
+            self.zModifyWFMSettings(dst, pupilSample, wave, field,
+                                    subapertureRadius,
+                                    subapertureXDecenter,
+                                    subapertureYDecenter)
+            return dst
+
+
     def zGetMTF(self, which='fft', settingsFile=None, txtFile=None,
                 keepFile=False, timeout=120):
         """Returns FFT or Huygens MTF data
@@ -12390,6 +12618,7 @@ def _txtAndSettingsToUse(self, txtFile, settingsFile, anaType):
                     'Zst':'zernikeStandardAnalysisFile.txt', # Zernike Standard coefficients
                     'Zat':'zernikeAnnularAnalysisFile.txt',  # Zernike Annular coefficients
                     'Dvw':'detectorViewerFile.txt',  # NSC detector viewer         
+                    'Wfm':'WfmAnalysisFile.txt', # Wavefront map
                     }
 
     anaCfgDict  = {'Pop':'_pyzdde_POP.CFG',
@@ -12406,6 +12635,7 @@ def _txtAndSettingsToUse(self, txtFile, settingsFile, anaType):
                    'Zst':'_pyzdde_ZST.CFG',  # is not supported of Aberration
                    'Zat':'_pyzdde_ZAT.CFG',  # coefficients by Zemax extensions
                    'Dvw':'_pyzdde_DVW.CFG',  # NSC detector viewer
+                   'Wfm':'_pyzdde_WFM.CFG',  # Wavefront map
                    }
     assert txtFileDict.keys() == anaCfgDict.keys(), \
            "Dicts don't have matching keys" # for code integrity
