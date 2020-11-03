@@ -667,9 +667,9 @@ def readDetectorViewerTextFile(pyz, textFileName, displayData=False):
     peakIrr, totPow = None, None 
     peakIrrLineNum = pyz._getFirstLineOfInterest(line_list, 'Peak\sIrradiance')
     if peakIrrLineNum:
-        peakIrr = float(pyz._re.search(r'\d{1,4}\.\d{3,8}[Ee][-\+]\d{3}', 
+        peakIrr = float(pyz._re.search(r'\d{1,4}\.\d{1,8}[Ee][-\+]\d{3}', 
                                        line_list[peakIrrLineNum]).group())
-        totPow = float(pyz._re.search(r'\d{1,4}\.\d{3,8}[Ee][-\+]\d{3}', 
+        totPow = float(pyz._re.search(r'\d{1,4}\.\d{1,8}[Ee][-\+]\d{3}', 
                                       line_list[peakIrrLineNum + 1]).group())
 
     # section of text starting with 'Smoothing' (common to all)
