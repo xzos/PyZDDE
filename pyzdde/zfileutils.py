@@ -17,7 +17,6 @@ import ctypes as _ctypes
 from struct import unpack as _unpack
 from struct import pack as _pack
 import math as _math
-import re as _re
 
 import pyzdde.config as _config
 _global_pyver3 = _config._global_pyver3
@@ -655,11 +654,22 @@ def readDetectorViewerTextFile(pyz, textFileName, displayData=False):
     detNumSurfNum = line_list[pyz._getFirstLineOfInterest(line_list, detNumSurfNumPat)]
     detNum = int(pyz._re.search(r'\d{1,4}', detNumSurfNum.split(',')[0]).group())
     nscgSurfNum = int(pyz._re.search(r'\d{1,4}', detNumSurfNum.split(',')[1]).group())
-    sizePixelsHitsPat = r'Size[0-9a-zA-Z\s\,\.]*Pixels[0-9a-zA-Z\s\,\.]*Total\sHits'
+    # sizePixelsHitsPat = r'Size[0-9a-zA-Z\s\,\.]*Pixels[0-9a-zA-Z\s\,\.]*Total\sHits'
+    # Above pattern won't work for angle space detectors
+    sizePixelsHitsPat = r'.*Total\sHits'  # Change to also allow angle space
     sizePixelsHits = line_list[pyz._getFirstLineOfInterest(line_list, sizePixelsHitsPat)]
-    sizeinfo, pixelsinfo , hitsinfo =  sizePixelsHits.split(',')
-    #note: width<-->rows<-->xPix;; height<-->cols<-->yPix 
-    width, height = [float(each) for each in pyz._re.findall(r'\d{1,4}\.\d{1,8}', sizeinfo)]
+    detector_position = True        # Generally in position space but...
+    if 'deg' in sizePixelsHits:     # ...if in angle space...
+        detector_position = False   # ...not in position space.
+    if detector_position:           # As usual if position_space...
+        sizeinfo, pixelsinfo , hitsinfo = sizePixelsHits.split(',')
+        width, height = [float(each) for each in pyz._re.findall(r'\d{1,4}\.\d{1,8}', sizeinfo)]
+    else:                           # ...but if in angle_space...
+        sizeinfox, sizeinfoy, pixelsinfo, hitsinfo = sizePixelsHits.split(',')  # ...needs another variable
+        wi, wf = [float(each) for each in pyz._re.findall(r'[-]?\d{1,4}\.\d{1,8}', sizeinfox)]  # 2 numbers here
+        hi, hf = [float(each) for each in pyz._re.findall(r'[-]?\d{1,4}\.\d{1,8}', sizeinfoy)]  # 2 numbers here
+        width, height = (wi, wf), (hi, hf)  # Store as before, now tuples of floats instead of floats.
+    #note: width<-->rows<-->xPix;; height<-->cols<-->yPix
     xPix, yPix =  [int(each) for each in pyz._re.findall(r'\d{1,6}', pixelsinfo)]
     totHits = int(pyz._re.search(r'\d{1,10}', hitsinfo).group())
 
@@ -667,9 +677,9 @@ def readDetectorViewerTextFile(pyz, textFileName, displayData=False):
     peakIrr, totPow = None, None 
     peakIrrLineNum = pyz._getFirstLineOfInterest(line_list, 'Peak\sIrradiance')
     if peakIrrLineNum:
-        peakIrr = float(pyz._re.search(r'\d{1,4}\.\d{3,8}[Ee][-\+]\d{3}', 
+        peakIrr = float(pyz._re.search(r'\d{1,4}\.\d{3,8}[Ee][-\+]\d{2,3}',
                                        line_list[peakIrrLineNum]).group())
-        totPow = float(pyz._re.search(r'\d{1,4}\.\d{3,8}[Ee][-\+]\d{3}', 
+        totPow = float(pyz._re.search(r'\d{1,4}\.\d{3,8}[Ee][-\+]\d{2,3}',
                                       line_list[peakIrrLineNum + 1]).group())
 
     # section of text starting with 'Smoothing' (common to all)
@@ -718,7 +728,7 @@ def readDetectorViewerTextFile(pyz, textFileName, displayData=False):
         # note: it is still possible to 1d data here if `showAsRowCol` was corrupted
         rowOrCol, rowColNum, rowColVal = None, None, None # meta-data not available for 2D data
         if displayData:
-            dataPat = (r'\s*\d{1,4}\s*(-?\d{1,4}\.\d{3,8}([Ee][-\+]\d{3,8})*\s*)' 
+            dataPat = (r'\s*\d{1,4}\s*(-?\d{1,4}\.\d{3,8}([Ee][-\+]\d{2,8})*\s*)'
                        + r'{{{num}}}'.format(num=xPix))
             start_line = pyz._getFirstLineOfInterest(line_list, dataPat)
             gridData = pyz._get2DList(line_list, start_line, yPix, startCol=1)
@@ -885,20 +895,3 @@ def randomGridSagFile(mu=0, sigma=1, semidia=1, nx=201, ny=201, unitflag=0,
                               delx, dely, unitflag, xdec, ydec, 
                               fname, comment, fext)
     return z, gridsagfile
-
-
-def checkDecimalSeparators(string):
-    """Replaces all comma decimals separators into points in the input string.
-
-    Parameters
-    ----------
-    string: str
-        The input string in which the separators are to be replaced
-
-    Returns
-    -------
-    string: str
-        The new string with the replaced decimal separators
-    """
-    return _re.sub(r'((?<=\d)|(?<=\A)|(?<=-)|(?<=\s)),(?=\d)', r'.', string)
-
