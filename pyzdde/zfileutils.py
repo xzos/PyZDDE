@@ -657,7 +657,8 @@ def readDetectorViewerTextFile(pyz, textFileName, displayData=False):
     # sizePixelsHitsPat = r'Size[0-9a-zA-Z\s\,\.]*Pixels[0-9a-zA-Z\s\,\.]*Total\sHits'
     # Above pattern won't work for angle space detectors
     sizePixelsHitsPat = r'.*Total\sHits'  # Change to also allow angle space
-    sizePixelsHits = line_list[pyz._getFirstLineOfInterest(line_list, sizePixelsHitsPat)]
+    totalHitsLineNum = pyz._getFirstLineOfInterest(line_list, sizePixelsHitsPat)
+    sizePixelsHits = line_list[totalHitsLineNum]
     detector_position = True        # Generally in position space but...
     if 'deg' in sizePixelsHits:     # ...if in angle space...
         detector_position = False   # ...not in position space.
@@ -674,27 +675,29 @@ def readDetectorViewerTextFile(pyz, textFileName, displayData=False):
     totHits = int(pyz._re.search(r'\d{1,10}', hitsinfo).group())
 
     #peak irradiance and total power. only present for irradiance types
-    peakIrr, totPow = None, None 
-    peakIrrLineNum = pyz._getFirstLineOfInterest(line_list, 'Peak\sIrradiance')
-    if peakIrrLineNum:
+    peakIrr, totPow = None, None
+    #peakIrrLineNum = pyz._getFirstLineOfInterest(line_list, 'Peak\sIrradiance')
+    # Attention: peakIrr breaks when using radiance -> using totalHits as reference
+    if totalHitsLineNum:
         peakIrr = float(pyz._re.search(r'\d{1,4}\.\d{3,8}[Ee][-\+]\d{2,3}',
-                                       line_list[peakIrrLineNum]).group())
+                                       line_list[totalHitsLineNum + 2]).group())
         totPow = float(pyz._re.search(r'\d{1,4}\.\d{3,8}[Ee][-\+]\d{2,3}',
-                                      line_list[peakIrrLineNum + 1]).group())
+                                      line_list[totalHitsLineNum + 3]).group())
 
     # section of text starting with 'Smoothing' (common to all)
     smoothLineNum = pyz._getFirstLineOfInterest(line_list, 'Smoothing')
     smooth = line_list[smoothLineNum].split(':')[1].strip()
     smooth = 0 if smooth == 'None' else int(smooth)
-    dType = line_list[smoothLineNum + 1].split(':')[1].strip()
-    posX = float(line_list[smoothLineNum + 2].split(':')[1].strip()) # 'Detector X'
-    posY = float(line_list[smoothLineNum + 3].split(':')[1].strip()) # 'Detector Y'
-    posZ = float(line_list[smoothLineNum + 4].split(':')[1].strip()) # 'Detector Z'
-    tiltX = float(line_list[smoothLineNum + 5].split(':')[1].strip())
-    tiltY = float(line_list[smoothLineNum + 6].split(':')[1].strip())
-    tiltZ = float(line_list[smoothLineNum + 7].split(':')[1].strip())
-    posUnits = line_list[smoothLineNum + 8].split(':')[1].strip()
-    units =  line_list[smoothLineNum + 9].split(':')[1].strip()
+    dtypeLineNum = pyz._getFirstLineOfInterest(line_list, 'Data Type')
+    dType = line_list[dtypeLineNum].split(':')[1].strip()
+    posX = float(line_list[dtypeLineNum + 1].split(':')[1].strip()) # 'Detector X'
+    posY = float(line_list[dtypeLineNum + 2].split(':')[1].strip()) # 'Detector Y'
+    posZ = float(line_list[dtypeLineNum + 3].split(':')[1].strip()) # 'Detector Z'
+    tiltX = float(line_list[dtypeLineNum + 4].split(':')[1].strip())
+    tiltY = float(line_list[dtypeLineNum + 5].split(':')[1].strip())
+    tiltZ = float(line_list[dtypeLineNum + 6].split(':')[1].strip())
+    posUnits = line_list[dtypeLineNum + 7].split(':')[1].strip()
+    units =  line_list[dtypeLineNum + 8].split(':')[1].strip()
 
     # determine "showAs" type 
     rowPat = r'Row\s[0-9A-Za-z]*,\s*Y'
